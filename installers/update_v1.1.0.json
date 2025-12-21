@@ -1,0 +1,43 @@
+{
+  "version": "1.1.0.0",
+  "downloadUrl": "https://your-server.com/downloads/大诚重命名工具_v1.1.0_安装包.exe",
+  "releaseNotes": "大诚重命名工具 v1.1.0 更新内容：\n\n🔧 修复内容：\n• 修复了材料选择框UI显示问题\n• 优化了性能监控表单界面\n• 改进了错误处理机制\n• 修复了安装包中空文件引用问题\n\n✨ 新增功能：\n• 添加了完整的自动更新功能\n• 支持进度显示和文件完整性验证\n• 优化了安装包的用户体验\n\n🐛 问题修复：\n• 解决了SavedGrids文件夹引用错误\n• 改进了.NET Framework检测逻辑\n• 优化了安装脚本稳定性",
+  "isMandatory": false,
+  "releaseDate": "2024-10-11T16:00:00Z",
+  "fileSize": 12400000,
+  "sha256Hash": "请在生成安装包后使用PowerShell计算实际哈希值",
+  "minSystemVersion": "6.1",
+  "compatibility": {
+    "os": ["Windows7", "Windows8", "Windows10", "Windows11"],
+    "architecture": ["x64", "x86"],
+    "dotnet": "4.8"
+  },
+  "changelog": [
+    {
+      "version": "1.1.0.0",
+      "date": "2024-10-11",
+      "changes": [
+        "修复了材料选择框UI显示问题",
+        "优化了性能监控表单界面",
+        "改进了错误处理机制",
+        "修复了安装包中空文件引用问题",
+        "添加了完整的自动更新功能",
+        "支持进度显示和文件完整性验证",
+        "优化了安装包的用户体验",
+        "解决了SavedGrids文件夹引用错误",
+        "改进了.NET Framework检测逻辑",
+        "优化了安装脚本稳定性"
+      ]
+    },
+    {
+      "version": "1.0.0.0",
+      "date": "2024-10-11",
+      "changes": [
+        "初始版本发布",
+        "基础重命名功能",
+        "材料选择功能",
+        "性能监控功能"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "LogLevel": "Debug",
+  "LogDirectory": "logs",
+  "LogFileNameFormat": "app_{0:yyyy-MM-dd}.log",
+  "MaxFileSizeBytes": 10485760,
+  "MaxRetainedFiles": 7,
+  "EnableConsoleLogging": true,
+  "LogFormat": "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level}] {Message}{NewLine}{Exception}",
+  "EnableSensitiveInfoEncryption": false,
+  "EncryptionKey": "87b94e5f-0a3d-41c2-b7bc-f18d6c4a9d82",
+  "LogBufferSize": 50
+}

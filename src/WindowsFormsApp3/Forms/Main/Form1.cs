@@ -2321,12 +2321,13 @@ namespace WindowsFormsApp3.Forms.Main
             {
                 var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
                 string versionInfo = $"大诚重命名工具\n\n版本: {version.Major}.{version.Minor}.{version.Build}\n\n" +
-                                   "V2.0.3 重大功能更新：\n" +
-                                   "• 完善重命名保留功能，完美解决返单文件需求\n" +
-                                   "• 优化分隔符作用，只在多项目之间智能添加\n" +
-                                   "• 数据匹配时自动提取原文件名正则结果用于匹配\n" +
-                                   "• 修复页面旋转逻辑，确保布局调整功能独立执行\n" +
-                                   "• 实现事件分组层级化管理，支持拖拽排序\n\n" +
+                                   "V2.2.0 更新内容：\n" +
+                                   "• 全新PDF预览功能，支持悬浮页码显示\n" +
+                                   "• 窗体延迟显示优化，内容与窗体同时呈现\n" +
+                                   "• 修复PDF预览初始化显示问题\n" +
+                                   "• 优化最佳适应缩放算法\n" +
+                                   "• 右键菜单添加最佳适应选项\n" +
+                                   "• 修复PDF文件占用问题\n\n" +
                                    "核心功能：\n" +
                                    "• 文件智能重命名 • Excel数据导入导出\n" +
                                    "• PDF尺寸识别处理 • 批量处理模式\n" +

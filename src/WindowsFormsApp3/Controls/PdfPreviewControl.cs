@@ -337,6 +337,14 @@ namespace WindowsFormsApp3.Controls
         {
             _pdfiumControl?.FitPage();
         }
+        
+        /// <summary>
+        /// 公共刷新方法（供外部调用以刷新PDF显示）
+        /// </summary>
+        public void ApplyBestFitZoomPublic()
+        {
+            _pdfiumControl?.ApplyBestFitZoomPublic();
+        }
 
         /// <summary>
         /// 显示/隐藏工具栏

@@ -3,6 +3,7 @@ using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 using PdfiumViewer;
+using WindowsFormsApp3.Utils;
 
 namespace WindowsFormsApp3.Controls
 {
@@ -143,8 +144,36 @@ namespace WindowsFormsApp3.Controls
             
             // 创建右键菜单
             var contextMenu = new ContextMenuStrip();
-            contextMenu.Items.Add("适应宽度", null, (s, e) => FitWidth());
-            contextMenu.Items.Add("适应高度", null, (s, e) => FitPage());
+            contextMenu.Items.Add("最佳适应", null, (s, e) => 
+            {
+                // 先重置Zoom值和ZoomMode，触发重新计算
+                _pdfViewer.Renderer.Zoom = 1.0;
+                _pdfViewer.ZoomMode = PdfViewerZoomMode.FitBest;
+                _pdfViewer.Renderer.Padding = new Padding(0);
+                ApplyBestFitZoomPublic();
+            });
+            contextMenu.Items.Add("适应宽度", null, (s, e) => 
+            {
+                // 先重置Zoom值，强制触发ZoomMode变更
+                _pdfViewer.Renderer.Zoom = 1.0;
+                _pdfViewer.ZoomMode = PdfViewerZoomMode.FitBest; // 先设置为其他模式
+                // 宽度适应需要底部Padding让最后一页可以滚动到顶部
+                int bottomPadding = (int)_pdfViewer.Renderer.Height - 50;
+                if (bottomPadding < 100) bottomPadding = 100;
+                _pdfViewer.Renderer.Padding = new Padding(0, 0, 0, bottomPadding);
+                _pdfViewer.ZoomMode = PdfViewerZoomMode.FitWidth;
+                _pdfViewer.Refresh();
+            });
+            contextMenu.Items.Add("适应高度", null, (s, e) => 
+            {
+                // 先重置Zoom值，强制触发ZoomMode变更
+                _pdfViewer.Renderer.Zoom = 1.0;
+                _pdfViewer.ZoomMode = PdfViewerZoomMode.FitBest; // 先设置为其他模式
+                // 高度适应不需要额外Padding
+                _pdfViewer.Renderer.Padding = new Padding(0);
+                _pdfViewer.ZoomMode = PdfViewerZoomMode.FitHeight;
+                _pdfViewer.Refresh();
+            });
             _pdfViewer.Renderer.ContextMenuStrip = contextMenu;
 
             this.Controls.Add(_pdfViewer);
@@ -239,6 +268,9 @@ namespace WindowsFormsApp3.Controls
                 float viewerWidth = _pdfViewer.Renderer.Width - scrollBarWidth; // 减去垂直滚动条宽度
                 float viewerHeight = _pdfViewer.Renderer.Height;
                 
+                // 调试输出（写入应用日志）
+                LogHelper.Debug($"[ApplyBestFitZoom] 页面尺寸: {pageWidth}x{pageHeight}, 控件尺寸: {viewerWidth}x{viewerHeight}, 页数: {_pdfDocument.PageCount}");
+                
                 if (viewerWidth <= 0 || viewerHeight <= 0)
                     return;
                 
@@ -311,6 +343,18 @@ namespace WindowsFormsApp3.Controls
             if (_pdfViewer != null)
             {
                 _pdfViewer.ZoomMode = PdfViewerZoomMode.FitHeight;
+            }
+        }
+        
+        /// <summary>
+        /// 公共刷新方法（供外部调用以刷新PDF显示）
+        /// </summary>
+        public void ApplyBestFitZoomPublic()
+        {
+            if (_pdfDocument != null && _pdfViewer != null)
+            {
+                ApplyBestFitZoom();
+                _pdfViewer.Refresh();
             }
         }
 

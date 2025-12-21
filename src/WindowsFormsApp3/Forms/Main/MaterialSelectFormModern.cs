@@ -2723,6 +2723,9 @@ namespace WindowsFormsApp3
         private void MaterialSelectFormModern_Load(object sender, EventArgs e)
         {
             LogHelper.Debug("MaterialSelectFormModern_Load事件被触发");
+            
+            // 延迟显示窗体：先设置透明，等PDF准备好后再恢复显示
+            this.Opacity = 0;
 
             // 使用API设置窗口透明度，确保文字不透明
             if (_opacityValue < 1.0)
@@ -2923,9 +2926,24 @@ namespace WindowsFormsApp3
             // 添加PDF预览检查，确保PDF能够自动加载
             this.BeginInvoke(new Action(async () =>
             {
-                await Task.Delay(200); // 等待窗体完全渲染
+                await Task.Delay(300); // 等待窗体完全渲染
                 await TryLoadPendingPdf();
                 LogHelper.Debug("[PDF 预览] Shown事件中检查PDF加载");
+                
+                // 额外刷新PDF预览控件
+                await Task.Delay(200);
+                if (_isPreviewExpanded && PdfPreview != null)
+                {
+                    PdfPreview.ApplyBestFitZoomPublic();
+                    LogHelper.Debug("[PDF 预览] Shown事件中额外刷新PDF预览");
+                }
+                
+                // 窗体内容准备好后，恢复显示
+                if (this.Opacity == 0)
+                {
+                    this.Opacity = _opacityValue > 0 ? _opacityValue : 1.0;
+                    LogHelper.Debug("[PDF 预览] 窗体内容准备完成，恢复显示");
+                }
             }));
         }
 
@@ -2936,6 +2954,10 @@ namespace WindowsFormsApp3
         {
             try
             {
+                // ✅ 关闭PDF预览，释放文件句柄
+                PdfPreview?.ClosePdf();
+                LogHelper.Debug("[MaterialSelectFormModern] 已关闭PDF预览，释放文件句柄");
+                
                 // 保存窗口位置和状态
                 WindowPositionManager.SaveWindowPosition(this, _isPreviewExpanded);
                 LogHelper.Debug($"[MaterialSelectFormModern] 保存窗口位置: Location={this.Location}, Size={this.Size}, PreviewExpanded={_isPreviewExpanded}");
@@ -6080,12 +6102,17 @@ namespace WindowsFormsApp3
                         LogHelper.Debug("[PDF 预览] 展开时调用TryLoadPendingPdf");
                     }
 
-                    // ✅ 展开后触发最优适应缩放
-                    if ((PdfPreview?.PageCount ?? 0) > 0)
+                    // ✅ 展开后触发最优适应缩放（延迟执行确保控件尺寸稳定）
+                    this.BeginInvoke(new Action(async () =>
                     {
-                        PdfPreview?.ApplyBestFit();
-                        LogHelper.Debug("[PDF 预览] 展开后应用最优适应缩放");
-                    }
+                        await Task.Delay(100); // 等待布局完成
+                        if ((PdfPreview?.PageCount ?? 0) > 0)
+                        {
+                            PdfPreview.GoToPage(1); // 导航到首页
+                            PdfPreview?.ApplyBestFitZoomPublic();
+                            LogHelper.Debug("[PDF 预览] 展开后应用最优适应缩放并导航到首页");
+                        }
+                    }));
                 }
                 else
                 {
