@@ -24,7 +24,13 @@ namespace WindowsFormsApp3
     {
         // 导出路径配置变更事件
         public event EventHandler ExportPathSettingsChanged;
-      /// <summary>
+        
+        /// <summary>
+        /// 设置保存完成事件
+        /// </summary>
+        public event EventHandler SettingsSaved;
+        
+        /// <summary>
         /// 将对象序列化为美观的JSON字符串，提高配置文件的可读性
         /// </summary>
         /// <param name="obj">要序列化的对象</param>
@@ -863,9 +869,44 @@ private void TreeViewEvents_PresetSaveAs(object sender, EventArgs e)
             }
         }
 
+
+
         /// <summary>
-        /// 保存分组配置状态
+        /// 滚动到指定的设置区域（用于导航跳转）
         /// </summary>
+        /// <param name="sectionKey">区域标识</param>
+        public void ScrollToSection(string sectionKey)
+        {
+            Control targetControl = null;
+            switch (sectionKey)
+            {
+                case "settings_regex":
+                    targetControl = dgvRegex;
+                    break;
+                case "settings_material":
+                    targetControl = grpImpositionSettings; 
+                    break;
+                case "settings_path":
+                    targetControl = grpExportPaths;
+                    break;
+                case "settings_general":
+                default:
+                    targetControl = this.Controls[0]; // 顶部
+                    break;
+            }
+
+            if (targetControl != null)
+            {
+                // 尝试滚动到控件
+                this.AutoScrollPosition = new Point(
+                    Math.Abs(this.AutoScrollPosition.X),
+                    targetControl.Top - 20 // 留出一点顶部边距
+                );
+                
+                // 高亮闪烁一下? (可选)
+                targetControl.Focus();
+            }
+        }
         private void SaveEventGroupConfigs()
         {
             try
@@ -1605,6 +1646,9 @@ private void TreeViewEvents_PresetSaveAs(object sender, EventArgs e)
             LogHelper.Debug("[SaveSettings] 设置已立即保存到文件");
 
             LogHelper.Debug("事件分组设置已保存（仅JSON格式）");
+            
+            // 触发设置保存事件
+            SettingsSaved?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -2764,8 +2808,10 @@ private void DgvExportPaths_CellEndEdit(object sender, DataGridViewCellEventArgs
                 }
                 AppSettings.Set("ExportPathCheckboxSettings", checkboxSettings);
                 AppSettings.Save();
-
-                LogHelper.Debug("保存导出路径和复选框设置完成");
+                LogHelper.Info("所有设置保存成功");
+                
+                // 触发设置保存事件
+                SettingsSaved?.Invoke(this, EventArgs.Empty);
             }
             catch (Exception ex)
             {

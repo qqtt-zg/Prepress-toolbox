@@ -18,6 +18,16 @@ namespace WindowsFormsApp3
     public partial class ExcelImportForm : Form
     {
         public DataTable ImportedData { get; private set; }
+        /// <summary>
+        /// 是否嵌入在面板中运行
+        /// </summary>
+        public bool IsEmbedded { get; set; } = false;
+
+        /// <summary>
+        /// 数据导入完成事件（嵌入模式下使用）
+        /// </summary>
+        public event EventHandler<DataTable> OnDataImported;
+
         public int SearchColumnIndex { get; private set; }
         /// <summary>
         /// 获取或设置数量列的索引
@@ -26,12 +36,18 @@ namespace WindowsFormsApp3
         public int ReturnColumnIndex { get; private set; }
         public int NewColumnIndex { get; private set; } // 序号列索引
         public string SelectedRegexPattern { get; private set; } // 选中的正则表达式模式
+
+        
+        // ...
+        
+
         private Dictionary<string, string> regexPatterns = new Dictionary<string, string>(); // 正则表达式模式集合
         private Form1 parentForm; // 引用父窗体
 
         // 添加缺失的属性
         public string CornerRadius { get; set; }
         public bool UsePdfLastPage { get; set; }
+
         public bool AddPdfLayers { get; set; }
 
         // 列组合相关属性
@@ -424,6 +440,13 @@ namespace WindowsFormsApp3
             _compositeColumnService.SaveCompositeColumnSettings(SelectedCompositeColumns, CompositeColumnSeparator);
             
             AppSettings.Save();
+
+            // 如果是嵌入模式，触发事件而不关闭
+            if (IsEmbedded)
+            {
+                OnDataImported?.Invoke(this, ImportedData);
+                return;
+            }
 
             DialogResult = DialogResult.OK;
             Close();

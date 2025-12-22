@@ -180,7 +180,7 @@ namespace WindowsFormsApp3.Forms.Main
                 InitializeDataGridView();
                 dgvFiles.Resize += DgvFiles_Resize;
                 cmbRegex.SelectedIndexChanged += cmbRegex_SelectedIndexChanged; // 绑定选择变化事件
-                RegisterHotkeys();
+                // RegisterHotkeys(); // 已注释，避免与MainShellForm冲突
                 
                 // 初始化Excel导入助手
                 _excelImportHelper = new ExcelImportHelper(this);
