@@ -51,6 +51,8 @@ namespace WindowsFormsApp3.Forms.Main
             SendMessage(this.Handle, WM_SYSCOMMAND, SC_MOVE + HTCAPTION, 0);
         }
 
+
+
         protected override void WndProc(ref Message m)
         {
             base.WndProc(ref m);
@@ -84,6 +86,12 @@ namespace WindowsFormsApp3.Forms.Main
         #endregion
 
         #region Window Control Events
+        private void HeaderPanel_MouseDown(object sender, MouseEventArgs e)
+        {
+            ReleaseCapture();
+            SendMessage(this.Handle, WM_SYSCOMMAND, SC_MOVE + HTCAPTION, 0);
+        }
+
         private void BtnMin_Click(object sender, EventArgs e)
         {
             this.WindowState = FormWindowState.Minimized;
@@ -107,34 +115,49 @@ namespace WindowsFormsApp3.Forms.Main
             bool isCollapsed = !navMenu.Collapsed;
             navMenu.Collapsed = isCollapsed;
             
-            // 同步底部菜单的折叠状态
-            if (bottomNavMenu != null)
-            {
-                bottomNavMenu.Collapsed = isCollapsed;
-            }
+            // 同步底部菜单的折叠状态 - 已移除，合并到主菜单
+
             
             if (isCollapsed)
             {
                 mainContainer.SplitterDistance = 50;
                 titleLabel.Visible = false;
+                versionLabel.Visible = false;
                 btnCollapse.IconSvg = "MenuUnfoldOutlined";
             }
             else
             {
-                mainContainer.SplitterDistance = 140;
+                mainContainer.SplitterDistance = 170;
                 titleLabel.Visible = true;
+                versionLabel.Visible = true;
                 btnCollapse.IconSvg = "MenuFoldOutlined";
             }
+            
+            // 每次折叠状态改变后重新布局（虽然折叠时隐藏了，但展开时需要重新计算位置以防万一）
+
         }
+
+
         #endregion
         
-        // 底部导航菜单
-        private AntdUI.Menu bottomNavMenu;
+        // 底部导航菜单 - 已合并到主菜单
+
 
         public MainShellForm()
         {
             InitializeComponent();
+            
+            // 显示版本号
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            if (version != null)
+            {
+                versionLabel.Text = $"v{version.Major}.{version.Minor}.{version.Build}";
+            }
+
+
+
             InitializeMenuItems(); 
+ 
             // 设置菜单直角高亮
             navMenu.Radius = 0;
             // 设置高亮背景色（更柔和的深灰蓝）
@@ -156,95 +179,14 @@ namespace WindowsFormsApp3.Forms.Main
             // 默认显示文件重命名面板
             SwitchToPanel("rename");
             
-            InitializeBottomMenu();
+            // InitializeBottomMenu(); // 已合并到InitializeMenuItems
+
         }
         
         /// <summary>
         /// 初始化底部菜单按钮 - 使用独立的Menu控件以保持样式完全一致
         /// </summary>
-        private void InitializeBottomMenu()
-        {
-            try 
-            {
-                // 创建底部菜单控件
-                bottomNavMenu = new AntdUI.Menu
-                {
-                    Dock = DockStyle.Bottom,
-                    Height = 92, // 两个菜单项的高度 (46 * 2)
-                    BackColor = Color.FromArgb(36, 41, 46), // 与主导航栏背景一致
-                    ForeColor = Color.FromArgb(200, 200, 200),
-                    Indent = true, // 保持缩进一致
-                    Collapsed = navMenu.Collapsed, // 初始折叠状态同步
-                    AutoCollapse = true, // 允许自动折叠逻辑
-                    Radius = 0, // 直角高亮
-                    BackActive = Color.FromArgb(66, 72, 78) // 自定义高亮颜色
-                };
 
-                // 1. 设置 (移到这里)
-                bottomNavMenu.Items.Add(new AntdUI.MenuItem
-                {
-                    Text = "设置",
-                    IconSvg = "SettingOutlined",
-                    Tag = "settings"
-                });
-
-                // 2. 菜单按钮
-                var menuItem = new AntdUI.MenuItem
-                {
-                    Text = "菜单",
-                    IconSvg = "MenuOutlined",
-                    Tag = "bottom_menu_root"
-                };
-                bottomNavMenu.Items.Add(menuItem);
-                
-                // 创建右键菜单
-                var contextMenu = new ContextMenuStrip();
-                
-                // 关于
-                var aboutItem = new ToolStripMenuItem("关于");
-                aboutItem.Click += (s, e) => ShowAboutDialog();
-                contextMenu.Items.Add(aboutItem);
-                
-                contextMenu.Items.Add(new ToolStripSeparator());
-                
-                // 退出
-                var exitItem = new ToolStripMenuItem("退出");
-                exitItem.Click += (s, e) => ExitApplication();
-                contextMenu.Items.Add(exitItem);
-                
-                // 绑定选择事件
-                bottomNavMenu.SelectChanged += (s, e) => 
-                {
-                    if (e.Value == null || e.Value.Tag == null) return;
-                    
-                    // 互斥逻辑：选中底部菜单时，取消选中主菜单
-                    if (navMenu != null) navMenu.SelectIndex(-1);
-                    
-                    string tag = e.Value.Tag.ToString();
-                    
-                    if (tag == "settings")
-                    {
-                        SwitchToPanel("settings");
-                    }
-                    else if (tag == "bottom_menu_root")
-                    {
-                        // 获取菜单控件在屏幕上的位置
-                        var screenPoint = bottomNavMenu.PointToScreen(new Point(0, 0));
-                        // 菜单显示在控件上方 (注意现在高度变了，但我们想在最底部显示)
-                        // 获取最后一项的位置或者直接在控件底部显示
-                        contextMenu.Show(screenPoint.X + 10, screenPoint.Y + bottomNavMenu.Height - 46 - contextMenu.Height);
-                    }
-                };
-
-                // 将底部菜单添加到导航容器
-                this.mainContainer.Panel1.Controls.Add(bottomNavMenu);
-                bottomNavMenu.BringToFront();
-            }
-            catch (Exception ex)
-            {
-                LogHelper.Error($"初始化底部菜单失败: {ex.Message}");
-            }
-        }
 
         private void ShowAboutDialog()
         {
@@ -274,10 +216,39 @@ namespace WindowsFormsApp3.Forms.Main
 
             navMenu.Items.Add(new AntdUI.MenuItem 
             { 
+                Text = "数据库", 
+                IconSvg = "DatabaseOutlined", 
+                Tag = "database" 
+            });
+
+            navMenu.Items.Add(new AntdUI.MenuItem 
+            { 
                 Text = "Excel导入", 
                 IconSvg = "FileExcelOutlined", 
                 Tag = "excel" 
             });
+
+            // 4. 设置
+            navMenu.Items.Add(new AntdUI.MenuItem
+            {
+                Text = "设置",
+                IconSvg = "SettingOutlined",
+                Tag = "settings"
+            });
+
+            // 5. 菜单 (包含子项)
+            var menuRoot = new AntdUI.MenuItem
+            {
+                Text = "菜单",
+                IconSvg = "MoreOutlined",
+                Tag = "menu_root"
+            };
+
+            // 使用 Sub 属性添加子菜单
+            menuRoot.Sub.Add(new AntdUI.MenuItem { Text = "关于", Tag = "about" });
+            menuRoot.Sub.Add(new AntdUI.MenuItem { Text = "退出", Tag = "exit" });
+
+            navMenu.Items.Add(menuRoot);
 
             // 绑定事件 (放在代码中以避免设计器自动移除)
             navMenu.SelectChanged += NavMenu_SelectChanged;
@@ -375,11 +346,22 @@ namespace WindowsFormsApp3.Forms.Main
             
             string key = e.Value.Tag.ToString();
             
-            // 忽略根节点点击（如果有子菜单）
-            if (key == "settings_root") return;
 
-            // 互斥逻辑：选中主菜单时，取消选中底部菜单
-            if (bottomNavMenu != null) bottomNavMenu.SelectIndex(-1);
+            // 忽略父节点点击
+            if (key == "settings_root" || key == "menu_root") return;
+
+            if (key == "about")
+            {
+                ShowAboutDialog();
+                // 恢复之前的选择（可选）或者不处理
+                return;
+            }
+            
+            if (key == "exit")
+            {
+                ExitApplication();
+                return;
+            }
 
             SwitchToPanel(key);
         }
@@ -485,6 +467,9 @@ namespace WindowsFormsApp3.Forms.Main
             {
                 case "rename":
                     return new WindowsFormsApp3.Forms.Panels.FileRenamePanel();
+                    
+                case "database":
+                    return new WindowsFormsApp3.Forms.Panels.DatabasePanel();
                     
                 case "excel": 
                     var excelPanel = new WindowsFormsApp3.Forms.Panels.ExcelImportPanel();

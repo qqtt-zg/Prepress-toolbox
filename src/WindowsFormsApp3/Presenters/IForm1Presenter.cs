@@ -19,11 +19,6 @@ namespace WindowsFormsApp3.Presenters
         void Initialize();
 
         /// <summary>
-        /// 处理批量处理事件
-        /// </summary>
-        void HandleBatchProcess();
-
-        /// <summary>
         /// 处理即时重命名切换事件
         /// </summary>
         void HandleImmediateRenameToggle();
@@ -160,11 +155,6 @@ namespace WindowsFormsApp3.Presenters
         /// 处理重命名按钮点击事件
         /// </summary>
         void HandleRenameClick();
-        
-        /// <summary>
-        /// 处理批量处理按钮点击事件
-        /// </summary>
-        void HandleBatchProcessClick();
         
         /// <summary>
         /// 处理选择输入目录按钮点击事件

@@ -7,9 +7,7 @@ namespace WindowsFormsApp3.Forms.Panels
 {
     public partial class SettingsPanel : BasePanelControl
     {
-        private AntdUI.Tabs tabsMain;
-        
-        // Tab controls
+        // Tab controls - 延迟初始化
         private SettingsGeneralControl settingsGeneral;
         private SettingsRegexControl settingsRegex;
         private SettingsMaterialControl settingsMaterial;
@@ -28,25 +26,17 @@ namespace WindowsFormsApp3.Forms.Panels
 
         protected override void InitializePanel()
         {
-             base.InitializePanel();
-             // Logic moved to InitializeComponent mostly, or lazy load here.
-             // But AntdUI tabs should be setup.
-             // We will initialize tabs and controls here to ensure they are fresh or loaded.
+            base.InitializePanel();
+            
+            // 在运行时初始化子控件（不在构造函数中，避免设计器问题）
+            InitializeSettingsControls();
         }
         
-        private void InitializeComponent()
+        /// <summary>
+        /// 初始化设置页面控件（仅运行时调用）
+        /// </summary>
+        private void InitializeSettingsControls()
         {
-            this.components = new System.ComponentModel.Container();
-            this.tabsMain = new AntdUI.Tabs();
-            this.SuspendLayout();
-            
-            // tabsMain
-            this.tabsMain.Dock = DockStyle.Fill;
-            this.tabsMain.Location = new System.Drawing.Point(0, 0);
-            this.tabsMain.Name = "tabsMain";
-            this.tabsMain.Type = AntdUI.TabType.Line;
-            this.tabsMain.Size = new System.Drawing.Size(800, 600);
-            
             // Instantiate Controls
             this.settingsGeneral = new SettingsGeneralControl();
             this.settingsRegex = new SettingsRegexControl();
@@ -97,9 +87,6 @@ namespace WindowsFormsApp3.Forms.Panels
             this.tabsMain.Pages.Add(pagePath);
             this.tabsMain.Pages.Add(pageImposition);
             this.tabsMain.Pages.Add(pageEvent);
-
-            this.Controls.Add(this.tabsMain);
-            this.ResumeLayout(false);
         }
 
         private void SettingsGeneral_SettingsSaved(object sender, EventArgs e)
@@ -109,6 +96,7 @@ namespace WindowsFormsApp3.Forms.Panels
                  mainForm.UpdateHotkeys();
              }
         }
+        
         public void NavigateToSection(string sectionKey)
         {
             if (string.IsNullOrEmpty(sectionKey)) return;

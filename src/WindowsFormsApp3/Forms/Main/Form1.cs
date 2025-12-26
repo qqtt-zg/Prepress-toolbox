@@ -465,19 +465,6 @@ namespace WindowsFormsApp3.Forms.Main
             }
         }
         
-        private void btnBatchProcess_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                // 触发批量处理事件，让Presenter处理业务逻辑
-                BatchProcessClick?.Invoke(this, e);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("批量处理发生异常: " + ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-        
         // 实现IForm1View接口的UpdateFileList方法
         public void UpdateFileList()
         {
@@ -5884,7 +5871,6 @@ namespace WindowsFormsApp3.Forms.Main
         #region IForm1View 接口成员实现
 
         // 事件实现
-        public event EventHandler BatchProcessClick;
         public event EventHandler ImmediateRenameClick;
         public event EventHandler StopImmediateRenameClick;
         public event EventHandler ToggleModeClick;
@@ -6737,5 +6723,51 @@ namespace WindowsFormsApp3.Forms.Main
                 _statusScrollTimer = null;
             }
         }
+        #region Public Methods for External UI Control
+        
+        /// <summary>
+        /// Hides the top control panel and menu strip to allow embedding in another container with custom UI.
+        /// </summary>
+        public void HideTopControls()
+        {
+            if (groupBox3 != null) groupBox3.Visible = false;
+            if (menuStrip1 != null) menuStrip1.Visible = false;
+        }
+
+        public void PerformSelectInputDir() => BtnSelectInputDir_Click(this, EventArgs.Empty);
+        public void PerformRename() => BtnRename_Click(this, EventArgs.Empty);
+        public void PerformMonitor() => BtnMonitor_Click(this, EventArgs.Empty);
+        public void PerformImmediateRename() => btnImmediateRename_Click(this, EventArgs.Empty);
+        public void PerformStopImmediateRename() => btnStopImmediateRename_Click(this, EventArgs.Empty);
+        public void PerformToggleMode() => BtnToggleMode_Click(this, EventArgs.Empty);
+        public void PerformImportExcel() => BtnImportExcel_Click(this, EventArgs.Empty);
+        public void PerformClearExcel() => BtnClearExcel_Click(this, EventArgs.Empty);
+        public void PerformExportExcel() => BtnExportExcel_Click(this, EventArgs.Empty);
+
+        public void SetInputDirectory(string path)
+        {
+             if (txtInputDir != null) txtInputDir.Text = path;
+        }
+
+        public string GetInputDirectory()
+        {
+            return txtInputDir?.Text ?? string.Empty;
+        }
+
+        public void SelectRegexPattern(string pattern)
+        {
+            if (cmbRegex != null && cmbRegex.Items.Contains(pattern))
+            {
+                cmbRegex.SelectedItem = pattern;
+            }
+        }
+        
+        public List<string> GetRegexPatterns()
+        {
+             return regexPatterns?.Keys.ToList() ?? new List<string>();
+        }
+
+        #endregion
+
     }
 }

@@ -51,7 +51,6 @@ namespace WindowsFormsApp3.Tests.Presenters
         public void Constructor_Should_RegisterViewEvents()
         {
             // 验证所有事件都被注册
-            _mockView.VerifyAdd(v => v.BatchProcessClick += It.IsAny<EventHandler>(), Times.Once);
             _mockView.VerifyAdd(v => v.ImmediateRenameClick += It.IsAny<EventHandler>(), Times.Once);
             _mockView.VerifyAdd(v => v.StopImmediateRenameClick += It.IsAny<EventHandler>(), Times.Once);
             _mockView.VerifyAdd(v => v.ToggleModeClick += It.IsAny<EventHandler>(), Times.Once);
@@ -76,19 +75,6 @@ namespace WindowsFormsApp3.Tests.Presenters
             _mockView.Verify(v => v.UpdateStatusStrip(), Times.Once);
             _mockView.Verify(v => v.UpdateDgvFilesEditMode(), Times.Once);
             _mockView.Verify(v => v.UpdateTrayMenuItems(), Times.Once);
-        }
-
-        [Fact]
-        public void HandleBatchProcess_Should_ShowMessage_When_NoFilesToProcess()
-        {
-            // 设置模拟行为
-            _mockView.Setup(v => v.FileBindingList).Returns(new BindingList<FileRenameInfo>());
-
-            // 调用方法
-            _presenter.HandleBatchProcess();
-
-            // 验证显示消息
-            _mockView.Verify(v => v.ShowMessage("没有文件需要处理", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information), Times.Once);
         }
 
         [Fact]

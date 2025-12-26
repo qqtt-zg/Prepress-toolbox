@@ -16,11 +16,6 @@ namespace WindowsFormsApp3.Presenters
     {
         #region 事件
         /// <summary>
-        /// 批量处理点击事件
-        /// </summary>
-        event EventHandler BatchProcessClick;
-
-        /// <summary>
         /// 即时重命名点击事件
         /// </summary>
         event EventHandler ImmediateRenameClick;

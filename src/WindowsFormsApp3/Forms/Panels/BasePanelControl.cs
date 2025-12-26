@@ -5,20 +5,20 @@ using System.Windows.Forms;
 namespace WindowsFormsApp3.Forms.Panels
 {
     /// <summary>
-    /// 面板控件基类 - 所有功能面板的抽象基类
+    /// 面板控件基类 - 所有功能面板的基类
     /// 提供面板生命周期管理和通用功能
     /// </summary>
-    public abstract class BasePanelControl : UserControl
+    public class BasePanelControl : UserControl
     {
         /// <summary>
         /// 面板唯一标识键
         /// </summary>
-        public abstract string PanelKey { get; }
+        public virtual string PanelKey => "base";
         
         /// <summary>
         /// 面板显示名称
         /// </summary>
-        public abstract string DisplayName { get; }
+        public virtual string DisplayName => "基础面板";
         
         /// <summary>
         /// 面板图标（可选）

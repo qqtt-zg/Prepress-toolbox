@@ -19,11 +19,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private System.Windows.Forms.FlowLayoutPanel pnlTextItems; // Container for checkboxes
         private AntdUI.Button btnMoveUp;
         private AntdUI.Button btnMoveDown;
-        private AntdUI.Label lblComboPreview;
         private AntdUI.Input txtComboPreview; // Multiline
-        private AntdUI.Select selectPresets;
-        private AntdUI.Button btnSavePreset;
-        private AntdUI.Button btnDeletePreset;
 
         protected override void Dispose(bool disposing)
         {

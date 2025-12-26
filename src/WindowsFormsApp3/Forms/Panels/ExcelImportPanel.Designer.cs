@@ -19,10 +19,11 @@ namespace WindowsFormsApp3.Forms.Panels
             // 
             // ExcelImportPanel
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "ExcelImportPanel";
-            this.Size = new System.Drawing.Size(800, 600);
+            this.Size = new System.Drawing.Size(907, 531);
             this.ResumeLayout(false);
 
         }

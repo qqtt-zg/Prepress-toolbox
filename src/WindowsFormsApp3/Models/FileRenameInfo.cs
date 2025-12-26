@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using AntdUI;
 
 namespace WindowsFormsApp3
 {
@@ -61,8 +62,21 @@ namespace WindowsFormsApp3
         public string RegexResult
         {
             get { return _regexResult; }
-            set { _regexResult = value; OnPropertyChanged(); }
+            set { _regexResult = value; OnPropertyChanged(); OnPropertyChanged("StatusBadge"); }
         }
+
+        // 添加 Badge 属性用于 UI 显示
+        public AntdUI.CellBadge StatusBadge
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(RegexResult)) return null;
+                if (RegexResult == "OK" || RegexResult == "成功") return new AntdUI.CellBadge(AntdUI.TState.Success, RegexResult);
+                if (RegexResult.StartsWith("Error") || RegexResult.Contains("失败")) return new AntdUI.CellBadge(AntdUI.TState.Error, RegexResult);
+                return new AntdUI.CellBadge(AntdUI.TState.Default, RegexResult);
+            }
+        }
+
         public string OrderNumber
         {
             get { return _orderNumber; }

@@ -71,7 +71,6 @@ namespace WindowsFormsApp3.Forms.Main
             this.btnToggleMode = new System.Windows.Forms.Button();
             this.lblInputDir = new System.Windows.Forms.Label();
             this.btnStopImmediateRename = new System.Windows.Forms.Button();
-            this.btnBatchProcess = new System.Windows.Forms.Button();
             this.tabPage2 = new System.Windows.Forms.TabPage();
             this.dgvExcelData = new System.Windows.Forms.DataGridView();
             this.tabPage1 = new System.Windows.Forms.TabPage();
@@ -417,21 +416,6 @@ namespace WindowsFormsApp3.Forms.Main
             this.btnStopImmediateRename.Text = "批量模式";
             this.btnStopImmediateRename.UseVisualStyleBackColor = true;
             this.btnStopImmediateRename.Click += new System.EventHandler(this.btnStopImmediateRename_Click);
-            // 
-            // btnBatchProcess
-            // 
-            this.btnBatchProcess.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnBatchProcess.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(36)))), ((int)(((byte)(115)))), ((int)(((byte)(186)))));
-            this.btnBatchProcess.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnBatchProcess.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.btnBatchProcess.Location = new System.Drawing.Point(954, 51);
-            this.btnBatchProcess.Margin = new System.Windows.Forms.Padding(0);
-            this.btnBatchProcess.Name = "btnBatchProcess";
-            this.btnBatchProcess.Size = new System.Drawing.Size(102, 25);
-            this.btnBatchProcess.TabIndex = 43;
-            this.btnBatchProcess.Text = "处理所有文件";
-            this.btnBatchProcess.UseVisualStyleBackColor = true;
-            this.btnBatchProcess.Click += new System.EventHandler(this.btnBatchProcess_Click);
             // 
             // tabPage2
             // 
@@ -789,7 +773,6 @@ namespace WindowsFormsApp3.Forms.Main
         private System.Windows.Forms.Button btnToggleMode;
         private System.Windows.Forms.Button btnImmediateRename;
         private System.Windows.Forms.Button btnStopImmediateRename;
-        private System.Windows.Forms.Button btnBatchProcess;
         private System.Windows.Forms.ComboBox cmbJsonFiles;
         private System.Windows.Forms.Button btnSaveJson;
         private System.Windows.Forms.Button btnExportExcel;
