@@ -12,8 +12,13 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         public SettingsImpositionControl()
         {
             InitializeComponent();
-            _pdfDimensionService = WindowsFormsApp3.Interfaces.PdfDimensionServiceFactory.GetInstance();
-            LoadSettings();
+            
+            // 仅在运行时加载设置，避免设计器问题
+            if (System.ComponentModel.LicenseManager.UsageMode != System.ComponentModel.LicenseUsageMode.Designtime)
+            {
+                _pdfDimensionService = WindowsFormsApp3.Interfaces.PdfDimensionServiceFactory.GetInstance();
+                LoadSettings();
+            }
         }
 
         private void LoadSettings()

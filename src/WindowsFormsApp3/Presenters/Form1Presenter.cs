@@ -137,15 +137,15 @@ namespace WindowsFormsApp3.Presenters
         {
             try
             {
-                // 重要：在启动导入前设置父窗体引用，确保ExcelImportForm能正确更新状态栏
+                // 重要：在启动导入前设置父视图引用，确保ExcelImportForm能正确更新状态栏
                 if (_excelImportService is ExcelImportHelper excelImportHelper)
                 {
-                    // 将当前视图作为父窗体传递
-                    Form1 parentForm = _view as Form1;
-                    if (parentForm != null)
+                    // 将当前视图作为父视图传递
+                    IExcelParentView parentView = _view as IExcelParentView;
+                    if (parentView != null)
                     {
-                        excelImportHelper.SetParentForm(parentForm);
-                        LogHelper.Debug("Form1Presenter: 已设置ExcelImportHelper的父窗体引用");
+                        excelImportHelper.SetParentView(parentView);
+                        LogHelper.Debug("Form1Presenter: 已设置ExcelImportHelper的父视图引用");
                     }
                 }
                 

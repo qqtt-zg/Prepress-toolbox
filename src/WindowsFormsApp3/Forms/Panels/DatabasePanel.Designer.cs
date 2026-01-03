@@ -20,14 +20,14 @@ namespace WindowsFormsApp3.Forms.Panels
             this._excelTable.Gap = 12;
             this._excelTable.Location = new System.Drawing.Point(0, 0);
             this._excelTable.Name = "_excelTable";
-            this._excelTable.Size = new System.Drawing.Size(935, 617);
+            this._excelTable.Size = new System.Drawing.Size(935, 503);
             this._excelTable.TabIndex = 0;
             // 
             // DatabasePanel
             // 
             this.Controls.Add(this._excelTable);
             this.Name = "DatabasePanel";
-            this.Size = new System.Drawing.Size(935, 617);
+            this.Size = new System.Drawing.Size(935, 503);
             this.ResumeLayout(false);
 
         }

@@ -280,6 +280,51 @@ namespace WindowsFormsApp3.Utils
         }
 
         /// <summary>
+        /// 正则表达式变化时自动刷新文件名
+        /// </summary>
+        public static bool AutoRefreshFileNameOnRegexChange
+        {
+            get => Instance.AutoRefreshFileNameOnRegexChange;
+            set => Instance.AutoRefreshFileNameOnRegexChange = value;
+        }
+
+        /// <summary>
+        /// 是否启用列组合
+        /// </summary>
+        public static bool EnableColumnCombine
+        {
+            get => GetValue<bool>("EnableColumnCombine", false);
+            set => SetValue("EnableColumnCombine", value);
+        }
+
+        /// <summary>
+        /// 是否自动生成序号
+        /// </summary>
+        public static bool AutoGenerateSerial
+        {
+            get => GetValue<bool>("AutoGenerateSerial", false);
+            set => SetValue("AutoGenerateSerial", value);
+        }
+
+        /// <summary>
+        /// 默认材料
+        /// </summary>
+        public static string DefaultMaterial
+        {
+            get => GetValue<string>("DefaultMaterial", "");
+            set => SetValue("DefaultMaterial", value);
+        }
+
+        /// <summary>
+        /// 默认数量
+        /// </summary>
+        public static string DefaultQuantity
+        {
+            get => GetValue<string>("DefaultQuantity", "");
+            set => SetValue("DefaultQuantity", value);
+        }
+
+        /// <summary>
         /// PDF预览是否展开
         /// </summary>
         public static bool PreviewExpanded

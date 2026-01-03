@@ -1,4 +1,5 @@
 using System;
+using System.Data;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Collections.Generic;
@@ -6,20 +7,29 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using WindowsFormsApp3;
-using WindowsFormsApp3.Forms.Main;
 using WindowsFormsApp3.Utils;
+using WindowsFormsApp3.Presenters;
+using WindowsFormsApp3.Models;
+using WindowsFormsApp3.Interfaces;
+using WindowsFormsApp3.Services;
 
 namespace WindowsFormsApp3.Forms.Panels
 {
     /// <summary>
-    /// 文件重命名面板 - 使用AntdUI Table替代嵌入的Form1
+    /// 文件重命名面板 - 使用AntdUI Table，采用MVP模式
+    /// 阶段5：完全移除Form1依赖，使用Presenter处理业务逻辑
     /// </summary>
-    public partial class FileRenamePanel : BasePanelControl
+    public partial class FileRenamePanel : BasePanelControl, IFileRenamePanelView, IExcelParentView
     {
-        private Form1 _embeddedForm; // 保留用于业务逻辑
+        // Presenter 实例（在InitializePanel中初始化）
+        private IFileRenamePanelPresenter _presenter;
+
         private ContextMenuStrip _contextMenu;
         private int _currentColumnIndex = -1;
         private int _currentRowIndex = -1;
+
+        // 事件定义（仅保留可能被使用的事件）
+        public event EventHandler<string> RegexPatternChanged;
 
         public override string PanelKey => "rename";
         public override string DisplayName => "首页";
@@ -37,34 +47,38 @@ namespace WindowsFormsApp3.Forms.Panels
         protected override void InitializePanel()
         {
             base.InitializePanel();
-            
-            try 
+
+            try
             {
                 ShowLoading("正在初始化首页...");
 
-                // 1. 初始化 Form1 用于业务逻辑（隐藏）
-                _embeddedForm = new Form1();
-                _embeddedForm.TopLevel = false;
-                _embeddedForm.FormBorderStyle = FormBorderStyle.None;
-                _embeddedForm.Visible = false; // 隐藏，仅用于逻辑
-                _embeddedForm.ShowInTaskbar = false;
-                this.Controls.Add(_embeddedForm);
+                // 阶段5：创建 Presenter 实例
+                _presenter = new FileRenamePanelPresenter(this);
+                _presenter.Initialize();
 
-                // 2. 绑定控件事件
+                // 绑定控件事件
                 InitializeControlEvents();
 
-                // 3. 创建AntdUI Table列定义
-                // 3. 创建AntdUI Table列定义 (已在构造函数中执行)
-               // InitializeFileTable();
+                // 创建AntdUI Table列定义 (已在构造函数中执行)
+                // InitializeFileTable();
 
-                // 4. 初始化右键菜单
+                // 初始化右键菜单
                 InitializeContextMenu();
 
-                // 5. 同步初始状态
+                // 同步初始状态（阶段5：从Presenter同步）
                 SyncInitialState();
-                
-                // 6. 订阅数据变化事件
+
+                // 订阅数据变化事件
                 SubscribeToDataChanges();
+
+                // 订阅正则表达式变化事件
+                RegexPatternChanged += async (s, pattern) =>
+                {
+                    if (_presenter != null)
+                    {
+                        await _presenter.HandleRegexPatternChangedAsync(pattern);
+                    }
+                };
             }
             catch (Exception ex)
             {
@@ -82,59 +96,76 @@ namespace WindowsFormsApp3.Forms.Panels
         /// </summary>
         private void InitializeControlEvents()
         {
-            // 正则选择事件
+            // 正则选择事件（UI已自动更新SelectedValue属性）
             _cmbRegex.SelectedValueChanged += (s, val) =>
             {
                 if (val is AntdUI.ObjectNEventArgs args && args.Value is string pattern)
                 {
-                    _embeddedForm.SelectRegexPattern(pattern);
+                    // 保存选中的正则表达式到设置
+                    AppSettings.LastSelectedRegex = pattern;
+                    AppSettings.Save();
+
+                    // 触发正则表达式变化事件，可用于重新处理文件列表
+                    RegexPatternChanged?.Invoke(this, pattern);
                 }
             };
 
-            // 选择文件夹按钮
+            // 选择文件夹按钮（阶段5：迁移到Presenter）
             _btnSelectDir.Click += (s, e) =>
             {
-                _embeddedForm.PerformSelectInputDir();
-                _txtInputDir.Text = _embeddedForm.GetInputDirectory();
+                _presenter.HandleSelectInputDir();
+                // 更新下拉框选项和选中值
+                UpdateInputDirSelect();
             };
 
-            // 监控按钮
+            // 输入目录下拉框选择变化事件
+            _cmbInputDir.SelectedValueChanged += (s, args) =>
+            {
+                if (args.Value is string selectedPath && !string.IsNullOrEmpty(selectedPath))
+                {
+                    // 更新 Presenter 的输入目录
+                    _presenter.SetInputDirectory(selectedPath);
+                }
+            };
+
+            // 监控按钮（阶段2：迁移到Presenter）
             _btnMonitor.Click += (s, e) =>
             {
-                _embeddedForm.PerformMonitor();
-                if (_btnMonitor.Text == "开始监控")
-                {
-                    _btnMonitor.Text = "停止监控";
-                    _btnMonitor.Type = AntdUI.TTypeMini.Error;
-                }
-                else
-                {
-                    _btnMonitor.Text = "开始监控";
-                    _btnMonitor.Type = AntdUI.TTypeMini.Primary;
-                }
+                _presenter.HandleToggleMonitoring();
+                UpdateMonitorButtonState();
             };
 
-            // Excel操作按钮
-            _btnImportExcel.Click += (s, e) => _embeddedForm.PerformImportExcel();
-            _btnClearExcel.Click += (s, e) => _embeddedForm.PerformClearExcel();
-            _btnExportExcel.Click += (s, e) => _embeddedForm.PerformExportExcel();
+            // Excel操作按钮（阶段5：迁移到Presenter）
+            _btnImportExcel.Click += async (s, e) => await _presenter.HandleImportExcelAsync();
+            _btnClearExcel.Click += (s, e) => _presenter.HandleClearExcel();
+            _btnExportExcel.Click += (s, e) => _presenter.HandleExportExcel();
 
-            // 模式切换按钮
+            // 模式切换按钮（阶段5：迁移到Presenter）
             _btnToggleMode.Click += (s, e) =>
             {
-                _embeddedForm.PerformToggleMode();
-                _btnToggleMode.Text = _btnToggleMode.Text == "复制模式" ? "剪切模式" : "复制模式";
+                _presenter.HandleModeToggle();
+                UpdateModeButtonState();
             };
 
-            // 其他操作按钮
-            _btnManualMode.Click += (s, e) => _embeddedForm.PerformImmediateRename();
-            _btnBatchMode.Click += (s, e) => _embeddedForm.PerformStopImmediateRename();
-            _btnRename.Click += (s, e) => _embeddedForm.PerformRename();
+            // 其他操作按钮（阶段5：手动/批量模式切换）
+            _btnManualMode.Click += (s, e) =>
+            {
+                _presenter.StartImmediateMode();
+                UpdateImmediateModeButtonState();
+            };
+            _btnBatchMode.Click += (s, e) =>
+            {
+                _presenter.StopImmediateMode();
+                UpdateImmediateModeButtonState();
+            };
+
+            // 重命名按钮（阶段3：迁移到Presenter）
+            _btnRename.Click += async (s, e) => await _presenter.HandleRenameAsync();
 
             // JSON管理控件事件
             _cmbJsonFiles.SelectedValueChanged += CmbJsonFiles_SelectedValueChanged;
             _btnSaveJson.Click += BtnSaveJson_Click;
-            
+
             // 初始化JSON文件列表
             PopulateJsonFilesDropdown();
         }
@@ -169,7 +200,7 @@ namespace WindowsFormsApp3.Forms.Panels
         }
 
         /// <summary>
-        /// JSON文件选择变化事件
+        /// JSON文件选择改变事件（阶段4：迁移到Presenter）
         /// </summary>
         private void CmbJsonFiles_SelectedValueChanged(object sender, AntdUI.ObjectNEventArgs e)
         {
@@ -179,18 +210,11 @@ namespace WindowsFormsApp3.Forms.Panels
                 {
                     var jsonDir = System.IO.Path.Combine(System.Windows.Forms.Application.StartupPath, "SavedGrids");
                     var filePath = System.IO.Path.Combine(jsonDir, fileName + ".json");
-                    
-                    if (System.IO.File.Exists(filePath))
-                    {
-                        var jsonContent = System.IO.File.ReadAllText(filePath);
-                        var data = Newtonsoft.Json.JsonConvert.DeserializeObject<System.ComponentModel.BindingList<FileRenameInfo>>(jsonContent);
-                        
-                        if (data != null)
-                        {
-                            _fileTable.DataSource = data;
-                            UpdateStatusLabel($"已加载: {fileName}");
-                        }
-                    }
+
+                    // 使用 Presenter 加载
+                    _presenter.LoadFromJsonFile(filePath);
+
+                    UpdateStatusLabel($"已加载: {fileName}");
                 }
                 catch (Exception ex)
                 {
@@ -201,7 +225,7 @@ namespace WindowsFormsApp3.Forms.Panels
         }
 
         /// <summary>
-        /// 保存JSON按钮点击事件
+        /// 保存JSON按钮点击事件（阶段4：迁移到Presenter）
         /// </summary>
         private void BtnSaveJson_Click(object sender, EventArgs e)
         {
@@ -217,17 +241,12 @@ namespace WindowsFormsApp3.Forms.Panels
                 var fileName = $"Grid_{DateTime.Now:yyyyMMdd_HHmmss}";
                 var filePath = System.IO.Path.Combine(jsonDir, fileName + ".json");
 
-                if (_fileTable.DataSource is System.ComponentModel.BindingList<FileRenameInfo> bindingList)
-                {
-                    // 过滤掉空行
-                    var dataToSave = bindingList.Where(item => !string.IsNullOrEmpty(item.OriginalName)).ToList();
-                    var jsonContent = Newtonsoft.Json.JsonConvert.SerializeObject(dataToSave, Newtonsoft.Json.Formatting.Indented);
-                    System.IO.File.WriteAllText(filePath, jsonContent);
+                // 使用 Presenter 保存
+                _presenter.SaveToJsonFile(filePath);
 
-                    // 刷新下拉列表
-                    PopulateJsonFilesDropdown();
-                    UpdateStatusLabel($"已保存: {fileName}");
-                }
+                // 刷新下拉列表
+                PopulateJsonFilesDropdown();
+                UpdateStatusLabel($"已保存: {fileName}");
             }
             catch (Exception ex)
             {
@@ -249,27 +268,10 @@ namespace WindowsFormsApp3.Forms.Panels
 
         private void InitializeFileTable()
         {
-            // _fileTable 已在 Designer.cs 中创建，这里只配置列和事件
+            // 列已在 Designer.cs 中定义，这里只配置数据和事件
             
-            // 定义列 (恢复运行时定义以修复设计器崩溃问题)
-            if (_fileTable.Columns.Count > 0) return; // 防止重复添加
-            _fileTable.Columns = new AntdUI.ColumnCollection
-            {
-                new AntdUI.Column("SerialNumber", "序号", AntdUI.ColumnAlign.Center) { Width = "50px" },
-                new AntdUI.Column("OriginalName", "原文件名", AntdUI.ColumnAlign.Left) { Width = "16%" },
-                new AntdUI.Column("NewName", "新文件名", AntdUI.ColumnAlign.Left) { Width = "12%" },
-                new AntdUI.Column("RegexResult", "正则结果", AntdUI.ColumnAlign.Center) { Width = "8%" },
-                new AntdUI.Column("OrderNumber", "订单号", AntdUI.ColumnAlign.Center) { Width = "7%" },
-                new AntdUI.Column("Material", "材料", AntdUI.ColumnAlign.Center) { Width = "7%" },
-                new AntdUI.Column("Quantity", "数量", AntdUI.ColumnAlign.Center) { Width = "5%" },
-                new AntdUI.Column("Dimensions", "尺寸", AntdUI.ColumnAlign.Center) { Width = "7%" },
-                new AntdUI.Column("CompositeColumn", "列组合", AntdUI.ColumnAlign.Center) { Width = "7%" },
-                new AntdUI.Column("LayoutRows", "行数", AntdUI.ColumnAlign.Center) { Width = "4%" },
-                new AntdUI.Column("LayoutColumns", "列数", AntdUI.ColumnAlign.Center) { Width = "4%" },
-                new AntdUI.Column("Process", "工艺", AntdUI.ColumnAlign.Center) { Width = "6%" },
-                new AntdUI.Column("PageCount", "页数", AntdUI.ColumnAlign.Center) { Width = "4%" },
-                new AntdUI.Column("Time", "时间", AntdUI.ColumnAlign.Center) { Width = "6%" }
-            };
+            // 禁用自动生成列，只显示设计器定义的列
+            _fileTable.AutoGenerateColumns = false;
 
             // 初始化999行空数据（与Form1保持一致）
             var fileBindingList = new BindingList<FileRenameInfo>();
@@ -281,14 +283,74 @@ namespace WindowsFormsApp3.Forms.Panels
 
             // 绑定右键菜单事件
             _fileTable.CellClick += FileTable_CellClick;
-            _fileTable.MouseUp += FileTable_MouseUp;
-
-            // 视觉优化：完全仿官方示例风格（白底+淡蓝悬浮）
-            _fileTable.RowHoverBg = Color.FromArgb(230, 247, 255); // Ant Design Blue-1
-            // 移除斑马纹，保持纯净白底
+            _fileTable.CellMouseUp += FileTable_CellMouseUp;
             
+            // 绑定行头序号绘制事件
+            _fileTable.RowPostPaint += FileTable_RowPostPaint;
+
             // 初始化列头右键菜单
             InitializeColumnHeaderContextMenu();
+            
+            // 加载保存的列配置
+            LoadColumnSettings();
+        }
+        
+        /// <summary>
+        /// 在行头绘制序号
+        /// </summary>
+        private void FileTable_RowPostPaint(object sender, System.Windows.Forms.DataGridViewRowPostPaintEventArgs e)
+        {
+            // 绘制行号 (从1开始)
+            var rowNumber = (e.RowIndex + 1).ToString();
+            
+            // 使用浅灰色，不突兀
+            using (var brush = new SolidBrush(Color.FromArgb(160, 160, 160)))
+            {
+                // 计算绘制位置（水平和垂直都居中）
+                var bounds = e.RowBounds;
+                var headerWidth = _fileTable.RowHeadersWidth;
+                var size = e.Graphics.MeasureString(rowNumber, _fileTable.Font);
+                var x = (headerWidth - size.Width) / 2;
+                var y = bounds.Top + (bounds.Height - size.Height) / 2;
+                
+                e.Graphics.DrawString(rowNumber, _fileTable.Font, brush, x, y);
+            }
+        }
+
+        // ... Existing code ...
+
+        private void LoadColumnSettings()
+        {
+            try
+            {
+                var path = GetConfigPath();
+                if (!System.IO.File.Exists(path)) return;
+
+                var json = System.IO.File.ReadAllText(path);
+                var configs = Newtonsoft.Json.JsonConvert.DeserializeObject<List<ColumnConfig>>(json);
+                
+                if (configs == null || configs.Count == 0) return;
+
+                // 按保存的配置应用列属性
+                foreach (var config in configs)
+                {
+                    if (_fileTable.Columns.Contains(config.Key))
+                    {
+                        var col = _fileTable.Columns[config.Key];
+                        col.Visible = config.Visible;
+                        col.DisplayIndex = config.Index;
+                        // 使用 FillWeight 而不是 Width，因为 AutoSizeColumnsMode = Fill
+                        if (config.FillWeight > 0)
+                        {
+                            col.FillWeight = config.FillWeight;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"加载列配置失败: {ex.Message}");
+            }
         }
         
         // 列头右键菜单
@@ -302,62 +364,79 @@ namespace WindowsFormsApp3.Forms.Panels
             _columnHeaderMenu = new System.Windows.Forms.ContextMenuStrip();
             _columnHeaderMenu.Font = new Font("微软雅黑", 9F);
             
-            // 添加"列显示设置"标题
-            var titleItem = new ToolStripMenuItem("列显示设置") { Enabled = false };
-            _columnHeaderMenu.Items.Add(titleItem);
-            _columnHeaderMenu.Items.Add(new ToolStripSeparator());
+            // 1. "隐藏列" 子菜单
+            var hideColumnsItem = new ToolStripMenuItem("隐藏列");
             
-            // 为每一列添加显示/隐藏选项
-            foreach (var column in _fileTable.Columns)
+            // 防止点击子菜单项时关闭菜单
+            hideColumnsItem.DropDown.Closing += (s, e) =>
             {
-                var item = new ToolStripMenuItem(column.Title)
+                if (e.CloseReason == ToolStripDropDownCloseReason.ItemClicked)
+                {
+                    e.Cancel = true;
+                }
+            };
+            
+            // 为每一列添加显示/隐藏选项到子菜单
+            foreach (System.Windows.Forms.DataGridViewColumn column in _fileTable.Columns)
+            {
+                var item = new ToolStripMenuItem(column.HeaderText)
                 {
                     Checked = column.Visible,
                     CheckOnClick = true,
-                    Tag = column.Key
+                    Tag = column.Name
                 };
                 item.CheckedChanged += ColumnMenuItem_CheckedChanged;
-                _columnHeaderMenu.Items.Add(item);
+                hideColumnsItem.DropDownItems.Add(item);
             }
+            _columnHeaderMenu.Items.Add(hideColumnsItem);
+
+            _columnHeaderMenu.Items.Add(new ToolStripSeparator());
+
+            // 2. 保存设置
+            var saveItem = new ToolStripMenuItem("保存配置");
+            saveItem.Click += (s, e) => SaveColumnSettings();
+            _columnHeaderMenu.Items.Add(saveItem);
+
+            // 3. 恢复原始
+            var restoreItem = new ToolStripMenuItem("恢复原始");
+            restoreItem.Click += (s, e) => RestoreColumnDefaults();
+            _columnHeaderMenu.Items.Add(restoreItem);
             
-            // 绑定表格列头右键事件
-            _fileTable.MouseDown += FileTable_MouseDown_Header;
+            // 绑定列头右键菜单
+            _fileTable.ColumnHeaderMouseClick += FileTable_ColumnHeaderMouseClick;
         }
         
         // 标记是否正在显示列头菜单，用于阻止单元格菜单
         private bool _isShowingHeaderMenu = false;
         
         /// <summary>
-        /// 表格鼠标按下事件 - 检测列头右键
+        /// 列头右键点击事件
         /// </summary>
-        private void FileTable_MouseDown_Header(object sender, MouseEventArgs e)
+        private void FileTable_ColumnHeaderMouseClick(object sender, System.Windows.Forms.DataGridViewCellMouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
             {
-                // 检测是否点击在列头区域
-                if (e.Y <= _fileTable.RowHeightHeader)
+                _isShowingHeaderMenu = true;
+                
+                // 更新菜单项的选中状态 (在"隐藏列"子菜单中)
+                if (_columnHeaderMenu.Items.Count > 0 && _columnHeaderMenu.Items[0] is ToolStripMenuItem hideMenu)
                 {
-                    _isShowingHeaderMenu = true;
-                    
-                    // 更新菜单项的选中状态
-                    foreach (var item in _columnHeaderMenu.Items.OfType<ToolStripMenuItem>())
+                    foreach (var item in hideMenu.DropDownItems.OfType<ToolStripMenuItem>())
                     {
-                        if (item.Tag is string columnKey)
+                        if (item.Tag is string columnName)
                         {
-                            var column = _fileTable.Columns.FirstOrDefault(c => c.Key == columnKey);
+                            var column = _fileTable.Columns[columnName];
                             if (column != null)
                             {
                                 item.Checked = column.Visible;
                             }
                         }
                     }
-                    // 显示列头右键菜单
-                    _columnHeaderMenu.Show(_fileTable, e.Location);
                 }
-                else
-                {
-                    _isShowingHeaderMenu = false;
-                }
+                // 显示列头右键菜单（居中于点击的列）
+                var rect = _fileTable.GetCellDisplayRectangle(e.ColumnIndex, -1, true);
+                var menuX = rect.Left + (rect.Width - _columnHeaderMenu.Width) / 2;
+                _columnHeaderMenu.Show(_fileTable, menuX, rect.Bottom);
             }
         }
         
@@ -366,27 +445,24 @@ namespace WindowsFormsApp3.Forms.Panels
         /// </summary>
         private void ColumnMenuItem_CheckedChanged(object sender, EventArgs e)
         {
-            if (sender is ToolStripMenuItem menuItem && menuItem.Tag is string columnKey)
+            if (sender is ToolStripMenuItem menuItem && menuItem.Tag is string columnName)
             {
-                var column = _fileTable.Columns.FirstOrDefault(c => c.Key == columnKey);
+                var column = _fileTable.Columns[columnName];
                 if (column != null)
                 {
                     // 更新列的可见性
                     column.Visible = menuItem.Checked;
-                    
-                    // 刷新表格显示
-                    _fileTable.Invalidate();
                 }
             }
         }
 
-        private void FileTable_CellClick(object sender, AntdUI.TableClickEventArgs e)
+        private void FileTable_CellClick(object sender, System.Windows.Forms.DataGridViewCellEventArgs e)
         {
             _currentRowIndex = e.RowIndex;
             _currentColumnIndex = e.ColumnIndex;
         }
 
-        private void FileTable_MouseUp(object sender, MouseEventArgs e)
+        private void FileTable_CellMouseUp(object sender, System.Windows.Forms.DataGridViewCellMouseEventArgs e)
         {
             // 如果刚显示了列头菜单，跳过单元格菜单
             if (_isShowingHeaderMenu)
@@ -396,10 +472,11 @@ namespace WindowsFormsApp3.Forms.Panels
             }
             
             // 确保不在列头区域，并且有有效的行索引
-            if (e.Button == MouseButtons.Right && _currentRowIndex >= 0 && e.Y > _fileTable.RowHeightHeader)
+            if (e.Button == MouseButtons.Right && e.RowIndex >= 0)
             {
                 UpdateContextMenuForColumn();
-                _contextMenu.Show(_fileTable, e.Location);
+                var rect = _fileTable.GetCellDisplayRectangle(e.ColumnIndex, e.RowIndex, true);
+                _contextMenu.Show(_fileTable, rect.Left, rect.Bottom);
             }
         }
 
@@ -415,15 +492,15 @@ namespace WindowsFormsApp3.Forms.Panels
         {
             _contextMenu.Items.Clear();
             
-            if (_currentColumnIndex < 0 || _fileTable.Columns == null) 
+            if (_currentColumnIndex < 0 || _fileTable.Columns.Count == 0) 
             {
                 CreateDefaultContextMenu();
                 return;
             }
 
-            string columnKey = _fileTable.Columns[_currentColumnIndex].Key;
+            string columnName = _fileTable.Columns[_currentColumnIndex].Name;
             
-            switch (columnKey)
+            switch (columnName)
             {
                 case "Material":
                     CreateMaterialContextMenu();
@@ -533,8 +610,8 @@ namespace WindowsFormsApp3.Forms.Panels
                     _currentRowIndex < bindingList.Count)
                 {
                     var item = bindingList[_currentRowIndex];
-                    var columnKey = _fileTable.Columns[_currentColumnIndex].Key;
-                    var prop = typeof(FileRenameInfo).GetProperty(columnKey);
+                    var columnName = _fileTable.Columns[_currentColumnIndex].Name;
+                    var prop = typeof(FileRenameInfo).GetProperty(columnName);
                     var value = prop?.GetValue(item)?.ToString() ?? "";
                     Clipboard.SetText(value);
                 }
@@ -640,17 +717,100 @@ namespace WindowsFormsApp3.Forms.Panels
             _fileTable.Invalidate();
         }
 
+        /// <summary>
+        /// 阶段5：同步初始状态（从Presenter获取）
+        /// </summary>
         private void SyncInitialState()
         {
-            if (_embeddedForm == null) return;
+            // 从Presenter获取输入目录并更新下拉框
+            UpdateInputDirSelect();
 
-            _txtInputDir.Text = _embeddedForm.GetInputDirectory();
+            // 正则表达式已在Presenter初始化时更新
+            // 模式按钮状态
+            UpdateModeButtonState();
 
-            _cmbRegex.Items.Clear();
-            var patterns = _embeddedForm.GetRegexPatterns();
-            foreach (var p in patterns)
+            // 监控按钮状态
+            UpdateMonitorButtonState();
+        }
+
+        /// <summary>
+        /// 更新输入目录下拉框选项和选中值
+        /// </summary>
+        private void UpdateInputDirSelect()
+        {
+            var history = AppSettings.Instance.InputDirHistory;
+            var currentDir = InputDirectory;
+
+            _cmbInputDir.Items.Clear();
+            foreach (var dir in history)
             {
-                _cmbRegex.Items.Add(p);
+                _cmbInputDir.Items.Add(dir);
+            }
+
+            // 如果当前目录不在历史中，添加它
+            if (!string.IsNullOrEmpty(currentDir) && !history.Contains(currentDir))
+            {
+                _cmbInputDir.Items.Insert(0, currentDir);
+            }
+
+            // 设置选中值
+            if (!string.IsNullOrEmpty(currentDir))
+            {
+                // 查找匹配的项并设置选中
+                for (int i = 0; i < _cmbInputDir.Items.Count; i++)
+                {
+                    if (_cmbInputDir.Items[i]?.ToString() == currentDir)
+                    {
+                        _cmbInputDir.SelectedIndex = i;
+                        return;
+                    }
+                }
+            }
+            else if (_cmbInputDir.Items.Count > 0)
+            {
+                _cmbInputDir.SelectedIndex = 0;
+            }
+        }
+
+        /// <summary>
+        /// 阶段2：根据监控状态更新监控按钮显示
+        /// </summary>
+        private void UpdateMonitorButtonState()
+        {
+            if (IsMonitoring)
+            {
+                _btnMonitor.Text = "停止监控";
+                _btnMonitor.Type = AntdUI.TTypeMini.Error;
+            }
+            else
+            {
+                _btnMonitor.Text = "开始监控";
+                _btnMonitor.Type = AntdUI.TTypeMini.Primary;
+            }
+        }
+
+        /// <summary>
+        /// 阶段5：根据模式状态更新模式按钮显示
+        /// </summary>
+        private void UpdateModeButtonState()
+        {
+            _btnToggleMode.Text = IsCopyMode ? "剪切模式" : "复制模式";
+        }
+
+        /// <summary>
+        /// 阶段5：根据手动/批量模式状态更新按钮显示
+        /// </summary>
+        private void UpdateImmediateModeButtonState()
+        {
+            if (IsImmediateMode)
+            {
+                _btnManualMode.Text = "已启动手动模式";
+                _btnBatchMode.Text = "批量模式";
+            }
+            else
+            {
+                _btnManualMode.Text = "手动模式";
+                _btnBatchMode.Text = "已启动批量模式";
             }
         }
 
@@ -668,24 +828,523 @@ namespace WindowsFormsApp3.Forms.Panels
             _fileTable?.Invalidate();
         }
 
-        public void UpdateExcelData()
+
+        // --- 列配置持久化逻辑 ---
+
+        private class ColumnConfig
         {
-            if (_embeddedForm != null && !_embeddedForm.IsDisposed)
+            public string Key { get; set; }
+            public bool Visible { get; set; }
+            public string Width { get; set; }
+            public float FillWeight { get; set; }
+            public int Index { get; set; }
+        }
+
+        private string GetConfigPath()
+        {
+            var configDir = System.IO.Path.Combine(System.Windows.Forms.Application.StartupPath, "Config");
+            if (!System.IO.Directory.Exists(configDir))
             {
-                _embeddedForm.UpdateExcelData();
-                SubscribeToDataChanges();
+                System.IO.Directory.CreateDirectory(configDir);
+            }
+            return System.IO.Path.Combine(configDir, "FileTableConfig.json");
+        }
+
+        private void SaveColumnSettings()
+        {
+            try
+            {
+                var configs = new List<ColumnConfig>();
+                foreach (System.Windows.Forms.DataGridViewColumn col in _fileTable.Columns)
+                {
+                    configs.Add(new ColumnConfig
+                    {
+                        Key = col.Name,
+                        Visible = col.Visible,
+                        Width = col.Width.ToString(),
+                        FillWeight = col.FillWeight,
+                        Index = col.DisplayIndex
+                    });
+                }
+
+                var json = Newtonsoft.Json.JsonConvert.SerializeObject(configs, Newtonsoft.Json.Formatting.Indented);
+                System.IO.File.WriteAllText(GetConfigPath(), json);
+                
+                AntdUI.Message.success(this.FindForm(), "列配置已保存", autoClose: 2);
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"保存列配置失败: {ex.Message}");
+                AntdUI.Message.error(this.FindForm(), "保存失败: " + ex.Message, autoClose: 3);
             }
         }
 
+
+
+        private void RestoreColumnDefaults()
+        {
+            try
+            {
+                var path = GetConfigPath();
+                if (System.IO.File.Exists(path))
+                {
+                    System.IO.File.Delete(path);
+                }
+                
+                // 清空当前列
+                _fileTable.Columns.Clear();
+                
+                // 重新初始化默认列
+                InitializeFileTable();
+                
+                AntdUI.Message.success(this.FindForm(), "已恢复默认设置", autoClose: 2);
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"恢复默认设置失败: {ex.Message}");
+                AntdUI.Message.error(this.FindForm(), "恢复失败: " + ex.Message, autoClose: 3);
+            }
+        }
+
+        /// <summary>
+        /// 阶段5：更新Excel数据（已移除Form1依赖）
+        /// </summary>
+        public void UpdateExcelData()
+        {
+            // Excel数据更新已由Presenter处理
+            SubscribeToDataChanges();
+        }
+
+        #region IFileRenamePanelView 接口实现
+
+        // 属性实现
+        public string InputDirectory
+        {
+            get
+            {
+                if (_cmbInputDir != null && _cmbInputDir.SelectedIndex >= 0 && _cmbInputDir.Items.Count > 0)
+                {
+                    return _cmbInputDir.Items[_cmbInputDir.SelectedIndex]?.ToString() ?? "";
+                }
+                return "";
+            }
+            set
+            {
+                // 查找匹配的项并设置选中
+                for (int i = 0; i < _cmbInputDir.Items.Count; i++)
+                {
+                    if (_cmbInputDir.Items[i]?.ToString() == value)
+                    {
+                        _cmbInputDir.SelectedIndex = i;
+                        return;
+                    }
+                }
+                // 如果找不到，设置为第一项
+                if (_cmbInputDir.Items.Count > 0)
+                {
+                    _cmbInputDir.SelectedIndex = 0;
+                }
+            }
+        }
+
+        public bool IsMonitoring
+        {
+            get => _btnMonitor.Text == "停止监控";
+            set
+            {
+                if (value)
+                {
+                    _btnMonitor.Text = "停止监控";
+                    _btnMonitor.Type = AntdUI.TTypeMini.Error;
+                }
+                else
+                {
+                    _btnMonitor.Text = "开始监控";
+                    _btnMonitor.Type = AntdUI.TTypeMini.Primary;
+                }
+            }
+        }
+
+        public bool IsCopyMode => _btnToggleMode.Text == "剪切模式";
+
+        // 默认启用手动模式，确保材料选择对话框会弹出
+        public bool IsImmediateMode { get; set; } = true;
+
+        public BindingList<FileRenameInfo> FileList
+        {
+            get => _fileTable.DataSource as BindingList<FileRenameInfo>;
+            set
+            {
+                _fileTable.DataSource = value;
+                _fileTable.Invalidate();
+            }
+        }
+
+        public string SelectedRegexPattern
+        {
+            get
+            {
+                // TODO: 从 AntdUI.Select 获取选中的模式
+                // 目前暂时返回null
+                if (_cmbRegex != null && _cmbRegex.SelectedIndex >= 0 && _cmbRegex.Items.Count > 0)
+                {
+                    return _cmbRegex.Items[_cmbRegex.SelectedIndex]?.ToString();
+                }
+                return null;
+            }
+        }
+
+        public string SelectedRegexValue
+        {
+            get
+            {
+                // ✅ 修复：从AppSettings的RegexPatterns获取选中模式对应的正则表达式值
+                try
+                {
+                    var selectedName = SelectedRegexPattern;
+                    if (string.IsNullOrEmpty(selectedName))
+                    {
+                        return null;
+                    }
+
+                    // 从AppSettings加载正则表达式字典
+                    var regexStr = AppSettings.Instance.RegexPatterns;
+                    if (string.IsNullOrEmpty(regexStr))
+                    {
+                        return null;
+                    }
+
+                    // 解析 "名称=表达式|名称=表达式" 格式
+                    var patterns = regexStr.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var pattern in patterns)
+                    {
+                        var parts = pattern.Split(new[] { '=' }, 2);
+                        if (parts.Length == 2 && parts[0] == selectedName)
+                        {
+                            return parts[1]; // 返回正则表达式值
+                        }
+                    }
+
+                    return null;
+                }
+                catch (Exception ex)
+                {
+                    LogHelper.Error($"获取正则表达式失败: {ex.Message}", ex);
+                    return null;
+                }
+            }
+        }
+
+        public string CurrentConfigName { get; set; }
+
+        public DataTable ExcelData { get; set; }
+
+        // Excel列索引属性（用户在导入时选择的列）
+        public int ExcelSearchColumnIndex { get; set; } = -1;
+        public int ExcelReturnColumnIndex { get; set; } = -1;
+        public int ExcelSerialColumnIndex { get; set; } = -1;
+
+        // UI更新方法实现
+        public void UpdateStatus(string message)
+        {
+            UpdateStatusLabel(message);
+        }
+
+        public void UpdateRegexComboBox(List<string> patterns)
+        {
+            if (patterns == null) return;
+
+            // 保存当前选中的正则表达式
+            string lastSelected = AppSettings.LastSelectedRegex;
+
+            _cmbRegex.Items.Clear();
+            foreach (var pattern in patterns)
+            {
+                _cmbRegex.Items.Add(pattern);
+            }
+
+            // 尝试恢复上次的选择
+            if (!string.IsNullOrEmpty(lastSelected))
+            {
+                // 尝试找到匹配的项并设置选中
+                for (int i = 0; i < _cmbRegex.Items.Count; i++)
+                {
+                    if (_cmbRegex.Items[i]?.ToString() == lastSelected)
+                    {
+                        _cmbRegex.SelectedIndex = i;
+                        return;
+                    }
+                }
+            }
+
+            // 如果没有恢复成功，选择第一项
+            if (_cmbRegex.Items.Count > 0)
+            {
+                _cmbRegex.SelectedIndex = 0;
+            }
+        }
+
+        public void UpdateJsonFilesDropdown(List<string> jsonFiles)
+        {
+            if (jsonFiles == null) return;
+
+            _cmbJsonFiles.Items.Clear();
+            foreach (var file in jsonFiles)
+            {
+                _cmbJsonFiles.Items.Add(file);
+            }
+        }
+
+        public void UpdateMaterialsContextMenu(List<string> materials)
+        {
+            // TODO: 更新材料右键菜单
+        }
+
+        public void RefreshFileTable()
+        {
+            _fileTable.Invalidate();
+        }
+
+        public void UpdateMonitorButtonState(bool isMonitoring)
+        {
+            IsMonitoring = isMonitoring;
+        }
+
+        public void UpdateModeButtonState(bool isCopyMode)
+        {
+            _btnToggleMode.Text = isCopyMode ? "剪切模式" : "复制模式";
+        }
+
+        public void UpdateImmediateModeButtonState(bool isImmediateMode)
+        {
+            IsImmediateMode = isImmediateMode;
+            if (isImmediateMode)
+            {
+                _btnManualMode.Text = "已启动手动模式";
+                _btnBatchMode.Text = "批量模式";
+            }
+            else
+            {
+                _btnManualMode.Text = "手动模式";
+                _btnBatchMode.Text = "已启动批量模式";
+            }
+        }
+
+        // 消息显示方法实现
+        public void ShowError(string message)
+        {
+            if (!string.IsNullOrEmpty(message))
+            {
+                UpdateStatusLabel($"错误: {message}");
+            }
+        }
+
+        public void ShowSuccess(string message)
+        {
+            if (!string.IsNullOrEmpty(message))
+            {
+                UpdateStatusLabel($"成功: {message}");
+            }
+        }
+
+        public void ShowWarning(string message)
+        {
+            if (!string.IsNullOrEmpty(message))
+            {
+                UpdateStatusLabel($"警告: {message}");
+            }
+        }
+
+        public void ShowInfo(string message)
+        {
+            if (!string.IsNullOrEmpty(message))
+            {
+                UpdateStatusLabel(message);
+            }
+        }
+
+        public new bool ShowConfirm(string message, string title = "确认")
+        {
+            return System.Windows.Forms.MessageBox.Show(message, title,
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes;
+        }
+
+        // 对话框方法实现
+        public string ShowFolderBrowser(string description = "选择文件夹", string selectedPath = "")
+        {
+            using (var dialog = new FolderBrowserDialog { Description = description })
+            {
+                if (!string.IsNullOrEmpty(selectedPath) && Directory.Exists(selectedPath))
+                {
+                    dialog.SelectedPath = selectedPath;
+                }
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    return dialog.SelectedPath;
+                }
+            }
+            return null;
+        }
+
+        public string ShowSaveFileDialog(string filter = "JSON文件 (*.json)|*.json|所有文件 (*.*)|*.*", string defaultFileName = "")
+        {
+            using (var dialog = new SaveFileDialog { Filter = filter, FileName = defaultFileName })
+            {
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    return dialog.FileName;
+                }
+            }
+            return null;
+        }
+
+        public string ShowOpenFileDialog(string filter = "Excel文件 (*.xlsx;*.xls)|*.xlsx;*.xls|所有文件 (*.*)|*.*")
+        {
+            using (var dialog = new OpenFileDialog { Filter = filter })
+            {
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    return dialog.FileName;
+                }
+            }
+            return null;
+        }
+
+        public DialogResult ShowMaterialSelectionDialog(
+            List<string> materials,
+            string fileName,
+            string regexResult,
+            string width,
+            string height,
+            string tetBleed,
+            bool isColumnCombineMode,
+            List<string> columnNames,
+            Dictionary<string, List<string>> columnItemsMap,
+            int initialSerialNumber,
+            out MaterialSelectionResult result)
+        {
+            result = null;
+
+            try
+            {
+                // 获取 Excel 数据（如果有）
+                var excelData = ExcelData;
+                var searchColIdx = -1;
+                var returnColIdx = -1;
+                var serialColIdx = -1;
+                var newColIdx = -1;
+
+                if (excelData != null && excelData.Columns.Count > 0)
+                {
+                    // ✅ 修复：使用从 Presenter 同步的列索引，而不是通过列名查找
+                    searchColIdx = ExcelSearchColumnIndex;
+                    returnColIdx = ExcelReturnColumnIndex;
+                    serialColIdx = ExcelSerialColumnIndex;
+                    newColIdx = excelData.Columns.Count - 1; // 最后一列
+                    
+                    LogHelper.Debug($"[ShowMaterialSelectionDialog] 使用列索引: search={searchColIdx}, return={returnColIdx}, serial={serialColIdx}");
+                }
+
+                using (var dialog = new MaterialSelectFormModern(
+                    materials: materials,
+                    fileName: fileName,
+                    regexResult: regexResult,
+                    opacity: AppSettings.Opacity,
+                    width: width,
+                    height: height,
+                    excelData: excelData,
+                    searchColumnIndex: searchColIdx,
+                    returnColumnIndex: returnColIdx,
+                    serialColumnIndex: serialColIdx,
+                    newColumnIndex: newColIdx,
+                    serialNumber: initialSerialNumber.ToString()))
+                {
+                    if (dialog.ShowDialog() == DialogResult.OK)
+                    {
+                        result = new MaterialSelectionResult
+                        {
+                            SelectedMaterial = dialog.SelectedMaterial,
+                            SelectedQuantity = dialog.Quantity,
+                            SelectedSerialNumber = dialog.SerialNumber,
+                            ColumnValues = new Dictionary<string, string>(),
+                            IsColumnCombineMode = isColumnCombineMode,
+                            ExportPath = dialog.SelectedExportPath ?? AppSettings.LastExportPath ?? "",
+                            // ✅ 修复：从对话框读取订单号、尺寸、工艺等值
+                            OrderNumber = dialog.OrderNumber ?? "",
+                            Dimensions = dialog.AdjustedDimensions ?? "",
+                            Process = dialog.FilmType ?? "",
+                            // ✅ 修复：从对话框读取行数和列数
+                            LayoutRows = dialog.GetRows() > 0 ? dialog.GetRows().ToString() : "",
+                            LayoutColumns = dialog.GetColumns() > 0 ? dialog.GetColumns().ToString() : "",
+                            // ✅ 修复：从对话框读取形状处理信息
+                            SelectedShape = (int)dialog.SelectedShape,
+                            RoundRadius = dialog.RoundRadius,
+                            IsShapeSelected = dialog.GetIsShapeSelected(),
+                            CornerRadius = dialog.GetCompatibleCornerRadius(),
+                            // ✅ 修复：从对话框读取旋转信息
+                            RotationAngle = dialog.GetRotationAngle(),
+                            NeedsRotation = dialog.GetRotationAngle() != 0
+                        };
+                        return DialogResult.OK;
+                    }
+                    return DialogResult.Cancel;
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError($"显示材料选择对话框失败: {ex.Message}");
+                return DialogResult.Cancel;
+            }
+        }
+
+        // 进度显示方法实现
+        public void ShowProgress(string message)
+        {
+            ShowLoading(message);
+        }
+
+        public void UpdateProgress(int current, int total, string message = "")
+        {
+            // TODO: 实现进度更新
+        }
+
+        public void HideProgress()
+        {
+            HideLoading();
+        }
+
+        #endregion
+
+        #region IExcelParentView 接口实现
+
+        /// <summary>
+        /// IExcelParentView 接口实现 - 更新状态
+        /// </summary>
+        void IExcelParentView.UpdateStatus(string message)
+        {
+            UpdateStatus(message);
+        }
+
+        /// <summary>
+        /// IExcelParentView 接口实现 - 显示错误
+        /// </summary>
+        void IExcelParentView.ShowError(string message)
+        {
+            ShowError(message);
+        }
+
+        #endregion
+
+        /// <summary>
+        /// 阶段5：清理资源（已移除Form1依赖）
+        /// </summary>
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                if (_embeddedForm != null && !_embeddedForm.IsDisposed)
-                {
-                    _embeddedForm.Close();
-                    _embeddedForm.Dispose();
-                }
+                // 释放 Presenter
+                // (_presenter as IDisposable)?.Dispose();
+
                 _contextMenu?.Dispose();
                 components?.Dispose();
             }

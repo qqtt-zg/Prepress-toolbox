@@ -31,6 +31,12 @@ namespace WindowsFormsApp3.Services
         int SerialColumnIndex { get; set; }
 
         /// <summary>
+        /// 获取或设置材料列的索引
+        /// 用于存储和匹配材料数据
+        /// </summary>
+        int MaterialColumnIndex { get; set; }
+
+        /// <summary>
         /// 获取Excel导入表单实例
         /// </summary>
         ExcelImportForm ExcelImportFormInstance { get; }

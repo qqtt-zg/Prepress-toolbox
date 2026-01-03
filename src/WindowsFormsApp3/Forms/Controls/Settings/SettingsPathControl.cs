@@ -19,7 +19,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             InitializeExportPathsDataGridView();
             
             // 仅在运行时加载数据，避免设计器中访问未初始化的AppSettings
-            if (!DesignMode && !System.ComponentModel.LicenseManager.UsageMode.Equals(System.ComponentModel.LicenseUsageMode.Designtime))
+            if (LicenseManager.UsageMode != LicenseUsageMode.Designtime)
             {
                 LoadExportPaths();
             }

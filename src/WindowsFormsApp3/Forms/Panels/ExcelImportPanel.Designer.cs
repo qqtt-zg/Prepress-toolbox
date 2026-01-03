@@ -23,7 +23,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "ExcelImportPanel";
-            this.Size = new System.Drawing.Size(907, 531);
+            this.Size = new System.Drawing.Size(935, 503);
             this.ResumeLayout(false);
 
         }

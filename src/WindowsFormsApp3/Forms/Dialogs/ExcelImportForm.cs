@@ -15,7 +15,11 @@ using WindowsFormsApp3.Forms.Main;
 namespace WindowsFormsApp3
 {
 
-    public partial class ExcelImportForm : Form
+    /// <summary>
+    /// Excel 导入表单
+    /// 支持独立对话框模式和嵌入面板模式
+    /// </summary>
+    public partial class ExcelImportForm : Form, IExcelImportForm
     {
         public DataTable ImportedData { get; private set; }
         /// <summary>
@@ -42,7 +46,7 @@ namespace WindowsFormsApp3
         
 
         private Dictionary<string, string> regexPatterns = new Dictionary<string, string>(); // 正则表达式模式集合
-        private Form1 parentForm; // 引用父窗体
+        private IExcelParentView parentView; // 父视图接口（解耦 Form1 依赖）
 
         // 添加缺失的属性
         public string CornerRadius { get; set; }
@@ -61,9 +65,9 @@ namespace WindowsFormsApp3
             get { return cmbRegex2; }
         }
 
-        public ExcelImportForm(Form1 parent = null)
+        public ExcelImportForm(IExcelParentView parent = null)
         {
-            parentForm = parent;
+            parentView = parent;
             InitializeComponent();
             ImportedData = new DataTable();
             
@@ -102,7 +106,7 @@ namespace WindowsFormsApp3
             UpdateRegexComboBox();
         }
 
-        public ExcelImportForm(string filePath, Form1 parent = null) : this(parent)
+        public ExcelImportForm(string filePath, IExcelParentView parent = null) : this(parent)
         {
             // 只有在提供了有效的文件路径时才加载数据
             if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
@@ -421,12 +425,11 @@ namespace WindowsFormsApp3
                 if (regexPatterns.TryGetValue(selectedPatternName, out string pattern))
                 {
                     SelectedRegexPattern = pattern;
-                    
-                    // 只在点击确定按钮时更新父窗体的ExcelFormRegexPattern属性
-                    if (parentForm != null)
+
+                    // 通知父视图（解耦：通过接口而非直接依赖 Form1）
+                    if (parentView != null)
                     {
-                        parentForm.ExcelFormRegexPattern = selectedPatternName;
-                        parentForm.UpdateStatusStrip();
+                        parentView.UpdateStatus($"已选择正则表达式: {selectedPatternName}");
                     }
                 }
             }

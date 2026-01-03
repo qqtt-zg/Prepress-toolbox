@@ -28,7 +28,8 @@ namespace WindowsFormsApp3.Services
             _watcher.Error += Watcher_Error;
             _watcher.IncludeSubdirectories = false;
             _watcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
-            _watcher.Filter = "*.*";
+            // 修复：仅监控 PDF 文件，与 Form1 的 watcher.Filter = "*.pdf" 保持一致
+            _watcher.Filter = "*.pdf";
         }
 
         /// <summary>

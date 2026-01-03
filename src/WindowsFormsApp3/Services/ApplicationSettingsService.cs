@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using Newtonsoft.Json;
 using WindowsFormsApp3.Interfaces;
@@ -30,6 +31,7 @@ namespace WindowsFormsApp3.Services
         {
             // 基础配置
             public string LastInputDir { get; set; } = "";
+            public List<string> InputDirHistory { get; set; } = new List<string>();
             public string LastOutputDir { get; set; } = "";
             public string RegexPatterns { get; set; } = "";
             public string Materials { get; set; } = "";
@@ -101,6 +103,9 @@ namespace WindowsFormsApp3.Services
             public bool MaterialFormMaximized { get; set; } = false;
             public FormWindowState MaterialFormWindowState { get; set; } = FormWindowState.Normal;
             public bool MaterialFormPreviewExpanded { get; set; } = false; // PDF预览状态
+
+            // 正则表达式变化自动刷新配置
+            public bool AutoRefreshFileNameOnRegexChange { get; set; } = false;
 
             // 动态设置（不在Properties.Settings中定义的）
             public Dictionary<string, object> CustomSettings { get; set; } = new Dictionary<string, object>();
@@ -252,6 +257,46 @@ namespace WindowsFormsApp3.Services
         {
             get => _settings.LastInputDir;
             set { _settings.LastInputDir = value; MarkAsChanged(); }
+        }
+
+        /// <summary>
+        /// 输入目录历史记录（最近5次）
+        /// </summary>
+        public List<string> InputDirHistory
+        {
+            get => _settings.InputDirHistory;
+            set { _settings.InputDirHistory = value; MarkAsChanged(); }
+        }
+
+        /// <summary>
+        /// 添加输入目录到历史记录（保留最近5次）
+        /// </summary>
+        public void AddInputDirToHistory(string dirPath)
+        {
+            if (string.IsNullOrEmpty(dirPath)) return;
+
+            // 移除重复项
+            _settings.InputDirHistory.Remove(dirPath);
+
+            // 添加到开头
+            _settings.InputDirHistory.Insert(0, dirPath);
+
+            // 保留最近5次
+            if (_settings.InputDirHistory.Count > 5)
+            {
+                _settings.InputDirHistory = _settings.InputDirHistory.Take(5).ToList();
+            }
+
+            MarkAsChanged();
+        }
+
+        /// <summary>
+        /// 正则表达式变化时自动刷新文件名
+        /// </summary>
+        public bool AutoRefreshFileNameOnRegexChange
+        {
+            get => _settings.AutoRefreshFileNameOnRegexChange;
+            set { _settings.AutoRefreshFileNameOnRegexChange = value; MarkAsChanged(); }
         }
 
         public string LastOutputDir

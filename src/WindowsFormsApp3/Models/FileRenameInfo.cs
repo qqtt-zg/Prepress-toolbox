@@ -27,6 +27,10 @@ namespace WindowsFormsApp3
         private string _errorMessage;
         private int? _pageCount;
         private string _compositeColumn; // 添加列组合属性
+        private string _width;      // PDF 宽度
+        private string _height;     // PDF 高度
+        private string _tetBleed;   // 出血值
+        private string _fileExtension; // 文件扩展名
 
         // 保留模式相关属性
         private Dictionary<string, string> _backupData = new Dictionary<string, string>();
@@ -140,6 +144,42 @@ namespace WindowsFormsApp3
                     OnPropertyChanged();
                 }
             }
+        }
+
+        /// <summary>
+        /// PDF 宽度
+        /// </summary>
+        public string Width
+        {
+            get { return _width; }
+            set { _width = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// PDF 高度
+        /// </summary>
+        public string Height
+        {
+            get { return _height; }
+            set { _height = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// 出血值
+        /// </summary>
+        public string TetBleed
+        {
+            get { return _tetBleed; }
+            set { _tetBleed = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// 文件扩展名
+        /// </summary>
+        public string FileExtension
+        {
+            get { return _fileExtension; }
+            set { _fileExtension = value; OnPropertyChanged(); }
         }
 
         /// <summary>

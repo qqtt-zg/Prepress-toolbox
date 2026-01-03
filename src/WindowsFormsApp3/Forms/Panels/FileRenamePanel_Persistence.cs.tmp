@@ -1,0 +1,134 @@
+
+        // --- 列配置持久化逻辑 ---
+
+        private class ColumnConfig
+        {
+            public string Key { get; set; }
+            public bool Visible { get; set; }
+            public string Width { get; set; }
+            public int Index { get; set; }
+        }
+
+        private string GetConfigPath()
+        {
+            var configDir = System.IO.Path.Combine(System.Windows.Forms.Application.StartupPath, "Config");
+            if (!System.IO.Directory.Exists(configDir))
+            {
+                System.IO.Directory.CreateDirectory(configDir);
+            }
+            return System.IO.Path.Combine(configDir, "FileTableConfig.json");
+        }
+
+        private void SaveColumnSettings()
+        {
+            try
+            {
+                var configs = new List<ColumnConfig>();
+                var columns = _fileTable.Columns;
+                for (int i = 0; i < columns.Count; i++)
+                {
+                    var col = columns[i];
+                    configs.Add(new ColumnConfig
+                    {
+                        Key = col.Key,
+                        Visible = col.Visible,
+                        Width = col.Width,
+                        Index = i // 保存当前顺序
+                    });
+                }
+
+                var json = Newtonsoft.Json.JsonConvert.SerializeObject(configs, Newtonsoft.Json.Formatting.Indented);
+                System.IO.File.WriteAllText(GetConfigPath(), json);
+                
+                AntdUI.Message.success(_fileTable, "列配置已保存");
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"保存列配置失败: {ex.Message}");
+                AntdUI.Message.error(_fileTable, "保存失败");
+            }
+        }
+
+        private void LoadColumnSettings()
+        {
+            try
+            {
+                var path = GetConfigPath();
+                if (!System.IO.File.Exists(path)) return;
+
+                var json = System.IO.File.ReadAllText(path);
+                var configs = Newtonsoft.Json.JsonConvert.DeserializeObject<List<ColumnConfig>>(json);
+                
+                if (configs == null || configs.Count == 0) return;
+
+                // 1. 创建现有列的字典，方便查找
+                var columnDict = new Dictionary<string, AntdUI.Column>();
+                var currentColumns = new List<AntdUI.Column>();
+                foreach (var col in _fileTable.Columns)
+                {
+                    columnDict[col.Key] = col;
+                    currentColumns.Add(col); // 备份原始列表
+                }
+
+                // 2. 清空现有列
+                _fileTable.Columns.Clear();
+
+                // 3. 按配置顺序重新添加列
+                // 先按Index排序配置
+                var sortedConfigs = configs.OrderBy(c => c.Index).ToList();
+                
+                foreach (var config in sortedConfigs)
+                {
+                    if (columnDict.TryGetValue(config.Key, out var col))
+                    {
+                        // 应用属性
+                        col.Visible = config.Visible;
+                        if (!string.IsNullOrEmpty(config.Width))
+                        {
+                            col.Width = config.Width;
+                        }
+                        
+                        // 添加到表格
+                        _fileTable.Columns.Add(col);
+                        
+                        // 从字典中移除已处理的列
+                        columnDict.Remove(config.Key);
+                    }
+                }
+
+                // 4. 添加配置中未包含的剩余列（如果有新增列）
+                foreach (var kvp in columnDict)
+                {
+                    _fileTable.Columns.Add(kvp.Value);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"加载列配置失败: {ex.Message}");
+            }
+        }
+
+        private void RestoreColumnDefaults()
+        {
+            try
+            {
+                var path = GetConfigPath();
+                if (System.IO.File.Exists(path))
+                {
+                    System.IO.File.Delete(path);
+                }
+                
+                // 清空当前列
+                _fileTable.Columns.Clear();
+                
+                // 重新初始化默认列
+                InitializeFileTable();
+                
+                AntdUI.Message.success(_fileTable, "已恢复默认设置");
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"恢复默认设置失败: {ex.Message}");
+                AntdUI.Message.error(_fileTable, "恢复失败");
+            }
+        }

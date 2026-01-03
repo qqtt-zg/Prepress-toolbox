@@ -259,7 +259,7 @@ namespace WindowsFormsApp3.Forms.Main
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
-            this.ClientSize = new System.Drawing.Size(975, 720);
+            this.ClientSize = new System.Drawing.Size(1200, 750);
             this.Controls.Add(this.mainContainer);
             this.Controls.Add(this.statusStrip);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;

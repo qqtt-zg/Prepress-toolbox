@@ -14,24 +14,27 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 {
     public partial class SettingsEventControl : UserControl
     {
-        private EventGroupsTreeView eventGroupsTreeView;
+        // eventGroupsTreeView 已在 Designer.cs 中声明
         private List<EventGroupConfig> _eventGroupConfigs;
         private List<WindowsFormsApp3.Forms.Dialogs.EventItem> _eventItems;
 
         public SettingsEventControl()
         {
             InitializeComponent();
-            InitializeControl();
+            
+            // 仅在运行时加载设置，避免设计器问题
+            if (System.ComponentModel.LicenseManager.UsageMode != System.ComponentModel.LicenseUsageMode.Designtime)
+            {
+                InitializeControl();
+            }
         }
 
         private void InitializeControl()
         {
-            // Init EventGroupsTreeView
-            eventGroupsTreeView = new EventGroupsTreeView();
-            eventGroupsTreeView.Dock = DockStyle.Fill;
-            this.Controls.Add(eventGroupsTreeView);
-
+            // eventGroupsTreeView 已由设计器创建并添加到 Controls
+            
             // Init Logic
+            SetupTreeView();
             InitializeEventGroups();
             InitializeTreeViewEvents();
             
@@ -40,6 +43,11 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             LoadEventGroups();
             LoadEventItems();
             LoadEventPresets();
+        }
+        
+        private void SetupTreeView()
+        {
+            // TreeView 的额外配置在这里进行（如果需要）
         }
 
         private void InitializeEventGroups()
@@ -255,23 +263,133 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 
         private void TreeViewEvents_PresetSaved(object sender, EventArgs e)
         {
-            // Implement Logic
-            MessageBox.Show("预设保存逻辑待完善 (Porting...)", "提示");
+            try
+            {
+                var selectedPreset = eventGroupsTreeView.GetPresetsComboBox().SelectedItem?.ToString();
+                if (string.IsNullOrEmpty(selectedPreset))
+                {
+                    MessageBox.Show("请先选择一个预设", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                // 获取当前配置
+                // 保存预设
+                SavePresetConfiguration(selectedPreset);
+                
+                MessageBox.Show($"预设 '{selectedPreset}' 已保存", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error("保存预设失败", ex);
+                MessageBox.Show($"保存预设失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
         
         private void TreeViewEvents_PresetLoaded(object sender, EventArgs e)
         {
-             // Implement Logic
+            try
+            {
+                var selectedPreset = eventGroupsTreeView.GetPresetsComboBox().SelectedItem?.ToString();
+                if (string.IsNullOrEmpty(selectedPreset)) return;
+
+                // 记录最后选择的预设
+                AppSettings.Set("LastSelectedEventPreset", selectedPreset);
+                AppSettings.Save();
+
+                // 加载预设配置
+                LoadPresetConfiguration(selectedPreset);
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error("加载预设失败", ex);
+            }
         }
 
         private void TreeViewEvents_PresetDeleted(object sender, EventArgs e)
         {
-             // Implement Logic
+            try
+            {
+                var selectedPreset = eventGroupsTreeView.GetPresetsComboBox().SelectedItem?.ToString();
+                if (string.IsNullOrEmpty(selectedPreset))
+                {
+                    MessageBox.Show("请先选择一个预设", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                // 内置预设不能删除
+                if (selectedPreset == "全功能配置")
+                {
+                    MessageBox.Show("内置预设不能删除", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (MessageBox.Show($"确定要删除预设 '{selectedPreset}' 吗？", "确认删除", 
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    DeletePreset(selectedPreset);
+                    LoadEventPresets();
+                    MessageBox.Show($"预设 '{selectedPreset}' 已删除", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error("删除预设失败", ex);
+                MessageBox.Show($"删除预设失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
        private void TreeViewEvents_PresetSaveAs(object sender, EventArgs e)
        {
-            // Implement Logic
+            try
+            {
+                // 使用 InputBox 获取新预设名称
+                var newPresetName = Microsoft.VisualBasic.Interaction.InputBox(
+                    "请输入新预设的名称:", 
+                    "另存预设方案", 
+                    "", 
+                    -1, -1);
+
+                if (string.IsNullOrWhiteSpace(newPresetName))
+                {
+                    return; // 用户取消
+                }
+
+                // 检查是否是内置预设名
+                if (newPresetName == "全功能配置")
+                {
+                    MessageBox.Show("不能使用内置预设名称", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // 检查是否已存在
+                var existingPresets = GetEventItemsPresetNames();
+                if (existingPresets.Contains(newPresetName))
+                {
+                    if (MessageBox.Show($"预设 '{newPresetName}' 已存在，是否覆盖？", "确认", 
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                    {
+                        return;
+                    }
+                }
+
+                // 获取当前配置并保存
+                // 保存预设
+                SavePresetConfiguration(newPresetName);
+
+                // 添加到自定义预设列表
+                AddCustomPresetName(newPresetName);
+
+                // 刷新预设列表并选择新预设
+                LoadEventPresets();
+                eventGroupsTreeView.GetPresetsComboBox().SelectedItem = newPresetName;
+
+                MessageBox.Show($"预设 '{newPresetName}' 已保存", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error("另存预设失败", ex);
+                MessageBox.Show($"另存预设失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
        }
 
        private void TreeViewEvents_PreserveStateChanged(object sender, PreserveStateChangedEventArgs e)
@@ -280,6 +398,222 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             if(config != null) config.IsPreserved = e.IsPreserved;
             SaveEventGroupConfigs();
        }
+
+        #region 预设辅助方法
+
+        /// <summary>
+        /// 获取当前事件配置 (EventGroupConfiguration 对象)
+        /// </summary>
+        private Models.EventGroupConfiguration GetCurrentEventGroupConfiguration()
+        {
+            var config = new Models.EventGroupConfiguration
+            {
+                Groups = new List<Models.EventGroup>(),
+                Items = new List<Models.EventItem>()
+            };
+            
+            foreach (TreeNode groupNode in eventGroupsTreeView.TreeView.Nodes)
+            {
+                if (groupNode.Tag is TreeNodeData groupData && groupData.NodeType == TreeNodeType.Group)
+                {
+                    // 获取分组 ID
+                    string groupId = GetGroupId(groupData.Group);
+                    
+                    // 获取分组配置
+                    var groupConfig = _eventGroupConfigs.FirstOrDefault(g => g.Group == groupData.Group);
+                    
+                    // 保存分组配置
+                    config.Groups.Add(new Models.EventGroup
+                    {
+                        Id = groupId,
+                        DisplayName = groupConfig?.DisplayName ?? groupData.Group.ToString(),
+                        Prefix = groupConfig?.Prefix ?? "",
+                        IsEnabled = groupNode.Checked,
+                        SortOrder = groupNode.Index,
+                        IsPreserved = groupData.IsPreserved
+                    });
+                    
+                    // 保存该分组下的所有项目
+                    foreach (TreeNode itemNode in groupNode.Nodes)
+                    {
+                        if (itemNode.Tag is TreeNodeData itemData && itemData.NodeType == TreeNodeType.Item)
+                        {
+                            config.Items.Add(new Models.EventItem
+                            {
+                                Name = itemNode.Text,
+                                GroupId = groupId,
+                                IsEnabled = itemNode.Checked,
+                                SortOrder = itemNode.Index
+                            });
+                        }
+                    }
+                }
+            }
+            
+            return config;
+        }
+
+        /// <summary>
+        /// 根据 EventGroup 枚举获取分组 ID
+        /// </summary>
+        private string GetGroupId(EventGroup? group)
+        {
+            if (!group.HasValue) return "ungrouped";
+            
+            return group.Value switch
+            {
+                EventGroup.Order => "order",
+                EventGroup.Material => "material",
+                EventGroup.Quantity => "quantity",
+                EventGroup.Process => "process",
+                EventGroup.Customer => "customer",
+                EventGroup.Remark => "remark",
+                EventGroup.Row => "row",
+                EventGroup.Column => "column",
+                EventGroup.Ungrouped => "ungrouped",
+                _ => "ungrouped"
+            };
+        }
+
+        /// <summary>
+        /// 保存预设配置 (使用 EventItemsPreset_ 键前缀和 JSON 格式)
+        /// </summary>
+        private void SavePresetConfiguration(string presetName, string _obsolete = null)
+        {
+            try
+            {
+                var config = GetCurrentEventGroupConfiguration();
+                var configJson = JsonConvert.SerializeObject(config, Formatting.Indented);
+                
+                // 使用与 SettingsForm 相同的键前缀
+                var presetsKey = $"EventItemsPreset_{presetName}";
+                AppSettings.Set(presetsKey, configJson);
+                AppSettings.Save();
+                
+                LogHelper.Debug($"预设保存成功: {presetsKey}, JSON长度: {configJson.Length}");
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"保存预设配置失败: {ex.Message}", ex);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 加载预设配置 (使用 EventItemsPreset_ 键前缀和 JSON 格式)
+        /// </summary>
+        private void LoadPresetConfiguration(string presetName)
+        {
+            try
+            {
+                if (presetName == "全功能配置")
+                {
+                    // 全功能配置 - 使用默认配置
+                    var fullConfig = Models.DefaultEventGroups.GetDefaultConfiguration();
+                    ApplyEventGroupConfiguration(fullConfig);
+                    return;
+                }
+
+                // 使用与 SettingsForm 相同的键前缀
+                var presetsKey = $"EventItemsPreset_{presetName}";
+                var configJson = AppSettings.Get(presetsKey) as string;
+                
+                if (string.IsNullOrEmpty(configJson))
+                {
+                    LogHelper.Debug($"预设 {presetName} 配置为空");
+                    return;
+                }
+
+                var config = JsonConvert.DeserializeObject<Models.EventGroupConfiguration>(configJson);
+                if (config != null)
+                {
+                    ApplyEventGroupConfiguration(config);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"加载预设配置失败: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// 应用 EventGroupConfiguration 到 TreeView
+        /// </summary>
+        private void ApplyEventGroupConfiguration(Models.EventGroupConfiguration config)
+        {
+            if (config?.Groups == null || config?.Items == null) return;
+
+            // 更新分组和项目的勾选状态
+            foreach (TreeNode groupNode in eventGroupsTreeView.TreeView.Nodes)
+            {
+                if (groupNode.Tag is TreeNodeData groupData && groupData.NodeType == TreeNodeType.Group)
+                {
+                    string groupId = GetGroupId(groupData.Group);
+                    
+                    // 查找对应的分组配置
+                    var groupConfig = config.Groups.FirstOrDefault(g => g.Id == groupId);
+                    if (groupConfig != null)
+                    {
+                        groupNode.Checked = groupConfig.IsEnabled;
+                        groupData.IsEnabled = groupConfig.IsEnabled;
+                        groupData.IsPreserved = groupConfig.IsPreserved;
+                    }
+                    
+                    // 更新项目状态
+                    foreach (TreeNode itemNode in groupNode.Nodes)
+                    {
+                        if (itemNode.Tag is TreeNodeData itemData && itemData.NodeType == TreeNodeType.Item)
+                        {
+                            var itemConfig = config.Items.FirstOrDefault(i => i.Name == itemNode.Text && i.GroupId == groupId);
+                            if (itemConfig != null)
+                            {
+                                itemNode.Checked = itemConfig.IsEnabled;
+                                itemData.IsEnabled = itemConfig.IsEnabled;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 刷新保留状态视觉
+            eventGroupsTreeView.RefreshPreserveVisuals();
+        }
+
+        /// <summary>
+        /// 删除预设 (使用 EventItemsPreset_ 键前缀)
+        /// </summary>
+        private void DeletePreset(string presetName)
+        {
+            // 删除预设配置 - 使用与 SettingsForm 相同的键前缀
+            var presetsKey = $"EventItemsPreset_{presetName}";
+            AppSettings.Set(presetsKey, null);
+            
+            // 从自定义预设列表中移除
+            var customPresets = AppSettings.Get("EventItemsCustomPresets") as string ?? "";
+            var presetList = customPresets.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            presetList.Remove(presetName);
+            AppSettings.Set("EventItemsCustomPresets", string.Join("|", presetList));
+            
+            AppSettings.Save();
+        }
+
+        /// <summary>
+        /// 添加自定义预设名称到列表
+        /// </summary>
+        private void AddCustomPresetName(string presetName)
+        {
+            var customPresets = AppSettings.Get("EventItemsCustomPresets") as string ?? "";
+            var presetList = customPresets.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            
+            if (!presetList.Contains(presetName))
+            {
+                presetList.Add(presetName);
+                AppSettings.Set("EventItemsCustomPresets", string.Join("|", presetList));
+                AppSettings.Save();
+            }
+        }
+
+        #endregion
     }
     
     // Helper Class if not accessible

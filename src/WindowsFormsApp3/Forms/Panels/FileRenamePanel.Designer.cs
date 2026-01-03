@@ -16,7 +16,7 @@ namespace WindowsFormsApp3.Forms.Panels
         private System.Windows.Forms.FlowLayoutPanel _renameActionFlow;
         
         // AntdUI 输入控件
-        private AntdUI.Input _txtInputDir;
+        private AntdUI.Select _cmbInputDir;
         private AntdUI.Select _cmbRegex;
         
         // AntdUI 按钮控件
@@ -30,8 +30,8 @@ namespace WindowsFormsApp3.Forms.Panels
         private AntdUI.Button _btnBatchMode;
         private AntdUI.Button _btnRename;
         
-        // AntdUI Table - 显示文件列表
-        private AntdUI.Table _fileTable;
+        // Krypton DataGridView - 显示文件列表
+        private Krypton.Toolkit.KryptonDataGridView _fileTable;
         
         // JSON 管理控件
         private AntdUI.Select _cmbJsonFiles;
@@ -46,7 +46,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this._topControlPanel = new System.Windows.Forms.Panel();
             this._layoutPanel = new System.Windows.Forms.TableLayoutPanel();
             this._inputPanel = new System.Windows.Forms.Panel();
-            this._txtInputDir = new AntdUI.Input();
+            this._cmbInputDir = new AntdUI.Select();
             this._regexPanel = new System.Windows.Forms.Panel();
             this._cmbRegex = new AntdUI.Select();
             this._topBtnFlow = new System.Windows.Forms.FlowLayoutPanel();
@@ -63,7 +63,21 @@ namespace WindowsFormsApp3.Forms.Panels
             this._btnManualMode = new AntdUI.Button();
             this._btnBatchMode = new AntdUI.Button();
             this._btnRename = new AntdUI.Button();
-            this._fileTable = new AntdUI.Table();
+            this._fileTable = new Krypton.Toolkit.KryptonDataGridView();
+            this.SerialNumber = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.OriginalName = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.NewName = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.RegexResult = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.OrderNumber = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Material = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Quantity = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Dimensions = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.CompositeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.LayoutRows = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.LayoutColumns = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Process = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.PageCount = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Time = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this._statusPanel = new System.Windows.Forms.Panel();
             this._statusLabel = new AntdUI.Label();
             this._topControlPanel.SuspendLayout();
@@ -73,6 +87,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this._topBtnFlow.SuspendLayout();
             this._bottomActionFlow.SuspendLayout();
             this._renameActionFlow.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this._fileTable)).BeginInit();
             this._statusPanel.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -84,7 +99,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this._topControlPanel.Location = new System.Drawing.Point(0, 0);
             this._topControlPanel.Name = "_topControlPanel";
             this._topControlPanel.Padding = new System.Windows.Forms.Padding(10, 1, 10, 5);
-            this._topControlPanel.Size = new System.Drawing.Size(1006, 110);
+            this._topControlPanel.Size = new System.Drawing.Size(935, 110);
             this._topControlPanel.TabIndex = 1;
             // 
             // _layoutPanel
@@ -104,35 +119,34 @@ namespace WindowsFormsApp3.Forms.Panels
             this._layoutPanel.RowCount = 2;
             this._layoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this._layoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this._layoutPanel.Size = new System.Drawing.Size(986, 104);
+            this._layoutPanel.Size = new System.Drawing.Size(915, 104);
             this._layoutPanel.TabIndex = 0;
             // 
             // _inputPanel
             // 
-            this._inputPanel.Controls.Add(this._txtInputDir);
+            this._inputPanel.Controls.Add(this._cmbInputDir);
             this._inputPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this._inputPanel.Location = new System.Drawing.Point(0, 0);
             this._inputPanel.Margin = new System.Windows.Forms.Padding(0);
             this._inputPanel.Name = "_inputPanel";
             this._inputPanel.Padding = new System.Windows.Forms.Padding(0, 5, 5, 5);
-            this._inputPanel.Size = new System.Drawing.Size(478, 52);
+            this._inputPanel.Size = new System.Drawing.Size(407, 52);
             this._inputPanel.TabIndex = 0;
             // 
-            // _txtInputDir
+            // _cmbInputDir
             // 
-            this._txtInputDir.Dock = System.Windows.Forms.DockStyle.Fill;
-            this._txtInputDir.Location = new System.Drawing.Point(0, 5);
-            this._txtInputDir.Name = "_txtInputDir";
-            this._txtInputDir.PlaceholderText = "请输入或选择文件夹路径...";
-            this._txtInputDir.ReadOnly = true;
-            this._txtInputDir.Size = new System.Drawing.Size(473, 42);
-            this._txtInputDir.TabIndex = 0;
+            this._cmbInputDir.Dock = System.Windows.Forms.DockStyle.Fill;
+            this._cmbInputDir.Location = new System.Drawing.Point(0, 5);
+            this._cmbInputDir.Name = "_cmbInputDir";
+            this._cmbInputDir.PlaceholderText = "请选择文件夹路径...";
+            this._cmbInputDir.Size = new System.Drawing.Size(402, 42);
+            this._cmbInputDir.TabIndex = 0;
             // 
             // _regexPanel
             // 
             this._regexPanel.Controls.Add(this._cmbRegex);
             this._regexPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this._regexPanel.Location = new System.Drawing.Point(478, 0);
+            this._regexPanel.Location = new System.Drawing.Point(407, 0);
             this._regexPanel.Margin = new System.Windows.Forms.Padding(0);
             this._regexPanel.Name = "_regexPanel";
             this._regexPanel.Padding = new System.Windows.Forms.Padding(5);
@@ -155,7 +169,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this._topBtnFlow.Controls.Add(this._btnSelectDir);
             this._topBtnFlow.Controls.Add(this._btnMonitor);
             this._topBtnFlow.Dock = System.Windows.Forms.DockStyle.Fill;
-            this._topBtnFlow.Location = new System.Drawing.Point(638, 0);
+            this._topBtnFlow.Location = new System.Drawing.Point(567, 0);
             this._topBtnFlow.Margin = new System.Windows.Forms.Padding(0);
             this._topBtnFlow.Name = "_topBtnFlow";
             this._topBtnFlow.Size = new System.Drawing.Size(348, 52);
@@ -197,7 +211,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this._bottomActionFlow.Location = new System.Drawing.Point(0, 52);
             this._bottomActionFlow.Margin = new System.Windows.Forms.Padding(0);
             this._bottomActionFlow.Name = "_bottomActionFlow";
-            this._bottomActionFlow.Size = new System.Drawing.Size(638, 52);
+            this._bottomActionFlow.Size = new System.Drawing.Size(567, 52);
             this._bottomActionFlow.TabIndex = 3;
             this._bottomActionFlow.WrapContents = false;
             // 
@@ -264,7 +278,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this._renameActionFlow.Controls.Add(this._btnBatchMode);
             this._renameActionFlow.Controls.Add(this._btnRename);
             this._renameActionFlow.Dock = System.Windows.Forms.DockStyle.Fill;
-            this._renameActionFlow.Location = new System.Drawing.Point(638, 52);
+            this._renameActionFlow.Location = new System.Drawing.Point(567, 52);
             this._renameActionFlow.Margin = new System.Windows.Forms.Padding(0);
             this._renameActionFlow.Name = "_renameActionFlow";
             this._renameActionFlow.Size = new System.Drawing.Size(348, 52);
@@ -320,31 +334,193 @@ namespace WindowsFormsApp3.Forms.Panels
             // 
             // _fileTable
             // 
-            this._fileTable.AutoSizeColumnsMode = AntdUI.ColumnsMode.Fill;
-            this._fileTable.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(217)))), ((int)(((byte)(217)))));
+            this._fileTable.AllowUserToAddRows = false;
+            this._fileTable.AllowUserToResizeRows = false;
+            this._fileTable.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this._fileTable.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this._fileTable.ColumnHeadersHeight = 35;
+            this._fileTable.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            this._fileTable.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.SerialNumber,
+            this.OriginalName,
+            this.NewName,
+            this.RegexResult,
+            this.OrderNumber,
+            this.Material,
+            this.Quantity,
+            this.Dimensions,
+            this.CompositeColumn,
+            this.LayoutRows,
+            this.LayoutColumns,
+            this.Process,
+            this.PageCount,
+            this.Time});
             this._fileTable.Dock = System.Windows.Forms.DockStyle.Fill;
-            this._fileTable.EmptyHeader = true;
-            this._fileTable.EmptyText = "暂无数据，请选择文件夹或导入表格";
-            this._fileTable.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this._fileTable.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
-            this._fileTable.Gap = 8;
-            this._fileTable.Gaps = new System.Drawing.Size(8, 8);
+            this._fileTable.Font = new System.Drawing.Font("微软雅黑", 9F);
+            this._fileTable.HideOuterBorders = true;
             this._fileTable.Location = new System.Drawing.Point(0, 110);
+            this._fileTable.MultiSelect = false;
             this._fileTable.Name = "_fileTable";
-            this._fileTable.RowHeight = 40;
-            this._fileTable.RowHeightHeader = 40;
-            this._fileTable.Size = new System.Drawing.Size(1006, 362);
+            this._fileTable.ReadOnly = true;
+            this._fileTable.RowHeadersWidth = 30;
+            this._fileTable.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing;
+            this._fileTable.RowTemplate.Height = 36;
+            this._fileTable.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+            this._fileTable.Size = new System.Drawing.Size(935, 363);
+            this._fileTable.StateCommon.Background.Color1 = System.Drawing.Color.White;
+            this._fileTable.StateCommon.BackStyle = Krypton.Toolkit.PaletteBackStyle.GridBackgroundList;
+            this._fileTable.StateCommon.DataCell.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
+            this._fileTable.StateCommon.DataCell.Border.DrawBorders = ((Krypton.Toolkit.PaletteDrawBorders)((Krypton.Toolkit.PaletteDrawBorders.Bottom | Krypton.Toolkit.PaletteDrawBorders.Right)));
+            this._fileTable.StateCommon.DataCell.Content.TextH = Krypton.Toolkit.PaletteRelativeAlign.Center;
+            this._fileTable.StateCommon.DataCell.Content.TextV = Krypton.Toolkit.PaletteRelativeAlign.Center;
+            this._fileTable.StateCommon.HeaderColumn.Back.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(250)))));
+            this._fileTable.StateCommon.HeaderColumn.Back.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(245)))), ((int)(((byte)(245)))));
+            this._fileTable.StateCommon.HeaderColumn.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(230)))), ((int)(((byte)(230)))), ((int)(((byte)(230)))));
+            this._fileTable.StateCommon.HeaderColumn.Border.DrawBorders = Krypton.Toolkit.PaletteDrawBorders.Bottom;
+            this._fileTable.StateCommon.HeaderColumn.Content.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(80)))));
+            this._fileTable.StateCommon.HeaderColumn.Content.MultiLine = Krypton.Toolkit.InheritBool.False;
+            this._fileTable.StateCommon.HeaderColumn.Content.TextH = Krypton.Toolkit.PaletteRelativeAlign.Center;
+            this._fileTable.StateCommon.HeaderRow.Back.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(250)))));
+            this._fileTable.StateCommon.HeaderRow.Back.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(245)))), ((int)(((byte)(245)))));
+            this._fileTable.StateCommon.HeaderRow.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(230)))), ((int)(((byte)(230)))), ((int)(((byte)(230)))));
+            this._fileTable.StateCommon.HeaderRow.Border.DrawBorders = Krypton.Toolkit.PaletteDrawBorders.Right;
             this._fileTable.TabIndex = 0;
+            // 
+            // SerialNumber
+            // 
+            this.SerialNumber.DataPropertyName = "SerialNumber";
+            this.SerialNumber.FillWeight = 3F;
+            this.SerialNumber.HeaderText = "序号";
+            this.SerialNumber.MinimumWidth = 40;
+            this.SerialNumber.Name = "SerialNumber";
+            this.SerialNumber.ReadOnly = true;
+            // 
+            // OriginalName
+            // 
+            this.OriginalName.DataPropertyName = "OriginalName";
+            this.OriginalName.FillWeight = 14F;
+            this.OriginalName.HeaderText = "原文件名";
+            this.OriginalName.MinimumWidth = 70;
+            this.OriginalName.Name = "OriginalName";
+            this.OriginalName.ReadOnly = true;
+            // 
+            // NewName
+            // 
+            this.NewName.DataPropertyName = "NewName";
+            this.NewName.FillWeight = 10F;
+            this.NewName.HeaderText = "新文件名";
+            this.NewName.MinimumWidth = 70;
+            this.NewName.Name = "NewName";
+            this.NewName.ReadOnly = true;
+            // 
+            // RegexResult
+            // 
+            this.RegexResult.DataPropertyName = "RegexResult";
+            this.RegexResult.FillWeight = 7F;
+            this.RegexResult.HeaderText = "正则结果";
+            this.RegexResult.MinimumWidth = 70;
+            this.RegexResult.Name = "RegexResult";
+            this.RegexResult.ReadOnly = true;
+            // 
+            // OrderNumber
+            // 
+            this.OrderNumber.DataPropertyName = "OrderNumber";
+            this.OrderNumber.FillWeight = 6F;
+            this.OrderNumber.HeaderText = "订单号";
+            this.OrderNumber.MinimumWidth = 60;
+            this.OrderNumber.Name = "OrderNumber";
+            this.OrderNumber.ReadOnly = true;
+            // 
+            // Material
+            // 
+            this.Material.DataPropertyName = "Material";
+            this.Material.FillWeight = 6F;
+            this.Material.HeaderText = "材料";
+            this.Material.MinimumWidth = 40;
+            this.Material.Name = "Material";
+            this.Material.ReadOnly = true;
+            // 
+            // Quantity
+            // 
+            this.Quantity.DataPropertyName = "Quantity";
+            this.Quantity.FillWeight = 4F;
+            this.Quantity.HeaderText = "数量";
+            this.Quantity.MinimumWidth = 40;
+            this.Quantity.Name = "Quantity";
+            this.Quantity.ReadOnly = true;
+            // 
+            // Dimensions
+            // 
+            this.Dimensions.DataPropertyName = "Dimensions";
+            this.Dimensions.FillWeight = 6F;
+            this.Dimensions.HeaderText = "尺寸";
+            this.Dimensions.MinimumWidth = 40;
+            this.Dimensions.Name = "Dimensions";
+            this.Dimensions.ReadOnly = true;
+            // 
+            // CompositeColumn
+            // 
+            this.CompositeColumn.DataPropertyName = "CompositeColumn";
+            this.CompositeColumn.FillWeight = 6F;
+            this.CompositeColumn.HeaderText = "列组合";
+            this.CompositeColumn.MinimumWidth = 60;
+            this.CompositeColumn.Name = "CompositeColumn";
+            this.CompositeColumn.ReadOnly = true;
+            // 
+            // LayoutRows
+            // 
+            this.LayoutRows.DataPropertyName = "LayoutRows";
+            this.LayoutRows.FillWeight = 4F;
+            this.LayoutRows.HeaderText = "行数";
+            this.LayoutRows.MinimumWidth = 40;
+            this.LayoutRows.Name = "LayoutRows";
+            this.LayoutRows.ReadOnly = true;
+            // 
+            // LayoutColumns
+            // 
+            this.LayoutColumns.DataPropertyName = "LayoutColumns";
+            this.LayoutColumns.FillWeight = 4F;
+            this.LayoutColumns.HeaderText = "列数";
+            this.LayoutColumns.MinimumWidth = 40;
+            this.LayoutColumns.Name = "LayoutColumns";
+            this.LayoutColumns.ReadOnly = true;
+            // 
+            // Process
+            // 
+            this.Process.DataPropertyName = "Process";
+            this.Process.FillWeight = 5F;
+            this.Process.HeaderText = "工艺";
+            this.Process.MinimumWidth = 40;
+            this.Process.Name = "Process";
+            this.Process.ReadOnly = true;
+            // 
+            // PageCount
+            // 
+            this.PageCount.DataPropertyName = "PageCount";
+            this.PageCount.FillWeight = 4F;
+            this.PageCount.HeaderText = "页数";
+            this.PageCount.MinimumWidth = 40;
+            this.PageCount.Name = "PageCount";
+            this.PageCount.ReadOnly = true;
+            // 
+            // Time
+            // 
+            this.Time.DataPropertyName = "Time";
+            this.Time.FillWeight = 5F;
+            this.Time.HeaderText = "时间";
+            this.Time.MinimumWidth = 40;
+            this.Time.Name = "Time";
+            this.Time.ReadOnly = true;
             // 
             // _statusPanel
             // 
             this._statusPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(250)))));
             this._statusPanel.Controls.Add(this._statusLabel);
             this._statusPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this._statusPanel.Location = new System.Drawing.Point(0, 472);
+            this._statusPanel.Location = new System.Drawing.Point(0, 473);
             this._statusPanel.Name = "_statusPanel";
             this._statusPanel.Padding = new System.Windows.Forms.Padding(10, 5, 10, 5);
-            this._statusPanel.Size = new System.Drawing.Size(1006, 30);
+            this._statusPanel.Size = new System.Drawing.Size(935, 30);
             this._statusPanel.TabIndex = 2;
             // 
             // _statusLabel
@@ -354,7 +530,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this._statusLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(102)))), ((int)(((byte)(102)))), ((int)(((byte)(102)))));
             this._statusLabel.Location = new System.Drawing.Point(10, 5);
             this._statusLabel.Name = "_statusLabel";
-            this._statusLabel.Size = new System.Drawing.Size(986, 20);
+            this._statusLabel.Size = new System.Drawing.Size(915, 20);
             this._statusLabel.TabIndex = 0;
             this._statusLabel.Text = "状态：未开始监控";
             // 
@@ -364,7 +540,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.Controls.Add(this._statusPanel);
             this.Controls.Add(this._topControlPanel);
             this.Name = "FileRenamePanel";
-            this.Size = new System.Drawing.Size(1006, 502);
+            this.Size = new System.Drawing.Size(935, 503);
             this._topControlPanel.ResumeLayout(false);
             this._layoutPanel.ResumeLayout(false);
             this._layoutPanel.PerformLayout();
@@ -376,9 +552,25 @@ namespace WindowsFormsApp3.Forms.Panels
             this._bottomActionFlow.PerformLayout();
             this._renameActionFlow.ResumeLayout(false);
             this._renameActionFlow.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this._fileTable)).EndInit();
             this._statusPanel.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
+
+        private System.Windows.Forms.DataGridViewTextBoxColumn SerialNumber;
+        private System.Windows.Forms.DataGridViewTextBoxColumn OriginalName;
+        private System.Windows.Forms.DataGridViewTextBoxColumn NewName;
+        private System.Windows.Forms.DataGridViewTextBoxColumn RegexResult;
+        private System.Windows.Forms.DataGridViewTextBoxColumn OrderNumber;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Material;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Quantity;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Dimensions;
+        private System.Windows.Forms.DataGridViewTextBoxColumn CompositeColumn;
+        private System.Windows.Forms.DataGridViewTextBoxColumn LayoutRows;
+        private System.Windows.Forms.DataGridViewTextBoxColumn LayoutColumns;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Process;
+        private System.Windows.Forms.DataGridViewTextBoxColumn PageCount;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Time;
     }
 }

@@ -1,9 +1,12 @@
 using System;
+using System.Data;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using WindowsFormsApp3.Utils;
+using WindowsFormsApp3.Services;
 
 namespace WindowsFormsApp3.Forms.Panels
 {
@@ -15,6 +18,7 @@ namespace WindowsFormsApp3.Forms.Panels
         private ContextMenuStrip _contextMenu;
         private int _currentColumnIndex = -1;
         private int _currentRowIndex = -1;
+        private IExcelImportService _excelImportService;
 
         public override string PanelKey => "database";
         public override string DisplayName => "数据库";
@@ -28,17 +32,20 @@ namespace WindowsFormsApp3.Forms.Panels
         protected override void InitializePanel()
         {
             base.InitializePanel();
-            
-            try 
+
+            try
             {
                 ShowLoading("正在初始化数据库...");
+
+                // 获取 Excel 导入服务
+                _excelImportService = ServiceLocator.Instance.GetExcelImportService();
 
                 // 配置AntdUI Table（控件已在Designer.cs中创建）
                 InitializeExcelTable();
 
                 // 初始化右键菜单
                 InitializeContextMenu();
-                
+
                 // 加载数据
                 LoadExcelData();
             }
@@ -55,30 +62,50 @@ namespace WindowsFormsApp3.Forms.Panels
 
         private void InitializeExcelTable()
         {
-            // _excelTable 已在 Designer.cs 中创建，这里只配置列和事件
-            
-            // 定义列（与Form1的dgvExcelData列结构一致）
-            _excelTable.Columns = new AntdUI.ColumnCollection
-            {
-                new AntdUI.Column("SerialNumber", "序号", AntdUI.ColumnAlign.Center) { Width = "50px" },
-                new AntdUI.Column("OrderNumber", "订单号", AntdUI.ColumnAlign.Center) { Width = "10%" },
-                new AntdUI.Column("Material", "材料", AntdUI.ColumnAlign.Center) { Width = "10%" },
-                new AntdUI.Column("Quantity", "数量", AntdUI.ColumnAlign.Center) { Width = "8%" },
-                new AntdUI.Column("Dimensions", "尺寸", AntdUI.ColumnAlign.Center) { Width = "10%" },
-                new AntdUI.Column("Process", "工艺", AntdUI.ColumnAlign.Center) { Width = "10%" },
-                new AntdUI.Column("Notes", "备注", AntdUI.ColumnAlign.Left) { Width = "15%" }
-            };
+            // 先获取 Excel 数据以确定列结构
+            var excelData = _excelImportService?.ImportedData;
 
-            // 设置空数据源以确保列头显示
-            var emptyData = new System.Data.DataTable();
-            emptyData.Columns.Add("SerialNumber");
-            emptyData.Columns.Add("OrderNumber");
-            emptyData.Columns.Add("Material");
-            emptyData.Columns.Add("Quantity");
-            emptyData.Columns.Add("Dimensions");
-            emptyData.Columns.Add("Process");
-            emptyData.Columns.Add("Notes");
-            _excelTable.DataSource = emptyData;
+            if (excelData != null && excelData.Columns.Count > 0)
+            {
+                // 根据实际数据动态创建列
+                var columns = new AntdUI.ColumnCollection();
+                foreach (DataColumn col in excelData.Columns)
+                {
+                    columns.Add(new AntdUI.Column(col.ColumnName, col.ColumnName, AntdUI.ColumnAlign.Center)
+                    {
+                        Width = $"{100 / excelData.Columns.Count}%"
+                    });
+                }
+                _excelTable.Columns = columns;
+
+                // 设置数据源
+                _excelTable.DataSource = excelData;
+            }
+            else
+            {
+                // 没有数据时显示默认列结构
+                _excelTable.Columns = new AntdUI.ColumnCollection
+                {
+                    new AntdUI.Column("SerialNumber", "序号", AntdUI.ColumnAlign.Center) { Width = "50px" },
+                    new AntdUI.Column("OrderNumber", "订单号", AntdUI.ColumnAlign.Center) { Width = "10%" },
+                    new AntdUI.Column("Material", "材料", AntdUI.ColumnAlign.Center) { Width = "10%" },
+                    new AntdUI.Column("Quantity", "数量", AntdUI.ColumnAlign.Center) { Width = "8%" },
+                    new AntdUI.Column("Dimensions", "尺寸", AntdUI.ColumnAlign.Center) { Width = "10%" },
+                    new AntdUI.Column("Process", "工艺", AntdUI.ColumnAlign.Center) { Width = "10%" },
+                    new AntdUI.Column("Notes", "备注", AntdUI.ColumnAlign.Left) { Width = "15%" }
+                };
+
+                // 设置空数据源以确保列头显示
+                var emptyData = new DataTable();
+                emptyData.Columns.Add("SerialNumber");
+                emptyData.Columns.Add("OrderNumber");
+                emptyData.Columns.Add("Material");
+                emptyData.Columns.Add("Quantity");
+                emptyData.Columns.Add("Dimensions");
+                emptyData.Columns.Add("Process");
+                emptyData.Columns.Add("Notes");
+                _excelTable.DataSource = emptyData;
+            }
 
             // 绑定事件
             _excelTable.CellClick += ExcelTable_CellClick;
@@ -159,9 +186,23 @@ namespace WindowsFormsApp3.Forms.Panels
         {
             try
             {
-                // 不覆盖列定义，只清空数据源
-                // 后续通过ExcelImportPanel导入数据后刷新
-                _excelTable.DataSource = null;
+                // 从服务获取最新的 Excel 数据
+                var excelData = _excelImportService?.ImportedData;
+
+                if (excelData != null && excelData.Rows.Count > 0)
+                {
+                    // 有数据：重新初始化表格以适应数据结构
+                    InitializeExcelTable();
+                    LogHelper.Debug($"DatabasePanel: 加载了 {excelData.Rows.Count} 行 Excel 数据");
+                }
+                else
+                {
+                    // 无数据：显示空表格
+                    _excelTable.DataSource = null;
+                    LogHelper.Debug("DatabasePanel: 没有 Excel 数据");
+                }
+
+                _excelTable.Invalidate();
             }
             catch (Exception ex)
             {
@@ -173,6 +214,18 @@ namespace WindowsFormsApp3.Forms.Panels
         {
             base.OnRefresh();
             LoadExcelData();
+        }
+
+        /// <summary>
+        /// 面板激活时自动刷新数据
+        /// </summary>
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            base.OnVisibleChanged(e);
+            if (this.Visible)
+            {
+                LoadExcelData();
+            }
         }
 
         protected override void Dispose(bool disposing)

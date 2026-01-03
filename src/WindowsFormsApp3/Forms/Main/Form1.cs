@@ -33,7 +33,7 @@ using ValidationResult = WindowsFormsApp3.Models.ValidationResult;
 
 namespace WindowsFormsApp3.Forms.Main
 {
-    public partial class Form1 : Form, IForm1View
+    public partial class Form1 : Form, IForm1View, IExcelParentView
     {
         private string _currentConfigName = "标准配置";
         private WindowsFormsApp3.Services.IUndoRedoService _undoRedoService;
@@ -183,7 +183,8 @@ namespace WindowsFormsApp3.Forms.Main
                 // RegisterHotkeys(); // 已注释，避免与MainShellForm冲突
                 
                 // 初始化Excel导入助手
-                _excelImportHelper = new ExcelImportHelper(this);
+                _excelImportHelper = new ExcelImportHelper();
+                _excelImportHelper.SetParentView(this);
 
                 // 初始化JSON文件管理
                 var jsonDir = Path.Combine(Application.StartupPath, "SavedGrids");
@@ -2439,6 +2440,35 @@ namespace WindowsFormsApp3.Forms.Main
             // 这里可以更新状态栏或状态显示
             System.Diagnostics.Debug.WriteLine($"[状态] {message}");
         }
+
+        #region IExcelParentView 接口实现
+
+        /// <summary>
+        /// IExcelParentView 接口实现 - 更新状态
+        /// </summary>
+        void IExcelParentView.UpdateStatus(string message)
+        {
+            // 调用现有的私有方法
+            UpdateStatus(message);
+        }
+
+        /// <summary>
+        /// IExcelParentView 接口实现 - 显示错误
+        /// </summary>
+        void IExcelParentView.ShowError(string message)
+        {
+            // 使用 MessageBox 显示错误
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => MessageBox.Show(this, message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error)));
+            }
+            else
+            {
+                MessageBox.Show(this, message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// 刷新UI显示

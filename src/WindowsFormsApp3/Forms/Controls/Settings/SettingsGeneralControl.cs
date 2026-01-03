@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 using WindowsFormsApp3.Utils;
@@ -19,7 +20,12 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         public SettingsGeneralControl()
         {
             InitializeComponent();
-            LoadSettings();
+            
+            // 仅在运行时加载设置，避免设计器问题
+            if (LicenseManager.UsageMode != LicenseUsageMode.Designtime)
+            {
+                LoadSettings();
+            }
         }
 
         private void LoadSettings()

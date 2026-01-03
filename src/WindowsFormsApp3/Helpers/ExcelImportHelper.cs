@@ -7,7 +7,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using WindowsFormsApp3.Services;
-using WindowsFormsApp3.Forms.Main;
+using WindowsFormsApp3.Interfaces;
 using System.Threading.Tasks;
 
 namespace WindowsFormsApp3.Services
@@ -17,11 +17,12 @@ namespace WindowsFormsApp3.Services
     /// </summary>
     public class ExcelImportHelper : IExcelImportService
     {
-        private Form1 _parentForm;
+        private IExcelParentView _parentView;
         private DataTable _importedData;
         private int _searchColumnIndex = -1;
         private int _returnColumnIndex = -1;
         private int _serialColumnIndex = -1;
+        private int _materialColumnIndex = -1;
         private ExcelImportForm _excelImportFormInstance;
         private Interfaces.ILogger _logger;
         
@@ -31,7 +32,7 @@ namespace WindowsFormsApp3.Services
         public ExcelImportHelper()
         {
             // 空构造函数，供服务定位器使用
-            _parentForm = null;
+            _parentView = null;
             // 注意：此处不直接初始化logger，由ServiceLocator通过属性注入
         }
 
@@ -43,14 +44,14 @@ namespace WindowsFormsApp3.Services
         {
             _logger = logger;
         }
-        
+
         /// <summary>
-        /// 设置父窗体引用
+        /// 设置父视图引用
         /// </summary>
-        /// <param name="parentForm">父窗体实例</param>
-        public void SetParentForm(Form1 parentForm)
+        /// <param name="parentView">父视图实例</param>
+        public void SetParentView(IExcelParentView parentView)
         {
-            _parentForm = parentForm;
+            _parentView = parentView;
         }
         
         /// <summary>
@@ -193,6 +194,15 @@ namespace WindowsFormsApp3.Services
         }
 
         /// <summary>
+        /// 获取或设置材料列索引
+        /// </summary>
+        public int MaterialColumnIndex
+        {
+            get { return _materialColumnIndex; }
+            set { _materialColumnIndex = value; }
+        }
+
+        /// <summary>
         /// 获取Excel导入配置窗体实例
         /// </summary>
         public ExcelImportForm ExcelImportFormInstance
@@ -204,10 +214,10 @@ namespace WindowsFormsApp3.Services
         /// <summary>
         /// 构造函数
         /// </summary>
-        /// <param name="parentForm">父窗体引用</param>
-        public ExcelImportHelper(Form1 parentForm)
+        /// <param name="parentView">父视图引用</param>
+        public ExcelImportHelper(IExcelParentView parentView)
         {
-            _parentForm = parentForm;
+            _parentView = parentView;
             // Logger将通过SetLogger方法注入
             _logger = null;
         }
@@ -272,7 +282,7 @@ namespace WindowsFormsApp3.Services
         {
             try
             {
-                _excelImportFormInstance = new ExcelImportForm(filePath, _parentForm);
+                _excelImportFormInstance = new ExcelImportForm(filePath, _parentView);
                 DialogResult result = _excelImportFormInstance.ShowDialog();
                 
                 if (result == DialogResult.OK)
@@ -719,6 +729,7 @@ namespace WindowsFormsApp3.Services
             _searchColumnIndex = -1;
             _returnColumnIndex = -1;
             _serialColumnIndex = -1;
+            _materialColumnIndex = -1;
             _logger?.LogInformation("清空导入数据");
         }
 

@@ -1510,6 +1510,13 @@ namespace WindowsFormsApp3
             // 添加工具提示
             InitializeToolTips();
 
+            // ✅ 修复：初始化序号输入框（如果有传入的序号值）
+            if (serialNumberTextBox != null && !string.IsNullOrEmpty(this.SerialNumber))
+            {
+                serialNumberTextBox.Text = this.SerialNumber;
+                LogHelper.Debug($"[InitializeControlValues] 设置序号输入框: {this.SerialNumber}");
+            }
+
             // 从设置中恢复上次的选择
             LoadLastSettings();
         }

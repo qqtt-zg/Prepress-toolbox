@@ -1,0 +1,2405 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Windows.Forms;  // 添加此using以支持DialogResult
+using WindowsFormsApp3.Forms.Panels;
+using WindowsFormsApp3.Interfaces;
+using WindowsFormsApp3.Models;
+using WindowsFormsApp3.Services;
+using WindowsFormsApp3.Utils;
+using Newtonsoft.Json;
+
+namespace WindowsFormsApp3.Presenters
+{
+    /// <summary>
+    /// 文件重命名面板Presenter实现
+    /// 负责处理FileRenamePanel的业务逻辑
+    /// </summary>
+    public class FileRenamePanelPresenter : IFileRenamePanelPresenter
+    {
+        private readonly IFileRenamePanelView _view;
+        private readonly Interfaces.IFileRenameService _fileRenameService;
+        private readonly Services.IFileMonitor _fileMonitor;
+        private readonly IExcelImportService _excelImportService;
+        private readonly IPdfDimensionService _pdfDimensionService;
+        private readonly Services.IPdfProcessingService _pdfProcessingService;
+        private readonly Interfaces.ILogger _logger;
+        private readonly string _savedGridsPath;
+
+        // 数据存储
+        private Dictionary<string, string> _regexPatterns;
+        private List<string> _materials;
+        private string _exportPath;
+        private bool _isCopyMode = true; // 默认复制模式
+        
+        // 形状处理信息存储
+        private bool _currentIsShapeSelected;
+        private ShapeType _currentShapeType;
+        private double _currentRoundRadius;
+        private string _currentDimensions;
+        
+        // 旋转处理信息存储
+        private bool _currentNeedsRotation;
+        private int _currentRotationAngle;
+
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="view">视图实例</param>
+        public FileRenamePanelPresenter(IFileRenamePanelView view)
+        {
+            _view = view ?? throw new ArgumentNullException(nameof(view));
+
+            // 获取logger
+            _logger = LogHelper.Logger;
+
+            // 初始化服务
+            try
+            {
+                _fileRenameService = ServiceLocator.Instance.GetFileRenameService();
+                _fileMonitor = ServiceLocator.Instance.GetFileMonitor();
+                _excelImportService = ServiceLocator.Instance.GetExcelImportService();
+                _pdfDimensionService = PdfDimensionServiceFactory.GetInstance();
+                _pdfProcessingService = new Services.PdfProcessingService();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "初始化服务失败");
+            }
+
+            // 初始化数据存储
+            _regexPatterns = new Dictionary<string, string>();
+            _materials = new List<string>();
+
+            // 初始化路径
+            _savedGridsPath = Path.Combine(AppDataPathManager.AppRootDirectory, "SavedGrids");
+            if (!Directory.Exists(_savedGridsPath))
+            {
+                Directory.CreateDirectory(_savedGridsPath);
+            }
+
+            // 订阅文件监控事件
+            SubscribeToFileMonitorEvents();
+        }
+
+        #region 初始化与生命周期
+
+        /// <summary>
+        /// 初始化Presenter
+        /// </summary>
+        public void Initialize()
+        {
+            LoadSettings();
+            LoadRegexPatterns();
+            LoadMaterials();
+
+            // 更新视图
+            _view.UpdateRegexComboBox(_regexPatterns.Keys.ToList());
+            _view.UpdateMaterialsContextMenu(_materials);
+            UpdateJsonFilesList();
+        }
+
+        /// <summary>
+        /// 加载设置和配置
+        /// </summary>
+        public void LoadSettings()
+        {
+            try
+            {
+                // 加载导出路径
+                _exportPath = AppSettings.Instance.LastOutputDir;
+                if (string.IsNullOrEmpty(_exportPath))
+                {
+                    _exportPath = Path.Combine(AppDataPathManager.AppRootDirectory, "Output");
+                    if (!Directory.Exists(_exportPath))
+                    {
+                        Directory.CreateDirectory(_exportPath);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "加载设置失败");
+                _view.ShowError($"加载设置失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 保存设置和配置
+        /// </summary>
+        public void SaveSettings()
+        {
+            try
+            {
+                AppSettings.Instance.LastOutputDir = _exportPath;
+                AppSettings.Save();
+
+                SaveRegexSettings();
+                SaveMaterialSettings();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "保存设置失败");
+                _view.ShowError($"保存设置失败: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region 目录选择
+
+        /// <summary>
+        /// 处理选择输入目录
+        /// 参考Form1Presenter.HandleSelectInputDirClick()的正确实现：
+        /// 选择目录时只设置监控路径，不扫描文件。
+        /// 文件只在监控启动时自动添加。
+        /// </summary>
+        public void HandleSelectInputDir()
+        {
+            try
+            {
+                var selectedPath = _view.ShowFolderBrowser("选择输入文件夹", _view.InputDirectory);
+                if (!string.IsNullOrEmpty(selectedPath))
+                {
+                    // 更新输入目录
+                    _view.InputDirectory = selectedPath;
+                    AppSettings.Instance.LastInputDir = selectedPath;
+
+                    // 添加到历史记录
+                    AppSettings.Instance.AddInputDirToHistory(selectedPath);
+
+                    _view.UpdateStatus($"已选择目录: {selectedPath}");
+
+                    // 保存设置
+                    SaveSettings();
+
+                    // 注意：选择目录时不扫描文件，文件只在监控启动时自动添加
+                    // 这是与Form1保持一致的行为
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "选择目录失败");
+                _view.ShowError($"选择目录失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 设置输入目录（从下拉框选择时调用）
+        /// </summary>
+        public void SetInputDirectory(string dirPath)
+        {
+            if (!string.IsNullOrEmpty(dirPath))
+            {
+                _view.InputDirectory = dirPath;
+                AppSettings.Instance.LastInputDir = dirPath;
+                SaveSettings();
+            }
+        }
+
+        /// <summary>
+        /// 扫描目录中的文件
+        /// </summary>
+        /// <param name="directoryPath">目录路径</param>
+        private void ScanDirectoryForFiles(string directoryPath)
+        {
+            try
+            {
+                _view.ShowProgress("正在扫描文件...");
+
+                var fileInfoList = new List<FileRenameInfo>();
+                var files = Directory.GetFiles(directoryPath, "*.*", SearchOption.TopDirectoryOnly);
+
+                foreach (var file in files)
+                {
+                    if (ShouldProcessFile(file))
+                    {
+                        var fileInfo = CreateFileRenameInfo(file);
+                        fileInfoList.Add(fileInfo);
+                    }
+                }
+
+                _view.FileList = new BindingList<FileRenameInfo>(fileInfoList);
+                _view.RefreshFileTable();
+                _view.UpdateStatus($"扫描完成，找到 {fileInfoList.Count} 个文件");
+                _view.HideProgress();
+            }
+            catch (Exception ex)
+            {
+                _view.HideProgress();
+                _logger?.LogError(ex, "扫描目录失败");
+                _view.ShowError($"扫描目录失败: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region 文件监控
+
+        /// <summary>
+        /// 订阅文件监控事件
+        /// </summary>
+        private void SubscribeToFileMonitorEvents()
+        {
+            if (_fileMonitor != null)
+            {
+                _fileMonitor.FileCreated += OnFileCreated;
+                _fileMonitor.FileRenamed += OnFileRenamed;
+                _fileMonitor.MonitorError += OnMonitorError;
+            }
+        }
+
+        /// <summary>
+        /// 处理切换文件监控状态
+        /// </summary>
+        public void HandleToggleMonitoring()
+        {
+            try
+            {
+                if (_fileMonitor.IsMonitoring)
+                {
+                    StopMonitoring();
+                }
+                else
+                {
+                    StartMonitoring();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "切换监控状态失败");
+                _view.ShowError($"切换监控状态失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 启动文件监控
+        /// 参考Form1Presenter.HandleMonitorClick()的实现：
+        /// 启动监控前重新加载材料设置，确保材料列表是最新的。
+        /// </summary>
+        public void StartMonitoring()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(_view.InputDirectory) || !Directory.Exists(_view.InputDirectory))
+                {
+                    _view.ShowError("请先选择有效的输入目录");
+                    return;
+                }
+
+                // 重新加载材料设置（与Form1的ShowMaterialSettingsDialog行为一致）
+                LoadMaterials();
+                _view.UpdateMaterialsContextMenu(_materials);
+
+                _fileMonitor.StartMonitoring(_view.InputDirectory);
+                _view.IsMonitoring = true;
+                _view.UpdateMonitorButtonState(true);
+                _view.UpdateStatus($"正在监控: {_view.InputDirectory}");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "启动监控失败");
+                _view.ShowError($"启动监控失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 停止文件监控
+        /// </summary>
+        public void StopMonitoring()
+        {
+            try
+            {
+                _fileMonitor.StopMonitoring();
+                _view.IsMonitoring = false;
+                _view.UpdateMonitorButtonState(false);
+                _view.UpdateStatus("监控已停止");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "停止监控失败");
+                _view.ShowError($"停止监控失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 文件创建事件处理
+        /// </summary>
+        private async void OnFileCreated(object sender, FileSystemEventArgs e)
+        {
+            await ProcessNewFileAsync(e.FullPath);
+        }
+
+        /// <summary>
+        /// 文件重命名事件处理
+        /// </summary>
+        private async void OnFileRenamed(object sender, RenamedEventArgs e)
+        {
+            await ProcessNewFileAsync(e.FullPath);
+        }
+
+        /// <summary>
+        /// 监控错误事件处理
+        /// </summary>
+        private void OnMonitorError(object sender, ErrorEventArgs e)
+        {
+            _view.ShowError($"监控错误: {e.GetException().Message}");
+            _logger?.LogError(e.GetException(), "文件监控错误");
+        }
+
+        /// <summary>
+        /// 处理新文件
+        /// </summary>
+        /// <param name="filePath">文件路径</param>
+        private async Task ProcessNewFileAsync(string filePath)
+        {
+            try
+            {
+                _logger?.LogInformation($"[ProcessNewFileAsync] 开始处理文件: {filePath}");
+                
+                if (!ShouldProcessFile(filePath))
+                {
+                    _logger?.LogInformation($"[ProcessNewFileAsync] 文件被过滤，跳过: {filePath}");
+                    return;
+                }
+
+                // 创建文件信息
+                var fileInfo = CreateFileRenameInfo(filePath);
+
+                // 提取正则匹配结果
+                fileInfo.RegexResult = ExtractRegexResult(fileInfo.OriginalName);
+                
+                _logger?.LogInformation($"[ProcessNewFileAsync] IsImmediateMode={_view.IsImmediateMode}, FileName={fileInfo.OriginalName}");
+
+                if (_view.IsImmediateMode)  // 手动模式
+                {
+                    _logger?.LogInformation($"[ProcessNewFileAsync] 手动模式 - 准备显示材料选择对话框");
+                    
+                    // 记录传递的参数
+                    _logger?.LogInformation($"[参数验证] 材料列表数量: {_materials?.Count ?? 0}");
+                    if (_materials != null && _materials.Count > 0)
+                    {
+                        _logger?.LogInformation($"[参数验证] 材料列表: {string.Join(", ", _materials.Take(5))}...");
+                    }
+                    _logger?.LogInformation($"[参数验证] 文件名: {fileInfo.OriginalName}");
+                    _logger?.LogInformation($"[参数验证] 正则结果: {fileInfo.RegexResult ?? "(空)"}");
+                    _logger?.LogInformation($"[参数验证] PDF尺寸: {fileInfo.Width ?? "(空)"} x {fileInfo.Height ?? "(空)"}");
+                    _logger?.LogInformation($"[参数验证] Excel数据: {(_view.ExcelData != null ? $"{_view.ExcelData.Rows.Count}行" : "无")}");
+                    
+                    // ✅ 修复跨线程访问问题：在UI线程上显示对话框
+                    MaterialSelectionResult selectionResult = null;
+                    DialogResult dialogResult = DialogResult.Cancel;
+                    
+                    try
+                    {
+                        // 检查_view是否是Control类型
+                        if (_view is System.Windows.Forms.Control viewControl)
+                        {
+                            _logger?.LogInformation($"[跨线程修复] 使用Invoke在UI线程上显示对话框");
+                            
+                            // 在UI线程上调用对话框
+                            viewControl.Invoke((Action)(() =>
+                            {
+                                dialogResult = _view.ShowMaterialSelectionDialog(
+                                    materials: _materials,
+                                    fileName: fileInfo.FullPath,  // ✅ 修复：传递完整路径用于PDF预览
+                                    regexResult: fileInfo.RegexResult ?? "",
+                                    width: fileInfo.Width ?? "",
+                                    height: fileInfo.Height ?? "",
+                                    tetBleed: fileInfo.TetBleed ?? "",
+                                    isColumnCombineMode: AppSettings.EnableColumnCombine,
+                                    columnNames: GetExcelColumnNames(),
+                                    columnItemsMap: GetExcelColumnItemsMap(),
+                                    initialSerialNumber: GetNextSerialNumber(),
+                                    out selectionResult
+                                );
+                            }));
+                        }
+                        else
+                        {
+                            _logger?.LogError($"[跨线程修复] 无法转换_view为Control类型，直接调用");
+                            // 如果无法转换，直接调用（可能失败）
+                            dialogResult = _view.ShowMaterialSelectionDialog(
+                                materials: _materials,
+                                fileName: fileInfo.FullPath,  // ✅ 修复：传递完整路径
+                                regexResult: fileInfo.RegexResult ?? "",
+                                width: fileInfo.Width ?? "",
+                                height: fileInfo.Height ?? "",
+                                tetBleed: fileInfo.TetBleed ?? "",
+                                isColumnCombineMode: AppSettings.EnableColumnCombine,
+                                columnNames: GetExcelColumnNames(),
+                                columnItemsMap: GetExcelColumnItemsMap(),
+                                initialSerialNumber: GetNextSerialNumber(),
+                                out selectionResult
+                            );
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogError(ex, "[跨线程修复] 显示对话框失败");
+                        _view.ShowError($"显示材料选择对话框失败: {ex.Message}");
+                        return;
+                    }
+
+                    _logger?.LogInformation($"[ProcessNewFileAsync] 材料选择对话框返回: {dialogResult}");
+
+                    if (dialogResult == System.Windows.Forms.DialogResult.OK && selectionResult != null)
+                    {
+                        _logger?.LogInformation($"[ProcessNewFileAsync] 用户选择材料: {selectionResult.SelectedMaterial}");
+                        
+                        // ✅ 新增：解析逗号分隔的多个数量和序号值
+                        var quantities = (selectionResult.SelectedQuantity ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(q => q.Trim()).ToArray();
+                        var serialNumbers = (selectionResult.SelectedSerialNumber ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(s => s.Trim()).ToArray();
+                        
+                        // 如果没有有效值，使用默认值
+                        if (quantities.Length == 0) quantities = new[] { "" };
+                        if (serialNumbers.Length == 0) serialNumbers = new[] { GetNextSerialNumber().ToString() };
+                        
+                        // 确定输出文件数量（取最大值）
+                        int fileCount = Math.Max(quantities.Length, serialNumbers.Length);
+                        _logger?.LogInformation($"[ProcessNewFileAsync] 多值输出: 数量数={quantities.Length}, 序号数={serialNumbers.Length}, 总文件数={fileCount}");
+                        
+                        // ✅ 保存形状处理信息（所有文件共用）
+                        _currentIsShapeSelected = selectionResult.IsShapeSelected;
+                        _currentShapeType = (ShapeType)selectionResult.SelectedShape;
+                        _currentRoundRadius = selectionResult.RoundRadius;
+                        _currentDimensions = selectionResult.Dimensions ?? "";
+                        _currentNeedsRotation = selectionResult.NeedsRotation;
+                        _currentRotationAngle = selectionResult.RotationAngle;
+                        
+                        // ✅ 获取导出路径
+                        string exportPath = selectionResult.ExportPath;
+                        if (string.IsNullOrEmpty(exportPath))
+                        {
+                            exportPath = AppDataPathManager.ExcelExportDirectory;
+                        }
+                        _exportPath = exportPath;
+                        
+                        int successCount = 0;
+                        
+                        // ✅ 为每个值组合生成独立文件
+                        for (int i = 0; i < fileCount; i++)
+                        {
+                            // 创建新的 FileRenameInfo（第一个使用原 fileInfo，后续创建副本）
+                            var currentFileInfo = i == 0 ? fileInfo : new FileRenameInfo
+                            {
+                                OriginalName = fileInfo.OriginalName,
+                                FullPath = fileInfo.FullPath,
+                                FileExtension = fileInfo.FileExtension,
+                                RegexResult = fileInfo.RegexResult,
+                                Width = fileInfo.Width,
+                                Height = fileInfo.Height,
+                                TetBleed = fileInfo.TetBleed
+                            };
+                            
+                            // 应用用户选择（共用参数）
+                            currentFileInfo.Material = selectionResult.SelectedMaterial;
+                            currentFileInfo.OrderNumber = selectionResult.OrderNumber ?? "";
+                            currentFileInfo.Dimensions = selectionResult.Dimensions ?? "";
+                            currentFileInfo.Process = selectionResult.Process ?? "";
+                            currentFileInfo.LayoutRows = selectionResult.LayoutRows ?? "";
+                            currentFileInfo.LayoutColumns = selectionResult.LayoutColumns ?? "";
+                            
+                            // 应用当前索引对应的数量和序号
+                            currentFileInfo.Quantity = i < quantities.Length ? quantities[i] : quantities[quantities.Length - 1];
+                            currentFileInfo.SerialNumber = i < serialNumbers.Length ? serialNumbers[i] : serialNumbers[serialNumbers.Length - 1];
+                            
+                            // 生成新文件名
+                            currentFileInfo.NewName = GenerateNewFileName(currentFileInfo);
+                            
+                            _logger?.LogInformation($"[ProcessNewFileAsync] 文件 {i + 1}/{fileCount}: 数量={currentFileInfo.Quantity}, 序号={currentFileInfo.SerialNumber}, 新名称={currentFileInfo.NewName}");
+                            
+                            // 在UI线程上添加到列表
+                            System.Windows.Forms.Application.OpenForms[0].Invoke((Action)(() =>
+                            {
+                                if (_view.FileList == null)
+                                {
+                                    _view.FileList = new BindingList<FileRenameInfo>();
+                                }
+                                _view.FileList.Add(currentFileInfo);
+                                _view.RefreshFileTable();
+                            }));
+                            
+                            // 执行文件操作（第一个移动/复制原文件，后续复制原文件）
+                            bool success;
+                            if (i == 0)
+                            {
+                                // 第一个文件：使用原文件
+                                success = await RenameFileAsync(currentFileInfo);
+                            }
+                            else
+                            {
+                                // 后续文件：复制原文件到目标位置
+                                success = await CopyFileToDestinationAsync(filePath, currentFileInfo);
+                            }
+                            
+                            if (success) successCount++;
+                        }
+                        
+                        if (successCount > 0)
+                        {
+                            _view.ShowSuccess($"已生成 {successCount}/{fileCount} 个文件");
+                        }
+                    }
+                    else
+                    {
+                        _logger?.LogInformation($"[ProcessNewFileAsync] 用户取消或对话框返回Cancel");
+                    }
+                }
+                else  // 批量模式
+                {
+                    _logger?.LogInformation($"[ProcessNewFileAsync] 批量模式 - 自动处理");
+                    
+                    // 匹配 Excel 数据
+                    var excelData = MatchExcelData(fileInfo.RegexResult ?? "");
+
+                    // 应用 Excel 匹配结果
+                    if (excelData.HasMatch)
+                    {
+                        fileInfo.Quantity = excelData.Quantity;
+                        fileInfo.SerialNumber = excelData.SerialNumber;
+                        // 应用材料匹配结果
+                        if (!string.IsNullOrEmpty(excelData.Material))
+                        {
+                            fileInfo.Material = excelData.Material;
+                        }
+                        _view.UpdateStatus($"已匹配 Excel 数据: 行{excelData.RowIndex + 1}");
+                    }
+                    else
+                    {
+                        // 自动生成序号
+                        fileInfo.SerialNumber = GetNextSerialNumber().ToString();
+                    }
+
+                    // 生成新文件名
+                    fileInfo.NewName = GenerateNewFileName(fileInfo);
+
+                    // 在UI线程上添加到列表
+                    System.Windows.Forms.Application.OpenForms[0].Invoke((Action)(() =>
+                    {
+                        if (_view.FileList == null)
+                        {
+                            _view.FileList = new BindingList<FileRenameInfo>();
+                        }
+                        _view.FileList.Add(fileInfo);
+                        _view.RefreshFileTable();
+                        _view.UpdateStatus($"已添加文件: {fileInfo.OriginalName}");
+                    }));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, $"处理新文件失败: {filePath}");
+            }
+        }
+
+        #endregion
+
+        #region 模式切换
+
+        /// <summary>
+        /// 处理切换复制/剪切模式
+        /// </summary>
+        public void HandleModeToggle()
+        {
+            _isCopyMode = !_isCopyMode;
+            _view.UpdateModeButtonState(_isCopyMode);
+            _view.UpdateStatus(_isCopyMode ? "已切换到复制模式" : "已切换到剪切模式");
+
+            // 保存设置
+            SaveSettings();
+        }
+
+        /// <summary>
+        /// 处理切换手动/批量重命名模式
+        /// </summary>
+        public void HandleImmediateModeToggle()
+        {
+            var isImmediateMode = !_view.IsImmediateMode;
+            _view.IsImmediateMode = isImmediateMode;
+            _view.UpdateImmediateModeButtonState(isImmediateMode);
+            _view.UpdateStatus(isImmediateMode ? "已切换到手动模式" : "已切换到批量模式");
+        }
+
+        /// <summary>
+        /// 启动手动模式（立即弹出材料选择对话框）
+        /// </summary>
+        public void StartImmediateMode()
+        {
+            _view.IsImmediateMode = true;
+            _view.UpdateImmediateModeButtonState(true);
+            _view.UpdateStatus("已启动手动模式");
+        }
+
+        /// <summary>
+        /// 停止手动模式（切换到批量模式）
+        /// </summary>
+        public void StopImmediateMode()
+        {
+            _view.IsImmediateMode = false;
+            _view.UpdateImmediateModeButtonState(false);
+            _view.UpdateStatus("已启动批量模式");
+        }
+
+        #endregion
+
+        #region 文件重命名
+
+        /// <summary>
+        /// 处理批量重命名
+        /// </summary>
+        public async Task HandleRenameAsync()
+        {
+            try
+            {
+                var fileList = _view.FileList;
+                if (fileList == null || fileList.Count == 0)
+                {
+                    _view.ShowWarning("没有需要重命名的文件");
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(_exportPath) || !Directory.Exists(_exportPath))
+                {
+                    _view.ShowError("请先设置有效的导出路径");
+                    return;
+                }
+
+                // 确认操作
+                var modeText = _isCopyMode ? "复制" : "移动";
+                if (!_view.ShowConfirm($"确定要{modeText}重命名 {fileList.Count} 个文件吗？", "确认操作"))
+                {
+                    return;
+                }
+
+                _view.ShowProgress("正在重命名文件...");
+
+                int successCount = 0;
+                int failCount = 0;
+
+                foreach (var fileInfo in fileList.Where(f => !string.IsNullOrEmpty(f.NewName)))
+                {
+                    _view.UpdateProgress(successCount + failCount + 1, fileList.Count, $"正在处理: {fileInfo.OriginalName}");
+
+                    if (await RenameFileAsync(fileInfo))
+                    {
+                        successCount++;
+                    }
+                    else
+                    {
+                        failCount++;
+                    }
+                }
+
+                _view.HideProgress();
+                _view.UpdateStatus($"重命名完成: 成功 {successCount}, 失败 {failCount}");
+
+                if (successCount > 0)
+                {
+                    _view.ShowSuccess($"成功重命名 {successCount} 个文件");
+                }
+
+                if (failCount > 0)
+                {
+                    _view.ShowWarning($"{failCount} 个文件重命名失败");
+                }
+            }
+            catch (Exception ex)
+            {
+                _view.HideProgress();
+                _logger?.LogError(ex, "批量重命名失败");
+                _view.ShowError($"批量重命名失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 处理立即重命名单个文件
+        /// </summary>
+        /// <param name="fileInfo">文件重命名信息</param>
+        /// <returns>重命名是否成功</returns>
+        public async Task<bool> RenameFileAsync(FileRenameInfo fileInfo)
+        {
+            try
+            {
+                _logger?.LogInformation($"[RenameFileAsync] 开始重命名: {fileInfo?.OriginalName}");
+                
+                if (fileInfo == null || string.IsNullOrEmpty(fileInfo.FullPath))
+                {
+                    _logger?.LogWarning($"[RenameFileAsync] fileInfo为空或FullPath为空");
+                    return false;
+                }
+
+                if (!File.Exists(fileInfo.FullPath))
+                {
+                    _logger?.LogError($"[RenameFileAsync] 文件不存在: {fileInfo.FullPath}");
+                    _view.ShowError($"文件不存在: {fileInfo.OriginalName}");
+                    return false;
+                }
+
+                if (string.IsNullOrEmpty(fileInfo.NewName))
+                {
+                    _logger?.LogWarning($"[RenameFileAsync] 文件 {fileInfo.OriginalName} 没有设置新文件名");
+                    _view.ShowWarning($"文件 {fileInfo.OriginalName} 没有设置新文件名");
+                    return false;
+                }
+
+                _logger?.LogInformation($"[RenameFileAsync] 导出路径: {_exportPath}");
+                _logger?.LogInformation($"[RenameFileAsync] 新文件名: {fileInfo.NewName}");
+                
+                var destPath = Path.Combine(_exportPath, fileInfo.NewName);
+                _logger?.LogInformation($"[RenameFileAsync] 目标路径: {destPath}");
+
+                // 处理文件名冲突
+                destPath = HandleFileNameConflict(destPath);
+                _logger?.LogInformation($"[RenameFileAsync] 冲突处理后路径: {destPath}");
+
+                // 执行复制或移动
+                _logger?.LogInformation($"[RenameFileAsync] 复制模式: {_isCopyMode}");
+                var result = ProcessFileByMode(fileInfo.FullPath, destPath, _isCopyMode);
+
+                if (result)
+                {
+                    _logger?.LogInformation($"[RenameFileAsync] 成功重命名: {fileInfo.OriginalName} -> {fileInfo.NewName}");
+                    
+                    // ✅ 修复：如果选择了形状处理，执行 PDF 形状处理
+                    if (_currentIsShapeSelected && 
+                        destPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) &&
+                        _pdfProcessingService != null)
+                    {
+                        try
+                        {
+                            _logger?.LogInformation($"[RenameFileAsync] 开始形状处理: ShapeType={_currentShapeType}, RoundRadius={_currentRoundRadius}, Dimensions={_currentDimensions}");
+                            
+                            // 将 ShapeType 枚举转换为旧版 API 兼容的字符串格式
+                            string cornerRadius = "0";
+                            bool usePdfLastPage = false;
+                            
+                            switch (_currentShapeType)
+                            {
+                                case ShapeType.Circle:
+                                    cornerRadius = "R";
+                                    break;
+                                case ShapeType.Special:
+                                    cornerRadius = "Y";
+                                    usePdfLastPage = true;
+                                    break;
+                                case ShapeType.RoundRect:
+                                    cornerRadius = _currentRoundRadius > 0 ? _currentRoundRadius.ToString() : "10";
+                                    break;
+                                case ShapeType.RightAngle:
+                                default:
+                                    cornerRadius = "0";
+                                    break;
+                            }
+                            
+                            bool shapeResult = _pdfProcessingService.AddDotsAddCounterLayer(
+                                destPath, 
+                                _currentDimensions, 
+                                cornerRadius, 
+                                usePdfLastPage);
+                            
+                            if (shapeResult)
+                            {
+                                _logger?.LogInformation($"[RenameFileAsync] 形状处理成功");
+                            }
+                            else
+                            {
+                                _logger?.LogWarning($"[RenameFileAsync] 形状处理失败");
+                            }
+                        }
+                        catch (Exception shapeEx)
+                        {
+                            _logger?.LogError(shapeEx, $"[RenameFileAsync] 形状处理异常: {shapeEx.Message}");
+                        }
+                    }
+                    
+                    // ✅ 修复：如果需要旋转，执行 PDF 旋转处理
+                    if (_currentNeedsRotation && 
+                        _currentRotationAngle != 0 &&
+                        destPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                    {
+                        try
+                        {
+                            _logger?.LogInformation($"[RenameFileAsync] 开始旋转处理: RotationAngle={_currentRotationAngle}");
+                            
+                            bool rotateResult = PdfTools.RotateAllPages(destPath, _currentRotationAngle);
+                            
+                            if (rotateResult)
+                            {
+                                _logger?.LogInformation($"[RenameFileAsync] 旋转处理成功");
+                            }
+                            else
+                            {
+                                _logger?.LogWarning($"[RenameFileAsync] 旋转处理失败");
+                            }
+                        }
+                        catch (Exception rotateEx)
+                        {
+                            _logger?.LogError(rotateEx, $"[RenameFileAsync] 旋转处理异常: {rotateEx.Message}");
+                        }
+                    }
+                }
+                else
+                {
+                    _logger?.LogError($"[RenameFileAsync] 重命名失败: {fileInfo.OriginalName}");
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, $"重命名文件 {fileInfo?.OriginalName} 失败");
+                _view.ShowError($"重命名文件 {fileInfo?.OriginalName} 失败: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 立即重命名文件（同步版本）
+        /// </summary>
+        /// <param name="sourcePath">源文件路径</param>
+        /// <param name="newName">新文件名</param>
+        /// <returns>重命名是否成功</returns>
+        public bool RenameFileImmediately(string sourcePath, string newName)
+        {
+            try
+            {
+                return _fileRenameService.RenameFileImmediately(sourcePath, newName);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "立即重命名失败");
+                _view.ShowError($"立即重命名失败: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 复制文件到目标位置（用于多值输出多文件场景的后续文件）
+        /// </summary>
+        /// <param name="sourcePath">源文件路径</param>
+        /// <param name="fileInfo">文件重命名信息</param>
+        /// <returns>复制是否成功</returns>
+        private async Task<bool> CopyFileToDestinationAsync(string sourcePath, FileRenameInfo fileInfo)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(sourcePath) || !System.IO.File.Exists(sourcePath))
+                {
+                    _logger?.LogWarning($"[CopyFileToDestinationAsync] 源文件不存在: {sourcePath}");
+                    return false;
+                }
+
+                // 构建目标路径
+                string destPath = System.IO.Path.Combine(_exportPath ?? AppDataPathManager.ExcelExportDirectory, fileInfo.NewName);
+                
+                // 处理文件名冲突
+                destPath = HandleFileNameConflict(destPath);
+                
+                _logger?.LogInformation($"[CopyFileToDestinationAsync] 复制文件: {sourcePath} -> {destPath}");
+                
+                // 异步复制文件
+                await Task.Run(() => System.IO.File.Copy(sourcePath, destPath, overwrite: false));
+                
+                // 应用 PDF 形状处理（如果需要）
+                if (_currentIsShapeSelected && destPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) && _pdfProcessingService != null)
+                {
+                    string cornerRadius;
+                    switch (_currentShapeType)
+                    {
+                        case ShapeType.Circle:
+                            cornerRadius = "R";
+                            break;
+                        case ShapeType.Special:
+                            cornerRadius = "Y";
+                            break;
+                        case ShapeType.RoundRect:
+                            cornerRadius = _currentRoundRadius.ToString();
+                            break;
+                        default:
+                            cornerRadius = "0";
+                            break;
+                    }
+                    
+                    bool usePdfLastPage = _currentShapeType == ShapeType.Special;
+                    bool shapeResult = _pdfProcessingService.AddDotsAddCounterLayer(destPath, _currentDimensions, cornerRadius, usePdfLastPage);
+                    _logger?.LogInformation($"[CopyFileToDestinationAsync] PDF形状处理结果: {shapeResult}");
+                }
+                
+                // 应用旋转处理（如果需要）
+                if (_currentNeedsRotation && _currentRotationAngle != 0 && destPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        WindowsFormsApp3.Utils.PdfTools.RotateAllPages(destPath, _currentRotationAngle);
+                        _logger?.LogInformation($"[CopyFileToDestinationAsync] 已旋转 PDF {_currentRotationAngle}°");
+                    }
+                    catch (Exception rotateEx)
+                    {
+                        _logger?.LogWarning($"[CopyFileToDestinationAsync] 旋转失败: {rotateEx.Message}");
+                    }
+                }
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, $"[CopyFileToDestinationAsync] 复制文件失败: {sourcePath}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 根据模式处理文件（复制或剪切）
+        /// </summary>
+        /// <param name="sourcePath">源文件路径</param>
+        /// <param name="destPath">目标文件路径</param>
+        /// <param name="isCopyMode">是否为复制模式</param>
+        /// <returns>处理是否成功</returns>
+        public bool ProcessFileByMode(string sourcePath, string destPath, bool isCopyMode)
+        {
+            try
+            {
+                if (isCopyMode)
+                {
+                    // 复制模式
+                    File.Copy(sourcePath, destPath, overwrite: true);
+                }
+                else
+                {
+                    // 剪切模式
+                    File.Move(sourcePath, destPath);
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                var modeText = isCopyMode ? "复制" : "移动";
+                _logger?.LogError(ex, $"{modeText}文件失败: {sourcePath} -> {destPath}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 处理文件名冲突
+        /// </summary>
+        /// <param name="filePath">文件路径</param>
+        /// <returns>处理后的文件路径</returns>
+        private string HandleFileNameConflict(string filePath)
+        {
+            if (!File.Exists(filePath))
+            {
+                return filePath;
+            }
+
+            var directory = Path.GetDirectoryName(filePath);
+            var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
+            var extension = Path.GetExtension(filePath);
+            var counter = 1;
+
+            string newPath;
+            do
+            {
+                newPath = Path.Combine(directory, $"{fileNameWithoutExtension} ({counter}){extension}");
+                counter++;
+            } while (File.Exists(newPath));
+
+            return newPath;
+        }
+
+        #endregion
+
+        #region Excel导入导出
+
+        /// <summary>
+        /// 处理导入Excel - 弹出ExcelImportForm对话框
+        /// </summary>
+        public async Task HandleImportExcelAsync()
+        {
+            try
+            {
+                // 设置父视图引用，让 ExcelImportForm 可以更新状态
+                if (_excelImportService is ExcelImportHelper excelImportHelper)
+                {
+                    IExcelParentView parentView = _view as IExcelParentView;
+                    if (parentView != null)
+                    {
+                        excelImportHelper.SetParentView(parentView);
+                    }
+                }
+
+                // 启动导入流程（弹出 ExcelImportForm 对话框）
+                bool importSuccess = _excelImportService.StartImport();
+
+                // 如果导入成功且有有效数据
+                if (importSuccess && _excelImportService.HasValidData())
+                {
+                    _view.ExcelData = _excelImportService.ImportedData;
+                    // ✅ 同步列索引到视图（用于 MaterialSelectFormModern 自动填充）
+                    _view.ExcelSearchColumnIndex = _excelImportService.SearchColumnIndex;
+                    _view.ExcelReturnColumnIndex = _excelImportService.ReturnColumnIndex;
+                    _view.ExcelSerialColumnIndex = _excelImportService.SerialColumnIndex;
+                    _logger?.LogDebug($"同步列索引: Search={_excelImportService.SearchColumnIndex}, Return={_excelImportService.ReturnColumnIndex}, Serial={_excelImportService.SerialColumnIndex}");
+                    _view.UpdateStatus($"成功导入 {_excelImportService.ImportedData.Rows.Count} 行 Excel 数据");
+                    _view.ShowSuccess($"已导入 {_excelImportService.ImportedData.Rows.Count} 行数据");
+                }
+                else
+                {
+                    _logger?.LogDebug("用户取消导入或导入失败");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "导入Excel失败");
+                _view.ShowError($"导入Excel失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 处理清除Excel数据
+        /// </summary>
+        public void HandleClearExcel()
+        {
+            try
+            {
+                _view.ExcelData = null;
+                _excelImportService.ClearData();
+                _view.UpdateStatus("已清除Excel数据");
+                _view.ShowInfo("Excel数据已清除");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "清除Excel数据失败");
+                _view.ShowError($"清除Excel数据失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 处理导出Excel - 使用EPPlus导出文件列表
+        /// </summary>
+        public void HandleExportExcel()
+        {
+            try
+            {
+                var fileList = _view.FileList;
+                if (fileList == null || fileList.Count == 0)
+                {
+                    _view.ShowWarning("没有可导出的数据");
+                    return;
+                }
+
+                var defaultFileName = $"导出数据_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                var filePath = _view.ShowSaveFileDialog("Excel文件 (*.xlsx)|*.xlsx|所有文件 (*.*)|*.*", defaultFileName);
+
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    return;
+                }
+
+                _view.ShowProgress("正在导出Excel...");
+
+                // 使用 EPPlus 导出 Excel
+                OfficeOpenXml.ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+                using (var package = new OfficeOpenXml.ExcelPackage(new FileInfo(filePath)))
+                {
+                    var worksheet = package.Workbook.Worksheets.Add("文件重命名数据");
+
+                    // 添加表头
+                    var headers = new string[]
+                    {
+                        "序号", "原文件名", "新文件名", "完整路径", "正则结果",
+                        "工单号", "材料", "数量", "尺寸", "工艺", "行数", "列数",
+                        "时间", "状态", "错误信息", "页数", "列组合", "宽度", "高度", "出血值", "扩展名"
+                    };
+
+                    for (int i = 0; i < headers.Length; i++)
+                    {
+                        worksheet.Cells[1, i + 1].Value = headers[i];
+                    }
+
+                    // 添加数据行
+                    int row = 2;
+                    foreach (var item in fileList)
+                    {
+                        worksheet.Cells[row, 1].Value = item.SerialNumber ?? "";
+                        worksheet.Cells[row, 2].Value = item.OriginalName ?? "";
+                        worksheet.Cells[row, 3].Value = item.NewName ?? "";
+                        worksheet.Cells[row, 4].Value = item.FullPath ?? "";
+                        worksheet.Cells[row, 5].Value = item.RegexResult ?? "";
+                        worksheet.Cells[row, 6].Value = item.OrderNumber ?? "";
+                        worksheet.Cells[row, 7].Value = item.Material ?? "";
+                        worksheet.Cells[row, 8].Value = item.Quantity ?? "";
+                        worksheet.Cells[row, 9].Value = item.Dimensions ?? "";
+                        worksheet.Cells[row, 10].Value = item.Process ?? "";
+                        worksheet.Cells[row, 11].Value = item.LayoutRows ?? "";
+                        worksheet.Cells[row, 12].Value = item.LayoutColumns ?? "";
+                        worksheet.Cells[row, 13].Value = item.Time ?? "";
+                        worksheet.Cells[row, 14].Value = item.Status ?? "";
+                        worksheet.Cells[row, 15].Value = item.ErrorMessage ?? "";
+                        worksheet.Cells[row, 16].Value = item.PageCount?.ToString() ?? "";
+                        worksheet.Cells[row, 17].Value = item.CompositeColumn ?? "";
+                        worksheet.Cells[row, 18].Value = item.Width ?? "";
+                        worksheet.Cells[row, 19].Value = item.Height ?? "";
+                        worksheet.Cells[row, 20].Value = item.TetBleed ?? "";
+                        worksheet.Cells[row, 21].Value = item.FileExtension ?? "";
+                        row++;
+                    }
+
+                    // 自动调整列宽
+                    worksheet.Cells.AutoFitColumns();
+
+                    package.Save();
+                }
+
+                _view.HideProgress();
+                _view.UpdateStatus($"导出成功: {filePath}");
+                _view.ShowSuccess("导出成功");
+            }
+            catch (Exception ex)
+            {
+                _view.HideProgress();
+                _logger?.LogError(ex, "导出Excel失败");
+                _view.ShowError($"导出Excel失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 显示导入的Excel数据
+        /// </summary>
+        /// <param name="data">Excel数据表</param>
+        public void DisplayImportedExcelData(DataTable data)
+        {
+            // 数据已通过 _view.ExcelData 属性共享，DatabasePanel 会自动显示
+        }
+
+        /// <summary>
+        /// 匹配Excel数据与文件列表
+        /// 根据 regexResult 在 Excel 数据中查找匹配的行，并提取数量和序号
+        /// </summary>
+        public void MatchExcelData()
+        {
+            try
+            {
+                var excelData = _view.ExcelData;
+                var fileList = _view.FileList;
+
+                if (excelData == null || fileList == null)
+                {
+                    _logger?.LogDebug("MatchExcelData: Excel数据或文件列表为空，跳过匹配");
+                    return;
+                }
+
+                // 获取列索引
+                int searchColumnIndex = _excelImportService.SearchColumnIndex;
+                int returnColumnIndex = _excelImportService.ReturnColumnIndex;
+                int serialColumnIndex = _excelImportService.SerialColumnIndex;
+
+                if (searchColumnIndex < 0 || returnColumnIndex < 0)
+                {
+                    _logger?.LogDebug($"MatchExcelData: 列索引无效 - 搜索列:{searchColumnIndex}, 返回列:{returnColumnIndex}");
+                    return;
+                }
+
+                if (searchColumnIndex >= excelData.Columns.Count ||
+                    returnColumnIndex >= excelData.Columns.Count)
+                {
+                    _logger?.LogDebug($"MatchExcelData: 列索引超出范围 - Excel列数:{excelData.Columns.Count}");
+                    return;
+                }
+
+                _logger?.LogDebug($"MatchExcelData: 开始匹配 - 搜索列:{searchColumnIndex}, 返回列:{returnColumnIndex}, 序号列:{serialColumnIndex}");
+
+                int matchedCount = 0;
+
+                foreach (var fileInfo in fileList)
+                {
+                    // 跳过没有正则结果的文件
+                    if (string.IsNullOrEmpty(fileInfo.RegexResult))
+                    {
+                        continue;
+                    }
+
+                    string regexResult = fileInfo.RegexResult;
+                    var matchData = MatchExcelData(regexResult);
+
+                    if (matchData != null && matchData.HasMatch)
+                    {
+                        // 更新文件信息
+                        fileInfo.Quantity = matchData.Quantity;
+                        fileInfo.SerialNumber = matchData.SerialNumber;
+                        // 应用材料匹配结果
+                        if (!string.IsNullOrEmpty(matchData.Material))
+                        {
+                            fileInfo.Material = matchData.Material;
+                        }
+                        matchedCount++;
+
+                        _logger?.LogDebug($"匹配成功: RegexResult='{regexResult}' -> 数量='{matchData.Quantity}', 序号='{matchData.SerialNumber}', 材料='{matchData.Material}'");
+                    }
+                }
+
+                _view.RefreshFileTable();
+                _view.UpdateStatus($"匹配完成，成功匹配 {matchedCount} 个文件");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "匹配Excel数据失败");
+                _view.ShowError($"匹配Excel数据失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 根据 regexResult 在 Excel 数据中查找匹配的行
+        /// 返回匹配的数量、序号和材料
+        /// </summary>
+        /// <param name="regexResult">正则表达式匹配结果</param>
+        /// <returns>匹配的 Excel 数据（数量、序号、材料），如果没有匹配则返回空对象</returns>
+        public Models.ExcelMatchData MatchExcelData(string regexResult)
+        {
+            try
+            {
+                var excelData = _excelImportService.ImportedData;
+                if (excelData == null || string.IsNullOrEmpty(regexResult))
+                {
+                    return new Models.ExcelMatchData(); // 返回空对象
+                }
+
+                int searchColumnIndex = _excelImportService.SearchColumnIndex;
+                int returnColumnIndex = _excelImportService.ReturnColumnIndex;
+                int serialColumnIndex = _excelImportService.SerialColumnIndex;
+                int materialColumnIndex = _excelImportService.MaterialColumnIndex;
+
+                // 验证列索引有效性
+                if (searchColumnIndex < 0 || returnColumnIndex < 0 ||
+                    searchColumnIndex >= excelData.Columns.Count ||
+                    returnColumnIndex >= excelData.Columns.Count)
+                {
+                    return new Models.ExcelMatchData(); // 返回空对象
+                }
+
+                // 在 Excel 中精确匹配
+                foreach (DataRow row in excelData.Rows)
+                {
+                    if (row[searchColumnIndex] != null)
+                    {
+                        string tableValue = row[searchColumnIndex].ToString();
+
+                        // 百分百精确匹配
+                        bool isExactMatch = string.Equals(tableValue, regexResult, StringComparison.Ordinal);
+
+                        if (isExactMatch)
+                        {
+                            // 匹配成功，提取数据
+                            string quantity = returnColumnIndex >= 0 && returnColumnIndex < excelData.Columns.Count
+                                ? row[returnColumnIndex]?.ToString() ?? string.Empty
+                                : string.Empty;
+                            string serialNumber = serialColumnIndex >= 0 && serialColumnIndex < excelData.Columns.Count
+                                ? row[serialColumnIndex]?.ToString() ?? string.Empty
+                                : string.Empty;
+                            // 提取材料字段
+                            string material = materialColumnIndex >= 0 && materialColumnIndex < excelData.Columns.Count
+                                ? row[materialColumnIndex]?.ToString() ?? string.Empty
+                                : string.Empty;
+
+                            return new Models.ExcelMatchData
+                            {
+                                RowIndex = excelData.Rows.IndexOf(row),
+                                Quantity = quantity,
+                                SerialNumber = serialNumber,
+                                Material = material
+                            };
+                        }
+                    }
+                }
+
+                return new Models.ExcelMatchData(); // 没有匹配返回空对象
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, $"匹配 Excel 数据失败: regexResult='{regexResult}'");
+                return new Models.ExcelMatchData(); // 返回空对象
+            }
+        }
+
+        #endregion
+
+        #region JSON数据管理
+
+        /// <summary>
+        /// 处理保存JSON
+        /// </summary>
+        public void HandleSaveJson()
+        {
+            try
+            {
+                var defaultFileName = $"保存数据_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+                var filePath = _view.ShowSaveFileDialog("JSON文件 (*.json)|*.json|所有文件 (*.*)|*.*", defaultFileName);
+
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    return;
+                }
+
+                SaveToJsonFile(filePath);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "保存JSON失败");
+                _view.ShowError($"保存JSON失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 处理加载选定的JSON文件
+        /// </summary>
+        /// <param name="jsonFileName">JSON文件名</param>
+        public void HandleLoadJson(string jsonFileName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(jsonFileName))
+                {
+                    return;
+                }
+
+                var filePath = Path.Combine(_savedGridsPath, jsonFileName + ".json");
+
+                if (!File.Exists(filePath))
+                {
+                    _view.ShowError($"JSON文件不存在: {jsonFileName}");
+                    return;
+                }
+
+                _view.ShowProgress("正在加载JSON...");
+
+                var dataList = LoadFromJsonFile(filePath);
+
+                if (dataList != null && dataList.Count > 0)
+                {
+                    _view.FileList = new BindingList<FileRenameInfo>(dataList);
+                    _view.RefreshFileTable();
+                    _view.UpdateStatus($"加载成功，共 {dataList.Count} 条记录");
+                    _view.ShowSuccess($"加载成功，共 {dataList.Count} 条记录");
+                }
+                else
+                {
+                    _view.ShowWarning("JSON文件为空或加载失败");
+                }
+
+                _view.HideProgress();
+            }
+            catch (Exception ex)
+            {
+                _view.HideProgress();
+                _logger?.LogError(ex, "加载JSON失败");
+                _view.ShowError($"加载JSON失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 执行自动保存
+        /// </summary>
+        public void PerformAutoSave()
+        {
+            try
+            {
+                var configName = _view.CurrentConfigName;
+                if (string.IsNullOrEmpty(configName))
+                {
+                    configName = $"AutoSave_{DateTime.Now:yyyyMMdd_HHmmss}";
+                }
+
+                var filePath = Path.Combine(_savedGridsPath, configName + ".json");
+                SaveToJsonFile(filePath);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "自动保存失败");
+            }
+        }
+
+        /// <summary>
+        /// 保存数据到JSON文件
+        /// </summary>
+        /// <param name="filePath">JSON文件路径</param>
+        public void SaveToJsonFile(string filePath)
+        {
+            try
+            {
+                var dataList = _view.FileList?
+                    .Where(f => !string.IsNullOrEmpty(f.OriginalName))
+                    .ToList();
+
+                if (dataList == null || dataList.Count == 0)
+                {
+                    _view.ShowWarning("没有可保存的数据");
+                    return;
+                }
+
+                var json = JsonConvert.SerializeObject(dataList, Formatting.Indented);
+                File.WriteAllText(filePath, json, System.Text.Encoding.UTF8);
+
+                _view.UpdateStatus($"保存成功: {Path.GetFileName(filePath)}");
+                UpdateJsonFilesList();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "保存JSON失败");
+                _view.ShowError($"保存JSON失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 从JSON文件加载数据
+        /// </summary>
+        /// <param name="filePath">JSON文件路径</param>
+        /// <returns>文件重命名信息列表</returns>
+        public List<FileRenameInfo> LoadFromJsonFile(string filePath)
+        {
+            try
+            {
+                var json = File.ReadAllText(filePath, System.Text.Encoding.UTF8);
+                var dataList = JsonConvert.DeserializeObject<List<FileRenameInfo>>(json);
+                return dataList;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "加载JSON失败");
+                _view.ShowError($"加载JSON失败: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 获取已保存的配置列表
+        /// </summary>
+        /// <returns>配置名称列表</returns>
+        public List<string> GetSavedConfigs()
+        {
+            try
+            {
+                if (!Directory.Exists(_savedGridsPath))
+                {
+                    return new List<string>();
+                }
+
+                return Directory.GetFiles(_savedGridsPath, "*.json")
+                    .Select(f => Path.GetFileNameWithoutExtension(f))
+                    .OrderByDescending(f => f)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "获取已保存配置列表失败");
+                return new List<string>();
+            }
+        }
+
+        /// <summary>
+        /// 更新JSON文件列表
+        /// </summary>
+        private void UpdateJsonFilesList()
+        {
+            var jsonFiles = GetSavedConfigs();
+            _view.UpdateJsonFilesDropdown(jsonFiles);
+        }
+
+        #endregion
+
+        #region 正则表达式管理
+
+        /// <summary>
+        /// 加载正则表达式模式
+        /// </summary>
+        public void LoadRegexPatterns()
+        {
+            try
+            {
+                _regexPatterns.Clear();
+
+                // 从AppSettings加载
+                var savedPatterns = AppSettings.Instance.RegexPatterns;
+                if (!string.IsNullOrEmpty(savedPatterns))
+                {
+                    var patterns = savedPatterns.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var pattern in patterns)
+                    {
+                        var parts = pattern.Split(new[] { '=' }, 2);
+                        if (parts.Length == 2)
+                        {
+                            _regexPatterns[parts[0]] = parts[1];
+                        }
+                    }
+                }
+
+                // 如果为空，添加默认模式
+                if (_regexPatterns.Count == 0)
+                {
+                    _regexPatterns["订单号(4位数字)"] = @"(\d{4})";
+                    _regexPatterns["订单号(5位数字)"] = @"(\d{5})";
+                    _regexPatterns["订单号(6位数字)"] = @"(\d{6})";
+                }
+
+                _logger?.LogInformation($"加载了 {_regexPatterns.Count} 个正则表达式模式");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "加载正则表达式失败");
+            }
+        }
+
+        /// <summary>
+        /// 保存正则表达式设置
+        /// </summary>
+        public void SaveRegexSettings()
+        {
+            try
+            {
+                var patterns = _regexPatterns
+                    .Select(p => $"{p.Key}={p.Value}")
+                    .Aggregate((a, b) => a + "|" + b);
+
+                AppSettings.Instance.RegexPatterns = patterns;
+                AppSettings.Save();
+
+                _logger?.LogInformation("正则表达式设置已保存");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "保存正则表达式设置失败");
+            }
+        }
+
+        /// <summary>
+        /// 获取所有正则表达式模式
+        /// </summary>
+        /// <returns>正则表达式模式字典（显示名称 -> 正则表达式）</returns>
+        public Dictionary<string, string> GetRegexPatterns()
+        {
+            return new Dictionary<string, string>(_regexPatterns);
+        }
+
+        /// <summary>
+        /// 添加正则表达式模式
+        /// </summary>
+        /// <param name="name">模式名称</param>
+        /// <param name="pattern">正则表达式</param>
+        public void AddRegexPattern(string name, string pattern)
+        {
+            if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(pattern))
+            {
+                _regexPatterns[name] = pattern;
+                _view.UpdateRegexComboBox(_regexPatterns.Keys.ToList());
+                SaveRegexSettings();
+            }
+        }
+
+        /// <summary>
+        /// 移除正则表达式模式
+        /// </summary>
+        /// <param name="name">模式名称</param>
+        public void RemoveRegexPattern(string name)
+        {
+            if (_regexPatterns.Remove(name))
+            {
+                _view.UpdateRegexComboBox(_regexPatterns.Keys.ToList());
+                SaveRegexSettings();
+            }
+        }
+
+        #endregion
+
+        #region 材料管理
+
+        /// <summary>
+        /// 加载材料列表
+        /// </summary>
+        public void LoadMaterials()
+        {
+            try
+            {
+                _logger?.LogInformation("[LoadMaterials] 开始加载材料列表");
+                _materials.Clear();
+
+                var savedMaterials = AppSettings.Instance.Materials;
+                if (!string.IsNullOrEmpty(savedMaterials))
+                {
+                    var materials = savedMaterials.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var material in materials)
+                    {
+                        _materials.Add(material.Trim());
+                    }
+                }
+
+                // 如果为空，添加默认材料
+                if (_materials.Count == 0)
+                {
+                    _materials.AddRange(new[] { "铜版纸", "胶版纸", "特种纸", "不干胶", "PET", "PVC" });
+                }
+
+                _view.UpdateMaterialsContextMenu(_materials);
+                _logger?.LogInformation($"加载了 {_materials.Count} 个材料");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "加载材料列表失败");
+            }
+        }
+
+        /// <summary>
+        /// 保存材料设置
+        /// </summary>
+        public void SaveMaterialSettings()
+        {
+            try
+            {
+                var materials = string.Join(",", _materials);
+                AppSettings.Instance.Materials = materials;
+                AppSettings.Save();
+
+                _logger?.LogInformation("材料设置已保存");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "保存材料设置失败");
+            }
+        }
+
+        /// <summary>
+        /// 获取所有材料
+        /// </summary>
+        /// <returns>材料列表</returns>
+        public List<string> GetMaterials()
+        {
+            return new List<string>(_materials);
+        }
+
+        /// <summary>
+        /// 添加材料
+        /// </summary>
+        /// <param name="material">材料名称</param>
+        public void AddMaterial(string material)
+        {
+            if (!string.IsNullOrEmpty(material) && !_materials.Contains(material))
+            {
+                _materials.Add(material);
+                _view.UpdateMaterialsContextMenu(_materials);
+                SaveMaterialSettings();
+            }
+        }
+
+        /// <summary>
+        /// 移除材料
+        /// </summary>
+        /// <param name="material">材料名称</param>
+        public void RemoveMaterial(string material)
+        {
+            if (_materials.Remove(material))
+            {
+                _view.UpdateMaterialsContextMenu(_materials);
+                SaveMaterialSettings();
+            }
+        }
+
+        #endregion
+
+        #region 数据表格操作
+
+        /// <summary>
+        /// 添加文件到表格
+        /// </summary>
+        /// <param name="fileInfo">文件信息</param>
+        public void AddFileToTable(FileRenameInfo fileInfo)
+        {
+            if (_view.FileList == null)
+            {
+                _view.FileList = new BindingList<FileRenameInfo>();
+            }
+
+            _view.FileList.Add(fileInfo);
+            _view.RefreshFileTable();
+        }
+
+        /// <summary>
+        /// 更新表格中的文件行
+        /// </summary>
+        /// <param name="fileInfo">文件信息</param>
+        public void UpdateFileInTable(FileRenameInfo fileInfo)
+        {
+            // TODO: 实现更新逻辑
+            _view.RefreshFileTable();
+        }
+
+        /// <summary>
+        /// 从表格中删除文件行
+        /// </summary>
+        /// <param name="rowIndex">行索引</param>
+        public void RemoveFileFromTable(int rowIndex)
+        {
+            if (_view.FileList != null && rowIndex >= 0 && rowIndex < _view.FileList.Count)
+            {
+                _view.FileList.RemoveAt(rowIndex);
+                _view.RefreshFileTable();
+            }
+        }
+
+        /// <summary>
+        /// 刷新文件列表
+        /// </summary>
+        public void RefreshFileList()
+        {
+            _view.RefreshFileTable();
+        }
+
+        /// <summary>
+        /// 清空文件列表
+        /// </summary>
+        public void ClearFileList()
+        {
+            _view.FileList = new BindingList<FileRenameInfo>();
+            _view.RefreshFileTable();
+        }
+
+        #endregion
+
+        #region 单元格编辑
+
+        /// <summary>
+        /// 处理单元格值变化
+        /// </summary>
+        /// <param name="rowIndex">行索引</param>
+        /// <param name="columnIndex">列索引</param>
+        /// <param name="newValue">新值</param>
+        /// <param name="oldValue">旧值</param>
+        public void HandleCellValueChanged(int rowIndex, int columnIndex, object newValue, object oldValue)
+        {
+            try
+            {
+                if (_view.FileList != null && rowIndex >= 0 && rowIndex < _view.FileList.Count)
+                {
+                    var fileInfo = _view.FileList[rowIndex];
+
+                    // 根据列索引更新对应属性
+                    // TODO: 实现具体的属性更新逻辑
+
+                    _view.RefreshFileTable();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "处理单元格值变化失败");
+            }
+        }
+
+        #endregion
+
+        #region 工具方法
+
+        /// <summary>
+        /// 获取导出路径
+        /// </summary>
+        /// <returns>导出路径</returns>
+        public string GetExportPath()
+        {
+            return _exportPath;
+        }
+
+        /// <summary>
+        /// 设置导出路径
+        /// </summary>
+        /// <param name="path">导出路径</param>
+        public void SetExportPath(string path)
+        {
+            if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
+            {
+                _exportPath = path;
+                AppSettings.Instance.LastOutputDir = path;
+                AppSettings.Save();
+            }
+        }
+
+        /// <summary>
+        /// 从文件名中提取正则匹配结果
+        /// </summary>
+        /// <param name="fileName">文件名</param>
+        /// <returns>正则匹配结果</returns>
+        public string ExtractRegexResult(string fileName)
+        {
+            try
+            {
+                var pattern = _view.SelectedRegexValue;
+                _logger?.LogInformation($"[ExtractRegexResult] 开始提取正则结果 - 文件名: {fileName}, 正则: {pattern}");
+                
+                if (string.IsNullOrEmpty(pattern))
+                {
+                    _logger?.LogWarning($"[ExtractRegexResult] 正则表达式为空");
+                    return null;
+                }
+
+                var match = Regex.Match(fileName, pattern);
+                if (match.Success)
+                {
+                    // ✅ 修复：优先使用第一个捕获组的值，如果没有捕获组则使用整个匹配
+                    string result;
+                    if (match.Groups.Count > 1 && match.Groups[1].Success)
+                    {
+                        result = match.Groups[1].Value;
+                        _logger?.LogInformation($"[ExtractRegexResult] 提取捕获组结果: '{result}'");
+                    }
+                    else
+                    {
+                        result = match.Value;
+                        _logger?.LogInformation($"[ExtractRegexResult] 使用完整匹配结果: '{result}'");
+                    }
+                    return result;
+                }
+
+                _logger?.LogWarning($"[ExtractRegexResult] 正则匹配失败 - 文件名: {fileName}, 正则: {pattern}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, $"提取正则结果失败: {fileName}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 处理正则表达式变化事件
+        /// </summary>
+        public async Task HandleRegexPatternChangedAsync(string newPattern)
+        {
+            try
+            {
+                // 获取当前文件列表
+                var fileList = _view.FileList;
+                if (fileList == null || fileList.Count == 0)
+                {
+                    _view.UpdateStatus("文件列表为空，无需重新处理");
+                    return;
+                }
+
+                _view.UpdateStatus($"正在重新处理 {fileList.Count} 个文件...");
+
+                // 重新处理所有文件
+                int processedCount = 0;
+                foreach (var file in fileList)
+                {
+                    // 更新正则匹配结果
+                    file.RegexResult = ExtractRegexResult(file.OriginalName ?? "");
+
+                    // 如果启用了自动刷新，也更新新文件名
+                    if (AppSettings.AutoRefreshFileNameOnRegexChange)
+                    {
+                        // 重新匹配 Excel 数据
+                        var excelData = MatchExcelData(file.RegexResult ?? "");
+                        if (excelData.HasMatch)
+                        {
+                            file.Quantity = excelData.Quantity;
+                            file.SerialNumber = excelData.SerialNumber;
+                        }
+
+                        // 重新生成文件名
+                        file.NewName = GenerateNewFileName(file);
+                    }
+
+                    processedCount++;
+                }
+
+                // 刷新表格显示
+                _view.RefreshFileTable();
+                _view.UpdateStatus($"已重新处理 {processedCount} 个文件");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "重新处理文件列表失败");
+                _view.ShowError($"重新处理失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 验证文件是否需要处理
+        /// </summary>
+        /// <param name="fileName">文件名</param>
+        /// <returns>是否需要处理</returns>
+        public bool ShouldProcessFile(string fileName)
+        {
+            try
+            {
+                var extension = Path.GetExtension(fileName).ToLower();
+                var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".tiff", ".tif" };
+                return allowedExtensions.Contains(extension);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 创建文件重命名信息
+        /// </summary>
+        /// <param name="filePath">文件路径</param>
+        /// <returns>文件重命名信息</returns>
+        private FileRenameInfo CreateFileRenameInfo(string filePath)
+        {
+            var fileInfo = new FileRenameInfo
+            {
+                FullPath = filePath,
+                OriginalName = Path.GetFileName(filePath),
+                RegexResult = ExtractRegexResult(Path.GetFileName(filePath))
+            };
+
+            // 解析 PDF 尺寸和页数
+            try
+            {
+                if (_pdfDimensionService != null && 
+                    (filePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ||
+                     filePath.EndsWith(".PDF", StringComparison.OrdinalIgnoreCase)))
+                {
+                    _logger?.LogInformation($"[CreateFileRenameInfo] 开始解析PDF尺寸: {filePath}");
+                    
+                    // 使用 GetFirstPageSize 方法获取PDF尺寸
+                    if (_pdfDimensionService.GetFirstPageSize(filePath, out double width, out double height))
+                    {
+                        // 转换为整数字符串（毫米）
+                        fileInfo.Width = Math.Round(width).ToString();
+                        fileInfo.Height = Math.Round(height).ToString();
+                        _logger?.LogInformation($"[CreateFileRenameInfo] PDF尺寸解析成功: {fileInfo.Width}x{fileInfo.Height}mm");
+                        
+                        // 设置默认出血位（从 AppSettings 获取）
+                        var tetBleedValues = AppSettings.Instance.TetBleedValues;
+                        if (!string.IsNullOrEmpty(tetBleedValues))
+                        {
+                            var bleedValues = tetBleedValues.Split(',');
+                            if (bleedValues.Length > 0)
+                            {
+                                fileInfo.TetBleed = bleedValues[0].Trim();
+                                _logger?.LogInformation($"[CreateFileRenameInfo] 设置默认出血位: {fileInfo.TetBleed}mm");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        _logger?.LogWarning($"[CreateFileRenameInfo] PDF尺寸解析失败: {filePath}");
+                    }
+                    
+                    // ✅ 获取 PDF 页数
+                    try
+                    {
+                        int? pageCount = _pdfDimensionService.GetPageCount(filePath);
+                        if (pageCount.HasValue && pageCount.Value > 0)
+                        {
+                            fileInfo.PageCount = pageCount.Value;
+                            _logger?.LogInformation($"[CreateFileRenameInfo] PDF页数: {pageCount.Value}");
+                        }
+                    }
+                    catch (Exception pageEx)
+                    {
+                        _logger?.LogWarning($"[CreateFileRenameInfo] 获取PDF页数失败: {pageEx.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, $"[CreateFileRenameInfo] 解析PDF尺寸时发生错误: {filePath}");
+            }
+
+            return fileInfo;
+        }
+
+        /// <summary>
+        /// 获取下一个序号
+        /// </summary>
+        private int GetNextSerialNumber()
+        {
+            // ✅ 修复：基于现有数据的最大序号递增
+            int maxSerialNumber = 0;
+            
+            if (_view.FileList != null && _view.FileList.Count > 0)
+            {
+                foreach (var item in _view.FileList)
+                {
+                    // 只统计有数据的行（OriginalName 不为空）
+                    if (!string.IsNullOrEmpty(item.OriginalName) && 
+                        !string.IsNullOrEmpty(item.SerialNumber))
+                    {
+                        if (int.TryParse(item.SerialNumber, out int serial))
+                        {
+                            if (serial > maxSerialNumber)
+                            {
+                                maxSerialNumber = serial;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return maxSerialNumber + 1;
+        }
+
+        /// <summary>
+        /// 获取 Excel 列名列表
+        /// </summary>
+        private List<string> GetExcelColumnNames()
+        {
+            var columnNames = new List<string>();
+            try
+            {
+                if (_excelImportService != null && _excelImportService.HasValidData())
+                {
+                    var data = _excelImportService.ImportedData;
+                    for (int i = 0; i < data.Columns.Count; i++)
+                    {
+                        columnNames.Add(data.Columns[i].ColumnName);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "获取 Excel 列名失败");
+            }
+            return columnNames;
+        }
+
+        /// <summary>
+        /// 获取 Excel 列项映射
+        /// </summary>
+        private Dictionary<string, List<string>> GetExcelColumnItemsMap()
+        {
+            var columnItemsMap = new Dictionary<string, List<string>>();
+            try
+            {
+                if (_excelImportService != null && _excelImportService.HasValidData())
+                {
+                    var data = _excelImportService.ImportedData;
+                    foreach (System.Data.DataColumn col in data.Columns)
+                    {
+                        var items = new List<string>();
+                        foreach (System.Data.DataRow row in data.Rows)
+                        {
+                            var value = row[col]?.ToString();
+                            if (!string.IsNullOrEmpty(value) && !items.Contains(value))
+                            {
+                                items.Add(value);
+                            }
+                        }
+                        columnItemsMap[col.ColumnName] = items;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "获取 Excel 列项映射失败");
+            }
+            return columnItemsMap;
+        }
+
+        #region 事件分组配置辅助方法
+
+        /// <summary>
+        /// 从EventGroup配置创建文件名组件配置
+        /// </summary>
+        private FileNameComponentsConfig CreateFileNameComponentsConfigFromEventGroup()
+        {
+            var config = new FileNameComponentsConfig();
+
+            try
+            {
+                _logger?.LogInformation("[CreateFileNameComponentsConfigFromEventGroup] 开始从EventGroup创建配置");
+
+                var eventGroupConfig = SettingsForm.GetEventGroupConfiguration();
+                if (eventGroupConfig?.Groups != null && eventGroupConfig.Items != null)
+                {
+                    _logger?.LogInformation("[CreateFileNameComponentsConfigFromEventGroup] 使用EventGroup配置");
+
+                    foreach (var item in eventGroupConfig.Items.Where(i => i.IsEnabled))
+                    {
+                        string componentType = MapEventItemToComponentType(item.Name);
+
+                        switch (componentType)
+                        {
+                            case "正则结果":
+                                config.RegexResultEnabled = true;
+                                break;
+                            case "订单号":
+                                config.OrderNumberEnabled = true;
+                                break;
+                            case "材料":
+                                config.MaterialEnabled = true;
+                                break;
+                            case "数量":
+                                config.QuantityEnabled = true;
+                                break;
+                            case "尺寸":
+                                config.DimensionsEnabled = true;
+                                break;
+                            case "工艺":
+                                config.ProcessEnabled = true;
+                                break;
+                            case "序号":
+                                config.SerialNumberEnabled = true;
+                                break;
+                            case "行数":
+                                config.LayoutRowsEnabled = true;
+                                break;
+                            case "列数":
+                                config.LayoutColumnsEnabled = true;
+                                break;
+                            case "列组合":
+                                config.CompositeColumnEnabled = true;
+                                break;
+                        }
+
+                        _logger?.LogInformation($"[CreateFileNameComponentsConfigFromEventGroup] 启用组件: {componentType}");
+                    }
+                }
+                else
+                {
+                    _logger?.LogWarning("[CreateFileNameComponentsConfigFromEventGroup] EventGroup配置为空，使用默认配置");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "[CreateFileNameComponentsConfigFromEventGroup] 创建配置时发生异常");
+            }
+
+            return config;
+        }
+
+        /// <summary>
+        /// 从设置中获取组件顺序
+        /// </summary>
+        private List<string> GetComponentOrderFromSettings()
+        {
+            var componentOrder = new List<string>();
+
+            try
+            {
+                var eventGroupConfig = SettingsForm.GetEventGroupConfiguration();
+                if (eventGroupConfig?.Groups != null && eventGroupConfig.Items != null)
+                {
+                    _logger?.LogInformation("GetComponentOrderFromSettings: 使用EventGroup配置设置组件顺序");
+
+                    var sortedGroups = eventGroupConfig.Groups
+                        .Where(g => g.IsEnabled)
+                        .OrderBy(g => g.SortOrder)
+                        .ToList();
+
+                    foreach (var group in sortedGroups)
+                    {
+                        var groupItems = eventGroupConfig.Items
+                            .Where(item => item.GroupId == group.Id && item.IsEnabled)
+                            .OrderBy(item => item.SortOrder)
+                            .ToList();
+
+                        foreach (var item in groupItems)
+                        {
+                            string componentType = MapEventItemToComponentType(item.Name);
+                            if (!string.IsNullOrEmpty(componentType) && !componentOrder.Contains(componentType))
+                            {
+                                componentOrder.Add(componentType);
+                                _logger?.LogInformation($"GetComponentOrderFromSettings: 从EventGroup添加组件 '{componentType}'");
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    _logger?.LogWarning("GetComponentOrderFromSettings: EventGroup配置为空，使用默认顺序");
+                    componentOrder.AddRange(new[] { "正则结果", "序号", "订单号", "材料", "数量", "工艺", "尺寸" });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "GetComponentOrderFromSettings: 获取组件顺序时发生异常");
+                componentOrder.AddRange(new[] { "正则结果", "序号", "订单号", "材料", "数量", "工艺", "尺寸" });
+            }
+
+            if (componentOrder.Count == 0)
+            {
+                componentOrder.AddRange(new[] { "正则结果", "序号", "订单号", "材料", "数量", "工艺", "尺寸" });
+            }
+
+            _logger?.LogInformation($"GetComponentOrderFromSettings: 最终组件顺序 = [{string.Join(", ", componentOrder)}]");
+            return componentOrder;
+        }
+
+        /// <summary>
+        /// 从EventGroup配置中获取前缀字典
+        /// </summary>
+        private Dictionary<string, string> GetPrefixesFromEventGroupConfig()
+        {
+            var prefixes = new Dictionary<string, string>();
+
+            try
+            {
+                var eventGroupConfig = SettingsForm.GetEventGroupConfiguration();
+                if (eventGroupConfig?.Groups == null)
+                {
+                    _logger?.LogInformation("EventGroup配置为空，使用空前缀字典");
+                    return prefixes;
+                }
+
+                foreach (var group in eventGroupConfig.Groups)
+                {
+                    var groupItems = eventGroupConfig.Items.Where(item => item.GroupId == group.Id);
+
+                    foreach (var item in groupItems)
+                    {
+                        if (string.IsNullOrEmpty(group.Prefix))
+                            continue;
+
+                        if (!prefixes.ContainsKey(item.Name))
+                        {
+                            prefixes[item.Name] = group.Prefix;
+                            _logger?.LogInformation($"[GetPrefixesFromEventGroupConfig] 已添加映射: '{item.Name}' -> '{group.Prefix}'");
+                        }
+                    }
+                }
+
+                _logger?.LogInformation($"获取到的前缀配置: {string.Join(", ", prefixes.Select(kvp => $"{kvp.Key}={kvp.Value}"))}");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "获取前缀配置时发生异常");
+            }
+
+            return prefixes;
+        }
+
+        /// <summary>
+        /// 将EventGroup项目名称映射到FileNameComponents期望的组件类型
+        /// </summary>
+        private string MapEventItemToComponentType(string itemName)
+        {
+            if (string.IsNullOrEmpty(itemName))
+                return string.Empty;
+
+            // 处理保留分组前缀 - 移除 [*] 或 [保留] 前缀
+            string cleanItemName = itemName;
+            if (itemName.StartsWith("[*] "))
+            {
+                cleanItemName = itemName.Substring(4).Trim();
+            }
+            else if (itemName.StartsWith("[保留] "))
+            {
+                cleanItemName = itemName.Substring(5).Trim();
+            }
+
+            switch (cleanItemName)
+            {
+                case "订单号":
+                    return "订单号";
+                case "材料":
+                    return "材料";
+                case "数量":
+                    return "数量";
+                case "工艺":
+                    return "工艺";
+                case "尺寸":
+                    return "尺寸";
+                case "序号":
+                    return "序号";
+                case "行数":
+                    return "行数";
+                case "列数":
+                    return "列数";
+                case "列组合":
+                    return "列组合";
+                case "正则结果":
+                    return "正则结果";
+                default:
+                    _logger?.LogWarning($"MapEventItemToComponentType: 未知的项目名称 '{itemName}'");
+                    return string.Empty;
+            }
+        }
+
+        #endregion
+
+        /// <summary>
+        /// 生成新文件名
+        /// </summary>
+        private string GenerateNewFileName(FileRenameInfo fileInfo)
+        {
+            try
+            {
+                _logger?.LogInformation($"[GenerateNewFileName] 开始生成新文件名");
+                
+                var fileName = fileInfo.OriginalName ?? "";
+                var regexResult = fileInfo.RegexResult ?? "";
+                var serialNumber = fileInfo.SerialNumber ?? "";
+                var material = fileInfo.Material ?? "";
+                var quantity = fileInfo.Quantity ?? "";
+                var orderNumber = fileInfo.OrderNumber ?? "";
+                var dimensions = fileInfo.Dimensions ?? "";
+                var process = fileInfo.Process ?? "";
+
+                _logger?.LogInformation($"[GenerateNewFileName] 原文件名: {fileName}");
+                _logger?.LogInformation($"[GenerateNewFileName] 正则结果: {regexResult}");
+                _logger?.LogInformation($"[GenerateNewFileName] 序号: {serialNumber}");
+                _logger?.LogInformation($"[GenerateNewFileName] 材料: {material}");
+                _logger?.LogInformation($"[GenerateNewFileName] 数量: {quantity}");
+
+                // ✅ 使用与 Form1Presenter 一致的完整实现
+                var enabledConfig = CreateFileNameComponentsConfigFromEventGroup();
+                var componentOrder = GetComponentOrderFromSettings();
+                var prefixes = GetPrefixesFromEventGroupConfig();
+
+                var components = new WindowsFormsApp3.Models.FileNameComponents
+                {
+                    FileExtension = Path.GetExtension(fileName),
+                    Separator = AppSettings.Separator ?? "",
+                    RegexResult = regexResult,
+                    SerialNumber = serialNumber,
+                    OrderNumber = orderNumber,
+                    Material = material,
+                    Quantity = quantity,
+                    Unit = AppSettings.Unit ?? "",
+                    Process = process,
+                    Dimensions = dimensions,
+                    // ✅ 修复：添加行数和列数
+                    LayoutRows = fileInfo.LayoutRows ?? "",
+                    LayoutColumns = fileInfo.LayoutColumns ?? "",
+                    EnabledComponents = enabledConfig,
+                    ComponentOrder = componentOrder,
+                    Prefixes = prefixes,
+                    OriginalFileName = Path.GetFileNameWithoutExtension(fileName)
+                };
+
+                // 确保分隔符为合法文件名字符
+                if (!string.IsNullOrEmpty(components.Separator) && Path.GetInvalidFileNameChars().Contains(components.Separator[0]))
+                {
+                    _logger?.LogInformation($"[GenerateNewFileName] 分隔符 '{components.Separator}' 包含非法字符，替换为 '_'");
+                    components.Separator = "_";
+                }
+                
+                // 构建文件名
+                string newFileName = components.BuildFileName();
+                _logger?.LogInformation($"[GenerateNewFileName] 生成的新文件名: {newFileName}");
+                
+                if (string.IsNullOrEmpty(newFileName) || newFileName == components.FileExtension)
+                {
+                    return $"未命名{components.FileExtension}";
+                }
+                
+                return newFileName;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "生成新文件名失败");
+                return fileInfo.OriginalName ?? "";
+            }
+        }
+
+        #endregion
+    }
+}
