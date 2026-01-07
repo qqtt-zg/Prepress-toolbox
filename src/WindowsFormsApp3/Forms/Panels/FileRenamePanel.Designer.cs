@@ -39,7 +39,10 @@ namespace WindowsFormsApp3.Forms.Panels
         
         // 状态栏控件
         private System.Windows.Forms.Panel _statusPanel;
+        private System.Windows.Forms.FlowLayoutPanel _statusFlowPanel;
         private AntdUI.Label _statusLabel;
+        private AntdUI.Label _modeStatusLabel;
+        private AntdUI.Label _eventPreviewLabel;
 
         private void InitializeComponent()
         {
@@ -79,7 +82,10 @@ namespace WindowsFormsApp3.Forms.Panels
             this.PageCount = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Time = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this._statusPanel = new System.Windows.Forms.Panel();
+            this._statusFlowPanel = new System.Windows.Forms.FlowLayoutPanel();
             this._statusLabel = new AntdUI.Label();
+            this._modeStatusLabel = new AntdUI.Label();
+            this._eventPreviewLabel = new AntdUI.Label();
             this._topControlPanel.SuspendLayout();
             this._layoutPanel.SuspendLayout();
             this._inputPanel.SuspendLayout();
@@ -89,6 +95,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this._renameActionFlow.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this._fileTable)).BeginInit();
             this._statusPanel.SuspendLayout();
+            this._statusFlowPanel.SuspendLayout();
             this.SuspendLayout();
             // 
             // _topControlPanel
@@ -515,7 +522,7 @@ namespace WindowsFormsApp3.Forms.Panels
             // _statusPanel
             // 
             this._statusPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(250)))));
-            this._statusPanel.Controls.Add(this._statusLabel);
+            this._statusPanel.Controls.Add(this._statusFlowPanel);
             this._statusPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
             this._statusPanel.Location = new System.Drawing.Point(0, 473);
             this._statusPanel.Name = "_statusPanel";
@@ -523,16 +530,54 @@ namespace WindowsFormsApp3.Forms.Panels
             this._statusPanel.Size = new System.Drawing.Size(935, 30);
             this._statusPanel.TabIndex = 2;
             // 
+            // _statusFlowPanel
+            // 
+            this._statusFlowPanel.Controls.Add(this._statusLabel);
+            this._statusFlowPanel.Controls.Add(this._modeStatusLabel);
+            this._statusFlowPanel.Controls.Add(this._eventPreviewLabel);
+            this._statusFlowPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this._statusFlowPanel.Location = new System.Drawing.Point(10, 5);
+            this._statusFlowPanel.Margin = new System.Windows.Forms.Padding(0);
+            this._statusFlowPanel.Name = "_statusFlowPanel";
+            this._statusFlowPanel.Size = new System.Drawing.Size(915, 20);
+            this._statusFlowPanel.TabIndex = 0;
+            this._statusFlowPanel.WrapContents = false;
+            // 
             // _statusLabel
             // 
-            this._statusLabel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this._statusLabel.AutoSizeMode = AntdUI.TAutoSize.Auto;
             this._statusLabel.Font = new System.Drawing.Font("微软雅黑", 9F);
             this._statusLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(102)))), ((int)(((byte)(102)))), ((int)(((byte)(102)))));
-            this._statusLabel.Location = new System.Drawing.Point(10, 5);
+            this._statusLabel.Location = new System.Drawing.Point(0, 0);
+            this._statusLabel.Margin = new System.Windows.Forms.Padding(0, 0, 20, 0);
             this._statusLabel.Name = "_statusLabel";
-            this._statusLabel.Size = new System.Drawing.Size(915, 20);
+            this._statusLabel.Size = new System.Drawing.Size(96, 16);
             this._statusLabel.TabIndex = 0;
             this._statusLabel.Text = "状态：未开始监控";
+            // 
+            // _modeStatusLabel
+            // 
+            this._modeStatusLabel.AutoSizeMode = AntdUI.TAutoSize.Auto;
+            this._modeStatusLabel.Font = new System.Drawing.Font("微软雅黑", 9F);
+            this._modeStatusLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(80)))));
+            this._modeStatusLabel.Location = new System.Drawing.Point(116, 0);
+            this._modeStatusLabel.Margin = new System.Windows.Forms.Padding(0, 0, 20, 0);
+            this._modeStatusLabel.Name = "_modeStatusLabel";
+            this._modeStatusLabel.Size = new System.Drawing.Size(116, 16);
+            this._modeStatusLabel.TabIndex = 1;
+            this._modeStatusLabel.Text = "复制 │ 手动 │ 未监控";
+            // 
+            // _eventPreviewLabel
+            // 
+            this._eventPreviewLabel.AutoSizeMode = AntdUI.TAutoSize.Auto;
+            this._eventPreviewLabel.Font = new System.Drawing.Font("微软雅黑", 9F);
+            this._eventPreviewLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(120)))), ((int)(((byte)(120)))), ((int)(((byte)(120)))));
+            this._eventPreviewLabel.Location = new System.Drawing.Point(252, 0);
+            this._eventPreviewLabel.Margin = new System.Windows.Forms.Padding(0);
+            this._eventPreviewLabel.Name = "_eventPreviewLabel";
+            this._eventPreviewLabel.Size = new System.Drawing.Size(164, 16);
+            this._eventPreviewLabel.TabIndex = 2;
+            this._eventPreviewLabel.Text = "组合：正则结果_订单号_材料...";
             // 
             // FileRenamePanel
             // 
@@ -554,6 +599,8 @@ namespace WindowsFormsApp3.Forms.Panels
             this._renameActionFlow.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this._fileTable)).EndInit();
             this._statusPanel.ResumeLayout(false);
+            this._statusFlowPanel.ResumeLayout(false);
+            this._statusFlowPanel.PerformLayout();
             this.ResumeLayout(false);
 
         }

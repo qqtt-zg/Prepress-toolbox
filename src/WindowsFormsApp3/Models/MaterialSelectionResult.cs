@@ -92,6 +92,21 @@ namespace WindowsFormsApp3.Models
         /// </summary>
         public int RotationAngle { get; set; }
 
+        /// <summary>
+        /// 是否启用排版
+        /// </summary>
+        public bool EnableImposition { get; set; } = false;
+
+        /// <summary>
+        /// 排版模式（连拼/折手）
+        /// </summary>
+        public LayoutMode LayoutMode { get; set; } = LayoutMode.Continuous;
+
+        /// <summary>
+        /// 排版数量（每纸页数）
+        /// </summary>
+        public int LayoutQuantity { get; set; } = 0;
+
         public MaterialSelectionResult()
         {
             ColumnValues = new Dictionary<string, string>();

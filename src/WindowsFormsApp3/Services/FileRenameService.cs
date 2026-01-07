@@ -2337,7 +2337,7 @@ namespace WindowsFormsApp3.Services
             try
             {
                 // 获取EventGroup配置
-                var eventGroupConfig = SettingsForm.GetEventGroupConfiguration();
+                var eventGroupConfig = EventGroupConfigurationService.GetEventGroupConfiguration();
                 if (eventGroupConfig?.Groups == null)
                 {
                     LogHelper.Debug("EventGroup配置为空，使用空前缀字典");

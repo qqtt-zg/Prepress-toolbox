@@ -209,7 +209,7 @@ namespace WindowsFormsApp3.Services
             try
             {
                 // 首先检查EventGroup配置中列组合项是否启用
-                var eventGroupConfig = SettingsForm.GetEventGroupConfiguration();
+                var eventGroupConfig = EventGroupConfigurationService.GetEventGroupConfiguration();
                 if (eventGroupConfig?.Items != null)
                 {
                     var compositeColumnItem = eventGroupConfig.Items.FirstOrDefault(item => item.Name == "列组合");

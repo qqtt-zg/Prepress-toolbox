@@ -238,6 +238,9 @@ namespace WindowsFormsApp3
         {
             InitializeComponent();
 
+            // 始终在最前端显示
+            TopMost = true;
+
             // 🔧 关键优化：在构造函数中直接设置窗口位置，完全避免视觉跳跃
             PrePositionWindow();
 
@@ -549,6 +552,9 @@ namespace WindowsFormsApp3
             List<DataRow> matchedRows = null)  // 添加matchedRows参数
         {
             InitializeComponent();
+
+            // 始终在最前端显示
+            TopMost = true;
 
             // 🔧 关键修复：添加预定位调用，确保无视觉跳跃且位置记忆正常
             PrePositionWindow();
@@ -2927,6 +2933,10 @@ namespace WindowsFormsApp3
         /// </summary>
         private void MaterialSelectFormModern_Shown(object sender, EventArgs e)
         {
+            // 确保窗体始终在最前端显示
+            TopMost = true;
+            this.Activate();
+
             // 在窗体显示后设置焦点，确保句柄已创建
             this.BeginInvoke(new Action(SetOrderTextBoxFocus));
 
@@ -3050,25 +3060,12 @@ namespace WindowsFormsApp3
             double width = _initialWidth;
             double height = _initialHeight;
 
-            string finalDimensions;
-            using (var settingsForm = new SettingsForm())
-            {
-                // 订阅导出路径设置变更事件
-                settingsForm.ExportPathSettingsChanged += (sender, e) =>
-                {
-                    // 刷新文件夹树形菜单
-                    this.Invoke((MethodInvoker)delegate
-                    {
-                        RefreshExportPaths();
-                    });
-                };
-
-                // 传递cornerRadius参数，不再使用addPdfLayers参数
-                string cornerRadius = AppSettings.GetValue<string>("LastCornerRadius") ?? "0";
-                // 根据新的形状选择逻辑决定是否启用形状处理
-                bool enableShapeProcessing = GetIsShapeSelected();
-                finalDimensions = settingsForm.CalculateFinalDimensions(width, height, bleed, cornerRadius, enableShapeProcessing);
-            }
+            // 使用 DimensionCalculationService 替代 SettingsForm 直接实例化
+            var dimensionService = ServiceLocator.Instance.GetDimensionCalculationService();
+            string cornerRadius = AppSettings.GetValue<string>("LastCornerRadius") ?? "0";
+            // 根据新的形状选择逻辑决定是否启用形状处理
+            bool enableShapeProcessing = GetIsShapeSelected();
+            string finalDimensions = dimensionService.CalculateFinalDimensions(width, height, bleed, cornerRadius, enableShapeProcessing);
 
             // 直接使用CalculateFinalDimensions返回的完整结果，包含形状代号
             var dimensionsTextBox = Controls.Find("dimensionsTextBox", true).FirstOrDefault() as AntdUI.Input;
@@ -5015,8 +5012,8 @@ namespace WindowsFormsApp3
                     // 保存当前排版计算结果
                     _currentImpositionResult = result;
 
-                    // 更新SettingsForm中的布局计算结果，用于重命名功能
-                    SettingsForm.UpdateLayoutResults(result.Rows, result.Columns);
+                    // 更新布局计算结果缓存，用于重命名功能
+                    LayoutResultsCache.UpdateLayoutResults(result.Rows, result.Columns);
 
                     // 更新显示实际计算结果
                     UpdateLayoutDisplay(result);
@@ -5646,8 +5643,8 @@ namespace WindowsFormsApp3
                     rotationDisplayLabel.Text = "旋转角度: —";
                 }
 
-                // 清除SettingsForm中缓存的布局结果，防止它们在重命名结果中再次出现
-                SettingsForm.ClearLayoutResults();
+                // 清除布局结果缓存，防止它们在重命名结果中再次出现
+                LayoutResultsCache.ClearLayoutResults();
             }
             catch (Exception ex)
             {
@@ -5707,6 +5704,15 @@ namespace WindowsFormsApp3
                 return _currentImpositionResult.OptimalLayoutQuantity;
             }
             return 0;
+        }
+
+        /// <summary>
+        /// 获取排版功能是否启用
+        /// </summary>
+        /// <returns>是否启用排版</returns>
+        public bool GetIsImpositionEnabled()
+        {
+            return enableImpositionCheckbox?.Checked == true;
         }
 
 /// <summary>
@@ -6036,8 +6042,8 @@ namespace WindowsFormsApp3
                     // 保存计算结果
                     _currentImpositionResult = result;
 
-                    // 更新SettingsForm中的布局计算结果
-                    SettingsForm.UpdateLayoutResults(result.Rows, result.Columns);
+                    // 更新布局计算结果缓存
+                    LayoutResultsCache.UpdateLayoutResults(result.Rows, result.Columns);
 
                     // 更新显示
                     UpdateLayoutDisplay(result);

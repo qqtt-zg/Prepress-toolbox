@@ -731,6 +731,9 @@ namespace WindowsFormsApp3.Forms.Panels
 
             // 监控按钮状态
             UpdateMonitorButtonState();
+
+            // 更新状态栏显示（事件分组预览）
+            UpdateEventGroupPreview();
         }
 
         /// <summary>
@@ -787,6 +790,7 @@ namespace WindowsFormsApp3.Forms.Panels
                 _btnMonitor.Text = "开始监控";
                 _btnMonitor.Type = AntdUI.TTypeMini.Primary;
             }
+            UpdateModeStatusDisplay();
         }
 
         /// <summary>
@@ -795,6 +799,7 @@ namespace WindowsFormsApp3.Forms.Panels
         private void UpdateModeButtonState()
         {
             _btnToggleMode.Text = IsCopyMode ? "剪切模式" : "复制模式";
+            UpdateModeStatusDisplay();
         }
 
         /// <summary>
@@ -811,6 +816,90 @@ namespace WindowsFormsApp3.Forms.Panels
             {
                 _btnManualMode.Text = "手动模式";
                 _btnBatchMode.Text = "已启动批量模式";
+            }
+            UpdateModeStatusDisplay();
+        }
+
+        /// <summary>
+        /// 更新状态栏中部的模式状态显示
+        /// </summary>
+        private void UpdateModeStatusDisplay()
+        {
+            if (_modeStatusLabel == null) return;
+
+            var modes = new List<string>
+            {
+                IsCopyMode ? "复制" : "剪切",
+                IsImmediateMode ? "手动" : "批量",
+                IsMonitoring ? "监控中" : "未监控"
+            };
+            _modeStatusLabel.Text = string.Join(" │ ", modes);
+        }
+
+        /// <summary>
+        /// 更新状态栏右侧的事件分组组合预览
+        /// </summary>
+        public void UpdateEventGroupPreview()
+        {
+            if (_eventPreviewLabel == null) return;
+
+            try
+            {
+                _eventPreviewLabel.Text = "组合：" + GenerateEventGroupPreview();
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"更新事件分组预览失败: {ex.Message}");
+                _eventPreviewLabel.Text = "组合：加载失败";
+            }
+        }
+
+        /// <summary>
+        /// 生成事件分组组合预览字符串
+        /// </summary>
+        private string GenerateEventGroupPreview()
+        {
+            try
+            {
+                // 加载事件分组配置
+                var config = EventGroupConfigurationService.GetEventGroupConfiguration();
+                if (config == null || config.Items == null || config.Items.Count == 0)
+                {
+                    return "无配置";
+                }
+
+                var previewParts = new List<string>();
+
+                // 获取启用的分组项目（按排序）
+                var groupedItems = config.GetEnabledGroupedItems();
+                foreach (var (group, item) in groupedItems)
+                {
+                    // 组合格式：前缀+项目名
+                    var prefix = !string.IsNullOrEmpty(group.Prefix) ? group.Prefix : "";
+                    previewParts.Add($"{prefix}{item.Name}");
+                }
+
+                // 获取未分组项目
+                var ungroupedItems = config.GetUngroupedItems();
+                foreach (var item in ungroupedItems)
+                {
+                    previewParts.Add(item.Name);
+                }
+
+                if (previewParts.Count == 0)
+                {
+                    return "无启用项";
+                }
+
+                // 用下划线连接
+                var preview = string.Join("_", previewParts);
+
+                return preview;
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"生成事件分组预览失败: {ex.Message}");
+                return "加载失败";
             }
         }
 
@@ -1272,7 +1361,8 @@ namespace WindowsFormsApp3.Forms.Panels
                             // ✅ 修复：从对话框读取订单号、尺寸、工艺等值
                             OrderNumber = dialog.OrderNumber ?? "",
                             Dimensions = dialog.AdjustedDimensions ?? "",
-                            Process = dialog.FilmType ?? "",
+                            // ✅ 修复：工艺 = 颜色模式 + 膜类型（使用 FixedField）
+                            Process = dialog.FixedField ?? "",
                             // ✅ 修复：从对话框读取行数和列数
                             LayoutRows = dialog.GetRows() > 0 ? dialog.GetRows().ToString() : "",
                             LayoutColumns = dialog.GetColumns() > 0 ? dialog.GetColumns().ToString() : "",
@@ -1283,7 +1373,11 @@ namespace WindowsFormsApp3.Forms.Panels
                             CornerRadius = dialog.GetCompatibleCornerRadius(),
                             // ✅ 修复：从对话框读取旋转信息
                             RotationAngle = dialog.GetRotationAngle(),
-                            NeedsRotation = dialog.GetRotationAngle() != 0
+                            NeedsRotation = dialog.GetRotationAngle() != 0,
+                            // ✅ 修复：从对话框读取排版信息（用于折手模式空白页功能）
+                            EnableImposition = dialog.GetIsImpositionEnabled(),
+                            LayoutMode = dialog.GetLayoutMode(),
+                            LayoutQuantity = dialog.GetLayoutQuantity()
                         };
                         return DialogResult.OK;
                     }

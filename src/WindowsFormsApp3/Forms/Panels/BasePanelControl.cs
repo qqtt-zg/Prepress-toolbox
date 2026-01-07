@@ -37,8 +37,9 @@ namespace WindowsFormsApp3.Forms.Panels
         
         /// <summary>
         /// 构造函数
+        /// 设计器需要 public 访问级别才能正常显示派生类的设计器视图
         /// </summary>
-        protected BasePanelControl()
+        public BasePanelControl()
         {
             this.Dock = DockStyle.Fill;
             this.BackColor = Color.White;

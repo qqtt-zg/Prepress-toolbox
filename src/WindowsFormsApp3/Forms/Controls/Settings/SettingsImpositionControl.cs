@@ -78,7 +78,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             }
         }
 
-        private void BtnSave_Click(object sender, EventArgs e)
+        public void SaveSettings()
         {
              AppSettings.Set("Imposition_Enabled", chkEnable.Checked);
              
@@ -103,6 +103,11 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
              if(!string.IsNullOrEmpty(txtCols.Text)) AppSettings.Set("Imposition_Columns", txtCols.Text.Trim());
 
              AppSettings.Save();
+        }
+
+        private void BtnSave_Click(object sender, EventArgs e)
+        {
+             SaveSettings();
              MessageBox.Show("排版设置已保存", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }

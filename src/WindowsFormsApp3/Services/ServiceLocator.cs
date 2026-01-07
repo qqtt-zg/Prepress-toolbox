@@ -96,6 +96,14 @@ namespace WindowsFormsApp3.Services
             _services.AddSingleton<IPdfProcessingService, PdfProcessingService>();
             _services.AddSingleton<ICompositeColumnService, CompositeColumnService>();
 
+            // 注册尺寸计算服务
+            _services.AddSingleton<IDimensionCalculationService>(provider =>
+            {
+                var pdfDimensionService = PdfDimensionServiceFactory.GetInstance();
+                var logger = provider.GetService<Interfaces.ILogger>();
+                return new DimensionCalculationService(pdfDimensionService, logger);
+            });
+
 
 
             // 注册文件重命名服务（使用工厂方法传递事件总线依赖）
@@ -317,6 +325,15 @@ namespace WindowsFormsApp3.Services
         public IConfigService GetConfigService()
         {
             return _serviceProvider.GetService<IConfigService>();
+        }
+
+        /// <summary>
+        /// 获取尺寸计算服务
+        /// </summary>
+        /// <returns>尺寸计算服务实例</returns>
+        public IDimensionCalculationService GetDimensionCalculationService()
+        {
+            return _serviceProvider.GetService<IDimensionCalculationService>();
         }
 
         /// <summary>

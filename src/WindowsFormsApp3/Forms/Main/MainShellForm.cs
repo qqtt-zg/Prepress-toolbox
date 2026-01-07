@@ -17,9 +17,6 @@ namespace WindowsFormsApp3.Forms.Main
     {
         private Dictionary<string, UserControl> panelCache;
         
-        // Form1 后台实例 - 用于初始化和提供服务
-        private Form1 _form1BackendInstance;
-        
         // 系统托盘
         private System.Windows.Forms.NotifyIcon trayIcon;
         private System.Windows.Forms.ContextMenuStrip trayMenu;
@@ -179,9 +176,6 @@ namespace WindowsFormsApp3.Forms.Main
             // 初始化面板缓存
             panelCache = new Dictionary<string, UserControl>();
             
-            // 创建 Form1 后台实例以初始化服务
-            InitializeBackendServices();
-            
             // 默认显示文件重命名面板
             SwitchToPanel("rename");
             
@@ -194,33 +188,6 @@ namespace WindowsFormsApp3.Forms.Main
         /// </summary>
 
 
-        /// <summary>
-        /// 初始化后台服务 - 创建隐藏的 Form1 实例
-        /// </summary>
-        private void InitializeBackendServices()
-        {
-            try
-            {
-                // 创建 Form1 但不显示，用于初始化服务
-                _form1BackendInstance = new Form1();
-                _form1BackendInstance.Opacity = 0;  // 完全透明
-                _form1BackendInstance.ShowInTaskbar = false;  // 不在任务栏显示
-                _form1BackendInstance.WindowState = FormWindowState.Minimized;  // 最小化
-                _form1BackendInstance.Visible = false;  // 不可见
-                
-                // 让 Form1 加载但隐藏
-                _form1BackendInstance.Show();
-                _form1BackendInstance.Hide();
-                
-                LogHelper.Info("后台服务 (Form1) 初始化成功");
-            }
-            catch (Exception ex)
-            {
-                LogHelper.Error($"初始化后台服务失败: {ex}");
-                MessageBox.Show($"初始化后台服务失败: {ex.Message}\n\n部分功能可能无法使用。", 
-                    "警告", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-        }
         
         private void ShowAboutDialog()
         {
@@ -656,14 +623,6 @@ namespace WindowsFormsApp3.Forms.Main
             _allowClose = true;
             trayIcon.Visible = false;
             trayIcon.Dispose();
-            
-            // 清理 Form1 后台实例
-            if (_form1BackendInstance != null)
-            {
-                _form1BackendInstance.Close();
-                _form1BackendInstance.Dispose();
-                _form1BackendInstance = null;
-            }
             
             // 注销热键
             if (toggleHotkeyAtom != IntPtr.Zero)

@@ -11,9 +11,11 @@ using WindowsFormsApp3.Services;
 using WindowsFormsApp3.Interfaces;
 using WindowsFormsApp3.Utils;
 using WindowsFormsApp3.Forms.Main;
+using AntdUI; // Add AntdUI namespace
 
 namespace WindowsFormsApp3
 {
+
 
     /// <summary>
     /// Excel 导入表单
@@ -60,7 +62,7 @@ namespace WindowsFormsApp3
         private ICompositeColumnService _compositeColumnService;
 
         // 公开属性，用于直接访问cmbRegex2控件
-        public ComboBox RegexComboBox
+        public AntdUI.Select RegexComboBox
         {
             get { return cmbRegex2; }
         }
@@ -151,12 +153,12 @@ namespace WindowsFormsApp3
                         ImportedData.Rows.Add(dataRow);
                     }
 
+                    dgvPreview.Columns.Clear();
+                    foreach (DataColumn column in ImportedData.Columns)
+                    {
+                        dgvPreview.Columns.Add(new Column(column.ColumnName, column.ColumnName));
+                    }
                     dgvPreview.DataSource = ImportedData;
-
-                // 移除列选择复选框，改为全量显示所有列
-            foreach (DataGridViewColumn column in dgvPreview.Columns) {
-                column.Visible = true;
-            }
 
                     LoadColumnComboBoxes();
                 }
@@ -198,16 +200,21 @@ namespace WindowsFormsApp3
             string lastUsedRegex = AppSettings.Get("LastSelectedRegex2") as string;
             if (!string.IsNullOrEmpty(lastUsedRegex) && cmbRegex2.Items.Contains(lastUsedRegex))
             {
-                cmbRegex2.SelectedItem = lastUsedRegex;
+                cmbRegex2.SelectedValue = lastUsedRegex;
                 SelectedRegexPattern = regexPatterns[lastUsedRegex];
             }
             else if (cmbRegex2.Items.Count > 0)
             {
                 cmbRegex2.SelectedIndex = 0;
-                SelectedRegexPattern = regexPatterns[cmbRegex2.SelectedItem.ToString()];
-                // 保存首次选择的正则表达式
-                AppSettings.Set("LastSelectedRegex2", cmbRegex2.SelectedItem.ToString());
-                AppSettings.Save();
+                // 注意：SelectedIndex设置后，SelectedValue可能未立即更新（取决于控件实现），但AntdUI通常会同步。
+                // 如果是简单List，SelectedValue是选中项的值。
+                if (cmbRegex2.SelectedValue != null)
+                {
+                    SelectedRegexPattern = regexPatterns[cmbRegex2.SelectedValue.ToString()];
+                    // 保存首次选择的正则表达式
+                    AppSettings.Set("LastSelectedRegex2", cmbRegex2.SelectedValue.ToString());
+                    AppSettings.Save();
+                }
             }
 
             // 绑定选择变化事件
@@ -217,9 +224,9 @@ namespace WindowsFormsApp3
 
         private void cmbRegex2_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (cmbRegex2.SelectedItem != null)
+            if (cmbRegex2.SelectedValue != null)
             {
-                string selectedPatternName = cmbRegex2.SelectedItem.ToString();
+                string selectedPatternName = cmbRegex2.SelectedValue.ToString();
                 if (regexPatterns.TryGetValue(selectedPatternName, out string pattern))
                 {
                     SelectedRegexPattern = pattern;
@@ -235,14 +242,24 @@ namespace WindowsFormsApp3
             cmbSearchColumn.Items.Clear();
             cmbReturnColumn.Items.Clear();
             cmbNewColumn.Items.Clear();
-            clbCompositeColumns.Items.Clear(); // 清空组合列选择框
+            
+            // 配置组合列Table
+            clbCompositeColumns.Columns.Clear();
+            clbCompositeColumns.Columns.Add(new ColumnCheck("Selected", "")); // 复选框列
+            clbCompositeColumns.Columns.Add(new Column("Name", "列名"));
+            
+            var compositeList = new List<CompositeColumnItem>();
+
             foreach (DataColumn column in ImportedData.Columns)
             {
                 cmbSearchColumn.Items.Add(column.ColumnName);
                 cmbReturnColumn.Items.Add(column.ColumnName);
                 cmbNewColumn.Items.Add(column.ColumnName);
-                clbCompositeColumns.Items.Add(column.ColumnName); // 填充组合列选择框
+                
+                compositeList.Add(new CompositeColumnItem { Name = column.ColumnName, Selected = false });
             }
+            
+            clbCompositeColumns.DataSource = compositeList;
 
             // 自动选择序号列
             AutoSelectColumn(cmbNewColumn, txtNewColumnParams.Text);
@@ -252,7 +269,7 @@ namespace WindowsFormsApp3
             AutoSelectColumn(cmbReturnColumn, txtReturnColumnParams.Text);
         }
 
-        private void AutoSelectColumn(ComboBox comboBox, string paramsText)
+        private void AutoSelectColumn(AntdUI.Select comboBox, string paramsText)
         {
             if (string.IsNullOrWhiteSpace(paramsText) || comboBox.Items.Count == 0)
                 return;
@@ -266,31 +283,39 @@ namespace WindowsFormsApp3
                     string columnName = item.ToString();
                     if (columnName.IndexOf(trimmedKeyword, StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        comboBox.SelectedItem = item;
+                        comboBox.SelectedValue = item;
                         return;
                     }
                 }
             }
 
             // 如果没有匹配项，默认选择第一项
-            comboBox.SelectedIndex = 0;
+            // AntdUI Select selection happens via SelectedValue or similar
+            if (comboBox.Items.Count > 0)
+                comboBox.SelectedIndex = 0;
         }
 
         // 全选按钮点击事件
         private void btnSelectAllColumns_Click(object sender, EventArgs e)
         {
-            for (int i = 0; i < clbCompositeColumns.Items.Count; i++)
+            var list = clbCompositeColumns.DataSource as List<CompositeColumnItem>;
+            if (list != null)
             {
-                clbCompositeColumns.SetItemChecked(i, true);
+                foreach(var item in list) item.Selected = true;
+                clbCompositeColumns.DataSource = null; // Refresh
+                clbCompositeColumns.DataSource = list;
             }
         }
 
         // 取消全选按钮点击事件
         private void btnClearAllColumns_Click(object sender, EventArgs e)
         {
-            for (int i = 0; i < clbCompositeColumns.Items.Count; i++)
+            var list = clbCompositeColumns.DataSource as List<CompositeColumnItem>;
+            if (list != null)
             {
-                clbCompositeColumns.SetItemChecked(i, false);
+                foreach(var item in list) item.Selected = false;
+                clbCompositeColumns.DataSource = null; // Refresh
+                clbCompositeColumns.DataSource = list;
             }
         }
 
@@ -344,9 +369,9 @@ namespace WindowsFormsApp3
             // 如果需要导入序号列
             if (chkImportSerialColumn.Checked)
             {
-                if (cmbNewColumn.SelectedItem != null)
+                if (cmbNewColumn.SelectedValue != null)
                 {
-                    string selectedColumnName = cmbNewColumn.SelectedItem.ToString();
+                    string selectedColumnName = cmbNewColumn.SelectedValue.ToString();
                     NewColumnIndex = checkedColumns.IndexOf(selectedColumnName);
                 }
                 else
@@ -363,9 +388,14 @@ namespace WindowsFormsApp3
 
             // 收集组合列选择
             SelectedCompositeColumns.Clear();
-            foreach (object item in clbCompositeColumns.CheckedItems)
+            var compositeList = clbCompositeColumns.DataSource as List<CompositeColumnItem>;
+            if (compositeList != null)
             {
-                SelectedCompositeColumns.Add(item.ToString());
+                foreach (var item in compositeList)
+                {
+                    if (item.Selected)
+                        SelectedCompositeColumns.Add(item.Name);
+                }
             }
 
             // 获取分隔符
@@ -391,8 +421,8 @@ namespace WindowsFormsApp3
             ImportedData = selectedData;
 
             // 保存当前选中的列名
-            string selectedSearchColumn = cmbSearchColumn.SelectedItem?.ToString();
-            string selectedReturnColumn = cmbReturnColumn.SelectedItem?.ToString();
+            string selectedSearchColumn = cmbSearchColumn.SelectedValue?.ToString();
+            string selectedReturnColumn = cmbReturnColumn.SelectedValue?.ToString();
 
             // 重新填充下拉框，只包含选中的列
             cmbSearchColumn.Items.Clear();
@@ -405,12 +435,12 @@ namespace WindowsFormsApp3
 
             // 尝试恢复之前的选择，如果不存在则选择第一个
             if (cmbSearchColumn.Items.Contains(selectedSearchColumn))
-                cmbSearchColumn.SelectedItem = selectedSearchColumn;
+                cmbSearchColumn.SelectedValue = selectedSearchColumn;
             else if (cmbSearchColumn.Items.Count > 0)
                 cmbSearchColumn.SelectedIndex = 0;
 
             if (cmbReturnColumn.Items.Contains(selectedReturnColumn))
-                cmbReturnColumn.SelectedItem = selectedReturnColumn;
+                cmbReturnColumn.SelectedValue = selectedReturnColumn;
             else if (cmbReturnColumn.Items.Count > 0)
                 cmbReturnColumn.SelectedIndex = 0;
 
@@ -419,9 +449,9 @@ namespace WindowsFormsApp3
             ReturnColumnIndex = cmbReturnColumn.SelectedIndex;
 
             // 确保SelectedRegexPattern已设置
-            if (cmbRegex2.SelectedItem != null)
+            if (cmbRegex2.SelectedValue != null)
             {
-                string selectedPatternName = cmbRegex2.SelectedItem.ToString();
+                string selectedPatternName = cmbRegex2.SelectedValue.ToString();
                 if (regexPatterns.TryGetValue(selectedPatternName, out string pattern))
                 {
                     SelectedRegexPattern = pattern;
@@ -513,5 +543,10 @@ namespace WindowsFormsApp3
                 LoadColumnComboBoxes();
             }
         }
+    }
+    public class CompositeColumnItem
+    {
+        public bool Selected { get; set; }
+        public string Name { get; set; }
     }
 }

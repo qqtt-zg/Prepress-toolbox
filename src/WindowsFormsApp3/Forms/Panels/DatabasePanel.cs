@@ -40,7 +40,7 @@ namespace WindowsFormsApp3.Forms.Panels
                 // 获取 Excel 导入服务
                 _excelImportService = ServiceLocator.Instance.GetExcelImportService();
 
-                // 配置AntdUI Table（控件已在Designer.cs中创建）
+                // 配置 KryptonDataGridView（控件已在 Designer.cs 中创建）
                 InitializeExcelTable();
 
                 // 初始化右键菜单
@@ -62,21 +62,29 @@ namespace WindowsFormsApp3.Forms.Panels
 
         private void InitializeExcelTable()
         {
+            // 禁用自动生成列
+            _excelTable.AutoGenerateColumns = false;
+
             // 先获取 Excel 数据以确定列结构
             var excelData = _excelImportService?.ImportedData;
 
             if (excelData != null && excelData.Columns.Count > 0)
             {
+                // 清除现有列
+                _excelTable.Columns.Clear();
+
                 // 根据实际数据动态创建列
-                var columns = new AntdUI.ColumnCollection();
                 foreach (DataColumn col in excelData.Columns)
                 {
-                    columns.Add(new AntdUI.Column(col.ColumnName, col.ColumnName, AntdUI.ColumnAlign.Center)
+                    var dgvCol = new DataGridViewTextBoxColumn
                     {
-                        Width = $"{100 / excelData.Columns.Count}%"
-                    });
+                        Name = col.ColumnName,
+                        HeaderText = col.ColumnName,
+                        DataPropertyName = col.ColumnName,
+                        FillWeight = 100f / excelData.Columns.Count
+                    };
+                    _excelTable.Columns.Add(dgvCol);
                 }
-                _excelTable.Columns = columns;
 
                 // 设置数据源
                 _excelTable.DataSource = excelData;
@@ -84,45 +92,59 @@ namespace WindowsFormsApp3.Forms.Panels
             else
             {
                 // 没有数据时显示默认列结构
-                _excelTable.Columns = new AntdUI.ColumnCollection
-                {
-                    new AntdUI.Column("SerialNumber", "序号", AntdUI.ColumnAlign.Center) { Width = "50px" },
-                    new AntdUI.Column("OrderNumber", "订单号", AntdUI.ColumnAlign.Center) { Width = "10%" },
-                    new AntdUI.Column("Material", "材料", AntdUI.ColumnAlign.Center) { Width = "10%" },
-                    new AntdUI.Column("Quantity", "数量", AntdUI.ColumnAlign.Center) { Width = "8%" },
-                    new AntdUI.Column("Dimensions", "尺寸", AntdUI.ColumnAlign.Center) { Width = "10%" },
-                    new AntdUI.Column("Process", "工艺", AntdUI.ColumnAlign.Center) { Width = "10%" },
-                    new AntdUI.Column("Notes", "备注", AntdUI.ColumnAlign.Left) { Width = "15%" }
-                };
+                _excelTable.Columns.Clear();
+                _excelTable.Columns.Add(new DataGridViewTextBoxColumn { Name = "SerialNumber", HeaderText = "序号", FillWeight = 5 });
+                _excelTable.Columns.Add(new DataGridViewTextBoxColumn { Name = "OrderNumber", HeaderText = "订单号", FillWeight = 10 });
+                _excelTable.Columns.Add(new DataGridViewTextBoxColumn { Name = "Material", HeaderText = "材料", FillWeight = 10 });
+                _excelTable.Columns.Add(new DataGridViewTextBoxColumn { Name = "Quantity", HeaderText = "数量", FillWeight = 8 });
+                _excelTable.Columns.Add(new DataGridViewTextBoxColumn { Name = "Dimensions", HeaderText = "尺寸", FillWeight = 10 });
+                _excelTable.Columns.Add(new DataGridViewTextBoxColumn { Name = "Process", HeaderText = "工艺", FillWeight = 10 });
+                _excelTable.Columns.Add(new DataGridViewTextBoxColumn { Name = "Notes", HeaderText = "备注", FillWeight = 15 });
 
-                // 设置空数据源以确保列头显示
-                var emptyData = new DataTable();
-                emptyData.Columns.Add("SerialNumber");
-                emptyData.Columns.Add("OrderNumber");
-                emptyData.Columns.Add("Material");
-                emptyData.Columns.Add("Quantity");
-                emptyData.Columns.Add("Dimensions");
-                emptyData.Columns.Add("Process");
-                emptyData.Columns.Add("Notes");
-                _excelTable.DataSource = emptyData;
+                // 设置空数据源
+                _excelTable.DataSource = null;
             }
 
             // 绑定事件
             _excelTable.CellClick += ExcelTable_CellClick;
-            _excelTable.MouseUp += ExcelTable_MouseUp;
+            _excelTable.CellMouseUp += ExcelTable_CellMouseUp;
+            _excelTable.RowPostPaint += ExcelTable_RowPostPaint;
         }
 
-        private void ExcelTable_CellClick(object sender, AntdUI.TableClickEventArgs e)
+        private void ExcelTable_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             _currentRowIndex = e.RowIndex;
             _currentColumnIndex = e.ColumnIndex;
         }
 
-        private void ExcelTable_MouseUp(object sender, MouseEventArgs e)
+        private void ExcelTable_CellMouseUp(object sender, DataGridViewCellMouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Right && _currentRowIndex >= 0)
+            if (e.Button == MouseButtons.Right && e.RowIndex >= 0)
             {
-                _contextMenu.Show(_excelTable, e.Location);
+                var rect = _excelTable.GetCellDisplayRectangle(e.ColumnIndex, e.RowIndex, true);
+                _contextMenu.Show(_excelTable, rect.Left, rect.Bottom);
+            }
+        }
+
+        /// <summary>
+        /// 在行头绘制序号
+        /// </summary>
+        private void ExcelTable_RowPostPaint(object sender, DataGridViewRowPostPaintEventArgs e)
+        {
+            // 绘制行号 (从1开始)
+            var rowNumber = (e.RowIndex + 1).ToString();
+            
+            // 使用浅灰色，不突兀
+            using (var brush = new SolidBrush(Color.FromArgb(160, 160, 160)))
+            {
+                // 计算绘制位置（水平和垂直都居中）
+                var bounds = e.RowBounds;
+                var headerWidth = _excelTable.RowHeadersWidth;
+                var size = e.Graphics.MeasureString(rowNumber, _excelTable.Font);
+                var x = (headerWidth - size.Width) / 2;
+                var y = bounds.Top + (bounds.Height - size.Height) / 2;
+                
+                e.Graphics.DrawString(rowNumber, _excelTable.Font, brush, x, y);
             }
         }
 
@@ -150,7 +172,7 @@ namespace WindowsFormsApp3.Forms.Panels
             try
             {
                 if (_currentRowIndex >= 0 && _currentColumnIndex >= 0 &&
-                    _excelTable.DataSource is System.Data.DataTable dt &&
+                    _excelTable.DataSource is DataTable dt &&
                     _currentRowIndex < dt.Rows.Count)
                 {
                     var value = dt.Rows[_currentRowIndex][_currentColumnIndex]?.ToString() ?? "";
@@ -169,7 +191,7 @@ namespace WindowsFormsApp3.Forms.Panels
             
             try
             {
-                if (_excelTable.DataSource is System.Data.DataTable dt &&
+                if (_excelTable.DataSource is DataTable dt &&
                     _currentRowIndex < dt.Rows.Count)
                 {
                     dt.Rows.RemoveAt(_currentRowIndex);

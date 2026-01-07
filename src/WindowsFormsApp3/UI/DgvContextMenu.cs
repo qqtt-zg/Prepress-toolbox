@@ -8,6 +8,7 @@ using System.IO;
 using System.ComponentModel;
 using WindowsFormsApp3.Interfaces; // 修改为使用Interfaces命名空间的ILogger
 using WindowsFormsApp3.Utils;
+using WindowsFormsApp3.Services;
 
 namespace WindowsFormsApp3
 {
@@ -733,24 +734,19 @@ namespace WindowsFormsApp3
                             continue;
                         }
 
-                        // 重新计算尺寸
+                        // 使用 DimensionCalculationService 替代 SettingsForm 直接实例化
                         string adjustedDimensions = string.Empty;
-                        using (var settingsForm = new SettingsForm())
+                        var dimensionService = ServiceLocator.Instance.GetDimensionCalculationService();
+                        if (dimensionService.RecognizePdfDimensions(fullPath, out double pdfWidth, out double pdfHeight))
                         {
-                            settingsForm.RecognizePdfDimensions(fullPath);
-
-                            // 检查是否成功获取了PDF尺寸
-                            if (settingsForm.PdfWidth > 0 && settingsForm.PdfHeight > 0)
-                            {
-                                // 使用传入的出血值参数（批量模式下也使用用户设置或修改的值）
-                                adjustedDimensions = settingsForm.CalculateFinalDimensions(settingsForm.PdfWidth, settingsForm.PdfHeight, bleedValue);
-                                _logger?.LogInformation($"成功重新计算尺寸: {Path.GetFileName(fullPath)} -> {adjustedDimensions} (出血值: {bleedValue})");
-                            }
-                            else
-                            {
-                                _logger?.LogWarning($"无法获取PDF尺寸信息: {Path.GetFileName(fullPath)}");
-                                continue;
-                            }
+                            // 使用传入的出血值参数（批量模式下也使用用户设置或修改的值）
+                            adjustedDimensions = dimensionService.CalculateFinalDimensions(pdfWidth, pdfHeight, bleedValue);
+                            _logger?.LogInformation($"成功重新计算尺寸: {Path.GetFileName(fullPath)} -> {adjustedDimensions} (出血值: {bleedValue})");
+                        }
+                        else
+                        {
+                            _logger?.LogWarning($"无法获取PDF尺寸信息: {Path.GetFileName(fullPath)}");
+                            continue;
                         }
 
                         // 更新尺寸列

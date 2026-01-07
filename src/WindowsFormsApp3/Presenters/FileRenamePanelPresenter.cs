@@ -47,6 +47,11 @@ namespace WindowsFormsApp3.Presenters
         private bool _currentNeedsRotation;
         private int _currentRotationAngle;
 
+        // 排版信息存储（用于折手模式空白页功能）
+        private bool _currentEnableImposition;
+        private LayoutMode _currentLayoutMode;
+        private int _currentLayoutQuantity;
+
         /// <summary>
         /// 构造函数
         /// </summary>
@@ -474,6 +479,12 @@ namespace WindowsFormsApp3.Presenters
                         _currentNeedsRotation = selectionResult.NeedsRotation;
                         _currentRotationAngle = selectionResult.RotationAngle;
                         
+                        // ✅ 保存排版信息（用于折手模式空白页功能）
+                        _currentEnableImposition = selectionResult.EnableImposition;
+                        _currentLayoutMode = selectionResult.LayoutMode;
+                        _currentLayoutQuantity = selectionResult.LayoutQuantity;
+                        _logger?.LogInformation($"[ProcessNewFileAsync] 排版信息: EnableImposition={_currentEnableImposition}, LayoutMode={_currentLayoutMode}, LayoutQuantity={_currentLayoutQuantity}");
+                        
                         // ✅ 获取导出路径
                         string exportPath = selectionResult.ExportPath;
                         if (string.IsNullOrEmpty(exportPath))
@@ -516,15 +527,10 @@ namespace WindowsFormsApp3.Presenters
                             
                             _logger?.LogInformation($"[ProcessNewFileAsync] 文件 {i + 1}/{fileCount}: 数量={currentFileInfo.Quantity}, 序号={currentFileInfo.SerialNumber}, 新名称={currentFileInfo.NewName}");
                             
-                            // 在UI线程上添加到列表
+                            // 在UI线程上添加到列表（使用 AddFileToTable 优先填入空行）
                             System.Windows.Forms.Application.OpenForms[0].Invoke((Action)(() =>
                             {
-                                if (_view.FileList == null)
-                                {
-                                    _view.FileList = new BindingList<FileRenameInfo>();
-                                }
-                                _view.FileList.Add(currentFileInfo);
-                                _view.RefreshFileTable();
+                                AddFileToTable(currentFileInfo);
                             }));
                             
                             // 执行文件操作（第一个移动/复制原文件，后续复制原文件）
@@ -581,15 +587,10 @@ namespace WindowsFormsApp3.Presenters
                     // 生成新文件名
                     fileInfo.NewName = GenerateNewFileName(fileInfo);
 
-                    // 在UI线程上添加到列表
+                    // 在UI线程上添加到列表（使用 AddFileToTable 优先填入空行）
                     System.Windows.Forms.Application.OpenForms[0].Invoke((Action)(() =>
                     {
-                        if (_view.FileList == null)
-                        {
-                            _view.FileList = new BindingList<FileRenameInfo>();
-                        }
-                        _view.FileList.Add(fileInfo);
-                        _view.RefreshFileTable();
+                        AddFileToTable(fileInfo);
                         _view.UpdateStatus($"已添加文件: {fileInfo.OriginalName}");
                     }));
                 }
@@ -752,106 +753,76 @@ namespace WindowsFormsApp3.Presenters
 
                 _logger?.LogInformation($"[RenameFileAsync] 导出路径: {_exportPath}");
                 _logger?.LogInformation($"[RenameFileAsync] 新文件名: {fileInfo.NewName}");
-                
-                var destPath = Path.Combine(_exportPath, fileInfo.NewName);
-                _logger?.LogInformation($"[RenameFileAsync] 目标路径: {destPath}");
 
-                // 处理文件名冲突
-                destPath = HandleFileNameConflict(destPath);
-                _logger?.LogInformation($"[RenameFileAsync] 冲突处理后路径: {destPath}");
+                // 判断是否为PDF文件以及是否需要PDF处理
+                bool isPdfFile = fileInfo.FullPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
+                bool needsPdfProcessing = isPdfFile && (_currentIsShapeSelected || _currentNeedsRotation || 
+                    (_currentEnableImposition && _currentLayoutMode == LayoutMode.Folding && _currentLayoutQuantity > 0));
 
-                // 执行复制或移动
-                _logger?.LogInformation($"[RenameFileAsync] 复制模式: {_isCopyMode}");
-                var result = ProcessFileByMode(fileInfo.FullPath, destPath, _isCopyMode);
+                _logger?.LogInformation($"[RenameFileAsync] isPdfFile={isPdfFile}, needsPdfProcessing={needsPdfProcessing}");
+                _logger?.LogInformation($"[RenameFileAsync] 排版: EnableImposition={_currentEnableImposition}, LayoutMode={_currentLayoutMode}, LayoutQuantity={_currentLayoutQuantity}");
 
-                if (result)
+                if (needsPdfProcessing)
                 {
-                    _logger?.LogInformation($"[RenameFileAsync] 成功重命名: {fileInfo.OriginalName} -> {fileInfo.NewName}");
-                    
-                    // ✅ 修复：如果选择了形状处理，执行 PDF 形状处理
-                    if (_currentIsShapeSelected && 
-                        destPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) &&
-                        _pdfProcessingService != null)
+                    // ✅ 修复：使用 FileRenameService 的带 PdfProcessingOptions 的方法
+                    // 这会触发完整的 PDF 处理流程，包括折手模式空白页插入
+                    var pdfOptions = new PdfProcessingOptions
                     {
-                        try
-                        {
-                            _logger?.LogInformation($"[RenameFileAsync] 开始形状处理: ShapeType={_currentShapeType}, RoundRadius={_currentRoundRadius}, Dimensions={_currentDimensions}");
-                            
-                            // 将 ShapeType 枚举转换为旧版 API 兼容的字符串格式
-                            string cornerRadius = "0";
-                            bool usePdfLastPage = false;
-                            
-                            switch (_currentShapeType)
-                            {
-                                case ShapeType.Circle:
-                                    cornerRadius = "R";
-                                    break;
-                                case ShapeType.Special:
-                                    cornerRadius = "Y";
-                                    usePdfLastPage = true;
-                                    break;
-                                case ShapeType.RoundRect:
-                                    cornerRadius = _currentRoundRadius > 0 ? _currentRoundRadius.ToString() : "10";
-                                    break;
-                                case ShapeType.RightAngle:
-                                default:
-                                    cornerRadius = "0";
-                                    break;
-                            }
-                            
-                            bool shapeResult = _pdfProcessingService.AddDotsAddCounterLayer(
-                                destPath, 
-                                _currentDimensions, 
-                                cornerRadius, 
-                                usePdfLastPage);
-                            
-                            if (shapeResult)
-                            {
-                                _logger?.LogInformation($"[RenameFileAsync] 形状处理成功");
-                            }
-                            else
-                            {
-                                _logger?.LogWarning($"[RenameFileAsync] 形状处理失败");
-                            }
-                        }
-                        catch (Exception shapeEx)
-                        {
-                            _logger?.LogError(shapeEx, $"[RenameFileAsync] 形状处理异常: {shapeEx.Message}");
-                        }
-                    }
-                    
-                    // ✅ 修复：如果需要旋转，执行 PDF 旋转处理
-                    if (_currentNeedsRotation && 
-                        _currentRotationAngle != 0 &&
-                        destPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                        IsPdfFile = true,
+                        AddPdfLayers = _currentIsShapeSelected,
+                        ShapeType = _currentShapeType,
+                        RoundRadius = _currentRoundRadius,
+                        FinalDimensions = _currentDimensions,
+                        RotationAngle = _currentRotationAngle,
+                        // ✅ 关键修复：传递排版信息以触发折手模式空白页逻辑
+                        LayoutMode = _currentLayoutMode,
+                        LayoutQuantity = _currentLayoutQuantity,
+                        // 标识页设置（如果需要）
+                        AddIdentifierPage = false,
+                        IdentifierPageContent = ""
+                    };
+
+                    _logger?.LogInformation($"[RenameFileAsync] 使用PdfProcessingOptions: LayoutMode={pdfOptions.LayoutMode}, LayoutQuantity={pdfOptions.LayoutQuantity}");
+
+                    // 使用 FileRenameService 的带 PdfProcessingOptions 的方法
+                    bool result = _fileRenameService.RenameFileImmediately(fileInfo, _exportPath, _isCopyMode, pdfOptions);
+
+                    if (result)
                     {
-                        try
-                        {
-                            _logger?.LogInformation($"[RenameFileAsync] 开始旋转处理: RotationAngle={_currentRotationAngle}");
-                            
-                            bool rotateResult = PdfTools.RotateAllPages(destPath, _currentRotationAngle);
-                            
-                            if (rotateResult)
-                            {
-                                _logger?.LogInformation($"[RenameFileAsync] 旋转处理成功");
-                            }
-                            else
-                            {
-                                _logger?.LogWarning($"[RenameFileAsync] 旋转处理失败");
-                            }
-                        }
-                        catch (Exception rotateEx)
-                        {
-                            _logger?.LogError(rotateEx, $"[RenameFileAsync] 旋转处理异常: {rotateEx.Message}");
-                        }
+                        _logger?.LogInformation($"[RenameFileAsync] 成功重命名并处理PDF: {fileInfo.OriginalName} -> {fileInfo.NewName}");
                     }
+                    else
+                    {
+                        _logger?.LogError($"[RenameFileAsync] 重命名或PDF处理失败: {fileInfo.OriginalName}");
+                    }
+
+                    return result;
                 }
                 else
                 {
-                    _logger?.LogError($"[RenameFileAsync] 重命名失败: {fileInfo.OriginalName}");
-                }
+                    // 非PDF或不需要PDF处理时，使用原有的简单处理方式
+                    var destPath = Path.Combine(_exportPath, fileInfo.NewName);
+                    _logger?.LogInformation($"[RenameFileAsync] 目标路径: {destPath}");
 
-                return result;
+                    // 处理文件名冲突
+                    destPath = HandleFileNameConflict(destPath);
+                    _logger?.LogInformation($"[RenameFileAsync] 冲突处理后路径: {destPath}");
+
+                    // 执行复制或移动
+                    _logger?.LogInformation($"[RenameFileAsync] 复制模式: {_isCopyMode}");
+                    var result = ProcessFileByMode(fileInfo.FullPath, destPath, _isCopyMode);
+
+                    if (result)
+                    {
+                        _logger?.LogInformation($"[RenameFileAsync] 成功重命名: {fileInfo.OriginalName} -> {fileInfo.NewName}");
+                    }
+                    else
+                    {
+                        _logger?.LogError($"[RenameFileAsync] 重命名失败: {fileInfo.OriginalName}");
+                    }
+
+                    return result;
+                }
             }
             catch (Exception ex)
             {
@@ -860,6 +831,7 @@ namespace WindowsFormsApp3.Presenters
                 return false;
             }
         }
+
 
         /// <summary>
         /// 立即重命名文件（同步版本）
@@ -1715,6 +1687,7 @@ namespace WindowsFormsApp3.Presenters
 
         /// <summary>
         /// 添加文件到表格
+        /// 优先使用已存在的空行，如果没有空行才添加新行
         /// </summary>
         /// <param name="fileInfo">文件信息</param>
         public void AddFileToTable(FileRenameInfo fileInfo)
@@ -1724,8 +1697,61 @@ namespace WindowsFormsApp3.Presenters
                 _view.FileList = new BindingList<FileRenameInfo>();
             }
 
-            _view.FileList.Add(fileInfo);
+            // 查找第一个空行（OriginalName 为空或 FullPath 为空表示空行）
+            int emptyRowIndex = -1;
+            for (int i = 0; i < _view.FileList.Count; i++)
+            {
+                var row = _view.FileList[i];
+                if (string.IsNullOrEmpty(row.OriginalName) && string.IsNullOrEmpty(row.FullPath))
+                {
+                    emptyRowIndex = i;
+                    break;
+                }
+            }
+
+            if (emptyRowIndex >= 0)
+            {
+                // 使用空行：复制所有属性到空行
+                var emptyRow = _view.FileList[emptyRowIndex];
+                CopyFileRenameInfo(fileInfo, emptyRow);
+                _logger?.LogDebug($"填入空行 {emptyRowIndex + 1}: {fileInfo.OriginalName}");
+            }
+            else
+            {
+                // 没有空行，添加新行
+                _view.FileList.Add(fileInfo);
+                _logger?.LogDebug($"添加新行: {fileInfo.OriginalName}");
+            }
+            
             _view.RefreshFileTable();
+        }
+
+        /// <summary>
+        /// 复制 FileRenameInfo 的所有属性
+        /// </summary>
+        private void CopyFileRenameInfo(FileRenameInfo source, FileRenameInfo target)
+        {
+            target.OriginalName = source.OriginalName;
+            target.NewName = source.NewName;
+            target.Material = source.Material;
+            target.Quantity = source.Quantity;
+            target.Dimensions = source.Dimensions;
+            target.Process = source.Process;
+            target.Status = source.Status;
+            target.FullPath = source.FullPath;
+            target.Width = source.Width;
+            target.Height = source.Height;
+            target.TetBleed = source.TetBleed;
+            target.PageCount = source.PageCount;
+            target.RegexResult = source.RegexResult;
+            target.OrderNumber = source.OrderNumber;
+            target.LayoutRows = source.LayoutRows;
+            target.LayoutColumns = source.LayoutColumns;
+            target.Time = source.Time;
+            target.ErrorMessage = source.ErrorMessage;
+            target.CompositeColumn = source.CompositeColumn;
+            target.FileExtension = source.FileExtension;
+            target.SerialNumber = source.SerialNumber;
         }
 
         /// <summary>
@@ -2116,7 +2142,7 @@ namespace WindowsFormsApp3.Presenters
             {
                 _logger?.LogInformation("[CreateFileNameComponentsConfigFromEventGroup] 开始从EventGroup创建配置");
 
-                var eventGroupConfig = SettingsForm.GetEventGroupConfiguration();
+                var eventGroupConfig = EventGroupConfigurationService.GetEventGroupConfiguration();
                 if (eventGroupConfig?.Groups != null && eventGroupConfig.Items != null)
                 {
                     _logger?.LogInformation("[CreateFileNameComponentsConfigFromEventGroup] 使用EventGroup配置");
@@ -2184,7 +2210,7 @@ namespace WindowsFormsApp3.Presenters
 
             try
             {
-                var eventGroupConfig = SettingsForm.GetEventGroupConfiguration();
+                var eventGroupConfig = EventGroupConfigurationService.GetEventGroupConfiguration();
                 if (eventGroupConfig?.Groups != null && eventGroupConfig.Items != null)
                 {
                     _logger?.LogInformation("GetComponentOrderFromSettings: 使用EventGroup配置设置组件顺序");
@@ -2242,7 +2268,7 @@ namespace WindowsFormsApp3.Presenters
 
             try
             {
-                var eventGroupConfig = SettingsForm.GetEventGroupConfiguration();
+                var eventGroupConfig = EventGroupConfigurationService.GetEventGroupConfiguration();
                 if (eventGroupConfig?.Groups == null)
                 {
                     _logger?.LogInformation("EventGroup配置为空，使用空前缀字典");
@@ -2274,6 +2300,58 @@ namespace WindowsFormsApp3.Presenters
             }
 
             return prefixes;
+        }
+
+        /// <summary>
+        /// 从EventGroup配置中获取保留分组配置
+        /// </summary>
+        /// <returns>保留分组配置字典，key为组件名称/分组ID/前缀，value为是否保留</returns>
+        private Dictionary<string, bool> GetPreserveGroupConfig()
+        {
+            var preserveConfig = new Dictionary<string, bool>();
+
+            try
+            {
+                var eventGroupConfig = EventGroupConfigurationService.GetEventGroupConfiguration();
+                if (eventGroupConfig?.Groups == null)
+                {
+                    _logger?.LogDebug("EventGroup配置为空，使用空保留配置");
+                    return preserveConfig;
+                }
+
+                // 遍历所有分组，找出标记为保留的分组
+                foreach (var group in eventGroupConfig.Groups.Where(g => g.IsPreserved == true))
+                {
+                    // ✅ 添加分组ID到保留配置（用于ExtractPreserveGroupData的groupId检查）
+                    preserveConfig[group.Id] = true;
+                    _logger?.LogDebug($"[GetPreserveGroupConfig] 标记保留分组ID: '{group.Id}' (分组: {group.DisplayName})");
+
+                    // ✅ 添加分组前缀到保留配置（用于ExtractPreserveGroupData的prefix检查）
+                    if (!string.IsNullOrEmpty(group.Prefix))
+                    {
+                        preserveConfig[group.Prefix] = true;
+                        _logger?.LogDebug($"[GetPreserveGroupConfig] 标记保留前缀: '{group.Prefix}' (分组: {group.DisplayName})");
+                    }
+
+                    // 找出该分组下的所有项目
+                    var groupItems = eventGroupConfig.Items.Where(item => item.GroupId == group.Id);
+
+                    foreach (var item in groupItems)
+                    {
+                        // ✅ 添加项目名称到保留配置（用于ExtractPreserveGroupData的componentType检查）
+                        preserveConfig[item.Name] = true;
+                        _logger?.LogDebug($"[GetPreserveGroupConfig] 标记保留组件: '{item.Name}' (分组: {group.DisplayName})");
+                    }
+                }
+
+                _logger?.LogInformation($"获取到的保留分组配置: {preserveConfig.Count} 个条目 - [{string.Join(", ", preserveConfig.Keys)}]");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "获取保留分组配置时发生异常");
+            }
+
+            return preserveConfig;
         }
 
         /// <summary>
@@ -2353,6 +2431,7 @@ namespace WindowsFormsApp3.Presenters
                 var enabledConfig = CreateFileNameComponentsConfigFromEventGroup();
                 var componentOrder = GetComponentOrderFromSettings();
                 var prefixes = GetPrefixesFromEventGroupConfig();
+                var preserveGroupConfig = GetPreserveGroupConfig();  // ✅ 新增：获取保留分组配置
 
                 var components = new WindowsFormsApp3.Models.FileNameComponents
                 {
@@ -2372,6 +2451,7 @@ namespace WindowsFormsApp3.Presenters
                     EnabledComponents = enabledConfig,
                     ComponentOrder = componentOrder,
                     Prefixes = prefixes,
+                    PreserveGroupConfig = preserveGroupConfig,  // ✅ 新增：设置保留分组配置
                     OriginalFileName = Path.GetFileNameWithoutExtension(fileName)
                 };
 

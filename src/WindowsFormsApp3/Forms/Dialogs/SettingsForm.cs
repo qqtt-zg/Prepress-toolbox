@@ -20,6 +20,7 @@ using Ookii.Dialogs.WinForms;
 
 namespace WindowsFormsApp3
 {
+    [Obsolete("此类已弃用。请使用: EventGroupConfigurationService.GetEventGroupConfiguration(), LayoutResultsCache, DimensionCalculationService。")]
     public partial class SettingsForm : Form
     {
         // 导出路径配置变更事件

@@ -53,7 +53,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             }
         }
 
-        private void SaveRegexSettings()
+        public void SaveSettings()
         {
             AppSettings.RegexPatterns = string.Join("|", RegexPatterns.Select(kvp => $"{kvp.Key}={kvp.Value}"));
             AppSettings.Save();
@@ -77,7 +77,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             }
 
             RegexPatterns.Add(name, pattern);
-            SaveRegexSettings();
+            SaveSettings();
             BindData();
             txtName.Text = "";
             txtPattern.Text = "";
@@ -93,7 +93,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 
             var selected = (KeyValuePair<string, string>)dgvRegex.SelectedRows[0].DataBoundItem;
             RegexPatterns.Remove(selected.Key);
-            SaveRegexSettings();
+            SaveSettings();
             BindData();
         }
 

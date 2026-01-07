@@ -193,7 +193,7 @@ namespace WindowsFormsApp3.Services
             try
             {
                 // Get current EventGroupConfiguration
-                var eventGroupConfig = SettingsForm.GetEventGroupConfiguration();
+                var eventGroupConfig = EventGroupConfigurationService.GetEventGroupConfiguration();
                 if (eventGroupConfig?.Groups == null || eventGroupConfig.Items == null)
                 {
                     _logger?.LogWarning("Unable to get EventGroupConfiguration, using empty mapping");

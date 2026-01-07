@@ -125,7 +125,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             else lblStatus.Text = $"共 {total} 个路径 (有效: {valid})";
         }
 
-        private void SaveExportPaths()
+        public void SaveSettings()
         {
             var list = dgvExportPaths.DataSource as BindingList<ExportPathItem>;
             if (list == null) return;
@@ -166,7 +166,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
                     var list = dgvExportPaths.DataSource as BindingList<ExportPathItem>;
                     list.Add(new ExportPathItem { FullPath = dialog.SelectedPath, IncludeSubFolders = true });
                     
-                    SaveExportPaths();
+                    SaveSettings();
                     dgvExportPaths.Rows[dgvExportPaths.Rows.Count - 1].Selected = true;
                 }
             }
@@ -182,7 +182,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
                  {
                      if (!row.IsNewRow) dgvExportPaths.Rows.Remove(row);
                  }
-                 SaveExportPaths();
+                 SaveSettings();
              }
         }
 
@@ -197,7 +197,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             list.RemoveAt(idx);
             list.Insert(idx - 1, item);
             dgvExportPaths.Rows[idx - 1].Selected = true;
-            SaveExportPaths();
+            SaveSettings();
         }
 
         private void BtnMoveDown_Click(object sender, EventArgs e)
@@ -211,14 +211,14 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             list.RemoveAt(idx);
             list.Insert(idx + 1, item);
             dgvExportPaths.Rows[idx + 1].Selected = true;
-            SaveExportPaths();
+            SaveSettings();
         }
 
         private void DgvExportPaths_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
              // Save immediately on checkbox change
              if (e.RowIndex >= 0)
-                SaveExportPaths();
+                SaveSettings();
         }
 
         private void DgvExportPaths_CurrentCellDirtyStateChanged(object sender, EventArgs e)

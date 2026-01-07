@@ -431,7 +431,8 @@ namespace WindowsFormsApp3
             this.dropdown16.TabIndex = 53;
             this.dropdown16.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.dropdown16.WaveSize = 0;
-            // 
+            this.dropdown16.MaxCount = int.MaxValue;
+            //
             // materialButton4
             // 
             this.materialButton4.BorderWidth = 2F;
