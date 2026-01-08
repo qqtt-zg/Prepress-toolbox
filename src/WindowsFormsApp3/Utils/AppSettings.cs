@@ -250,6 +250,13 @@ namespace WindowsFormsApp3.Utils
             set => Instance.ExcelReturnColumnParams = value;
         }
 
+        // 主题设置
+        public static string ThemeMode
+        {
+            get => GetValue<string>("ThemeMode", "Light");
+            set => SetValue("ThemeMode", value);
+        }
+
         // 排版功能控件状态持久化
         public static bool EnableImpositionChecked
         {

@@ -13,9 +13,11 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private AntdUI.Slider sliderOpacity;
         private AntdUI.Label lblHotkey;
         private AntdUI.Input txtHotkey;
+        private AntdUI.Label lblTheme;
+        private AntdUI.Switch switchTheme;
 
         // Text Items Section
-        private System.Windows.Forms.GroupBox grpTextSettings;
+        private System.Windows.Forms.Panel grpTextSettings;
         private System.Windows.Forms.FlowLayoutPanel pnlTextItems; // Container for checkboxes
         private AntdUI.Button btnMoveUp;
         private AntdUI.Button btnMoveDown;
@@ -102,12 +104,29 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.txtHotkey.PlaceholderText = "例如 Ctrl+S";
 
             //
+            // lblTheme
+            //
+            this.lblTheme = new AntdUI.Label();
+            this.lblTheme.Location = new System.Drawing.Point(20, 180);
+            this.lblTheme.Size = new System.Drawing.Size(90, 32);
+            this.lblTheme.Text = "深色模式:";
+
+            //
+            // switchTheme
+            //
+            this.switchTheme = new AntdUI.Switch();
+            this.switchTheme.Location = new System.Drawing.Point(120, 180);
+            this.switchTheme.Size = new System.Drawing.Size(44, 22);
+            this.switchTheme.AutoCheck = true;
+            this.switchTheme.Checked = false;
+
+            //
             // grpTextSettings
             //
-            this.grpTextSettings = new System.Windows.Forms.GroupBox();
-            this.grpTextSettings.Location = new System.Drawing.Point(20, 230); // Adjusted Y-coordinate to accommodate new controls
+            this.grpTextSettings = new System.Windows.Forms.Panel();
+            this.grpTextSettings.Location = new System.Drawing.Point(20, 230);
             this.grpTextSettings.Size = new System.Drawing.Size(600, 300);
-            this.grpTextSettings.Text = "文件名组合设置";
+            this.grpTextSettings.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
 
             // pnlTextItems
             this.pnlTextItems = new System.Windows.Forms.FlowLayoutPanel();
@@ -149,10 +168,12 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.Controls.Add(this.sliderOpacity);
             this.Controls.Add(this.lblHotkey);
             this.Controls.Add(this.txtHotkey);
+            this.Controls.Add(this.lblTheme);
+            this.Controls.Add(this.switchTheme);
             this.Controls.Add(this.grpTextSettings);
 
             this.Size = new System.Drawing.Size(800, 600);
-            this.BackColor = System.Drawing.Color.White;
+            // BackColor will be set by ThemeHelper
         }
     }
 }

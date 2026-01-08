@@ -32,13 +32,13 @@ namespace WindowsFormsApp3.Forms.Panels
         /// </summary>
         private void CreateSaveButtonPanel()
         {
-            // 创建底部面板
+            // 创建底部面板 (颜色将由 ThemeHelper 自动设置)
             var bottomPanel = new Panel
             {
                 Height = 50,
                 Dock = DockStyle.Bottom,
-                BackColor = Color.FromArgb(250, 250, 250),
-                Padding = new Padding(10)
+                Padding = new Padding(10),
+                Tag = "bottomPanel" // Mark for identification if needed
             };
             
             // 创建保存按钮

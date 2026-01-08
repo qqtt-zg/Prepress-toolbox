@@ -100,7 +100,6 @@ namespace WindowsFormsApp3.Forms.Panels
             // 
             // _topControlPanel
             // 
-            this._topControlPanel.BackColor = System.Drawing.Color.White;
             this._topControlPanel.Controls.Add(this._layoutPanel);
             this._topControlPanel.Dock = System.Windows.Forms.DockStyle.Top;
             this._topControlPanel.Location = new System.Drawing.Point(0, 0);
@@ -521,7 +520,6 @@ namespace WindowsFormsApp3.Forms.Panels
             // 
             // _statusPanel
             // 
-            this._statusPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(250)))));
             this._statusPanel.Controls.Add(this._statusFlowPanel);
             this._statusPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
             this._statusPanel.Location = new System.Drawing.Point(0, 473);
@@ -547,7 +545,6 @@ namespace WindowsFormsApp3.Forms.Panels
             // 
             this._statusLabel.AutoSizeMode = AntdUI.TAutoSize.Auto;
             this._statusLabel.Font = new System.Drawing.Font("微软雅黑", 9F);
-            this._statusLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(102)))), ((int)(((byte)(102)))), ((int)(((byte)(102)))));
             this._statusLabel.Location = new System.Drawing.Point(0, 0);
             this._statusLabel.Margin = new System.Windows.Forms.Padding(0, 0, 20, 0);
             this._statusLabel.Name = "_statusLabel";
@@ -559,7 +556,6 @@ namespace WindowsFormsApp3.Forms.Panels
             // 
             this._modeStatusLabel.AutoSizeMode = AntdUI.TAutoSize.Auto;
             this._modeStatusLabel.Font = new System.Drawing.Font("微软雅黑", 9F);
-            this._modeStatusLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(80)))));
             this._modeStatusLabel.Location = new System.Drawing.Point(116, 0);
             this._modeStatusLabel.Margin = new System.Windows.Forms.Padding(0, 0, 20, 0);
             this._modeStatusLabel.Name = "_modeStatusLabel";
@@ -571,7 +567,6 @@ namespace WindowsFormsApp3.Forms.Panels
             // 
             this._eventPreviewLabel.AutoSizeMode = AntdUI.TAutoSize.Auto;
             this._eventPreviewLabel.Font = new System.Drawing.Font("微软雅黑", 9F);
-            this._eventPreviewLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(120)))), ((int)(((byte)(120)))), ((int)(((byte)(120)))));
             this._eventPreviewLabel.Location = new System.Drawing.Point(252, 0);
             this._eventPreviewLabel.Margin = new System.Windows.Forms.Padding(0);
             this._eventPreviewLabel.Name = "_eventPreviewLabel";

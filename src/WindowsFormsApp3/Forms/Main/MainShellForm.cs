@@ -176,11 +176,68 @@ namespace WindowsFormsApp3.Forms.Main
             // 初始化面板缓存
             panelCache = new Dictionary<string, UserControl>();
             
+            // 应用保存的主题
+            var themeMode = AppSettings.ThemeMode;
+            SetTheme(themeMode == "Dark");
+
             // 默认显示文件重命名面板
             SwitchToPanel("rename");
             
             // InitializeBottomMenu(); // 已合并到InitializeMenuItems
 
+        }
+
+        /// <summary>
+        /// 设置主题 (混合模式: AntdUI + Krypton + Recursive WinForms)
+        /// </summary>
+        public void SetTheme(bool isDark)
+        {
+            // 1. 设置 AntdUI 主题 (Global Config if available, otherwise rely on individual control updates or internal detection)
+            // AntdUI 2.x often uses TMode.Dark but we need to be sure about the API.
+            // If SetMode is unavailable, we might rely on the window background color for some AntdUI controls?
+            // Let's at least try to set the dark mode explicitly if we can find the API later.
+            // For now, AntdUI controls often check their parent's background color or need explicit property updates.
+
+            // 2. Krypton 适配
+            if (kryptonManager != null)
+            {
+                kryptonManager.GlobalPaletteMode = isDark 
+                    ? Krypton.Toolkit.PaletteMode.Office2010Black 
+                    : Krypton.Toolkit.PaletteMode.Office2010Silver;
+            }
+
+            // 3. 递归更新 WinForms 控件 (Panel, Label, etc.)
+            ThemeHelper.ApplyTheme(this, isDark);
+
+            // 4. 特殊处理主界面结构 (Override recursive defaults if needed)
+            if (isDark)
+            {
+                mainContainer.Panel1.BackColor = Color.FromArgb(30, 30, 30); // Sidebar
+                navMenu.BackColor = Color.FromArgb(30, 30, 30);
+                contentPanel.BackColor = Color.FromArgb(30, 30, 30); // Content Area
+                headerPanel.BackColor = Color.FromArgb(45, 45, 45); // Header
+                statusStrip.BackColor = Color.FromArgb(30, 30, 30);
+                statusLabel.ForeColor = Color.White;
+            }
+            else
+            {
+                mainContainer.Panel1.BackColor = Color.White; // 浅色模式：侧边栏白色
+                navMenu.BackColor = Color.White;               // 浅色模式：菜单白色
+                contentPanel.BackColor = Color.FromArgb(248, 249, 250); // 浅色模式：内容区浅灰
+                headerPanel.BackColor = Color.White;
+                statusStrip.BackColor = Color.FromArgb(248, 249, 250);
+                statusLabel.ForeColor = Color.FromArgb(33, 37, 41); // 深灰文字
+            }
+
+            // 5. 更新所有已缓存的面板
+            foreach (var panel in panelCache.Values)
+            {
+                ThemeHelper.ApplyTheme(panel, isDark);
+            }
+
+            // 保存设置
+            AppSettings.ThemeMode = isDark ? "Dark" : "Light";
+            AppSettings.Save();
         }
         
         /// <summary>
@@ -429,6 +486,10 @@ namespace WindowsFormsApp3.Forms.Main
                     
                     newPanel.Dock = DockStyle.Fill;
                     panelCache[primaryKey] = newPanel;
+                    
+                    // 应用当前主题到新创建的面板
+                    var isDark = AppSettings.ThemeMode == "Dark";
+                    ThemeHelper.ApplyTheme(newPanel, isDark);
                 }
 
                 var panel = panelCache[primaryKey];

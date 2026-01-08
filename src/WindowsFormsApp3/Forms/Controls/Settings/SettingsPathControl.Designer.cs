@@ -39,7 +39,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             // dgvExportPaths
             // 
             this.dgvExportPaths.AllowUserToAddRows = false;
-            this.dgvExportPaths.BackgroundColor = System.Drawing.Color.White;
+            this.dgvExportPaths.BackgroundColor = System.Drawing.SystemColors.AppWorkspace; // Will be themed by ThemeHelper
             this.dgvExportPaths.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.dgvExportPaths.ColumnHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.Single;
             

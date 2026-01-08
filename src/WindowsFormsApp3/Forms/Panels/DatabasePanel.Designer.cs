@@ -93,7 +93,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this._statusLabel.Location = new System.Drawing.Point(10, 5);
             this._statusLabel.Margin = new System.Windows.Forms.Padding(0);
             this._statusLabel.Name = "_statusLabel";
-            this._statusLabel.Size = new System.Drawing.Size(915, 20);
+            this._statusLabel.Size = new System.Drawing.Size(93, 16);
             this._statusLabel.TabIndex = 0;
             this._statusLabel.Text = "状态：等待数据...";
             // 
@@ -106,6 +106,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.Size = new System.Drawing.Size(935, 503);
             ((System.ComponentModel.ISupportInitialize)(this._excelTable)).EndInit();
             this._statusPanel.ResumeLayout(false);
+            this._statusPanel.PerformLayout();
             this.ResumeLayout(false);
 
         }

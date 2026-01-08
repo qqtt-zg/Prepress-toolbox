@@ -104,11 +104,5 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 
              AppSettings.Save();
         }
-
-        private void BtnSave_Click(object sender, EventArgs e)
-        {
-             SaveSettings();
-             MessageBox.Show("排版设置已保存", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
     }
 }

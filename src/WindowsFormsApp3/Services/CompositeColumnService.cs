@@ -50,16 +50,32 @@ namespace WindowsFormsApp3.Services
         /// </summary>
         public DataTable AddCompositeColumnToDataTable(DataTable dataTable, List<string> selectedColumns, string separator)
         {
+            LogHelper.Debug($"[AddCompositeColumnToDataTable] 开始执行 - 选中列数: {selectedColumns?.Count ?? 0}, 分隔符: '{separator}'");
+            
             if (dataTable == null)
+            {
+                LogHelper.Warn("[AddCompositeColumnToDataTable] dataTable为null，返回null");
                 return null;
+            }
+
+            if (selectedColumns == null || selectedColumns.Count == 0)
+            {
+                LogHelper.Warn("[AddCompositeColumnToDataTable] selectedColumns为空，返回原始DataTable");
+                return dataTable;
+            }
+
+            LogHelper.Debug($"[AddCompositeColumnToDataTable] DataTable行数: {dataTable.Rows.Count}, 列数: {dataTable.Columns.Count}");
+            LogHelper.Debug($"[AddCompositeColumnToDataTable] 选中的列: {string.Join(", ", selectedColumns)}");
 
             // 创建新的数据表以包含组合列
             DataTable tableWithCompositeColumn = dataTable.Clone();
 
             // 添加列组合列
             tableWithCompositeColumn.Columns.Add("列组合", typeof(string));
+            LogHelper.Info("[AddCompositeColumnToDataTable] 已添加'列组合'列到DataTable");
 
             // 处理每一行数据
+            int processedRows = 0;
             foreach (DataRow row in dataTable.Rows)
             {
                 DataRow newRow = tableWithCompositeColumn.NewRow();
@@ -73,9 +89,17 @@ namespace WindowsFormsApp3.Services
                 // 计算组合列值
                 string compositeValue = GetCompositeColumnValue(row, selectedColumns, separator);
                 newRow["列组合"] = compositeValue;
+                
+                if (processedRows < 3) // 只记录前3行作为示例
+                {
+                    LogHelper.Debug($"[AddCompositeColumnToDataTable] 第{processedRows + 1}行列组合值: '{compositeValue}'");
+                }
 
                 tableWithCompositeColumn.Rows.Add(newRow);
+                processedRows++;
             }
+
+            LogHelper.Info($"[AddCompositeColumnToDataTable] 完成 - 处理了{processedRows}行数据，新DataTable列数: {tableWithCompositeColumn.Columns.Count}");
 
             return tableWithCompositeColumn;
         }

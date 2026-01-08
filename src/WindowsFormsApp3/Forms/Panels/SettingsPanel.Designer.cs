@@ -87,7 +87,6 @@ namespace WindowsFormsApp3.Forms.Panels
             // 
             // settingsGeneral
             // 
-            this.settingsGeneral.BackColor = System.Drawing.Color.White;
             this.settingsGeneral.Dock = System.Windows.Forms.DockStyle.Fill;
             this.settingsGeneral.Location = new System.Drawing.Point(0, 0);
             this.settingsGeneral.Name = "settingsGeneral";
@@ -107,7 +106,6 @@ namespace WindowsFormsApp3.Forms.Panels
             // 
             // settingsRegex
             // 
-            this.settingsRegex.BackColor = System.Drawing.Color.White;
             this.settingsRegex.Dock = System.Windows.Forms.DockStyle.Fill;
             this.settingsRegex.Location = new System.Drawing.Point(0, 0);
             this.settingsRegex.Name = "settingsRegex";
@@ -126,7 +124,6 @@ namespace WindowsFormsApp3.Forms.Panels
             // 
             // settingsMaterial
             // 
-            this.settingsMaterial.BackColor = System.Drawing.Color.White;
             this.settingsMaterial.Dock = System.Windows.Forms.DockStyle.Fill;
             this.settingsMaterial.Location = new System.Drawing.Point(0, 0);
             this.settingsMaterial.Name = "settingsMaterial";
@@ -146,7 +143,6 @@ namespace WindowsFormsApp3.Forms.Panels
             // 
             // settingsPath
             // 
-            this.settingsPath.BackColor = System.Drawing.Color.White;
             this.settingsPath.Dock = System.Windows.Forms.DockStyle.Fill;
             this.settingsPath.Location = new System.Drawing.Point(0, 0);
             this.settingsPath.Name = "settingsPath";
@@ -165,7 +161,6 @@ namespace WindowsFormsApp3.Forms.Panels
             // 
             // settingsImposition
             // 
-            this.settingsImposition.BackColor = System.Drawing.Color.White;
             this.settingsImposition.Dock = System.Windows.Forms.DockStyle.Fill;
             this.settingsImposition.Location = new System.Drawing.Point(0, 0);
             this.settingsImposition.Name = "settingsImposition";
@@ -184,7 +179,6 @@ namespace WindowsFormsApp3.Forms.Panels
             // 
             // settingsEvent
             // 
-            this.settingsEvent.BackColor = System.Drawing.Color.White;
             this.settingsEvent.Dock = System.Windows.Forms.DockStyle.Fill;
             this.settingsEvent.Location = new System.Drawing.Point(0, 0);
             this.settingsEvent.Name = "settingsEvent";

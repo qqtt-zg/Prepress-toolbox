@@ -107,6 +107,11 @@ namespace WindowsFormsApp3.Models
         /// </summary>
         public int LayoutQuantity { get; set; } = 0;
 
+        /// <summary>
+        /// 列组合数据
+        /// </summary>
+        public string CompositeColumn { get; set; }
+
         public MaterialSelectionResult()
         {
             ColumnValues = new Dictionary<string, string>();

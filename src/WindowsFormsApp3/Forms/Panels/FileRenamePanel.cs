@@ -123,6 +123,10 @@ namespace WindowsFormsApp3.Forms.Panels
             {
                 if (args.Value is string selectedPath && !string.IsNullOrEmpty(selectedPath))
                 {
+                    // 保存用户最后选择的目录
+                    AppSettings.LastInputDir = selectedPath;
+                    AppSettings.Save();
+
                     // 更新 Presenter 的输入目录
                     _presenter.SetInputDirectory(selectedPath);
                 }
@@ -743,6 +747,7 @@ namespace WindowsFormsApp3.Forms.Panels
         {
             var history = AppSettings.Instance.InputDirHistory;
             var currentDir = InputDirectory;
+            var lastSelectedDir = AppSettings.LastInputDir;
 
             _cmbInputDir.Items.Clear();
             foreach (var dir in history)
@@ -756,20 +761,43 @@ namespace WindowsFormsApp3.Forms.Panels
                 _cmbInputDir.Items.Insert(0, currentDir);
             }
 
-            // 设置选中值
-            if (!string.IsNullOrEmpty(currentDir))
+            // 如果上次选择的目录不在历史中，添加它
+            if (!string.IsNullOrEmpty(lastSelectedDir) && !history.Contains(lastSelectedDir) && lastSelectedDir != currentDir)
+            {
+                // 检查是否已经在列表中
+                bool exists = false;
+                for (int i = 0; i < _cmbInputDir.Items.Count; i++)
+                {
+                    if (_cmbInputDir.Items[i]?.ToString() == lastSelectedDir)
+                    {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists)
+                {
+                    _cmbInputDir.Items.Insert(0, lastSelectedDir);
+                }
+            }
+
+            // 设置选中值（优先级：上次选择 > 当前目录 > 第一项）
+            string targetDir = lastSelectedDir ?? currentDir;
+
+            if (!string.IsNullOrEmpty(targetDir))
             {
                 // 查找匹配的项并设置选中
                 for (int i = 0; i < _cmbInputDir.Items.Count; i++)
                 {
-                    if (_cmbInputDir.Items[i]?.ToString() == currentDir)
+                    if (_cmbInputDir.Items[i]?.ToString() == targetDir)
                     {
                         _cmbInputDir.SelectedIndex = i;
                         return;
                     }
                 }
             }
-            else if (_cmbInputDir.Items.Count > 0)
+
+            // 如果没有找到匹配项，选择第一项（如果存在）
+            if (_cmbInputDir.Items.Count > 0)
             {
                 _cmbInputDir.SelectedIndex = 0;
             }

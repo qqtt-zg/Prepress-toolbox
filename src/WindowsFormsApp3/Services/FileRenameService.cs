@@ -1555,6 +1555,14 @@ namespace WindowsFormsApp3.Services
                     newFileName += fileInfo.Dimensions;
                 }
                 
+                // 处理列组合
+                if (!string.IsNullOrEmpty(fileInfo.CompositeColumn))
+                {
+                    if (!string.IsNullOrEmpty(newFileName))
+                        newFileName += separator;
+                    newFileName += fileInfo.CompositeColumn;
+                }
+                
                 // 添加扩展名
                 newFileName += extension;
                 

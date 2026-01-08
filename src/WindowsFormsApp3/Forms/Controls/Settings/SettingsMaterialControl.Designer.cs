@@ -4,15 +4,15 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
     {
         private System.ComponentModel.IContainer components = null;
 
-        private System.Windows.Forms.GroupBox grpMaterial;
+        private System.Windows.Forms.Panel grpMaterial;
         private AntdUI.Label lblMaterial;
         private AntdUI.Input txtMaterial;
         
-        private System.Windows.Forms.GroupBox grpBleed;
+        private System.Windows.Forms.Panel grpBleed;
         private AntdUI.Label lblBleed;
         private AntdUI.Input txtBleed;
         
-        private System.Windows.Forms.GroupBox grpShapes;
+        private System.Windows.Forms.Panel grpShapes;
         private AntdUI.Label lblShapeZero;
         private AntdUI.Input txtShapeZero;
         private AntdUI.Label lblShapeRound;
@@ -22,8 +22,6 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private AntdUI.Label lblShapeCircle;
         private AntdUI.Input txtShapeCircle;
         private AntdUI.Checkbox chkHideRadius;
-
-        private AntdUI.Button btnSave;
 
         protected override void Dispose(bool disposing)
         {
@@ -38,15 +36,15 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         {
             this.components = new System.ComponentModel.Container();
             // Inits
-            this.grpMaterial = new System.Windows.Forms.GroupBox();
+            this.grpMaterial = new System.Windows.Forms.Panel();
             this.lblMaterial = new AntdUI.Label();
             this.txtMaterial = new AntdUI.Input();
             
-            this.grpBleed = new System.Windows.Forms.GroupBox();
+            this.grpBleed = new System.Windows.Forms.Panel();
             this.lblBleed = new AntdUI.Label();
             this.txtBleed = new AntdUI.Input();
 
-            this.grpShapes = new System.Windows.Forms.GroupBox();
+            this.grpShapes = new System.Windows.Forms.Panel();
             this.lblShapeZero = new AntdUI.Label();
             this.txtShapeZero = new AntdUI.Input();
             this.lblShapeRound = new AntdUI.Label();
@@ -57,8 +55,6 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.txtShapeCircle = new AntdUI.Input();
             this.chkHideRadius = new AntdUI.Checkbox();
 
-            this.btnSave = new AntdUI.Button();
-
             // 
             // grpMaterial
             // 
@@ -66,7 +62,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.grpMaterial.Controls.Add(this.txtMaterial);
             this.grpMaterial.Location = new System.Drawing.Point(20, 20);
             this.grpMaterial.Size = new System.Drawing.Size(700, 80);
-            this.grpMaterial.Text = "材料设置";
+            this.grpMaterial.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             
             this.lblMaterial.Location = new System.Drawing.Point(20, 30);
             this.lblMaterial.Size = new System.Drawing.Size(80, 32);
@@ -82,7 +78,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.grpBleed.Controls.Add(this.txtBleed);
             this.grpBleed.Location = new System.Drawing.Point(20, 120);
             this.grpBleed.Size = new System.Drawing.Size(700, 80);
-            this.grpBleed.Text = "出血设置";
+            this.grpBleed.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
 
             this.lblBleed.Location = new System.Drawing.Point(20, 30);
             this.lblBleed.Size = new System.Drawing.Size(80, 32);
@@ -106,7 +102,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.grpShapes.Controls.Add(this.chkHideRadius);
             this.grpShapes.Location = new System.Drawing.Point(20, 220);
             this.grpShapes.Size = new System.Drawing.Size(700, 180);
-            this.grpShapes.Text = "形状代号";
+            this.grpShapes.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
 
             // Row 1
             this.lblShapeZero.Location = new System.Drawing.Point(20, 30);
@@ -141,20 +137,12 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.txtShapeCircle.Location = new System.Drawing.Point(450, 100);
             this.txtShapeCircle.Size = new System.Drawing.Size(200, 32);
 
-            // Save Button
-            this.btnSave.Location = new System.Drawing.Point(600, 420);
-            this.btnSave.Size = new System.Drawing.Size(120, 40);
-            this.btnSave.Text = "保存设置";
-            this.btnSave.Type = AntdUI.TTypeMini.Primary;
-            this.btnSave.Click += new System.EventHandler(this.BtnSave_Click);
-
             // 
             // SettingsMaterialControl
             // 
             this.Controls.Add(this.grpMaterial);
             this.Controls.Add(this.grpBleed);
             this.Controls.Add(this.grpShapes);
-            this.Controls.Add(this.btnSave);
             this.Name = "SettingsMaterialControl";
             this.Size = new System.Drawing.Size(750, 500);
 

@@ -36,6 +36,7 @@ namespace WindowsFormsApp3 {
             this.btnClearAllColumns = new AntdUI.Button();
             this.labelCompositeColumns = new AntdUI.Label();
             this.labelSeparator = new AntdUI.Label();
+            this.chkEnableComposite = new AntdUI.Checkbox();
             this.SuspendLayout();
             // 
             // label1
@@ -164,8 +165,18 @@ namespace WindowsFormsApp3 {
             this.cmbRegex2.Size = new System.Drawing.Size(175, 32);
             this.cmbRegex2.TabIndex = 11;
             // 
+            // chkEnableComposite
+            // 
+            this.chkEnableComposite.Checked = false;
+            this.chkEnableComposite.Location = new System.Drawing.Point(480, 359);
+            this.chkEnableComposite.Name = "chkEnableComposite";
+            this.chkEnableComposite.Size = new System.Drawing.Size(120, 23);
+            this.chkEnableComposite.TabIndex = 9;
+            this.chkEnableComposite.Text = "启用列组合";
+            // 
             // clbCompositeColumns
             // 
+            this.clbCompositeColumns.Enabled = false;
             this.clbCompositeColumns.Location = new System.Drawing.Point(480, 387);
             this.clbCompositeColumns.Name = "clbCompositeColumns";
             this.clbCompositeColumns.Size = new System.Drawing.Size(168, 132);
@@ -173,6 +184,7 @@ namespace WindowsFormsApp3 {
             // 
             // txtCompositeSeparator
             // 
+            this.txtCompositeSeparator.Enabled = false;
             this.txtCompositeSeparator.Location = new System.Drawing.Point(367, 507);
             this.txtCompositeSeparator.Name = "txtCompositeSeparator";
             this.txtCompositeSeparator.Size = new System.Drawing.Size(91, 32);
@@ -181,6 +193,7 @@ namespace WindowsFormsApp3 {
             // 
             // btnSelectAllColumns
             // 
+            this.btnSelectAllColumns.Enabled = false;
             this.btnSelectAllColumns.Location = new System.Drawing.Point(571, 527);
             this.btnSelectAllColumns.Name = "btnSelectAllColumns";
             this.btnSelectAllColumns.Size = new System.Drawing.Size(77, 32);
@@ -191,6 +204,7 @@ namespace WindowsFormsApp3 {
             // 
             // btnClearAllColumns
             // 
+            this.btnClearAllColumns.Enabled = false;
             this.btnClearAllColumns.Location = new System.Drawing.Point(571, 565);
             this.btnClearAllColumns.Name = "btnClearAllColumns";
             this.btnClearAllColumns.Size = new System.Drawing.Size(77, 32);
@@ -201,14 +215,16 @@ namespace WindowsFormsApp3 {
             // 
             // labelCompositeColumns
             // 
-            this.labelCompositeColumns.Location = new System.Drawing.Point(480, 360);
+            this.labelCompositeColumns.Enabled = false;
+            this.labelCompositeColumns.Location = new System.Drawing.Point(600, 360);
             this.labelCompositeColumns.Name = "labelCompositeColumns";
             this.labelCompositeColumns.Size = new System.Drawing.Size(100, 23);
             this.labelCompositeColumns.TabIndex = 14;
-            this.labelCompositeColumns.Text = "选择组合列：";
+            this.labelCompositeColumns.Text = "选择组合列";
             // 
             // labelSeparator
             // 
+            this.labelSeparator.Enabled = false;
             this.labelSeparator.Location = new System.Drawing.Point(308, 510);
             this.labelSeparator.Name = "labelSeparator";
             this.labelSeparator.Size = new System.Drawing.Size(53, 23);
@@ -237,6 +253,7 @@ namespace WindowsFormsApp3 {
             this.Controls.Add(this.txtReturnColumnParams);
             this.Controls.Add(this.label5);
             this.Controls.Add(this.cmbRegex2);
+            this.Controls.Add(this.chkEnableComposite);
             this.Controls.Add(this.clbCompositeColumns);
             this.Controls.Add(this.txtCompositeSeparator);
             this.Controls.Add(this.btnSelectAllColumns);
@@ -271,6 +288,7 @@ namespace WindowsFormsApp3 {
         private AntdUI.Input txtReturnColumnParams;
         private AntdUI.Label label5;
         private AntdUI.Select cmbRegex2;
+        private AntdUI.Checkbox chkEnableComposite;
         private AntdUI.Table clbCompositeColumns;
         private AntdUI.Input txtCompositeSeparator;
         private AntdUI.Button btnSelectAllColumns;

@@ -12,7 +12,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private AntdUI.Button btnAdd;
         private AntdUI.Button btnDelete;
         
-        private System.Windows.Forms.GroupBox grpTest;
+        private System.Windows.Forms.Panel grpTest;
         private AntdUI.Label lblTestInput;
         private AntdUI.Input txtTestInput;
         private AntdUI.Button btnTest;
@@ -40,7 +40,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.txtPattern = new AntdUI.Input();
             this.btnAdd = new AntdUI.Button();
             this.btnDelete = new AntdUI.Button();
-            this.grpTest = new System.Windows.Forms.GroupBox();
+            this.grpTest = new System.Windows.Forms.Panel();
             this.lblTestInput = new AntdUI.Label();
             this.txtTestInput = new AntdUI.Input();
             this.btnTest = new AntdUI.Button();
@@ -54,7 +54,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             // dgvRegex
             // 
             this.dgvRegex.AllowUserToAddRows = false;
-            this.dgvRegex.BackgroundColor = System.Drawing.Color.White;
+            this.dgvRegex.BackgroundColor = System.Drawing.SystemColors.AppWorkspace; // Will be themed by ThemeHelper
             this.dgvRegex.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.dgvRegex.ColumnHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.Single;
             
@@ -144,9 +144,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.grpTest.Location = new System.Drawing.Point(20, 290);
             this.grpTest.Name = "grpTest";
             this.grpTest.Size = new System.Drawing.Size(700, 120);
-            this.grpTest.TabIndex = 7;
-            this.grpTest.TabStop = false;
-            this.grpTest.Text = "测试匹配";
+            this.grpTest.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
 
             // 
             // lblTestInput

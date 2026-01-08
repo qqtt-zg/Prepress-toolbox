@@ -81,6 +81,9 @@ namespace WindowsFormsApp3
             CompositeColumnSeparator = ",";
             LoadUserSettings();
             
+            // 绑定复选框事件
+            chkEnableComposite.CheckedChanged += chkEnableComposite_CheckedChanged;
+            
             // 设置快捷键
             this.AcceptButton = btnOK;
             this.CancelButton = btnCancel;
@@ -418,19 +421,47 @@ namespace WindowsFormsApp3
                 selectedData.Rows.Add(newRow);
             }
 
+            // 只有在启用列组合且选择了列时才添加列组合
+            if (chkEnableComposite.Checked && SelectedCompositeColumns != null && SelectedCompositeColumns.Count > 0)
+            {
+                try
+                {
+                    // 使用列组合服务添加列组合列
+                    selectedData = _compositeColumnService.AddCompositeColumnToDataTable(selectedData, SelectedCompositeColumns, CompositeColumnSeparator);
+                    
+                    // 记录日志
+                    Utils.LogHelper.Info($"已添加列组合列，选中列: {string.Join(", ", SelectedCompositeColumns)}, 分隔符: '{CompositeColumnSeparator}'");
+                }
+                catch (Exception ex)
+                {
+                    Utils.LogHelper.Error($"添加列组合列失败: {ex.Message}", ex);
+                    MessageBox.Show($"添加列组合列时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+
             ImportedData = selectedData;
 
             // 保存当前选中的列名
             string selectedSearchColumn = cmbSearchColumn.SelectedValue?.ToString();
             string selectedReturnColumn = cmbReturnColumn.SelectedValue?.ToString();
 
-            // 重新填充下拉框，只包含选中的列
+            // 重新填充下拉框，包含选中的列和列组合列（如果存在）
             cmbSearchColumn.Items.Clear();
             cmbReturnColumn.Items.Clear();
+            
+            // 添加选中的原始列
             foreach (string colName in checkedColumns)
             {
                 cmbSearchColumn.Items.Add(colName);
                 cmbReturnColumn.Items.Add(colName);
+            }
+            
+            // 如果添加了列组合列，也添加到下拉框中
+            if (ImportedData.Columns.Contains("列组合"))
+            {
+                cmbSearchColumn.Items.Add("列组合");
+                cmbReturnColumn.Items.Add("列组合");
+                Utils.LogHelper.Debug("已将列组合列添加到搜索列和返回列下拉框中");
             }
 
             // 尝试恢复之前的选择，如果不存在则选择第一个
@@ -542,6 +573,25 @@ namespace WindowsFormsApp3
             {
                 LoadColumnComboBoxes();
             }
+        }
+
+        /// <summary>
+        /// 启用列组合复选框状态改变事件
+        /// </summary>
+        private void chkEnableComposite_CheckedChanged(object sender, EventArgs e)
+        {
+            // 根据复选框状态启用/禁用相关控件
+            bool isEnabled = chkEnableComposite.Checked;
+            
+            labelCompositeColumns.Enabled = isEnabled;
+            labelSeparator.Enabled = isEnabled;
+            clbCompositeColumns.Enabled = isEnabled;
+            txtCompositeSeparator.Enabled = isEnabled;
+            btnSelectAllColumns.Enabled = isEnabled;
+            btnClearAllColumns.Enabled = isEnabled;
+            
+            // 记录日志
+            Utils.LogHelper.Debug($"列组合功能已{(isEnabled ? "启用" : "禁用")}");
         }
     }
     public class CompositeColumnItem

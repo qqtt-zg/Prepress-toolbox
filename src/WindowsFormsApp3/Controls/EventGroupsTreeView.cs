@@ -244,8 +244,108 @@ namespace WindowsFormsApp3.Controls
             treeView.ItemDrag += TreeView_ItemDrag;
             treeView.DragEnter += TreeView_DragEnter;
             treeView.DragDrop += TreeView_DragDrop;
+            
+            // 添加节点勾选事件处理
+            treeView.AfterCheck += TreeView_AfterCheck;
 
-            System.Diagnostics.Debug.WriteLine("[SetupTreeView] 拖拽事件绑定完成");
+            System.Diagnostics.Debug.WriteLine("[SetupTreeView] 拖拽事件和勾选事件绑定完成");
+        }
+
+        /// <summary>
+        /// TreeView节点勾选事件处理
+        /// </summary>
+        private void TreeView_AfterCheck(object sender, TreeViewEventArgs e)
+        {
+            if (e.Node == null) return;
+
+            var nodeData = e.Node.Tag as TreeNodeData;
+            if (nodeData == null) return;
+
+            // 更新节点数据
+            nodeData.IsEnabled = e.Node.Checked;
+
+            if (nodeData.NodeType == TreeNodeType.Group)
+            {
+                // 分组节点：处理分组与子项目的联动
+                HandleGroupCheckChanged(e.Node, nodeData, e.Node.Checked);
+            }
+            else if (nodeData.NodeType == TreeNodeType.Item)
+            {
+                // 项目节点：处理单个项目状态变化
+                HandleItemCheckChanged(e.Node, nodeData, e.Node.Checked);
+            }
+
+            // 触发配置保存事件
+            ConfigurationSaveRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// 处理分组勾选状态变化
+        /// </summary>
+        private void HandleGroupCheckChanged(TreeNode groupNode, TreeNodeData groupData, bool isChecked)
+        {
+            if (!isChecked)
+            {
+                // 分组取消勾选时，强制取消分组内的所有子节点
+                foreach (TreeNode childNode in groupNode.Nodes)
+                {
+                    if (childNode.Tag is TreeNodeData childData)
+                    {
+                        childNode.Checked = false;
+                        childData.IsEnabled = false;
+                    }
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[分组勾选] 分组 '{groupData.Group}' 取消勾选，已同时取消所有子项目");
+            }
+            else
+            {
+                // 分组勾选时，可以选择不同的策略：
+                // 策略1：保持子项目原有状态（当前实现）
+                // 策略2：同时勾选所有子项目（可选）
+                // 策略3：询问用户是否同时勾选子项目（可选）
+                
+                // 这里采用策略1：保持子项目原有状态，让用户自己决定
+                System.Diagnostics.Debug.WriteLine($"[分组勾选] 分组 '{groupData.Group}' 已勾选，子项目保持原有状态");
+                
+                // 如果需要同时勾选所有子项目，可以取消注释下面的代码：
+                /*
+                foreach (TreeNode childNode in groupNode.Nodes)
+                {
+                    if (childNode.Tag is TreeNodeData childData)
+                    {
+                        childNode.Checked = true;
+                        childData.IsEnabled = true;
+                    }
+                }
+                */
+            }
+        }
+
+        /// <summary>
+        /// 处理项目勾选状态变化
+        /// </summary>
+        private void HandleItemCheckChanged(TreeNode itemNode, TreeNodeData itemData, bool isChecked)
+        {
+            // 项目状态变化时，检查父分组的状态
+            var parentNode = itemNode.Parent;
+            if (parentNode?.Tag is TreeNodeData parentData && parentData.NodeType == TreeNodeType.Group)
+            {
+                // 如果项目被勾选，但父分组未勾选，可以选择不同的策略：
+                // 策略1：允许子项目独立于父分组状态（当前实现）
+                // 策略2：自动勾选父分组
+                // 策略3：提示用户是否勾选父分组
+                
+                if (isChecked && !parentNode.Checked)
+                {
+                    // 这里采用策略1：允许子项目独立状态
+                    System.Diagnostics.Debug.WriteLine($"[项目勾选] 项目 '{itemData.ItemName}' 已勾选，但父分组 '{parentData.Group}' 未勾选");
+                }
+                else if (!isChecked)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[项目勾选] 项目 '{itemData.ItemName}' 已取消勾选");
+                }
+            }
         }
 
         /// <summary>
@@ -1190,38 +1290,69 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                     }
                 }
 
-                // 处理项目节点拖拽（原有逻辑）
+                // 处理项目节点拖拽
                 if (draggedNode?.Tag is TreeNodeData draggedItemData &&
-                    draggedItemData.NodeType == TreeNodeType.Item &&
-                    targetNode?.Tag is TreeNodeData itemTargetData)
+                    draggedItemData.NodeType == TreeNodeType.Item)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[DragEnter] 拖拽验证通过: 拖拽项目={draggedItemData.ItemName}, 目标分组={itemTargetData.Group}, 是否保留={itemTargetData.IsPreserved}");
-
-                    // 检查目标是否为保留分组
-                    if (itemTargetData.NodeType == TreeNodeType.Group && itemTargetData.IsPreserved)
+                    // 情况1：拖拽到分组节点（跨分组移动）
+                    if (targetNode?.Tag is TreeNodeData itemTargetData && itemTargetData.NodeType == TreeNodeType.Group)
                     {
-                        // 检查保留分组内是否已有任何项目
-                        bool hasExistingItem = false;
-                        var existingItemName = "";
-                        foreach (TreeNode childNode in targetNode.Nodes)
+                        System.Diagnostics.Debug.WriteLine($"[DragEnter] 跨分组拖拽验证: 拖拽项目={draggedItemData.ItemName}, 目标分组={itemTargetData.Group}, 是否保留={itemTargetData.IsPreserved}");
+
+                        // 检查目标是否为保留分组
+                        if (itemTargetData.IsPreserved)
                         {
-                            if (childNode.Tag is TreeNodeData childData &&
-                                childData.NodeType == TreeNodeType.Item)
+                            // 检查保留分组内是否已有任何项目
+                            bool hasExistingItem = false;
+                            var existingItemName = "";
+                            foreach (TreeNode childNode in targetNode.Nodes)
                             {
-                                hasExistingItem = true;
-                                existingItemName = childData.ItemName;
-                                break;
+                                if (childNode.Tag is TreeNodeData childData &&
+                                    childData.NodeType == TreeNodeType.Item)
+                                {
+                                    hasExistingItem = true;
+                                    existingItemName = childData.ItemName;
+                                    break;
+                                }
+                            }
+
+                            if (hasExistingItem)
+                            {
+                                // 允许拖拽继续，但标记为冲突状态
+                                e.Effect = DragDropEffects.Move;
+                                System.Diagnostics.Debug.WriteLine($"[DragEnter] 检测到保留分组 '{itemTargetData.Group.Value}' 已有项目 '{existingItemName}'，标记为冲突状态");
+                                return;
                             }
                         }
 
-                        if (hasExistingItem)
+                        e.Effect = DragDropEffects.Move;
+                        System.Diagnostics.Debug.WriteLine($"[DragEnter] 跨分组拖拽有效");
+                        return;
+                    }
+
+                    // 情况2：拖拽到同分组内的其他项目节点（分组内排序）
+                    if (targetNode?.Tag is TreeNodeData targetItemData && targetItemData.NodeType == TreeNodeType.Item)
+                    {
+                        // 检查是否在同一个分组内
+                        if (draggedNode.Parent == targetNode.Parent)
                         {
-                            // 允许拖拽继续，但标记为冲突状态
                             e.Effect = DragDropEffects.Move;
-                            System.Diagnostics.Debug.WriteLine($"[DragEnter] 检测到保留分组 '{itemTargetData.Group.Value}' 已有项目 '{existingItemName}'，标记为冲突状态");
+                            System.Diagnostics.Debug.WriteLine($"[DragEnter] 分组内排序有效: 拖拽项目={draggedItemData.ItemName}, 目标项目={targetItemData.ItemName}");
+                            return;
+                        }
+                        else
+                        {
+                            // 不同分组间的项目拖拽，不允许
+                            e.Effect = DragDropEffects.None;
+                            System.Diagnostics.Debug.WriteLine($"[DragEnter] 不同分组间项目拖拽，不允许");
                             return;
                         }
                     }
+
+                    // 情况3：拖拽到空白区域或其他情况
+                    e.Effect = DragDropEffects.Move;
+                    System.Diagnostics.Debug.WriteLine($"[DragEnter] 项目拖拽到空白区域或其他情况");
+                    return;
                 }
 
                 e.Effect = DragDropEffects.Move;
@@ -1270,16 +1401,15 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                     return;
                 }
 
-                // 处理项目节点拖拽（原有逻辑）
+                // 处理项目节点拖拽
                 if (draggedNode?.Tag is TreeNodeData draggedItemData &&
-                    draggedItemData.NodeType == TreeNodeType.Item &&
-                    targetNode?.Tag is TreeNodeData targetData)
+                    draggedItemData.NodeType == TreeNodeType.Item)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[拖拽验证] 拖拽数据有效: 拖拽项目='{draggedItemData.ItemName}', 目标类型={targetData.NodeType}, 是否保留分组={targetData.IsPreserved}");
-
-                    // 如果是拖拽到分组（包括保留分组），检查冲突
-                    if (targetData.NodeType == TreeNodeType.Group)
+                    // 情况1：拖拽到分组节点（跨分组移动）
+                    if (targetNode?.Tag is TreeNodeData targetData && targetData.NodeType == TreeNodeType.Group)
                     {
+                        System.Diagnostics.Debug.WriteLine($"[跨分组拖拽] 拖拽数据有效: 拖拽项目='{draggedItemData.ItemName}', 目标分组={targetData.Group}, 是否保留分组={targetData.IsPreserved}");
+
                         // 检查目标分组内是否已有项目
                         bool hasExistingItem = false;
                         var existingItemName = "";
@@ -1314,7 +1444,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                             return;
                         }
 
-                        // 执行正常的拖拽操作
+                        // 执行正常的跨分组拖拽操作
                         draggedNode.Remove();
                         targetNode.Nodes.Add(draggedNode);
 
@@ -1326,13 +1456,13 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                         {
                             draggedItemData.IsPreserved = true;
                             UpdateItemNodeVisual(draggedNode, true);
-                            System.Diagnostics.Debug.WriteLine($"[拖拽成功] 项目 '{draggedItemData.ItemName}' 已加入保留分组 '{targetData.Group.Value}' 并设置为保留状态");
+                            System.Diagnostics.Debug.WriteLine($"[跨分组拖拽成功] 项目 '{draggedItemData.ItemName}' 已加入保留分组 '{targetData.Group.Value}' 并设置为保留状态");
                         }
                         else
                         {
                             draggedItemData.IsPreserved = false;
                             UpdateItemNodeVisual(draggedNode, false);
-                            System.Diagnostics.Debug.WriteLine($"[拖拽成功] 项目 '{draggedItemData.ItemName}' 已加入普通分组 '{targetData.Group.Value}'");
+                            System.Diagnostics.Debug.WriteLine($"[跨分组拖拽成功] 项目 '{draggedItemData.ItemName}' 已加入普通分组 '{targetData.Group.Value}'");
                         }
 
                         // 更新分组节点显示
@@ -1342,10 +1472,231 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                         ConfigurationSaveRequested?.Invoke(this, EventArgs.Empty);
                         return;
                     }
+
+                    // 情况2：拖拽到同分组内的其他项目节点（分组内排序）
+                    if (targetNode?.Tag is TreeNodeData targetItemData && targetItemData.NodeType == TreeNodeType.Item)
+                    {
+                        // 检查是否在同一个分组内
+                        if (draggedNode.Parent == targetNode.Parent && draggedNode.Parent != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[分组内排序] 开始处理分组内项目排序: 拖拽项目='{draggedItemData.ItemName}', 目标项目='{targetItemData.ItemName}'");
+
+                            // 执行分组内项目排序
+                            bool sortSuccess = ReorderItemsWithinGroup(draggedNode, targetNode, targetPoint);
+
+                            if (sortSuccess)
+                            {
+                                // 触发配置保存事件
+                                ConfigurationSaveRequested?.Invoke(this, EventArgs.Empty);
+                                System.Diagnostics.Debug.WriteLine($"[分组内排序] 排序完成并触发保存事件");
+                            }
+                            else
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[分组内排序] 排序失败或被取消");
+                            }
+                            return;
+                        }
+                    }
+
+                    // 情况3：其他情况的处理
+                    System.Diagnostics.Debug.WriteLine($"[拖拽] 未匹配到具体的拖拽情况，使用默认处理");
                 }
             }
+        }
 
-          }
+        /// <summary>
+        /// 重新排序分组内的项目节点
+        /// </summary>
+        /// <param name="draggedNode">被拖拽的项目节点</param>
+        /// <param name="targetNode">目标项目节点</param>
+        /// <param name="targetPoint">拖拽目标位置</param>
+        /// <returns>是否排序成功</returns>
+        private bool ReorderItemsWithinGroup(TreeNode draggedNode, TreeNode targetNode, Point targetPoint)
+        {
+            try
+            {
+                var parentGroup = draggedNode.Parent;
+                if (parentGroup == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[分组内排序] 拖拽节点没有父分组");
+                    return false;
+                }
+
+                // 获取分组内的所有项目节点
+                var itemNodes = new List<TreeNode>();
+                foreach (TreeNode node in parentGroup.Nodes)
+                {
+                    if (node.Tag is TreeNodeData nodeData && nodeData.NodeType == TreeNodeType.Item)
+                    {
+                        itemNodes.Add(node);
+                    }
+                }
+
+                if (itemNodes.Count < 2)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[分组内排序] 分组内项目数量不足，无需排序");
+                    return false;
+                }
+
+                // 计算插入位置
+                int draggedIndex = itemNodes.IndexOf(draggedNode);
+                int targetIndex = itemNodes.IndexOf(targetNode);
+
+                if (draggedIndex == -1 || targetIndex == -1)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[分组内排序] 无法找到拖拽节点或目标节点的索引");
+                    return false;
+                }
+
+                // 如果位置没有变化，不需要排序
+                if (draggedIndex == targetIndex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[分组内排序] 位置未变化，无需排序");
+                    return false;
+                }
+
+                // 计算实际插入位置（基于鼠标位置）
+                int insertIndex = CalculateItemInsertIndex(draggedNode, targetNode, targetPoint, itemNodes);
+
+                // 执行排序
+                return ExecuteItemReordering(draggedNode, draggedIndex, insertIndex, itemNodes, parentGroup);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[分组内排序] 排序过程中发生异常: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 计算分组内项目的插入位置
+        /// </summary>
+        private int CalculateItemInsertIndex(TreeNode draggedNode, TreeNode targetNode, Point targetPoint, List<TreeNode> itemNodes)
+        {
+            int draggedIndex = itemNodes.IndexOf(draggedNode);
+            int targetIndex = itemNodes.IndexOf(targetNode);
+
+            try
+            {
+                // 获取目标节点的边界
+                var targetBounds = targetNode.Bounds;
+                var midPoint = targetBounds.Top + targetBounds.Height / 2;
+
+                System.Diagnostics.Debug.WriteLine($"[分组内排序] 计算插入位置: 拖拽索引={draggedIndex}, 目标索引={targetIndex}, 鼠标Y={targetPoint.Y}, 目标中点Y={midPoint}");
+
+                if (draggedIndex < targetIndex)
+                {
+                    // 从上往下拖拽
+                    if (targetPoint.Y < midPoint)
+                    {
+                        // 插入到目标节点前面
+                        return targetIndex;
+                    }
+                    else
+                    {
+                        // 插入到目标节点后面
+                        return targetIndex + 1;
+                    }
+                }
+                else
+                {
+                    // 从下往上拖拽
+                    if (targetPoint.Y < midPoint)
+                    {
+                        // 插入到目标节点前面
+                        return targetIndex;
+                    }
+                    else
+                    {
+                        // 插入到目标节点后面
+                        return targetIndex + 1;
+                    }
+                }
+            }
+            catch
+            {
+                // 如果无法获取边界信息，使用简单的逻辑
+                return targetIndex;
+            }
+        }
+
+        /// <summary>
+        /// 执行分组内项目的重新排序
+        /// </summary>
+        private bool ExecuteItemReordering(TreeNode draggedNode, int originalIndex, int insertIndex, List<TreeNode> itemNodes, TreeNode parentGroup)
+        {
+            try
+            {
+                // 记录原始顺序
+                var oldOrder = itemNodes.Select(n => n.Text).ToList();
+
+                // 从父分组中移除拖拽的节点
+                parentGroup.Nodes.Remove(draggedNode);
+
+                // 重新计算插入位置（因为移除了一个节点）
+                int actualInsertIndex = insertIndex;
+                if (originalIndex < insertIndex)
+                {
+                    actualInsertIndex = insertIndex - 1;
+                }
+
+                // 确保插入索引在有效范围内
+                actualInsertIndex = Math.Max(0, Math.Min(actualInsertIndex, parentGroup.Nodes.Count));
+
+                // 在新位置插入节点
+                parentGroup.Nodes.Insert(actualInsertIndex, draggedNode);
+
+                // 记录新顺序
+                var newItemNodes = new List<TreeNode>();
+                foreach (TreeNode node in parentGroup.Nodes)
+                {
+                    if (node.Tag is TreeNodeData nodeData && nodeData.NodeType == TreeNodeType.Item)
+                    {
+                        newItemNodes.Add(node);
+                    }
+                }
+                var newOrder = newItemNodes.Select(n => n.Text).ToList();
+
+                System.Diagnostics.Debug.WriteLine($"[分组内排序] 排序完成: '{draggedNode.Text}' 从位置 {originalIndex} 移动到 {actualInsertIndex}");
+                System.Diagnostics.Debug.WriteLine($"[分组内排序] 原顺序: {string.Join(" -> ", oldOrder)}");
+                System.Diagnostics.Debug.WriteLine($"[分组内排序] 新顺序: {string.Join(" -> ", newOrder)}");
+
+                // 触发项目排序事件（如果需要）
+                OnItemsReordered(parentGroup, draggedNode.Text, originalIndex, actualInsertIndex, oldOrder, newOrder);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[分组内排序] 执行排序失败: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 项目排序事件
+        /// </summary>
+        public event EventHandler<ItemsReorderedEventArgs> ItemsReordered;
+
+        /// <summary>
+        /// 触发项目排序事件
+        /// </summary>
+        private void OnItemsReordered(TreeNode parentGroup, string draggedItem, int fromIndex, int toIndex, List<string> oldOrder, List<string> newOrder)
+        {
+            if (parentGroup?.Tag is TreeNodeData groupData)
+            {
+                ItemsReordered?.Invoke(this, new ItemsReorderedEventArgs
+                {
+                    GroupName = groupData.Group?.ToString() ?? "未知分组",
+                    DraggedItem = draggedItem,
+                    FromIndex = fromIndex,
+                    ToIndex = toIndex,
+                    OldOrder = oldOrder,
+                    NewOrder = newOrder,
+                    Timestamp = DateTime.Now
+                });
+            }
+        }
 
         /// <summary>
         /// 将项目移动到未分组
@@ -1700,6 +2051,20 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
     public class GroupReorderedEventArgs : EventArgs
     {
         public string DraggedGroup { get; set; }
+        public int FromIndex { get; set; }
+        public int ToIndex { get; set; }
+        public List<string> OldOrder { get; set; } = new List<string>();
+        public List<string> NewOrder { get; set; } = new List<string>();
+        public DateTime Timestamp { get; set; }
+    }
+
+    /// <summary>
+    /// 分组内项目排序事件参数
+    /// </summary>
+    public class ItemsReorderedEventArgs : EventArgs
+    {
+        public string GroupName { get; set; }
+        public string DraggedItem { get; set; }
         public int FromIndex { get; set; }
         public int ToIndex { get; set; }
         public List<string> OldOrder { get; set; } = new List<string>();

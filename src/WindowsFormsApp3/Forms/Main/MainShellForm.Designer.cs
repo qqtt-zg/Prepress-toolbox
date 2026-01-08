@@ -29,6 +29,7 @@ namespace WindowsFormsApp3.Forms.Main
         
         // Window Control Buttons
         private AntdUI.Button btnCollapse;
+        private Krypton.Toolkit.KryptonManager kryptonManager;
 
         /// <summary>
         /// Clean up any resources being used.
@@ -51,6 +52,8 @@ namespace WindowsFormsApp3.Forms.Main
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
+            this.kryptonManager = new Krypton.Toolkit.KryptonManager(this.components);
             this.mainContainer = new System.Windows.Forms.SplitContainer();
             this.navMenu = new AntdUI.Menu();
             this.panelCollapseWrapper = new System.Windows.Forms.Panel();
@@ -65,6 +68,10 @@ namespace WindowsFormsApp3.Forms.Main
             this.btnClose = new AntdUI.Button();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
             this.statusLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            // 
+            // kryptonManager
+            // 
+            this.kryptonManager.GlobalPaletteMode = Krypton.Toolkit.PaletteMode.Office2010Silver;
             ((System.ComponentModel.ISupportInitialize)(this.mainContainer)).BeginInit();
             this.mainContainer.Panel1.SuspendLayout();
             this.mainContainer.Panel2.SuspendLayout();

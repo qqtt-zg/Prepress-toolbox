@@ -522,6 +522,27 @@ namespace WindowsFormsApp3.Presenters
                             currentFileInfo.Quantity = i < quantities.Length ? quantities[i] : quantities[quantities.Length - 1];
                             currentFileInfo.SerialNumber = i < serialNumbers.Length ? serialNumbers[i] : serialNumbers[serialNumbers.Length - 1];
                             
+                            // ✅ 从Excel匹配列组合数据（与批量模式保持一致）
+                            if (_view.ExcelData != null && !string.IsNullOrEmpty(currentFileInfo.RegexResult))
+                            {
+                                var matchData = MatchExcelData(currentFileInfo.RegexResult);
+                                if (matchData != null && matchData.HasMatch)
+                                {
+                                    // 应用材料匹配结果（如果用户没有手动选择）
+                                    if (string.IsNullOrEmpty(currentFileInfo.Material) && !string.IsNullOrEmpty(matchData.Material))
+                                    {
+                                        currentFileInfo.Material = matchData.Material;
+                                    }
+                                    
+                                    // 应用列组合匹配结果
+                                    if (!string.IsNullOrEmpty(matchData.CompositeColumn))
+                                    {
+                                        currentFileInfo.CompositeColumn = matchData.CompositeColumn;
+                                        _logger?.LogDebug($"✅ 手动模式设置列组合数据: 文件='{currentFileInfo.OriginalName}', 列组合='{matchData.CompositeColumn}'");
+                                    }
+                                }
+                            }
+                            
                             // 生成新文件名
                             currentFileInfo.NewName = GenerateNewFileName(currentFileInfo);
                             
@@ -565,6 +586,9 @@ namespace WindowsFormsApp3.Presenters
                     
                     // 匹配 Excel 数据
                     var excelData = MatchExcelData(fileInfo.RegexResult ?? "");
+                    
+                    // ✅ 调试：记录匹配结果
+                    _logger?.LogDebug($"[批量模式] Excel匹配结果 - HasMatch: {excelData.HasMatch}, Quantity: '{excelData.Quantity}', SerialNumber: '{excelData.SerialNumber}', Material: '{excelData.Material}', CompositeColumn: '{excelData.CompositeColumn}'");
 
                     // 应用 Excel 匹配结果
                     if (excelData.HasMatch)
@@ -575,6 +599,16 @@ namespace WindowsFormsApp3.Presenters
                         if (!string.IsNullOrEmpty(excelData.Material))
                         {
                             fileInfo.Material = excelData.Material;
+                        }
+                        // 应用列组合匹配结果
+                        if (!string.IsNullOrEmpty(excelData.CompositeColumn))
+                        {
+                            fileInfo.CompositeColumn = excelData.CompositeColumn;
+                            _logger?.LogDebug($"✅ 批量模式设置列组合数据: 文件='{fileInfo.OriginalName}', 列组合='{excelData.CompositeColumn}'");
+                        }
+                        else
+                        {
+                            _logger?.LogWarning($"⚠️ 批量模式：Excel匹配成功但列组合数据为空，文件='{fileInfo.OriginalName}'");
                         }
                         _view.UpdateStatus($"已匹配 Excel 数据: 行{excelData.RowIndex + 1}");
                     }
@@ -1212,9 +1246,15 @@ namespace WindowsFormsApp3.Presenters
                         {
                             fileInfo.Material = matchData.Material;
                         }
+                        // 应用列组合匹配结果
+                        if (!string.IsNullOrEmpty(matchData.CompositeColumn))
+                        {
+                            fileInfo.CompositeColumn = matchData.CompositeColumn;
+                            _logger?.LogDebug($"设置列组合数据: 文件='{fileInfo.OriginalName}', 列组合='{matchData.CompositeColumn}'");
+                        }
                         matchedCount++;
 
-                        _logger?.LogDebug($"匹配成功: RegexResult='{regexResult}' -> 数量='{matchData.Quantity}', 序号='{matchData.SerialNumber}', 材料='{matchData.Material}'");
+                        _logger?.LogDebug($"匹配成功: RegexResult='{regexResult}' -> 数量='{matchData.Quantity}', 序号='{matchData.SerialNumber}', 材料='{matchData.Material}', 列组合='{matchData.CompositeColumn}'");
                     }
                 }
 
@@ -1281,12 +1321,31 @@ namespace WindowsFormsApp3.Presenters
                                 ? row[materialColumnIndex]?.ToString() ?? string.Empty
                                 : string.Empty;
 
+                            // 提取列组合字段
+                            string compositeColumn = string.Empty;
+                            
+                            // ✅ 调试：记录Excel列信息
+                            _logger?.LogDebug($"Excel列数: {excelData.Columns.Count}");
+                            _logger?.LogDebug($"Excel列名: {string.Join(", ", excelData.Columns.Cast<DataColumn>().Select(c => c.ColumnName))}");
+                            
+                            if (excelData.Columns.Contains("列组合"))
+                            {
+                                int compositeColumnIndex = excelData.Columns.IndexOf("列组合");
+                                compositeColumn = row[compositeColumnIndex]?.ToString() ?? string.Empty;
+                                _logger?.LogDebug($"✅ 找到列组合列，索引: {compositeColumnIndex}, 值: '{compositeColumn}' (行索引: {excelData.Rows.IndexOf(row)})");
+                            }
+                            else
+                            {
+                                _logger?.LogWarning($"⚠️ Excel数据中没有找到'列组合'列！可用列: {string.Join(", ", excelData.Columns.Cast<DataColumn>().Select(c => c.ColumnName))}");
+                            }
+
                             return new Models.ExcelMatchData
                             {
                                 RowIndex = excelData.Rows.IndexOf(row),
                                 Quantity = quantity,
                                 SerialNumber = serialNumber,
-                                Material = material
+                                Material = material,
+                                CompositeColumn = compositeColumn
                             };
                         }
                     }
@@ -2198,6 +2257,16 @@ namespace WindowsFormsApp3.Presenters
                 _logger?.LogError(ex, "[CreateFileNameComponentsConfigFromEventGroup] 创建配置时发生异常");
             }
 
+            // ✅ 修复：如果启用了列组合功能，强制启用CompositeColumnEnabled
+            if (AppSettings.EnableColumnCombine)
+            {
+                config.CompositeColumnEnabled = true;
+                _logger?.LogInformation("[CreateFileNameComponentsConfigFromEventGroup] 检测到启用列组合功能，强制启用CompositeColumnEnabled");
+            }
+
+            // ✅ 调试：记录最终配置状态
+            _logger?.LogInformation($"[CreateFileNameComponentsConfigFromEventGroup] 最终配置 - CompositeColumnEnabled: {config.CompositeColumnEnabled}");
+
             return config;
         }
 
@@ -2426,6 +2495,13 @@ namespace WindowsFormsApp3.Presenters
                 _logger?.LogInformation($"[GenerateNewFileName] 序号: {serialNumber}");
                 _logger?.LogInformation($"[GenerateNewFileName] 材料: {material}");
                 _logger?.LogInformation($"[GenerateNewFileName] 数量: {quantity}");
+                _logger?.LogInformation($"[GenerateNewFileName] 列组合: {fileInfo.CompositeColumn ?? "(空)"}");
+
+                // ✅ 调试：如果没有Excel数据但启用了列组合功能，提供测试数据
+                if (string.IsNullOrEmpty(fileInfo.CompositeColumn) && AppSettings.EnableColumnCombine)
+                {
+                    _logger?.LogInformation("[GenerateNewFileName] 检测到启用列组合但无数据，建议用户导入Excel数据或检查列组合配置");
+                }
 
                 // ✅ 使用与 Form1Presenter 一致的完整实现
                 var enabledConfig = CreateFileNameComponentsConfigFromEventGroup();
@@ -2448,6 +2524,8 @@ namespace WindowsFormsApp3.Presenters
                     // ✅ 修复：添加行数和列数
                     LayoutRows = fileInfo.LayoutRows ?? "",
                     LayoutColumns = fileInfo.LayoutColumns ?? "",
+                    // ✅ 修复：添加列组合数据
+                    CompositeColumn = fileInfo.CompositeColumn ?? "",
                     EnabledComponents = enabledConfig,
                     ComponentOrder = componentOrder,
                     Prefixes = prefixes,

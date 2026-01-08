@@ -26,6 +26,11 @@ namespace WindowsFormsApp3.Models
         public string Material { get; set; }
 
         /// <summary>
+        /// 列组合值
+        /// </summary>
+        public string CompositeColumn { get; set; }
+
+        /// <summary>
         /// 是否有匹配结果
         /// </summary>
         public bool HasMatch => RowIndex >= 0;
@@ -36,6 +41,7 @@ namespace WindowsFormsApp3.Models
             Quantity = "";
             SerialNumber = "";
             Material = "";
+            CompositeColumn = "";
         }
     }
 }
