@@ -122,7 +122,7 @@ namespace WindowsFormsApp3.Forms.Panels
         protected void UpdateMainStatus(string message)
         {
             var mainForm = GetMainShellForm();
-            mainForm?.UpdateStatus(message);
+            // mainForm?.UpdateStatus(message); // StatusStrip removed
         }
         
         /// <summary>

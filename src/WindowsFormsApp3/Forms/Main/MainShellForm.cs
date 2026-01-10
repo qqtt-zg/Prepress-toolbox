@@ -177,8 +177,7 @@ namespace WindowsFormsApp3.Forms.Main
             panelCache = new Dictionary<string, UserControl>();
             
             // 应用保存的主题
-            var themeMode = AppSettings.ThemeMode;
-            SetTheme(themeMode == "Dark");
+            ApplyCurrentTheme();
 
             // 默认显示文件重命名面板
             SwitchToPanel("rename");
@@ -212,21 +211,19 @@ namespace WindowsFormsApp3.Forms.Main
             // 4. 特殊处理主界面结构 (Override recursive defaults if needed)
             if (isDark)
             {
-                mainContainer.Panel1.BackColor = Color.FromArgb(30, 30, 30); // Sidebar
-                navMenu.BackColor = Color.FromArgb(30, 30, 30);
-                contentPanel.BackColor = Color.FromArgb(30, 30, 30); // Content Area
-                headerPanel.BackColor = Color.FromArgb(45, 45, 45); // Header
-                statusStrip.BackColor = Color.FromArgb(30, 30, 30);
-                statusLabel.ForeColor = Color.White;
+                mainContainer.Panel1.BackColor = Color.FromArgb(40, 42, 46); // 侧边栏 - 使用深色主背景色
+                navMenu.BackColor = Color.FromArgb(40, 42, 46);              // 导航菜单 - 使用深色主背景色
+                contentPanel.BackColor = Color.FromArgb(30, 30, 30);         // Content Area
+                headerPanel.BackColor = Color.FromArgb(45, 45, 45);          // Header
+                headerPanel.BackColor = Color.FromArgb(45, 45, 45);          // Header
             }
             else
             {
-                mainContainer.Panel1.BackColor = Color.White; // 浅色模式：侧边栏白色
-                navMenu.BackColor = Color.White;               // 浅色模式：菜单白色
-                contentPanel.BackColor = Color.FromArgb(248, 249, 250); // 浅色模式：内容区浅灰
+                mainContainer.Panel1.BackColor = Color.FromArgb(248, 249, 250); // 侧边栏 - 使用浅色主背景色
+                navMenu.BackColor = Color.FromArgb(248, 249, 250);              // 导航菜单 - 使用浅色主背景色
+                contentPanel.BackColor = Color.FromArgb(248, 249, 250);         // 浅色模式：内容区浅灰
                 headerPanel.BackColor = Color.White;
-                statusStrip.BackColor = Color.FromArgb(248, 249, 250);
-                statusLabel.ForeColor = Color.FromArgb(33, 37, 41); // 深灰文字
+
             }
 
             // 5. 更新所有已缓存的面板
@@ -236,8 +233,66 @@ namespace WindowsFormsApp3.Forms.Main
             }
 
             // 保存设置
-            AppSettings.ThemeMode = isDark ? "Dark" : "Light";
+            AppSettings.CurrentThemeName = isDark ? "深色" : "浅色";
             AppSettings.Save();
+        }
+        
+        /// <summary>
+        /// 应用当前保存的主题（使用 ThemeManager）
+        /// </summary>
+        public void ApplyCurrentTheme()
+        {
+            try
+            {
+                var themeManager = Services.ServiceLocator.Instance.GetThemeManager();
+                var themeName = AppSettings.CurrentThemeName;
+                var theme = themeManager.GetThemeByName(themeName);
+                
+                if (theme != null)
+                {
+                    // 设置当前主题
+                    themeManager.SetCurrentTheme(themeName);
+                    
+                    // Determine isDark based on theme name
+                    bool isDark = themeName.Contains("深色") || themeName.Contains("Dark");
+
+                    // Set dark mode state first
+                    ThemeHelper.ApplyTheme(this, isDark);
+                    
+                    // 应用主题到整个界面
+                    ThemeHelper.ApplyTheme(this, theme);
+                    
+                    // 明确设置导航菜单使用主背景色
+                    navMenu.BackColor = theme.Background;
+                    mainContainer.Panel1.BackColor = theme.Background;
+                    
+                    // 更新所有已缓存的面板
+                    foreach (var panel in panelCache.Values)
+                    {
+                        ThemeHelper.ApplyTheme(panel, isDark); // Ensure isDark is updated for each panel context if needed
+                        ThemeHelper.ApplyTheme(panel, theme);
+                    }
+                    
+                    // Krypton 适配
+                    if (kryptonManager != null)
+                    {
+                        kryptonManager.GlobalPaletteMode = isDark 
+                            ? Krypton.Toolkit.PaletteMode.Office2010Black 
+                            : Krypton.Toolkit.PaletteMode.Office2010Silver;
+                    }
+                }
+                else
+                {
+                    // 如果主题不存在，回退到默认主题
+                    SetTheme(AppSettings.CurrentThemeName == "深色");
+                }
+            }
+            catch (Exception ex)
+            {
+                Utils.LogHelper.Error("应用主题失败", ex);
+                // 回退到默认主题
+                SetTheme(false);
+            }
         }
         
         /// <summary>
@@ -279,12 +334,7 @@ namespace WindowsFormsApp3.Forms.Main
                 Tag = "database" 
             });
 
-            navMenu.Items.Add(new AntdUI.MenuItem 
-            { 
-                Text = "Excel导入", 
-                IconSvg = "FileExcelOutlined", 
-                Tag = "excel" 
-            });
+
 
             // 4. 设置
             navMenu.Items.Add(new AntdUI.MenuItem
@@ -487,8 +537,8 @@ namespace WindowsFormsApp3.Forms.Main
                     newPanel.Dock = DockStyle.Fill;
                     panelCache[primaryKey] = newPanel;
                     
-                    // 应用当前主题到新创建的面板
-                    var isDark = AppSettings.ThemeMode == "Dark";
+                    // 应用当前临渧题到新创建的面板
+                    var isDark = AppSettings.CurrentThemeName == "深色";
                     ThemeHelper.ApplyTheme(newPanel, isDark);
                 }
 
@@ -518,7 +568,7 @@ namespace WindowsFormsApp3.Forms.Main
                 }
 
                 // Update status bar
-                UpdateStatus($"当前: {GetPanelDisplayName(panelKey)}");
+
             }
             catch (Exception ex)
             {
@@ -611,16 +661,7 @@ namespace WindowsFormsApp3.Forms.Main
             };
         }
         
-        /// <summary>
-        /// 更新状态栏
-        /// </summary>
-        public void UpdateStatus(string message)
-        {
-            if (statusLabel != null)
-            {
-                statusLabel.Text = message;
-            }
-        }
+
         
         /// <summary>
         /// 显示主窗口

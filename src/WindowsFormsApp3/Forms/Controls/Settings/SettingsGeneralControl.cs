@@ -53,10 +53,6 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             object hotkey = AppSettings.Get(HotkeyKey);
             txtHotkey.Text = hotkey != null ? hotkey.ToString() : "";
 
-            // Theme
-            switchTheme.Checked = AppSettings.ThemeMode == "Dark";
-            switchTheme.CheckedChanged += SwitchTheme_CheckedChanged;
-
             LoadTextItems();
         }
 
@@ -239,12 +235,6 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             AppSettings.Set("TextItems", sb.ToString().TrimEnd('|'));
         }
 
-        private void SwitchTheme_CheckedChanged(object sender, EventArgs e)
-        {
-            if (this.FindForm() is Main.MainShellForm mainForm)
-            {
-                mainForm.SetTheme(switchTheme.Checked);
-            }
-        }
+
     }
 }

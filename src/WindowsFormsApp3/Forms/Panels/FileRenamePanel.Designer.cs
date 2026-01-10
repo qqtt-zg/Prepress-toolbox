@@ -365,13 +365,11 @@ namespace WindowsFormsApp3.Forms.Panels
             this._fileTable.Font = new System.Drawing.Font("微软雅黑", 9F);
             this._fileTable.HideOuterBorders = true;
             this._fileTable.Location = new System.Drawing.Point(0, 110);
-            this._fileTable.MultiSelect = false;
             this._fileTable.Name = "_fileTable";
             this._fileTable.ReadOnly = true;
             this._fileTable.RowHeadersWidth = 30;
             this._fileTable.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing;
             this._fileTable.RowTemplate.Height = 36;
-            this._fileTable.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this._fileTable.Size = new System.Drawing.Size(935, 363);
             this._fileTable.StateCommon.Background.Color1 = System.Drawing.Color.White;
             this._fileTable.StateCommon.BackStyle = Krypton.Toolkit.PaletteBackStyle.GridBackgroundList;
@@ -390,6 +388,9 @@ namespace WindowsFormsApp3.Forms.Panels
             this._fileTable.StateCommon.HeaderRow.Back.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(245)))), ((int)(((byte)(245)))));
             this._fileTable.StateCommon.HeaderRow.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(230)))), ((int)(((byte)(230)))), ((int)(((byte)(230)))));
             this._fileTable.StateCommon.HeaderRow.Border.DrawBorders = Krypton.Toolkit.PaletteDrawBorders.Right;
+            this._fileTable.StateSelected.DataCell.Back.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(225)))), ((int)(((byte)(240)))), ((int)(((byte)(255)))));
+            this._fileTable.StateSelected.DataCell.Back.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(225)))), ((int)(((byte)(240)))), ((int)(((byte)(255)))));
+            this._fileTable.StateSelected.DataCell.Content.Color1 = System.Drawing.Color.Black;
             this._fileTable.TabIndex = 0;
             // 
             // SerialNumber

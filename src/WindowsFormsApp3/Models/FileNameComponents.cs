@@ -1005,7 +1005,7 @@ namespace WindowsFormsApp3.Models
         /// </summary>
         /// <param name="originalFileName">原始文件名（不含扩展名）</param>
         /// <returns>保留分组数据字典</returns>
-        private Dictionary<string, string> ExtractPreserveGroupData(string originalFileName)
+        public Dictionary<string, string> ExtractPreserveGroupData(string originalFileName)
         {
             var preserveData = new Dictionary<string, string>();
 

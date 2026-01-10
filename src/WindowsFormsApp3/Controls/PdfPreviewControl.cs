@@ -19,6 +19,7 @@ namespace WindowsFormsApp3.Controls
         private PdfiumPdfPreviewControl _pdfiumControl;
         private bool _isLoading = false;
         private readonly bool _isDesignMode;
+        private AntdUI.Spin _loadingSpinner; // 加载动画组件
 
         #endregion
 
@@ -74,6 +75,11 @@ namespace WindowsFormsApp3.Controls
         public event EventHandler<PageLoadedEventArgs> PageLoaded;
 
         /// <summary>
+        /// 页面改变事件（翻页时触发）
+        /// </summary>
+        public event EventHandler PageChanged;
+
+        /// <summary>
         /// 加载出错事件
         /// </summary>
         public event EventHandler<ErrorEventArgs> LoadError;
@@ -122,6 +128,19 @@ namespace WindowsFormsApp3.Controls
 
                 this.Controls.Add(_pdfiumControl);
                 LogHelper.Debug("[PdfPreviewControl] PdfiumViewer PDF预览控件初始化完成");
+
+                // 创建加载动画组件
+                _loadingSpinner = new AntdUI.Spin
+                {
+                    Dock = DockStyle.Fill,
+                    Text = "加载中...",
+                    Visible = false,
+                    BackColor = Color.White,
+                    Font = new System.Drawing.Font("Microsoft YaHei UI", 10F)
+                };
+                this.Controls.Add(_loadingSpinner);
+                _loadingSpinner.BringToFront();
+                LogHelper.Debug("[PdfPreviewControl] 加载动画组件初始化完成");
             }
             catch (Exception ex)
             {
@@ -171,12 +190,26 @@ namespace WindowsFormsApp3.Controls
 
         private void PdfiumControl_PageChanged(object sender, EventArgs e)
         {
-            // 页面变化时可以触发相关事件
+            // 🔧 新增：转发页面变化事件，用于实时更新页码显示
+            PageChanged?.Invoke(this, EventArgs.Empty);
         }
 
         private void PdfiumControl_PageLoaded(object sender, EventArgs e)
         {
             _isLoading = false;
+            
+            // 🔧 确保加载动画被隐藏（多页 PDF 加载时间长，需要在渲染完成后再次确认）
+            ShowLoadingUI(false);
+            
+            // 🔧 强制刷新控件显示
+            if (_pdfiumControl != null)
+            {
+                _pdfiumControl.Invalidate();
+                _pdfiumControl.Refresh();
+            }
+            this.Refresh();
+            
+            LogHelper.Debug($"[PdfPreviewControl] PDF页面加载完成，当前页: {CurrentPageIndex + 1}/{PageCount}");
             OnPageLoaded(CurrentPageIndex, PageCount);
         }
 
@@ -210,6 +243,7 @@ namespace WindowsFormsApp3.Controls
             try
             {
                 _isLoading = true;
+                ShowLoadingUI(true); // 显示加载动画
                 LogHelper.Debug($"[PdfPreviewControl] 开始加载PDF: {filePath}");
 
                 if (_pdfiumControl != null)
@@ -243,6 +277,7 @@ namespace WindowsFormsApp3.Controls
             finally
             {
                 _isLoading = false;
+                ShowLoadingUI(false); // 隐藏加载动画
             }
         }
 
@@ -399,6 +434,42 @@ namespace WindowsFormsApp3.Controls
         protected virtual void OnLoadError(Exception ex)
         {
             LoadError?.Invoke(this, new ErrorEventArgs(ex));
+        }
+
+        /// <summary>
+        /// 控制加载UI的显示状态
+        /// </summary>
+        /// <param name="show">true:显示加载动画; false:隐藏加载动画</param>
+        private void ShowLoadingUI(bool show)
+        {
+            // 确保在UI线程执行
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new Action(() => ShowLoadingUI(show)));
+                return;
+            }
+
+            try
+            {
+                if (_loadingSpinner != null)
+                {
+                    _loadingSpinner.Visible = show;
+                    if (show)
+                    {
+                        _loadingSpinner.BringToFront();
+                        LogHelper.Debug("[PdfPreviewControl] 显示加载动画");
+                    }
+                    else
+                    {
+                        _loadingSpinner.SendToBack(); // 🔧 修复：隐藏时发送到底层确保不遮挡内容
+                        LogHelper.Debug("[PdfPreviewControl] 隐藏加载动画");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[PdfPreviewControl] 显示/隐藏加载UI失败: {ex.Message}");
+            }
         }
 
         #endregion

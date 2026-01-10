@@ -99,6 +99,14 @@ namespace WindowsFormsApp3.Utils
             </svg>";
 
         /// <summary>
+        /// 文件夹图标
+        /// </summary>
+        public static string Folder => @"
+            <svg viewBox=""0 0 1024 1024"">
+                <path d=""M880 298.4H521L403.7 186.2l-1.5-1.4c-1.7-1.6-4-2.5-6.3-2.5H144c-17.7 0-32 14.3-32 32v647.4c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V330.4c0-17.7-14.3-32-32-32z"" fill=""#FFC107""/>
+            </svg>";
+
+        /// <summary>
         /// 获取所有预定义图标的列表
         /// </summary>
         public static Dictionary<string, string> GetAllIcons()

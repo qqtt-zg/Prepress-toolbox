@@ -373,13 +373,10 @@ namespace WindowsFormsApp3.Presenters
                     return;
                 }
 
-                // 创建文件信息
+                // 创建文件信息（已包含保留分组数据提取逻辑）
                 var fileInfo = CreateFileRenameInfo(filePath);
-
-                // 提取正则匹配结果
-                fileInfo.RegexResult = ExtractRegexResult(fileInfo.OriginalName);
                 
-                _logger?.LogInformation($"[ProcessNewFileAsync] IsImmediateMode={_view.IsImmediateMode}, FileName={fileInfo.OriginalName}");
+                _logger?.LogInformation($"[ProcessNewFileAsync] IsImmediateMode={_view.IsImmediateMode}, FileName={fileInfo.OriginalName}, RegexResult={fileInfo.RegexResult}");
 
                 if (_view.IsImmediateMode)  // 手动模式
                 {
@@ -525,7 +522,9 @@ namespace WindowsFormsApp3.Presenters
                             // ✅ 从Excel匹配列组合数据（与批量模式保持一致）
                             if (_view.ExcelData != null && !string.IsNullOrEmpty(currentFileInfo.RegexResult))
                             {
-                                var matchData = MatchExcelData(currentFileInfo.RegexResult);
+                                // 使用辅助方法获取用于匹配的正则结果（支持保留分组）
+                                string regexForMatching = GetRegexResultForMatching(currentFileInfo);
+                                var matchData = MatchExcelData(regexForMatching);
                                 if (matchData != null && matchData.HasMatch)
                                 {
                                     // 应用材料匹配结果（如果用户没有手动选择）
@@ -584,8 +583,9 @@ namespace WindowsFormsApp3.Presenters
                 {
                     _logger?.LogInformation($"[ProcessNewFileAsync] 批量模式 - 自动处理");
                     
-                    // 匹配 Excel 数据
-                    var excelData = MatchExcelData(fileInfo.RegexResult ?? "");
+                    // 匹配 Excel 数据（使用辅助方法支持保留分组）
+                    string regexForMatching = GetRegexResultForMatching(fileInfo);
+                    var excelData = MatchExcelData(regexForMatching);
                     
                     // ✅ 调试：记录匹配结果
                     _logger?.LogDebug($"[批量模式] Excel匹配结果 - HasMatch: {excelData.HasMatch}, Quantity: '{excelData.Quantity}', SerialNumber: '{excelData.SerialNumber}', Material: '{excelData.Material}', CompositeColumn: '{excelData.CompositeColumn}'");
@@ -1233,8 +1233,61 @@ namespace WindowsFormsApp3.Presenters
                         continue;
                     }
 
-                    string regexResult = fileInfo.RegexResult;
-                    var matchData = MatchExcelData(regexResult);
+                    // ✅ 新增: 检测并使用保留的正则结果
+                    string regexResultForMatching = fileInfo.RegexResult;
+                    
+                    // 检查是否为返单文件(包含保留分组前缀)
+                    if (!string.IsNullOrEmpty(fileInfo.OriginalName))
+                    {
+                        string originalNameWithoutExt = Path.GetFileNameWithoutExtension(fileInfo.OriginalName);
+                        
+                        // 检测是否包含保留分组前缀模式 (如 &ID-, &MT- 等)
+                        if (System.Text.RegularExpressions.Regex.IsMatch(originalNameWithoutExt, @"&[A-Z]+-"))
+                        {
+                            _logger?.LogDebug($"检测到保留分组前缀，尝试提取保留的正则结果: '{originalNameWithoutExt}'");
+                            
+                            // 获取保留分组配置
+                            var preserveGroupConfig = GetPreserveGroupConfig();
+                            
+                            if (preserveGroupConfig != null && preserveGroupConfig.Count > 0)
+                            {
+                                // 获取当前的前缀配置
+                                var currentPrefixes = GetCurrentPrefixes();
+                                
+                                // 创建临时的 FileNameComponents 对象用于提取保留数据
+                                var tempComponents = new Models.FileNameComponents
+                                {
+                                    OriginalFileName = originalNameWithoutExt,
+                                    PreserveGroupConfig = preserveGroupConfig,
+                                    Prefixes = currentPrefixes
+                                };
+                                
+                                // 提取保留的分组数据
+                                var preserveData = tempComponents.ExtractPreserveGroupData(originalNameWithoutExt);
+                                
+                                // 如果保留数据中包含正则结果，则使用保留的值
+                                if (preserveData != null && preserveData.ContainsKey("正则结果"))
+                                {
+                                    string preservedRegexResult = preserveData["正则结果"];
+                                    if (!string.IsNullOrEmpty(preservedRegexResult))
+                                    {
+                                        regexResultForMatching = preservedRegexResult;
+                                        _logger?.LogInformation($"✅ 使用保留的正则结果进行匹配: '{regexResultForMatching}' (原RegexResult: '{fileInfo.RegexResult}', 文件: '{fileInfo.OriginalName}')");
+                                    }
+                                }
+                                else
+                                {
+                                    _logger?.LogDebug($"保留数据中未找到正则结果，使用当前RegexResult: '{fileInfo.RegexResult}'");
+                                }
+                            }
+                            else
+                            {
+                                _logger?.LogDebug($"保留分组配置为空，使用当前RegexResult: '{fileInfo.RegexResult}'");
+                            }
+                        }
+                    }
+
+                    var matchData = MatchExcelData(regexResultForMatching);
 
                     if (matchData != null && matchData.HasMatch)
                     {
@@ -1254,7 +1307,7 @@ namespace WindowsFormsApp3.Presenters
                         }
                         matchedCount++;
 
-                        _logger?.LogDebug($"匹配成功: RegexResult='{regexResult}' -> 数量='{matchData.Quantity}', 序号='{matchData.SerialNumber}', 材料='{matchData.Material}', 列组合='{matchData.CompositeColumn}'");
+                        _logger?.LogDebug($"匹配成功: RegexResult='{regexResultForMatching}' -> 数量='{matchData.Quantity}', 序号='{matchData.SerialNumber}', 材料='{matchData.Material}', 列组合='{matchData.CompositeColumn}'");
                     }
                 }
 
@@ -1984,8 +2037,9 @@ namespace WindowsFormsApp3.Presenters
                     // 如果启用了自动刷新，也更新新文件名
                     if (AppSettings.AutoRefreshFileNameOnRegexChange)
                     {
-                        // 重新匹配 Excel 数据
-                        var excelData = MatchExcelData(file.RegexResult ?? "");
+                        // 重新匹配 Excel 数据（使用辅助方法支持保留分组）
+                        string regexForMatching = GetRegexResultForMatching(file);
+                        var excelData = MatchExcelData(regexForMatching);
                         if (excelData.HasMatch)
                         {
                             file.Quantity = excelData.Quantity;
@@ -2042,6 +2096,84 @@ namespace WindowsFormsApp3.Presenters
                 OriginalName = Path.GetFileName(filePath),
                 RegexResult = ExtractRegexResult(Path.GetFileName(filePath))
             };
+
+            // ✅ 新增：检查是否为返单文件，如果是则从保留分组中提取数据
+            try
+            {
+                string originalNameWithoutExt = Path.GetFileNameWithoutExtension(fileInfo.OriginalName);
+                
+                // 检测是否包含保留分组前缀模式 (如 &ID-, &MT- 等)
+                if (System.Text.RegularExpressions.Regex.IsMatch(originalNameWithoutExt, @"&[A-Z]+-"))
+                {
+                    _logger?.LogDebug($"[CreateFileRenameInfo] 检测到保留分组前缀，提取保留数据: '{originalNameWithoutExt}'");
+                    
+                    // 获取保留分组配置
+                    var preserveGroupConfig = GetPreserveGroupConfig();
+                    
+                    if (preserveGroupConfig != null && preserveGroupConfig.Count > 0)
+                    {
+                        // 获取当前的前缀配置
+                        var currentPrefixes = GetCurrentPrefixes();
+                        
+                        // 创建临时的 FileNameComponents 对象用于提取保留数据
+                        var tempComponents = new Models.FileNameComponents
+                        {
+                            OriginalFileName = originalNameWithoutExt,
+                            PreserveGroupConfig = preserveGroupConfig,
+                            Prefixes = currentPrefixes
+                        };
+                        
+                        // 提取保留的分组数据
+                        var preserveData = tempComponents.ExtractPreserveGroupData(originalNameWithoutExt);
+                        
+                        if (preserveData != null && preserveData.Count > 0)
+                        {
+                            _logger?.LogInformation($"✅ [CreateFileRenameInfo] 提取到 {preserveData.Count} 个保留分组数据");
+                            
+                            // 应用保留的数据到 fileInfo
+                            if (preserveData.ContainsKey("正则结果"))
+                            {
+                                fileInfo.RegexResult = preserveData["正则结果"];
+                                _logger?.LogInformation($"   - 正则结果: '{fileInfo.RegexResult}'");
+                            }
+                            if (preserveData.ContainsKey("订单号"))
+                            {
+                                fileInfo.OrderNumber = preserveData["订单号"];
+                                _logger?.LogDebug($"   - 订单号: '{fileInfo.OrderNumber}'");
+                            }
+                            if (preserveData.ContainsKey("材料"))
+                            {
+                                fileInfo.Material = preserveData["材料"];
+                                _logger?.LogDebug($"   - 材料: '{fileInfo.Material}'");
+                            }
+                            if (preserveData.ContainsKey("数量"))
+                            {
+                                fileInfo.Quantity = preserveData["数量"];
+                                _logger?.LogDebug($"   - 数量: '{fileInfo.Quantity}'");
+                            }
+                            if (preserveData.ContainsKey("工艺"))
+                            {
+                                fileInfo.Process = preserveData["工艺"];
+                                _logger?.LogDebug($"   - 工艺: '{fileInfo.Process}'");
+                            }
+                            if (preserveData.ContainsKey("序号"))
+                            {
+                                fileInfo.SerialNumber = preserveData["序号"];
+                                _logger?.LogDebug($"   - 序号: '{fileInfo.SerialNumber}'");
+                            }
+                            if (preserveData.ContainsKey("尺寸"))
+                            {
+                                fileInfo.Dimensions = preserveData["尺寸"];
+                                _logger?.LogDebug($"   - 尺寸: '{fileInfo.Dimensions}'");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "[CreateFileRenameInfo] 提取保留分组数据时发生异常");
+            }
 
             // 解析 PDF 尺寸和页数
             try
@@ -2366,6 +2498,120 @@ namespace WindowsFormsApp3.Presenters
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "获取前缀配置时发生异常");
+            }
+
+            return prefixes;
+        }
+
+        /// <summary>
+        /// 获取用于Excel数据匹配的正则结果
+        /// 如果文件包含保留分组前缀，则从保留数据中提取正则结果
+        /// </summary>
+        /// <param name="fileInfo">文件信息</param>
+        /// <returns>用于匹配的正则结果</returns>
+        private string GetRegexResultForMatching(FileRenameInfo fileInfo)
+        {
+            if (fileInfo == null)
+                return string.Empty;
+
+            string regexResult = fileInfo.RegexResult ?? string.Empty;
+
+            try
+            {
+                // 检查是否为返单文件(包含保留分组前缀)
+                if (!string.IsNullOrEmpty(fileInfo.OriginalName))
+                {
+                    string originalNameWithoutExt = Path.GetFileNameWithoutExtension(fileInfo.OriginalName);
+
+                    // 检测是否包含保留分组前缀模式 (如 &ID-, &MT- 等)
+                    if (System.Text.RegularExpressions.Regex.IsMatch(originalNameWithoutExt, @"&[A-Z]+-"))
+                    {
+                        _logger?.LogDebug($"[GetRegexResultForMatching] 检测到保留分组前缀: '{originalNameWithoutExt}'");
+
+                        // 获取保留分组配置
+                        var preserveGroupConfig = GetPreserveGroupConfig();
+
+                        if (preserveGroupConfig != null && preserveGroupConfig.Count > 0)
+                        {
+                            // 获取当前的前缀配置
+                            var currentPrefixes = GetCurrentPrefixes();
+
+                            // 创建临时的 FileNameComponents 对象用于提取保留数据
+                            var tempComponents = new Models.FileNameComponents
+                            {
+                                OriginalFileName = originalNameWithoutExt,
+                                PreserveGroupConfig = preserveGroupConfig,
+                                Prefixes = currentPrefixes
+                            };
+
+                            // 提取保留的分组数据
+                            var preserveData = tempComponents.ExtractPreserveGroupData(originalNameWithoutExt);
+
+                            // 如果保留数据中包含正则结果，则使用保留的值
+                            if (preserveData != null && preserveData.ContainsKey("正则结果"))
+                            {
+                                string preservedRegexResult = preserveData["正则结果"];
+                                if (!string.IsNullOrEmpty(preservedRegexResult))
+                                {
+                                    regexResult = preservedRegexResult;
+                                    _logger?.LogInformation($"✅ [GetRegexResultForMatching] 使用保留的正则结果: '{regexResult}' (原RegexResult: '{fileInfo.RegexResult}')");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, $"[GetRegexResultForMatching] 获取匹配正则结果时发生异常，使用原始RegexResult: '{fileInfo.RegexResult}'");
+            }
+
+            return regexResult;
+        }
+
+        /// <summary>
+        /// 获取当前事件分组的前缀配置
+        /// </summary>
+        /// <returns>前缀字典，key为组件名称（可能带[*]标记），value为前缀值</returns>
+        private Dictionary<string, string> GetCurrentPrefixes()
+        {
+            var prefixes = new Dictionary<string, string>();
+
+            try
+            {
+                var eventGroupConfig = EventGroupConfigurationService.GetEventGroupConfiguration();
+                if (eventGroupConfig?.Groups == null)
+                {
+                    _logger?.LogDebug("[GetCurrentPrefixes] EventGroup配置为空，返回空前缀字典");
+                    return prefixes;
+                }
+
+                // 遍历所有分组，构建前缀字典
+                foreach (var group in eventGroupConfig.Groups)
+                {
+                    if (string.IsNullOrEmpty(group.Prefix))
+                        continue;
+
+                    // 找出该分组下的所有项目
+                    var groupItems = eventGroupConfig.Items.Where(item => item.GroupId == group.Id);
+
+                    foreach (var item in groupItems)
+                    {
+                        // 如果分组标记为保留，则组件名称需要带[*]标记
+                        string componentKey = group.IsPreserved 
+                            ? $"[*] {item.Name}" 
+                            : item.Name;
+
+                        prefixes[componentKey] = group.Prefix;
+                        _logger?.LogDebug($"[GetCurrentPrefixes] 添加前缀映射: '{componentKey}' -> '{group.Prefix}'");
+                    }
+                }
+
+                _logger?.LogDebug($"[GetCurrentPrefixes] 获取到 {prefixes.Count} 个前缀配置");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "[GetCurrentPrefixes] 获取当前前缀配置时发生异常");
             }
 
             return prefixes;

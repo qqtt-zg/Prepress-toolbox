@@ -23,6 +23,9 @@ namespace WindowsFormsApp3.Forms.Panels
             // 在运行时绑定事件（设计器已创建控件）
             WireUpEvents();
             
+            // 初始化主题编辑器
+            InitializeThemeEditor();
+            
             // 添加底部保存按钮面板
             CreateSaveButtonPanel();
         }
@@ -82,6 +85,32 @@ namespace WindowsFormsApp3.Forms.Panels
         {
             // Wire up Events
             settingsGeneral.SettingsSaved += SettingsGeneral_SettingsSaved;
+        }
+
+        /// <summary>
+        /// 初始化主题编辑器
+        /// </summary>
+        private void InitializeThemeEditor()
+        {
+            try
+            {
+                var themeManager = Services.ServiceLocator.Instance.GetThemeManager();
+                themeEditor.Initialize(themeManager);
+                
+                // 绑定主题改变事件
+                themeEditor.ThemeChanged += (s, e) =>
+                {
+                    // 通知主窗体应用新主题
+                    if (this.ParentForm is WindowsFormsApp3.Forms.Main.MainShellForm mainForm)
+                    {
+                        mainForm.ApplyCurrentTheme();
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                Utils.LogHelper.Error("初始化主题编辑器失败", ex);
+            }
         }
 
         private void SettingsGeneral_SettingsSaved(object sender, EventArgs e)
@@ -150,6 +179,9 @@ namespace WindowsFormsApp3.Forms.Panels
                     break;
                 case "event":
                     tabsMain.SelectedIndex = 5;
+                    break;
+                case "theme":
+                    tabsMain.SelectedIndex = 6;
                     break;
             }
         }

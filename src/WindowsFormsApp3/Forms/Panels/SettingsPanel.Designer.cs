@@ -12,12 +12,14 @@ namespace WindowsFormsApp3.Forms.Panels
         private AntdUI.TabPage pagePath;
         private AntdUI.TabPage pageImposition;
         private AntdUI.TabPage pageEvent;
+        private AntdUI.TabPage pageTheme;
         private Controls.Settings.SettingsGeneralControl settingsGeneral;
         private Controls.Settings.SettingsRegexControl settingsRegex;
         private Controls.Settings.SettingsMaterialControl settingsMaterial;
         private Controls.Settings.SettingsPathControl settingsPath;
         private Controls.Settings.SettingsImpositionControl settingsImposition;
         private Controls.Settings.SettingsEventControl settingsEvent;
+        private Controls.Settings.ThemeEditorControl themeEditor;
 
         protected override void Dispose(bool disposing)
         {
@@ -44,6 +46,8 @@ namespace WindowsFormsApp3.Forms.Panels
             this.settingsImposition = new WindowsFormsApp3.Forms.Controls.Settings.SettingsImpositionControl();
             this.pageEvent = new AntdUI.TabPage();
             this.settingsEvent = new WindowsFormsApp3.Forms.Controls.Settings.SettingsEventControl();
+            this.pageTheme = new AntdUI.TabPage();
+            this.themeEditor = new WindowsFormsApp3.Forms.Controls.Settings.ThemeEditorControl();
             this.tabsMain.SuspendLayout();
             this.pageGeneral.SuspendLayout();
             this.pageRegex.SuspendLayout();
@@ -51,6 +55,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.pagePath.SuspendLayout();
             this.pageImposition.SuspendLayout();
             this.pageEvent.SuspendLayout();
+            this.pageTheme.SuspendLayout();
             this.SuspendLayout();
             // 
             // tabsMain
@@ -61,6 +66,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.tabsMain.Controls.Add(this.pagePath);
             this.tabsMain.Controls.Add(this.pageImposition);
             this.tabsMain.Controls.Add(this.pageEvent);
+            this.tabsMain.Controls.Add(this.pageTheme);
             this.tabsMain.Cursor = System.Windows.Forms.Cursors.Default;
             this.tabsMain.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tabsMain.Location = new System.Drawing.Point(0, 0);
@@ -71,6 +77,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.tabsMain.Pages.Add(this.pagePath);
             this.tabsMain.Pages.Add(this.pageImposition);
             this.tabsMain.Pages.Add(this.pageEvent);
+            this.tabsMain.Pages.Add(this.pageTheme);
             this.tabsMain.Size = new System.Drawing.Size(935, 503);
             this.tabsMain.Style = styleLine1;
             this.tabsMain.TabIndex = 0;
@@ -185,6 +192,24 @@ namespace WindowsFormsApp3.Forms.Panels
             this.settingsEvent.Size = new System.Drawing.Size(935, 475);
             this.settingsEvent.TabIndex = 0;
             // 
+            // pageTheme
+            // 
+            this.pageTheme.Controls.Add(this.themeEditor);
+            this.pageTheme.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pageTheme.Location = new System.Drawing.Point(0, 28);
+            this.pageTheme.Name = "pageTheme";
+            this.pageTheme.Size = new System.Drawing.Size(935, 475);
+            this.pageTheme.TabIndex = 6;
+            this.pageTheme.Text = "主题";
+            // 
+            // themeEditor
+            // 
+            this.themeEditor.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.themeEditor.Location = new System.Drawing.Point(0, 0);
+            this.themeEditor.Name = "themeEditor";
+            this.themeEditor.Size = new System.Drawing.Size(935, 475);
+            this.themeEditor.TabIndex = 0;
+            // 
             // SettingsPanel
             // 
             this.Controls.Add(this.tabsMain);
@@ -197,6 +222,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.pagePath.ResumeLayout(false);
             this.pageImposition.ResumeLayout(false);
             this.pageEvent.ResumeLayout(false);
+            this.pageTheme.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }

@@ -36,6 +36,8 @@ namespace WindowsFormsApp3
         {
             this.components = new System.ComponentModel.Container();
             AntdUI.Tabs.StyleLine styleLine1 = new AntdUI.Tabs.StyleLine();
+            this.fileNameLabel = new AntdUI.Label();
+            this.fileNameSeparator = new System.Windows.Forms.Panel();
             this.orderNumberLabel = new AntdUI.Label();
             this.orderNumberTextBox = new AntdUI.Input();
             this.autoIncrementCheckbox = new AntdUI.Checkbox();
@@ -97,6 +99,7 @@ namespace WindowsFormsApp3
             this.previewCollapseButton = new AntdUI.Button();
             this.pdfPreviewPanel = new System.Windows.Forms.Panel();
             this.pdfPreviewControl = new System.Windows.Forms.Panel();
+            this.label1 = new AntdUI.Label();
             this.tabs1.SuspendLayout();
             this.tabPage3.SuspendLayout();
             this.materialTypeGroupBox.SuspendLayout();
@@ -104,10 +107,33 @@ namespace WindowsFormsApp3
             this.pdfPreviewPanel.SuspendLayout();
             this.SuspendLayout();
             // 
+            // fileNameLabel
+            // 
+            this.fileNameLabel.BackColor = System.Drawing.Color.Transparent;
+            this.fileNameLabel.Dock = System.Windows.Forms.DockStyle.Top;
+            this.fileNameLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.fileNameLabel.Location = new System.Drawing.Point(2, 2);
+            this.fileNameLabel.Margin = new System.Windows.Forms.Padding(0, 0, 0, 6);
+            this.fileNameLabel.Name = "fileNameLabel";
+            this.fileNameLabel.Padding = new System.Windows.Forms.Padding(8, 4, 8, 6);
+            this.fileNameLabel.Size = new System.Drawing.Size(396, 28);
+            this.fileNameLabel.TabIndex = 0;
+            this.fileNameLabel.Text = "材料选择";
+            // 
+            // fileNameSeparator
+            // 
+            this.fileNameSeparator.BackColor = System.Drawing.Color.LightGray;
+            this.fileNameSeparator.Dock = System.Windows.Forms.DockStyle.Top;
+            this.fileNameSeparator.Location = new System.Drawing.Point(2, 30);
+            this.fileNameSeparator.Margin = new System.Windows.Forms.Padding(0, 0, 0, 8);
+            this.fileNameSeparator.Name = "fileNameSeparator";
+            this.fileNameSeparator.Size = new System.Drawing.Size(396, 1);
+            this.fileNameSeparator.TabIndex = 1;
+            // 
             // orderNumberLabel
             // 
             this.orderNumberLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.orderNumberLabel.Location = new System.Drawing.Point(150, 303);
+            this.orderNumberLabel.Location = new System.Drawing.Point(150, 333);
             this.orderNumberLabel.Name = "orderNumberLabel";
             this.orderNumberLabel.Size = new System.Drawing.Size(40, 25);
             this.orderNumberLabel.TabIndex = 2;
@@ -118,7 +144,7 @@ namespace WindowsFormsApp3
             // 
             this.orderNumberTextBox.BorderWidth = 2F;
             this.orderNumberTextBox.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.orderNumberTextBox.Location = new System.Drawing.Point(197, 299);
+            this.orderNumberTextBox.Location = new System.Drawing.Point(197, 329);
             this.orderNumberTextBox.Name = "orderNumberTextBox";
             this.orderNumberTextBox.Size = new System.Drawing.Size(120, 32);
             this.orderNumberTextBox.TabIndex = 3;
@@ -127,7 +153,7 @@ namespace WindowsFormsApp3
             // 
             // autoIncrementCheckbox
             // 
-            this.autoIncrementCheckbox.Location = new System.Drawing.Point(320, 299);
+            this.autoIncrementCheckbox.Location = new System.Drawing.Point(320, 329);
             this.autoIncrementCheckbox.Margin = new System.Windows.Forms.Padding(0);
             this.autoIncrementCheckbox.Name = "autoIncrementCheckbox";
             this.autoIncrementCheckbox.Size = new System.Drawing.Size(32, 32);
@@ -137,7 +163,7 @@ namespace WindowsFormsApp3
             // quantityLabel
             // 
             this.quantityLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.quantityLabel.Location = new System.Drawing.Point(150, 340);
+            this.quantityLabel.Location = new System.Drawing.Point(150, 370);
             this.quantityLabel.Name = "quantityLabel";
             this.quantityLabel.Size = new System.Drawing.Size(36, 25);
             this.quantityLabel.TabIndex = 5;
@@ -148,7 +174,7 @@ namespace WindowsFormsApp3
             this.quantityTextBox.BorderWidth = 2F;
             this.quantityTextBox.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.quantityTextBox.JoinMode = AntdUI.TJoinMode.Left;
-            this.quantityTextBox.Location = new System.Drawing.Point(197, 336);
+            this.quantityTextBox.Location = new System.Drawing.Point(197, 366);
             this.quantityTextBox.Name = "quantityTextBox";
             this.quantityTextBox.Size = new System.Drawing.Size(120, 32);
             this.quantityTextBox.TabIndex = 6;
@@ -160,7 +186,7 @@ namespace WindowsFormsApp3
             this.incrementTextBox.BorderWidth = 2F;
             this.incrementTextBox.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.incrementTextBox.JoinMode = AntdUI.TJoinMode.Right;
-            this.incrementTextBox.Location = new System.Drawing.Point(317, 336);
+            this.incrementTextBox.Location = new System.Drawing.Point(317, 366);
             this.incrementTextBox.Name = "incrementTextBox";
             this.incrementTextBox.Size = new System.Drawing.Size(52, 32);
             this.incrementTextBox.TabIndex = 8;
@@ -169,7 +195,7 @@ namespace WindowsFormsApp3
             // serialNumberLabel
             // 
             this.serialNumberLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.serialNumberLabel.Location = new System.Drawing.Point(150, 266);
+            this.serialNumberLabel.Location = new System.Drawing.Point(150, 296);
             this.serialNumberLabel.Name = "serialNumberLabel";
             this.serialNumberLabel.Size = new System.Drawing.Size(40, 25);
             this.serialNumberLabel.TabIndex = 9;
@@ -180,7 +206,7 @@ namespace WindowsFormsApp3
             // 
             this.serialNumberTextBox.BorderWidth = 2F;
             this.serialNumberTextBox.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.serialNumberTextBox.Location = new System.Drawing.Point(197, 262);
+            this.serialNumberTextBox.Location = new System.Drawing.Point(197, 292);
             this.serialNumberTextBox.Name = "serialNumberTextBox";
             this.serialNumberTextBox.Size = new System.Drawing.Size(120, 32);
             this.serialNumberTextBox.TabIndex = 10;
@@ -191,7 +217,7 @@ namespace WindowsFormsApp3
             // dimensionsLabel
             // 
             this.dimensionsLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.dimensionsLabel.Location = new System.Drawing.Point(150, 377);
+            this.dimensionsLabel.Location = new System.Drawing.Point(150, 407);
             this.dimensionsLabel.Name = "dimensionsLabel";
             this.dimensionsLabel.Size = new System.Drawing.Size(36, 25);
             this.dimensionsLabel.TabIndex = 15;
@@ -202,7 +228,7 @@ namespace WindowsFormsApp3
             this.dimensionsTextBox.BorderWidth = 2F;
             this.dimensionsTextBox.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.dimensionsTextBox.JoinMode = AntdUI.TJoinMode.Left;
-            this.dimensionsTextBox.Location = new System.Drawing.Point(197, 373);
+            this.dimensionsTextBox.Location = new System.Drawing.Point(197, 403);
             this.dimensionsTextBox.Name = "dimensionsTextBox";
             this.dimensionsTextBox.Size = new System.Drawing.Size(120, 32);
             this.dimensionsTextBox.TabIndex = 16;
@@ -213,7 +239,7 @@ namespace WindowsFormsApp3
             this.bleedDropdown.BorderWidth = 2F;
             this.bleedDropdown.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.bleedDropdown.JoinMode = AntdUI.TJoinMode.Right;
-            this.bleedDropdown.Location = new System.Drawing.Point(315, 373);
+            this.bleedDropdown.Location = new System.Drawing.Point(315, 403);
             this.bleedDropdown.Margin = new System.Windows.Forms.Padding(0);
             this.bleedDropdown.Name = "bleedDropdown";
             this.bleedDropdown.Size = new System.Drawing.Size(54, 32);
@@ -224,7 +250,7 @@ namespace WindowsFormsApp3
             // 
             this.confirmButton.BorderWidth = 2F;
             this.confirmButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.confirmButton.Location = new System.Drawing.Point(243, 568);
+            this.confirmButton.Location = new System.Drawing.Point(243, 598);
             this.confirmButton.Name = "confirmButton";
             this.confirmButton.Size = new System.Drawing.Size(64, 28);
             this.confirmButton.TabIndex = 20;
@@ -238,7 +264,7 @@ namespace WindowsFormsApp3
             this.cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.cancelButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.cancelButton.Ghost = true;
-            this.cancelButton.Location = new System.Drawing.Point(313, 568);
+            this.cancelButton.Location = new System.Drawing.Point(313, 598);
             this.cancelButton.Name = "cancelButton";
             this.cancelButton.Size = new System.Drawing.Size(64, 28);
             this.cancelButton.TabIndex = 21;
@@ -251,7 +277,7 @@ namespace WindowsFormsApp3
             this.colorModeButton.BorderWidth = 2F;
             this.colorModeButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.colorModeButton.Ghost = true;
-            this.colorModeButton.Location = new System.Drawing.Point(313, 500);
+            this.colorModeButton.Location = new System.Drawing.Point(313, 530);
             this.colorModeButton.Name = "colorModeButton";
             this.colorModeButton.Size = new System.Drawing.Size(64, 32);
             this.colorModeButton.TabIndex = 22;
@@ -264,7 +290,7 @@ namespace WindowsFormsApp3
             this.filmTypeLightButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.filmTypeLightButton.Ghost = true;
             this.filmTypeLightButton.JoinMode = AntdUI.TJoinMode.Left;
-            this.filmTypeLightButton.Location = new System.Drawing.Point(150, 188);
+            this.filmTypeLightButton.Location = new System.Drawing.Point(150, 218);
             this.filmTypeLightButton.Name = "filmTypeLightButton";
             this.filmTypeLightButton.Size = new System.Drawing.Size(55, 32);
             this.filmTypeLightButton.TabIndex = 47;
@@ -277,7 +303,7 @@ namespace WindowsFormsApp3
             this.filmTypeMatteButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.filmTypeMatteButton.Ghost = true;
             this.filmTypeMatteButton.JoinMode = AntdUI.TJoinMode.LR;
-            this.filmTypeMatteButton.Location = new System.Drawing.Point(205, 188);
+            this.filmTypeMatteButton.Location = new System.Drawing.Point(205, 218);
             this.filmTypeMatteButton.Name = "filmTypeMatteButton";
             this.filmTypeMatteButton.Size = new System.Drawing.Size(55, 32);
             this.filmTypeMatteButton.TabIndex = 48;
@@ -290,7 +316,7 @@ namespace WindowsFormsApp3
             this.filmTypeNoneButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.filmTypeNoneButton.Ghost = true;
             this.filmTypeNoneButton.JoinMode = AntdUI.TJoinMode.Right;
-            this.filmTypeNoneButton.Location = new System.Drawing.Point(315, 188);
+            this.filmTypeNoneButton.Location = new System.Drawing.Point(315, 218);
             this.filmTypeNoneButton.Name = "filmTypeNoneButton";
             this.filmTypeNoneButton.Size = new System.Drawing.Size(55, 32);
             this.filmTypeNoneButton.TabIndex = 50;
@@ -303,7 +329,7 @@ namespace WindowsFormsApp3
             this.shapeRightAngleButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.shapeRightAngleButton.Ghost = true;
             this.shapeRightAngleButton.JoinMode = AntdUI.TJoinMode.Left;
-            this.shapeRightAngleButton.Location = new System.Drawing.Point(150, 225);
+            this.shapeRightAngleButton.Location = new System.Drawing.Point(150, 255);
             this.shapeRightAngleButton.Name = "shapeRightAngleButton";
             this.shapeRightAngleButton.Size = new System.Drawing.Size(55, 32);
             this.shapeRightAngleButton.TabIndex = 44;
@@ -316,7 +342,7 @@ namespace WindowsFormsApp3
             this.shapeCircleButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.shapeCircleButton.Ghost = true;
             this.shapeCircleButton.JoinMode = AntdUI.TJoinMode.LR;
-            this.shapeCircleButton.Location = new System.Drawing.Point(205, 225);
+            this.shapeCircleButton.Location = new System.Drawing.Point(205, 255);
             this.shapeCircleButton.Name = "shapeCircleButton";
             this.shapeCircleButton.Size = new System.Drawing.Size(55, 32);
             this.shapeCircleButton.TabIndex = 45;
@@ -329,7 +355,7 @@ namespace WindowsFormsApp3
             this.shapeSpecialButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.shapeSpecialButton.Ghost = true;
             this.shapeSpecialButton.JoinMode = AntdUI.TJoinMode.LR;
-            this.shapeSpecialButton.Location = new System.Drawing.Point(260, 225);
+            this.shapeSpecialButton.Location = new System.Drawing.Point(260, 255);
             this.shapeSpecialButton.Name = "shapeSpecialButton";
             this.shapeSpecialButton.Size = new System.Drawing.Size(55, 32);
             this.shapeSpecialButton.TabIndex = 46;
@@ -343,7 +369,7 @@ namespace WindowsFormsApp3
             this.shapeRoundRectButton.Ghost = true;
             this.shapeRoundRectButton.IconPosition = AntdUI.TAlignMini.None;
             this.shapeRoundRectButton.JoinMode = AntdUI.TJoinMode.Right;
-            this.shapeRoundRectButton.Location = new System.Drawing.Point(315, 225);
+            this.shapeRoundRectButton.Location = new System.Drawing.Point(315, 255);
             this.shapeRoundRectButton.Name = "shapeRoundRectButton";
             this.shapeRoundRectButton.Size = new System.Drawing.Size(55, 32);
             this.shapeRoundRectButton.TabIndex = 47;
@@ -359,7 +385,7 @@ namespace WindowsFormsApp3
             this.folderTreeView.HideSelection = false;
             this.folderTreeView.Indent = 5;
             this.folderTreeView.ItemHeight = 20;
-            this.folderTreeView.Location = new System.Drawing.Point(0, 187);
+            this.folderTreeView.Location = new System.Drawing.Point(0, 217);
             this.folderTreeView.Name = "folderTreeView";
             this.folderTreeView.ShowLines = false;
             this.folderTreeView.Size = new System.Drawing.Size(144, 350);
@@ -377,7 +403,7 @@ namespace WindowsFormsApp3
             this.tabs1.Controls.Add(this.tabPage3);
             this.tabs1.Controls.Add(this.tabPage2);
             this.tabs1.Cursor = System.Windows.Forms.Cursors.Default;
-            this.tabs1.Location = new System.Drawing.Point(0, 0);
+            this.tabs1.Location = new System.Drawing.Point(0, 33);
             this.tabs1.Margin = new System.Windows.Forms.Padding(0);
             this.tabs1.Name = "tabs1";
             this.tabs1.Pages.Add(this.tabPage3);
@@ -423,6 +449,7 @@ namespace WindowsFormsApp3
             "Tom",
             "Jerry"});
             this.dropdown16.Location = new System.Drawing.Point(294, 121);
+            this.dropdown16.MaxCount = 2147483647;
             this.dropdown16.Name = "dropdown16";
             this.dropdown16.PlaceholderText = "更多材料";
             this.dropdown16.SelectionColor = System.Drawing.Color.Transparent;
@@ -431,8 +458,7 @@ namespace WindowsFormsApp3
             this.dropdown16.TabIndex = 53;
             this.dropdown16.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.dropdown16.WaveSize = 0;
-            this.dropdown16.MaxCount = int.MaxValue;
-            //
+            // 
             // materialButton4
             // 
             this.materialButton4.BorderWidth = 2F;
@@ -627,7 +653,7 @@ namespace WindowsFormsApp3
             // 
             this.radiusTextBox.BorderWidth = 2F;
             this.radiusTextBox.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.radiusTextBox.Location = new System.Drawing.Point(320, 262);
+            this.radiusTextBox.Location = new System.Drawing.Point(320, 292);
             this.radiusTextBox.Name = "radiusTextBox";
             this.radiusTextBox.Size = new System.Drawing.Size(55, 32);
             this.radiusTextBox.TabIndex = 50;
@@ -639,7 +665,7 @@ namespace WindowsFormsApp3
             this.filmTypeRedButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.filmTypeRedButton.Ghost = true;
             this.filmTypeRedButton.JoinMode = AntdUI.TJoinMode.LR;
-            this.filmTypeRedButton.Location = new System.Drawing.Point(260, 188);
+            this.filmTypeRedButton.Location = new System.Drawing.Point(260, 218);
             this.filmTypeRedButton.Name = "filmTypeRedButton";
             this.filmTypeRedButton.Size = new System.Drawing.Size(55, 32);
             this.filmTypeRedButton.TabIndex = 52;
@@ -649,7 +675,7 @@ namespace WindowsFormsApp3
             // chkIdentifierPage
             // 
             this.chkIdentifierPage.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.chkIdentifierPage.Location = new System.Drawing.Point(150, 410);
+            this.chkIdentifierPage.Location = new System.Drawing.Point(150, 440);
             this.chkIdentifierPage.Name = "chkIdentifierPage";
             this.chkIdentifierPage.Size = new System.Drawing.Size(78, 26);
             this.chkIdentifierPage.TabIndex = 53;
@@ -658,7 +684,7 @@ namespace WindowsFormsApp3
             // enableImpositionCheckbox
             // 
             this.enableImpositionCheckbox.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F);
-            this.enableImpositionCheckbox.Location = new System.Drawing.Point(217, 410);
+            this.enableImpositionCheckbox.Location = new System.Drawing.Point(217, 440);
             this.enableImpositionCheckbox.Name = "enableImpositionCheckbox";
             this.enableImpositionCheckbox.Size = new System.Drawing.Size(83, 26);
             this.enableImpositionCheckbox.TabIndex = 54;
@@ -669,7 +695,7 @@ namespace WindowsFormsApp3
             this.materialTypeGroupBox.Controls.Add(this.flatSheetRadioButton);
             this.materialTypeGroupBox.Controls.Add(this.rollMaterialRadioButton);
             this.materialTypeGroupBox.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold);
-            this.materialTypeGroupBox.Location = new System.Drawing.Point(151, 442);
+            this.materialTypeGroupBox.Location = new System.Drawing.Point(151, 472);
             this.materialTypeGroupBox.Name = "materialTypeGroupBox";
             this.materialTypeGroupBox.Size = new System.Drawing.Size(226, 45);
             this.materialTypeGroupBox.TabIndex = 55;
@@ -699,7 +725,7 @@ namespace WindowsFormsApp3
             this.layoutModeGroupBox.Controls.Add(this.continuousLayoutRadioButton);
             this.layoutModeGroupBox.Controls.Add(this.foldingLayoutRadioButton);
             this.layoutModeGroupBox.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold);
-            this.layoutModeGroupBox.Location = new System.Drawing.Point(151, 493);
+            this.layoutModeGroupBox.Location = new System.Drawing.Point(151, 521);
             this.layoutModeGroupBox.Name = "layoutModeGroupBox";
             this.layoutModeGroupBox.Size = new System.Drawing.Size(156, 46);
             this.layoutModeGroupBox.TabIndex = 57;
@@ -728,7 +754,7 @@ namespace WindowsFormsApp3
             // 
             this.rowsDisplayLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold);
             this.rowsDisplayLabel.ForeColor = System.Drawing.Color.DodgerBlue;
-            this.rowsDisplayLabel.Location = new System.Drawing.Point(18, 543);
+            this.rowsDisplayLabel.Location = new System.Drawing.Point(18, 571);
             this.rowsDisplayLabel.Name = "rowsDisplayLabel";
             this.rowsDisplayLabel.Size = new System.Drawing.Size(60, 20);
             this.rowsDisplayLabel.TabIndex = 59;
@@ -738,7 +764,7 @@ namespace WindowsFormsApp3
             // 
             this.columnsDisplayLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold);
             this.columnsDisplayLabel.ForeColor = System.Drawing.Color.ForestGreen;
-            this.columnsDisplayLabel.Location = new System.Drawing.Point(97, 543);
+            this.columnsDisplayLabel.Location = new System.Drawing.Point(97, 571);
             this.columnsDisplayLabel.Name = "columnsDisplayLabel";
             this.columnsDisplayLabel.Size = new System.Drawing.Size(60, 20);
             this.columnsDisplayLabel.TabIndex = 60;
@@ -748,7 +774,7 @@ namespace WindowsFormsApp3
             // 
             this.layoutCountDisplayLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold);
             this.layoutCountDisplayLabel.ForeColor = System.Drawing.Color.Orange;
-            this.layoutCountDisplayLabel.Location = new System.Drawing.Point(176, 543);
+            this.layoutCountDisplayLabel.Location = new System.Drawing.Point(176, 571);
             this.layoutCountDisplayLabel.Name = "layoutCountDisplayLabel";
             this.layoutCountDisplayLabel.Size = new System.Drawing.Size(100, 20);
             this.layoutCountDisplayLabel.TabIndex = 61;
@@ -758,7 +784,7 @@ namespace WindowsFormsApp3
             // 
             this.rotationDisplayLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold);
             this.rotationDisplayLabel.ForeColor = System.Drawing.Color.MediumPurple;
-            this.rotationDisplayLabel.Location = new System.Drawing.Point(290, 543);
+            this.rotationDisplayLabel.Location = new System.Drawing.Point(290, 571);
             this.rotationDisplayLabel.Name = "rotationDisplayLabel";
             this.rotationDisplayLabel.Size = new System.Drawing.Size(90, 20);
             this.rotationDisplayLabel.TabIndex = 62;
@@ -768,7 +794,7 @@ namespace WindowsFormsApp3
             // 
             this.pdfSizeDisplayLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold);
             this.pdfSizeDisplayLabel.ForeColor = System.Drawing.Color.SeaGreen;
-            this.pdfSizeDisplayLabel.Location = new System.Drawing.Point(18, 573);
+            this.pdfSizeDisplayLabel.Location = new System.Drawing.Point(18, 601);
             this.pdfSizeDisplayLabel.Name = "pdfSizeDisplayLabel";
             this.pdfSizeDisplayLabel.Size = new System.Drawing.Size(210, 20);
             this.pdfSizeDisplayLabel.TabIndex = 63;
@@ -777,7 +803,7 @@ namespace WindowsFormsApp3
             // duplicateLayoutCheckbox
             // 
             this.duplicateLayoutCheckbox.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.duplicateLayoutCheckbox.Location = new System.Drawing.Point(306, 410);
+            this.duplicateLayoutCheckbox.Location = new System.Drawing.Point(300, 440);
             this.duplicateLayoutCheckbox.Name = "duplicateLayoutCheckbox";
             this.duplicateLayoutCheckbox.Size = new System.Drawing.Size(77, 26);
             this.duplicateLayoutCheckbox.TabIndex = 64;
@@ -787,7 +813,7 @@ namespace WindowsFormsApp3
             // previewCollapseButton
             // 
             this.previewCollapseButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F);
-            this.previewCollapseButton.Location = new System.Drawing.Point(0, 599);
+            this.previewCollapseButton.Location = new System.Drawing.Point(0, 627);
             this.previewCollapseButton.Name = "previewCollapseButton";
             this.previewCollapseButton.Radius = 0;
             this.previewCollapseButton.Size = new System.Drawing.Size(400, 15);
@@ -800,7 +826,7 @@ namespace WindowsFormsApp3
             // 
             this.pdfPreviewPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
             this.pdfPreviewPanel.Controls.Add(this.pdfPreviewControl);
-            this.pdfPreviewPanel.Location = new System.Drawing.Point(0, 614);
+            this.pdfPreviewPanel.Location = new System.Drawing.Point(0, 644);
             this.pdfPreviewPanel.Name = "pdfPreviewPanel";
             this.pdfPreviewPanel.Size = new System.Drawing.Size(400, 245);
             this.pdfPreviewPanel.TabIndex = 61;
@@ -815,6 +841,18 @@ namespace WindowsFormsApp3
             this.pdfPreviewControl.Size = new System.Drawing.Size(400, 245);
             this.pdfPreviewControl.TabIndex = 0;
             // 
+            // label1
+            // 
+            this.label1.BackColor = System.Drawing.Color.Transparent;
+            this.label1.Font = new System.Drawing.Font("Microsoft YaHei UI", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.label1.ForeColor = System.Drawing.Color.Gray;
+            this.label1.Location = new System.Drawing.Point(15, 627);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(120, 15);
+            this.label1.TabIndex = 66;
+            this.label1.Text = "页码: —";
+            this.label1.Click += new System.EventHandler(this.label1_Click);
+            // 
             // MaterialSelectFormModern
             // 
             this.AcceptButton = this.confirmButton;
@@ -822,12 +860,15 @@ namespace WindowsFormsApp3
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
             this.CancelButton = this.cancelButton;
-            this.ClientSize = new System.Drawing.Size(400, 859);
+            this.ClientSize = new System.Drawing.Size(400, 890);
+            this.Controls.Add(this.label1);
+            this.Controls.Add(this.previewCollapseButton);
+            this.Controls.Add(this.fileNameSeparator);
+            this.Controls.Add(this.fileNameLabel);
             this.Controls.Add(this.confirmButton);
             this.Controls.Add(this.cancelButton);
             this.Controls.Add(this.colorModeButton);
             this.Controls.Add(this.pdfPreviewPanel);
-            this.Controls.Add(this.previewCollapseButton);
             this.Controls.Add(this.enableImpositionCheckbox);
             this.Controls.Add(this.materialTypeGroupBox);
             this.Controls.Add(this.layoutModeGroupBox);
@@ -861,7 +902,7 @@ namespace WindowsFormsApp3
             this.Controls.Add(this.folderTreeView);
             this.Controls.Add(this.tabs1);
             this.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.KeyPreview = true;
             this.Name = "MaterialSelectFormModern";
             this.Padding = new System.Windows.Forms.Padding(2);
@@ -878,6 +919,10 @@ namespace WindowsFormsApp3
         #endregion
 
         // 控件声明
+
+        // 文件名显示控件
+        private AntdUI.Label fileNameLabel;
+        private System.Windows.Forms.Panel fileNameSeparator;
 
         // 基本信息控件
         private AntdUI.Label orderNumberLabel;
@@ -951,5 +996,6 @@ namespace WindowsFormsApp3
         private AntdUI.Button previewCollapseButton;
         private System.Windows.Forms.Panel pdfPreviewPanel;
         private System.Windows.Forms.Panel pdfPreviewControl;
+        private AntdUI.Label label1;
     }
 }

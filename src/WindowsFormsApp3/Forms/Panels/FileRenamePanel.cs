@@ -277,6 +277,9 @@ namespace WindowsFormsApp3.Forms.Panels
             // 禁用自动生成列，只显示设计器定义的列
             _fileTable.AutoGenerateColumns = false;
 
+            // 隐藏行头箭头 (通过Padding将内容挤出可视区域，保留自定义绘制的序号)
+            _fileTable.RowHeadersDefaultCellStyle.Padding = new Padding(_fileTable.RowHeadersWidth, 0, 0, 0);
+
             // 初始化999行空数据（与Form1保持一致）
             var fileBindingList = new BindingList<FileRenameInfo>();
             for (int i = 0; i < 999; i++)
@@ -1247,12 +1250,13 @@ namespace WindowsFormsApp3.Forms.Panels
             }
         }
 
-        // 消息显示方法实现
         public void ShowError(string message)
         {
             if (!string.IsNullOrEmpty(message))
             {
                 UpdateStatusLabel($"错误: {message}");
+                // 添加 AntdUI 全局错误提示
+                AntdUI.Message.error(this.FindForm(), message, autoClose: 3);
             }
         }
 
@@ -1261,6 +1265,8 @@ namespace WindowsFormsApp3.Forms.Panels
             if (!string.IsNullOrEmpty(message))
             {
                 UpdateStatusLabel($"成功: {message}");
+                // 添加 AntdUI 全局成功提示
+                AntdUI.Message.success(this.FindForm(), message, autoClose: 3);
             }
         }
 
@@ -1269,6 +1275,8 @@ namespace WindowsFormsApp3.Forms.Panels
             if (!string.IsNullOrEmpty(message))
             {
                 UpdateStatusLabel($"警告: {message}");
+                // 添加 AntdUI 全局警告提示
+                AntdUI.Message.warn(this.FindForm(), message, autoClose: 3);
             }
         }
 

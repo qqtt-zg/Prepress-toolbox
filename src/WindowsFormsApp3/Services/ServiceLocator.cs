@@ -166,6 +166,13 @@ namespace WindowsFormsApp3.Services
                 return new BatchProcessingService(fileRenameService, pdfProcessingService, logger, eventBus);
             });
             
+            // 注册主题管理服务
+            _services.AddSingleton<ThemeManager>(provider =>
+            {
+                var logger = provider.GetService<Interfaces.ILogger>();
+                return new ThemeManager(logger);
+            });
+            
             // 构建服务提供程序
             _serviceProvider = _services.BuildServiceProvider();
             _isInitialized = true;
@@ -334,6 +341,15 @@ namespace WindowsFormsApp3.Services
         public IDimensionCalculationService GetDimensionCalculationService()
         {
             return _serviceProvider.GetService<IDimensionCalculationService>();
+        }
+
+        /// <summary>
+        /// 获取主题管理服务
+        /// </summary>
+        /// <returns>主题管理服务实例</returns>
+        public ThemeManager GetThemeManager()
+        {
+            return _serviceProvider.GetService<ThemeManager>();
         }
 
         /// <summary>

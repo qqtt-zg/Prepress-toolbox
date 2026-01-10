@@ -251,11 +251,22 @@ namespace WindowsFormsApp3.Utils
         }
 
         // 主题设置
+        public static string CurrentThemeName
+        {
+            get => GetValue<string>("CurrentThemeName", "浅色");
+            set => SetValue("CurrentThemeName", value);
+        }
+
+        /// <summary>
+        /// 向后兼容：ThemeMode 属性（已弃用，请使用 CurrentThemeName）
+        /// </summary>
+        [Obsolete("请使用 CurrentThemeName 代替")]
         public static string ThemeMode
         {
-            get => GetValue<string>("ThemeMode", "Light");
-            set => SetValue("ThemeMode", value);
+            get => CurrentThemeName == "深色" ? "Dark" : "Light";
+            set => CurrentThemeName = value == "Dark" ? "深色" : "浅色";
         }
+
 
         // 排版功能控件状态持久化
         public static bool EnableImpositionChecked

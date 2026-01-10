@@ -2,8 +2,8 @@
 ; 应用程序基本信息
 AppName=大诚重命名工具
 AppId={{D5F3E9B0-FEAT-ADD-PERF-MONITOR-FORM}}
-AppVersion=2.3.2
-AppVerName=大诚重命名工具 v2.3.2
+AppVersion=2.3.4
+AppVerName=大诚重命名工具 v2.3.4
 AppPublisher=大诚软件
 AppPublisherURL=
 AppSupportURL=
@@ -17,7 +17,7 @@ DefaultDirName={autopf}\大诚重命名工具
 DefaultGroupName=大诚重命名工具
 
 ; 输出设置
-OutputBaseFilename=大诚重命名工具_v2.3.2_安装包
+OutputBaseFilename=大诚重命名工具_v2.3.4_安装包
 OutputDir=.\安装包
 ; SetupIconFile=dc.ico
 

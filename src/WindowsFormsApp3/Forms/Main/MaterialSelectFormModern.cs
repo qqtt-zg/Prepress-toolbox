@@ -58,6 +58,10 @@ namespace WindowsFormsApp3
         private const int LWA_COLORKEY = 0x1;
         private const int LWA_ALPHA = 0x2;
 
+        // 窗体拖动相关字段
+        private bool _isDragging = false;
+        private Point _dragStartPoint;
+
         // 公共属性 - 用于返回选择的数据
         public string SelectedMaterial { get; private set; }
         public string OrderNumber { get; private set; }
@@ -199,7 +203,7 @@ namespace WindowsFormsApp3
             public string Name { get; set; }
             public string Path { get; set; }
             public bool Enabled { get; set; } = true;
-            public string Icon { get; set; } = "📁";
+            public string Icon { get; set; } = "folder"; // Changed default to "folder" key
         }
 
         // 路径项数据结构
@@ -240,6 +244,13 @@ namespace WindowsFormsApp3
 
             // 始终在最前端显示
             TopMost = true;
+
+            // 设置窗口图标
+            string iconPath = GetIconPath();
+            if (!string.IsNullOrEmpty(iconPath) && System.IO.File.Exists(iconPath))
+            {
+                this.Icon = new Icon(iconPath);
+            }
 
             // 🔧 关键优化：在构造函数中直接设置窗口位置，完全避免视觉跳跃
             PrePositionWindow();
@@ -387,7 +398,7 @@ namespace WindowsFormsApp3
                 {
                     _isPreviewExpanded = true;
                     pdfPreviewPanel.Height = MAX_PREVIEW_HEIGHT;
-                    this.ClientSize = new Size(400, 859);  // 🔧 添加：设置展开状态窗体大小
+                    this.ClientSize = new Size(400, 886);  // 🔧 添加：设置展开状态窗体大小
                     previewCollapseButton.Text = "▲";
                     LogHelper.Debug("[预定位] 恢复预览展开状态和窗体大小");
                 }
@@ -395,7 +406,7 @@ namespace WindowsFormsApp3
                 {
                     _isPreviewExpanded = false;
                     pdfPreviewPanel.Height = 0;
-                    this.ClientSize = new Size(400, 614);  // 🔧 添加：设置折叠状态窗体大小
+                    this.ClientSize = new Size(400, 644);  // 🔧 添加：设置折叠状态窗体大小（包含文件名区域）
                     previewCollapseButton.Text = "▼";
                     LogHelper.Debug("[预定位] 恢复预览折叠状态和窗体大小");
                 }
@@ -436,7 +447,7 @@ namespace WindowsFormsApp3
                         if (shouldExpand)
                         {
                             pdfPreviewPanel.Height = MAX_PREVIEW_HEIGHT;
-                            this.ClientSize = new Size(400, 859);  // 🔧 添加：设置展开状态窗体大小
+                            this.ClientSize = new Size(400, 886);  // 🔧 添加：设置展开状态窗体大小
                             previewCollapseButton.Text = "▲";
 
                             // ✅ 如果有待加载的PDF且预览已展开，现在加载它
@@ -448,6 +459,14 @@ namespace WindowsFormsApp3
                                     await Task.Delay(100); // 减少延迟时间
                                     await TryLoadPendingPdf();
                                     LogHelper.Debug("[PDF 预览] 状态检查后调用TryLoadPendingPdf");
+                                    
+                                    // 🔧 关键修复：加载 PDF 后强制应用正确的缩放
+                                    await Task.Delay(200); // 额外延迟确保 PDF 加载完成
+                                    if (PdfPreview != null && PdfPreview.PageCount > 0)
+                                    {
+                                        LogHelper.Debug("[PDF 预览] 状态检查后应用缩放");
+                                        PdfPreview.ApplyBestFitZoomPublic();
+                                    }
                                 }));
                             }
 
@@ -456,7 +475,7 @@ namespace WindowsFormsApp3
                         else
                         {
                             pdfPreviewPanel.Height = 0;
-                            this.ClientSize = new Size(400, 614);  // 🔧 添加：设置折叠状态窗体大小
+                            this.ClientSize = new Size(400, 644);  // 🔧 添加：设置折叠状态窗体大小（包含文件名区域）
                             previewCollapseButton.Text = "▼";
                             LogHelper.Debug("[状态检查] 确认折叠状态UI和窗体大小");
                         }
@@ -532,6 +551,16 @@ namespace WindowsFormsApp3
             if (duplicateLayoutCheckbox != null)
             {
                 duplicateLayoutCheckbox.Checked = _isDuplicateLayoutEnabled;
+                // 一式两联复选框事件
+                duplicateLayoutCheckbox.CheckedChanged += DuplicateLayoutCheckbox_CheckedChanged;
+            }
+
+            // 文件名标签拖动事件
+            if (fileNameLabel != null)
+            {
+                fileNameLabel.MouseDown += FileNameLabel_MouseDown;
+                fileNameLabel.MouseMove += FileNameLabel_MouseMove;
+                fileNameLabel.MouseUp += FileNameLabel_MouseUp;
             }
         }
 
@@ -670,6 +699,28 @@ namespace WindowsFormsApp3
             dropdown16.MouseDoubleClick += Dropdown16_MouseDoubleClick;
 
             LogHelper.Debug($"已设置 {_materials.Length} 个材料按钮和 {_dropdownMaterials.Length} 个下拉框选项的事件处理");
+        }
+
+        /// <summary>
+        /// 获取图标路径
+        /// </summary>
+        private string GetIconPath()
+        {
+            string[] paths = new[]
+            {
+                System.IO.Path.Combine(Application.StartupPath, "dc.ico"),
+                System.IO.Path.Combine(Application.StartupPath, "Resources", "dc.ico")
+            };
+            
+            foreach (var path in paths)
+            {
+                if (System.IO.File.Exists(path))
+                {
+                    return path;
+                }
+            }
+            
+            return null;
         }
 
         private void InitializeEventHandlers()
@@ -1132,6 +1183,19 @@ namespace WindowsFormsApp3
             {
                 if (folderTreeView == null) return;
 
+                // 初始化ImageList
+                var imageList = new ImageList();
+                imageList.ImageSize = new Size(14, 14); // 缩小图标尺寸
+                imageList.ColorDepth = ColorDepth.Depth32Bit;
+                
+                // 使用 GDI+ 绘制文件夹图标
+                // 采用单色(Monochrome)灰色，类似 FolderOpenOutlined 的线条风格
+                // 颜色稍微调浅一点 (100 -> 150)
+                var folderBitmap = CreateFolderIcon(14, Color.FromArgb(150, 150, 150)); 
+                imageList.Images.Add("folder", folderBitmap);
+                
+                folderTreeView.ImageList = imageList;
+
                 // 清空现有节点
                 folderTreeView.Nodes.Clear();
 
@@ -1141,8 +1205,11 @@ namespace WindowsFormsApp3
                 // 创建树形节点
                 foreach (var folder in folders)
                 {
-                    var parentNode = folderTreeView.Nodes.Add($"{folder.Icon} {folder.Name}");
+                    // 不再在文本中添加表情符号图标
+                    var parentNode = folderTreeView.Nodes.Add(folder.Name);
                     parentNode.Tag = folder.Path;
+                    parentNode.ImageKey = "folder";
+                    parentNode.SelectedImageKey = "folder";
 
                     // 加载子文件夹（增加递归深度以支持更多层级）
                     LoadSubFolders(parentNode, folder.Path, 10); // 支持最多10层深度
@@ -1165,6 +1232,52 @@ namespace WindowsFormsApp3
                 MessageBox.Show($"初始化文件夹树形菜单失败: {ex.Message}", "错误",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        /// <summary>
+        /// 创建文件夹图标 Bitmap (Monochrome Outline Style)
+        /// </summary>
+        private Bitmap CreateFolderIcon(int size, Color color)
+        {
+            var bmp = new Bitmap(size, size);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+                using (var pen = new Pen(color, 1.4f)) // 线条粗细 1.4
+                {
+                    // 坐标基于 14x14
+                    // 1. 绘制后板轮廓 (Back Tab)
+                    PointF[] backPoints = new PointF[]
+                    {
+                        new PointF(1, 3),    // Tab Top-Left
+                        new PointF(5, 3),    // Tab Top-Right
+                        new PointF(7, 5),    // Slope Down
+                        new PointF(12, 5),   // Body Top-Right
+                        new PointF(12, 11),  // Bottom-Right
+                        new PointF(1, 11)    // Bottom-Left
+                    };
+                    g.DrawPolygon(pen, backPoints);
+                    
+                    // 2. 绘制前盖轮廓 (Front Flap - Open)
+                    PointF[] frontPoints = new PointF[]
+                    {
+                        new PointF(1, 11),    // Bottom-Left
+                        new PointF(2, 6),     // Top-Left (Skewed)
+                        new PointF(13, 6),    // Top-Right
+                        new PointF(12, 11)    // Bottom-Right
+                    };
+                    
+                    // 遮挡后板线条
+                    using(var brush = new SolidBrush(Color.White))
+                    {
+                         g.FillPolygon(brush, frontPoints); 
+                    }
+                    
+                    g.DrawPolygon(pen, frontPoints);
+                }
+            }
+            return bmp;
         }
 
         private void LoadSubFolders(TreeNode parentNode, string parentPath, int maxDepth)
@@ -1216,10 +1329,11 @@ namespace WindowsFormsApp3
                 foreach (var dir in directories)
                 {
                     var dirInfo = new DirectoryInfo(dir);
-                    int childLevel = GetNodeLevel(parentNode) + 1;
-                    string icon = GetLevelIcon(childLevel);
-                    var childNode = parentNode.Nodes.Add($"{icon} {dirInfo.Name}");
+                    // 不再使用 Emoji 图标，直接添加名称
+                    var childNode = parentNode.Nodes.Add(dirInfo.Name);
                     childNode.Tag = dirInfo.FullName;
+                    childNode.ImageKey = "folder";
+                    childNode.SelectedImageKey = "folder";
 
                     // 递归加载子文件夹，增加深度限制以支持更多层级
                     LoadSubFolders(childNode, dirInfo.FullName, maxDepth - 1);
@@ -1498,7 +1612,10 @@ namespace WindowsFormsApp3
                     // 显示文件夹名称而不是完整路径，在窗口标题中显示
                     var folderName = System.IO.Path.GetFileName(SelectedExportPath);
                     string exportTitle = $"导出到: {folderName}";
-                    this.Text = exportTitle;
+                    if (fileNameLabel != null)
+                    {
+                        fileNameLabel.Text = exportTitle;
+                    }
 
                                     }
             }
@@ -2212,35 +2329,70 @@ namespace WindowsFormsApp3
 
             try
             {
-                if (string.IsNullOrEmpty(fileName))
+                if (fileNameLabel == null)
                 {
-                    this.Text = "材料选择";
                     return;
                 }
 
-                // 窗口标题只显示文件名
-                // Windows会自动处理过长标题的显示（用省略号截断）
-                this.Text = fileName;
+                if (string.IsNullOrEmpty(fileName))
+                {
+                    fileNameLabel.Text = "材料选择";
+                    return;
+                }
+
+                // 直接显示文件名
+                fileNameLabel.Text = fileName;
             }
             catch (Exception ex)
             {
-                LogHelper.Error("更新窗体标题失败: " + ex.Message, ex);
-                this.Text = "材料选择";
+                LogHelper.Error("更新文件名标签失败: " + ex.Message, ex);
+                if (fileNameLabel != null)
+                {
+                    fileNameLabel.Text = "材料选择";
+                }
             }
         }
 
-        // 窗口标题字体由系统控制，此方法保留为确保向后兼容性
-        private void AdjustFontSizeForLongText(string text)
-        {
-            // 窗口标题字体由系统控制，无法动态调整
-            // 但保留方法以确保向后兼容性
-            // Windows会自动处理长标题的显示
-        }
+
 
         // 重置窗口标题为默认状态
         public void ResetPageHeaderSubText()
         {
-            this.Text = "材料选择";
+            if (fileNameLabel != null)
+            {
+                fileNameLabel.Text = "材料选择";
+            }
+        }
+
+        // 窗体拖动事件处理
+        private void FileNameLabel_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                _isDragging = true;
+                _dragStartPoint = e.Location;
+            }
+        }
+
+        private void FileNameLabel_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (_isDragging)
+            {
+                Point currentScreenPos = PointToScreen(e.Location);
+                Point newFormPos = new Point(
+                    currentScreenPos.X - _dragStartPoint.X,
+                    currentScreenPos.Y - _dragStartPoint.Y
+                );
+                this.Location = newFormPos;
+            }
+        }
+
+        private void FileNameLabel_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                _isDragging = false;
+            }
         }
 
         // 设置当前文件名并更新页面头部显示
@@ -2769,7 +2921,7 @@ namespace WindowsFormsApp3
             
             // ✅ 重置预览面板为折叠状态
             pdfPreviewPanel.Height = 0;
-            this.ClientSize = new System.Drawing.Size(400, 614); // 初始设置为折叠状态
+            this.ClientSize = new System.Drawing.Size(400, 644); // 初始设置为折叠状态（包含文件名区域）
 
             // ✅ 保存当前需要加载的PDF文件路径
             if (!string.IsNullOrEmpty(CurrentFileName) && File.Exists(CurrentFileName))
@@ -2786,6 +2938,8 @@ namespace WindowsFormsApp3
             if (pdfControl != null)
             {
                 pdfControl.PageLoaded += PdfPreviewControl_PageLoaded;
+                // 🔧 新增：监听翻页事件，实时更新页码
+                pdfControl.PageChanged += PdfPreviewControl_PageChanged;
             }
 
             // 检查Excel数据的有效性
@@ -2953,6 +3107,14 @@ namespace WindowsFormsApp3
                 {
                     PdfPreview.ApplyBestFitZoomPublic();
                     LogHelper.Debug("[PDF 预览] Shown事件中额外刷新PDF预览");
+                }
+                
+                // 🔧 最终确认：再次延迟后强制应用缩放（确保万无一失）
+                await Task.Delay(300);
+                if (_isPreviewExpanded && PdfPreview != null && PdfPreview.PageCount > 0)
+                {
+                    LogHelper.Debug("[PDF 预览] Shown事件最终确认应用缩放");
+                    PdfPreview.ApplyBestFitZoomPublic();
                 }
                 
                 // 窗体内容准备好后，恢复显示
@@ -4270,6 +4432,55 @@ namespace WindowsFormsApp3
                     e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                     e.Graphics.FillRectangle(new SolidBrush(backgroundColor), fullBackgroundRect);
                     e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.Default;
+
+                    // 🔧 修复：当绘制背景时，图标会被覆盖，因此需要手动重绘图标
+                    // 图标位置计算：文本区域左侧 - 图标宽度 - 间距
+                    if (folderTreeView.ImageList != null && folderTreeView.ImageList.Images.ContainsKey("folder"))
+                    {
+                        var image = folderTreeView.ImageList.Images["folder"];
+                        // 通常 TreeView 图标在文本左侧，ImageSize=14
+                        // 偏移量估算：e.Bounds.X 是文本起始X，System通常留出3-4px间距
+                        int imageX = e.Bounds.X - 14 - 3;
+                        int imageY = e.Bounds.Y + (e.Bounds.Height - image.Height) / 2;
+                        
+                        // 确保绘制位置有效
+                        if (imageX >= 0)
+                        {
+                            e.Graphics.DrawImage(image, imageX, imageY, image.Width, image.Height);
+                        }
+                    }
+
+                    // 3. 绘制展开/折叠图标 (如果有子节点) - 修复高亮时加减号不可见问题
+                    if (e.Node.Nodes.Count > 0)
+                    {
+                        // 估算位置：在文件夹图标更左侧
+                        // 文件夹图标 approx at: e.Bounds.X - 17
+                        // 加减号 size 9x9, gap approx 12-15
+                        int glyphSize = 9;
+                        int glyphX = e.Bounds.X - 14 - 3 - 14; 
+                        int glyphY = e.Bounds.Y + (e.Bounds.Height - glyphSize) / 2;
+
+                        // 仅当位置在可视范围内时绘制
+                        if (glyphX >= 0)
+                        {
+                            using (var pen = new Pen(textColor)) // 使用当前文本色（选中时为白色）
+                            {
+                                // 绘制边框
+                                e.Graphics.DrawRectangle(pen, glyphX, glyphY, glyphSize, glyphSize);
+                                
+                                // 绘制横线 (-)
+                                int midY = glyphY + glyphSize / 2;
+                                e.Graphics.DrawLine(pen, glyphX + 2, midY, glyphX + glyphSize - 2, midY);
+                                
+                                // 绘制竖线 (|) - 仅在折叠时
+                                if (!e.Node.IsExpanded)
+                                {
+                                    int midX = glyphX + glyphSize / 2;
+                                    e.Graphics.DrawLine(pen, midX, glyphY + 2, midX, glyphY + glyphSize - 2);
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // 设置文本格式 - 使用更好的文本格式选项避免截断
@@ -4279,63 +4490,32 @@ namespace WindowsFormsApp3
                 // 启用文本渲染的抗锯齿效果，使文字更加平滑
                 e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
-                // 绘制图标和文本
-                if (e.Node.Text.Contains(" "))
+                // 2. 绘制文本
+                // 修复：移除额外的 textOffset，e.Bounds.X 已经是正确的文本起始位置
+                // 添加微小偏移量微调
+                int textOffset = 2; 
+                Rectangle textRect = new Rectangle(
+                    e.Bounds.X + textOffset, 
+                    e.Bounds.Y, 
+                    Math.Max(e.Bounds.Width - textOffset, 100), 
+                    e.Bounds.Height);
+
+                // 如果文本太长，自动扩展TreeView宽度
+                Size textSize = TextRenderer.MeasureText(e.Graphics, e.Node.Text, e.Node.NodeFont, textRect.Size, flags);
+
+                if (textSize.Width > textRect.Width && folderTreeView.Width < textSize.Width + e.Bounds.X + textOffset + 20)
                 {
-                    // 分离图标和文本
-                    int spaceIndex = e.Node.Text.IndexOf(' ');
-                    string iconText = e.Node.Text.Substring(0, spaceIndex + 1); // 包含空格的图标部分
-                    string folderName = e.Node.Text.Substring(spaceIndex + 1).Trim(); // 文本部分
-
-                    // 绘制图标
-                    Rectangle iconRect = new Rectangle(e.Bounds.X + 2, e.Bounds.Y, 25, e.Bounds.Height);
-                    TextRenderer.DrawText(e.Graphics, iconText, e.Node.NodeFont,
-                        iconRect, textColor, backgroundColor, flags);
-
-                    // 计算文本区域并绘制文件夹名称
-                    Rectangle textRect = new Rectangle(e.Bounds.X + 27, e.Bounds.Y,
-                                                     Math.Max(e.Bounds.Width - 27, 100), e.Bounds.Height);
-
-                    // 如果文本太长，自动扩展TreeView宽度或使用工具提示
-                    Size textSize = TextRenderer.MeasureText(e.Graphics, folderName, e.Node.NodeFont, textRect.Size, flags);
-
-                    if (textSize.Width > textRect.Width && folderTreeView.Width < textSize.Width + e.Bounds.X + 27 + 20)
+                    int newWidth = Math.Min(textSize.Width + e.Bounds.X + textOffset + 20, 800);
+                    if (newWidth > folderTreeView.Width)
                     {
-                        // 文本超出显示区域，扩展TreeView宽度（限制最大宽度以防止过度扩展）
-                        int newWidth = Math.Min(textSize.Width + e.Bounds.X + 27 + 20, 800);
-                        if (newWidth > folderTreeView.Width)
-                        {
-                            folderTreeView.Width = newWidth;
-                        }
+                        folderTreeView.Width = newWidth;
                     }
-
-                    TextRenderer.DrawText(e.Graphics, folderName, e.Node.NodeFont,
-                        textRect, textColor, backgroundColor, flags);
                 }
-                else
-                {
-                    // 没有空格的情况，直接绘制文本
-                    Rectangle textRect = new Rectangle(e.Bounds.X + 2, e.Bounds.Y,
-                                                     Math.Max(e.Bounds.Width - 2, 100), e.Bounds.Height);
 
-                    Size textSize = TextRenderer.MeasureText(e.Graphics, e.Node.Text, e.Node.NodeFont, textRect.Size, flags);
-
-                    if (textSize.Width > textRect.Width && folderTreeView.Width < textSize.Width + e.Bounds.X + 20)
-                    {
-                        int newWidth = Math.Min(textSize.Width + e.Bounds.X + 20, 800);
-                        if (newWidth > folderTreeView.Width)
-                        {
-                            folderTreeView.Width = newWidth;
-                        }
-                    }
-
-                    TextRenderer.DrawText(e.Graphics, e.Node.Text, e.Node.NodeFont,
-                        textRect, textColor, backgroundColor, flags);
-                }
+                TextRenderer.DrawText(e.Graphics, e.Node.Text, e.Node.NodeFont,
+                    textRect, textColor, backgroundColor, flags);
 
                 // 移除焦点矩形绘制，避免切换时的闪烁效果
-                // 选中状态本身已经足够清晰地指示了当前选择
-
                 // 只在需要时进行自定义绘制，保持原生点击行为
                 e.DrawDefault = false;
             }
@@ -6105,7 +6285,7 @@ namespace WindowsFormsApp3
                 {
                     // ✅ 展开预览（立即显示，无动画）
                     pdfPreviewPanel.Height = MAX_PREVIEW_HEIGHT;
-                    this.ClientSize = new System.Drawing.Size(400, 859); // 恢复到设计器大小
+                    this.ClientSize = new System.Drawing.Size(400, 886); // 恢复到设计器大小（包含文件名区域）
                     previewCollapseButton.Text = "▲"; // 上箭头
 
                     // ✅ 如果有待加载的PDF，现在加载它
@@ -6131,7 +6311,7 @@ namespace WindowsFormsApp3
                 {
                     // ✅ 折叠预览（立即隐藏，无动画）
                     pdfPreviewPanel.Height = 0;
-                    this.ClientSize = new System.Drawing.Size(400, 614); // 折叠到按钮位置
+                    this.ClientSize = new System.Drawing.Size(400, 644); // 折叠到按钮位置（包含文件名区域+30px）
                     previewCollapseButton.Text = "▼"; // 下箭头
                 }
 
@@ -6166,10 +6346,39 @@ namespace WindowsFormsApp3
                 // ✅ 应用默认的最优适应缩放
                 PdfPreview?.ApplyBestFit();
                 LogHelper.Debug($"[PDF 预览] 页面加载完成，应用默认最优适应缩放 (页码: {e.PageIndex + 1} / {e.PageCount})");
+                
+                // 🔧 新增：更新页码标签显示
+                UpdatePdfPageInfo(e.PageIndex + 1, e.PageCount);
             }
             catch (Exception ex)
             {
                 LogHelper.Error($"[PDF 预览] 页面加载事件异常: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// PDF 预览控件页面改变事件（翻页时触发）
+        /// 实时更新页码显示
+        /// </summary>
+        private void PdfPreviewControl_PageChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                var pdfControl = PdfPreview;
+                if (pdfControl != null)
+                {
+                    int currentPage = pdfControl.CurrentPageIndex + 1; // 转换为从1开始
+                    int totalPages = pdfControl.PageCount;
+                    
+                    LogHelper.Debug($"[PDF 预览] 页面改变: {currentPage} / {totalPages}");
+                    
+                    // 更新页码标签显示
+                    UpdatePdfPageInfo(currentPage, totalPages);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[PDF 预览] 页面改变事件异常: {ex.Message}");
             }
         }
 
@@ -6281,7 +6490,7 @@ namespace WindowsFormsApp3
                     // 直接设置展开状态，避免调用PreviewCollapseButton_Click
                     _isPreviewExpanded = true;
                     pdfPreviewPanel.Height = MAX_PREVIEW_HEIGHT;
-                    this.ClientSize = new Size(400, 859);  // 🔧 添加：设置展开状态窗体大小
+                    this.ClientSize = new Size(400, 886);  // 🔧 添加：设置展开状态窗体大小
                     previewCollapseButton.Text = "▲";
 
                     // 展开后触发最优适应缩放
@@ -6298,7 +6507,7 @@ namespace WindowsFormsApp3
                     // 直接设置折叠状态，避免调用PreviewCollapseButton_Click
                     _isPreviewExpanded = false;
                     pdfPreviewPanel.Height = 0;
-                    this.ClientSize = new Size(400, 614);  // 🔧 添加：设置折叠状态窗体大小
+                    this.ClientSize = new Size(400, 644);  // 🔧 添加：设置折叠状态窗体大小（包含文件名区域）
                     previewCollapseButton.Text = "▼";
 
                     LogHelper.Debug("[PDF 预览] 从设置恢复折叠状态（直接设置，避免位置干扰）");
@@ -6488,12 +6697,49 @@ namespace WindowsFormsApp3
 
         #endregion
 
+        /// <summary>
+        /// 更新 PDF 页码显示
+        /// </summary>
+        /// <param name="currentPage">当前页码（从1开始）</param>
+        /// <param name="totalPages">总页数</param>
+        private void UpdatePdfPageInfo(int currentPage, int totalPages)
+        {
+            try
+            {
+                string displayText;
+                if (totalPages > 0)
+                {
+                    displayText = $"页码: 第{currentPage}页 / 共{totalPages}页";
+                    LogHelper.Debug($"[PDF 页码] 更新显示: {displayText}");
+                }
+                else
+                {
+                    displayText = "页码: —";
+                }
+
+                // 更新页码标签
+                if (label1 != null)
+                {
+                    label1.Text = displayText;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[PDF 页码] 更新页码显示失败: {ex.Message}");
+            }
+        }
+
         private void orderNumberLabel_Click(object sender, EventArgs e)
         {
 
         }
 
         private void orderNumberTextBox_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label1_Click(object sender, EventArgs e)
         {
 
         }

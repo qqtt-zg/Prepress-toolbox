@@ -24,8 +24,7 @@ namespace WindowsFormsApp3.Forms.Main
         private AntdUI.Button btnMin;
         private AntdUI.Button btnMax;
         private AntdUI.Button btnClose;
-        private System.Windows.Forms.StatusStrip statusStrip;
-        private System.Windows.Forms.ToolStripStatusLabel statusLabel;
+
         
         // Window Control Buttons
         private AntdUI.Button btnCollapse;
@@ -66,8 +65,7 @@ namespace WindowsFormsApp3.Forms.Main
             this.btnMin = new AntdUI.Button();
             this.btnMax = new AntdUI.Button();
             this.btnClose = new AntdUI.Button();
-            this.statusStrip = new System.Windows.Forms.StatusStrip();
-            this.statusLabel = new System.Windows.Forms.ToolStripStatusLabel();
+
             // 
             // kryptonManager
             // 
@@ -79,7 +77,7 @@ namespace WindowsFormsApp3.Forms.Main
             this.panelCollapseWrapper.SuspendLayout();
             this.logoPanel.SuspendLayout();
             this.headerPanel.SuspendLayout();
-            this.statusStrip.SuspendLayout();
+
             this.SuspendLayout();
             // 
             // mainContainer
@@ -177,7 +175,7 @@ namespace WindowsFormsApp3.Forms.Main
             this.versionLabel.Name = "versionLabel";
             this.versionLabel.Size = new System.Drawing.Size(41, 17);
             this.versionLabel.TabIndex = 1;
-            this.versionLabel.Text = "v2.2.0";
+            this.versionLabel.Text = "v2.3.4";
             this.versionLabel.TextAlign = System.Drawing.ContentAlignment.BottomRight;
             this.versionLabel.MouseDown += new System.Windows.Forms.MouseEventHandler(this.TitlePanel_MouseDown);
             // 
@@ -214,6 +212,7 @@ namespace WindowsFormsApp3.Forms.Main
             this.btnMin.Name = "btnMin";
             this.btnMin.Size = new System.Drawing.Size(32, 32);
             this.btnMin.TabIndex = 0;
+            this.btnMin.TabStop = false;
             this.btnMin.Click += new System.EventHandler(this.BtnMin_Click);
             // 
             // btnMax
@@ -226,6 +225,7 @@ namespace WindowsFormsApp3.Forms.Main
             this.btnMax.Name = "btnMax";
             this.btnMax.Size = new System.Drawing.Size(32, 32);
             this.btnMax.TabIndex = 1;
+            this.btnMax.TabStop = false;
             this.btnMax.Click += new System.EventHandler(this.BtnMax_Click);
             // 
             // btnClose
@@ -238,29 +238,9 @@ namespace WindowsFormsApp3.Forms.Main
             this.btnClose.Name = "btnClose";
             this.btnClose.Size = new System.Drawing.Size(32, 32);
             this.btnClose.TabIndex = 2;
+            this.btnClose.TabStop = false;
             this.btnClose.Click += new System.EventHandler(this.BtnClose_Click);
-            // 
-            // statusStrip
-            // 
-            this.statusStrip.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(36)))), ((int)(((byte)(41)))), ((int)(((byte)(46)))));
-            this.statusStrip.ForeColor = System.Drawing.Color.White;
-            this.statusStrip.ImageScalingSize = new System.Drawing.Size(24, 24);
-            this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.statusLabel});
-            this.statusStrip.Location = new System.Drawing.Point(0, 698);
-            this.statusStrip.Name = "statusStrip";
-            this.statusStrip.Padding = new System.Windows.Forms.Padding(1, 0, 10, 0);
-            this.statusStrip.Size = new System.Drawing.Size(975, 22);
-            this.statusStrip.SizingGrip = false;
-            this.statusStrip.TabIndex = 1;
-            // 
-            // statusLabel
-            // 
-            this.statusLabel.ForeColor = System.Drawing.Color.White;
-            this.statusLabel.Name = "statusLabel";
-            this.statusLabel.Size = new System.Drawing.Size(32, 17);
-            this.statusLabel.Text = "就绪";
-            // 
+ 
             // MainShellForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -268,7 +248,7 @@ namespace WindowsFormsApp3.Forms.Main
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(1200, 750);
             this.Controls.Add(this.mainContainer);
-            this.Controls.Add(this.statusStrip);
+
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Margin = new System.Windows.Forms.Padding(2);
             this.MinimumSize = new System.Drawing.Size(900, 640);
@@ -283,8 +263,7 @@ namespace WindowsFormsApp3.Forms.Main
             this.logoPanel.ResumeLayout(false);
             this.logoPanel.PerformLayout();
             this.headerPanel.ResumeLayout(false);
-            this.statusStrip.ResumeLayout(false);
-            this.statusStrip.PerformLayout();
+
             this.ResumeLayout(false);
             this.PerformLayout();
 

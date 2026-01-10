@@ -134,10 +134,36 @@ namespace WindowsFormsApp3.Controls
             {
                 if (this.Visible && _pdfDocument != null && this.IsHandleCreated)
                 {
+                    // 🔧 修复：立即同步设置为第一页，避免任何延迟
+                    if (_pdfViewer?.Renderer != null)
+                    {
+                        _pdfViewer.Renderer.Page = 0; // 第一次重置
+                    }
+                    
                     this.BeginInvoke(new Action(() =>
                     {
+                        // 🔧 修复：在 BeginInvoke 中再次确保从第一页开始
+                        if (_pdfViewer?.Renderer != null)
+                        {
+                            _pdfViewer.Renderer.Page = 0; // 第二次重置
+                        }
                         ApplyBestFitZoom();
+                        
+                        // 🔧 修复：在应用缩放后再次强制回到第一页
+                        if (_pdfViewer?.Renderer != null)
+                        {
+                            _pdfViewer.Renderer.Page = 0; // 第三次重置，确保缩放不会改变页面
+                        }
                         _pdfViewer.Refresh();
+                        
+                        // 🔧 修复：最后再次确认页面位置（延迟执行以覆盖所有可能的异步操作）
+                        this.BeginInvoke(new Action(() =>
+                        {
+                            if (_pdfViewer?.Renderer != null)
+                            {
+                                _pdfViewer.Renderer.Page = 0; // 最终确认
+                            }
+                        }));
                     }));
                 }
             };
@@ -235,6 +261,18 @@ namespace WindowsFormsApp3.Controls
                     _pdfViewer.Refresh();
                 };
                 timer2.Start();
+                
+                // 🔧 新增：添加最终确认的延迟缩放（确保窗口完全加载后应用）
+                var timer3 = new System.Windows.Forms.Timer { Interval = 500 };
+                timer3.Tick += (s, args) =>
+                {
+                    timer3.Stop();
+                    timer3.Dispose();
+                    LogHelper.Debug("[LoadPdf] 执行最终延迟缩放应用");
+                    ApplyBestFitZoom();
+                    _pdfViewer.Refresh();
+                };
+                timer3.Start();
 
                 // 触发页面加载事件
                 PageLoaded?.Invoke(this, EventArgs.Empty);
@@ -253,10 +291,25 @@ namespace WindowsFormsApp3.Controls
         /// </summary>
         private void ApplyBestFitZoom()
         {
+            ApplyBestFitZoomWithRetry(0);
+        }
+
+        /// <summary>
+        /// 应用最佳适应缩放（支持重试机制）
+        /// </summary>
+        /// <param name="retryCount">重试次数</param>
+        private void ApplyBestFitZoomWithRetry(int retryCount)
+        {
             try
             {
                 if (_pdfDocument == null || _pdfDocument.PageCount == 0)
                     return;
+                
+                // 🔧 修复：在应用缩放前先确保在第一页
+                if (_pdfViewer?.Renderer != null)
+                {
+                    _pdfViewer.Renderer.Page = 0;
+                }
                     
                 // 获取第一页尺寸
                 var pageSize = _pdfDocument.PageSizes[0];
@@ -268,19 +321,46 @@ namespace WindowsFormsApp3.Controls
                 float viewerWidth = _pdfViewer.Renderer.Width - scrollBarWidth; // 减去垂直滚动条宽度
                 float viewerHeight = _pdfViewer.Renderer.Height;
                 
-                // 调试输出（写入应用日志）
-                LogHelper.Debug($"[ApplyBestFitZoom] 页面尺寸: {pageWidth}x{pageHeight}, 控件尺寸: {viewerWidth}x{viewerHeight}, 页数: {_pdfDocument.PageCount}");
-                
+                // 🔧 修复：当控件尺寸无效时（如折叠状态或初始化中），延迟重试
                 if (viewerWidth <= 0 || viewerHeight <= 0)
+                {
+                    const int MAX_RETRIES = 5; // 最多重试5次
+                    if (retryCount < MAX_RETRIES)
+                    {
+                        LogHelper.Warn($"[ApplyBestFitZoom] 控件尺寸无效: {viewerWidth}x{viewerHeight}，延迟重试 (第{retryCount + 1}次)");
+                        // 延迟200ms后重试
+                        System.Windows.Forms.Timer retryTimer = new System.Windows.Forms.Timer { Interval = 200 };
+                        retryTimer.Tick += (s, args) =>
+                        {
+                            retryTimer.Stop();
+                            retryTimer.Dispose();
+                            // 递归重试
+                            ApplyBestFitZoomWithRetry(retryCount + 1);
+                        };
+                        retryTimer.Start();
+                    }
+                    else
+                    {
+                        LogHelper.Error($"[ApplyBestFitZoom] 重试{MAX_RETRIES}次后仍失败，控件尺寸: {viewerWidth}x{viewerHeight}");
+                    }
                     return;
+                }
+                
+                // 🔧 成功获取有效尺寸，应用缩放
+                if (retryCount > 0)
+                {
+                    LogHelper.Debug($"[ApplyBestFitZoom] 延迟重试第{retryCount}次成功");
+                }
                 
                 // 计算页面宽高比和控件宽高比
                 float pageAspect = pageWidth / pageHeight;
                 float viewerAspect = viewerWidth / viewerHeight;
                 
-                // 如果页面更宽（相对于控件），使用适应宽度；否则使用适应高度
+                // 🔧 改进：添加详细的判断日志
+                string selectedMode;
                 if (pageAspect > viewerAspect)
                 {
+                    selectedMode = "FitWidth (宽度适应)";
                     _pdfViewer.ZoomMode = PdfViewerZoomMode.FitWidth;
                     // 宽度适应模式下，页面高度会超出视口，需要添加底部Padding
                     // 这样最后一页才能滚动到视口顶部
@@ -290,15 +370,31 @@ namespace WindowsFormsApp3.Controls
                 }
                 else
                 {
+                    selectedMode = "FitHeight (高度适应)";
                     _pdfViewer.ZoomMode = PdfViewerZoomMode.FitHeight;
                     // 高度适应模式下，页面完全显示，不需要额外Padding
                     _pdfViewer.Renderer.Padding = new Padding(0);
                 }
+                
+                // 🔧 详细日志输出：页面信息、控件信息、宽高比计算、选择的模式
+                LogHelper.Debug($"[ApplyBestFitZoom] 页面尺寸: {pageWidth:F2}x{pageHeight:F2} (宽高比={pageAspect:F4}), 控件尺寸: {viewerWidth:F2}x{viewerHeight:F2} (宽高比={viewerAspect:F4}), 选择模式: {selectedMode}");
+                
+                // 🔧 修复：在应用缩放后再次强制回到第一页
+                if (_pdfViewer?.Renderer != null)
+                {
+                    _pdfViewer.Renderer.Page = 0;
+                }
             }
-            catch
+            catch (Exception ex)
             {
+                LogHelper.Error($"[ApplyBestFitZoom] 异常: {ex.Message}");
                 // 出错时使用默认的FitBest
                 _pdfViewer.ZoomMode = PdfViewerZoomMode.FitBest;
+                // 🔧 修复：即使出错也要确保在第一页
+                if (_pdfViewer?.Renderer != null)
+                {
+                    _pdfViewer.Renderer.Page = 0;
+                }
             }
         }
 
