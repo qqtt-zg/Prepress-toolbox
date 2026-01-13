@@ -37,6 +37,13 @@ namespace WindowsFormsApp3
         [STAThread]
         static void Main()
         {
+            // 添加全局未观察任务异常处理
+            System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (sender, e) =>
+            {
+                LogHelper.Error($"未观察到的任务异常: {e.Exception.GetBaseException().Message}", e.Exception.GetBaseException());
+                e.SetObserved(); // 标记异常已被观察，防止程序崩溃
+            };
+
             // 立即设置环境变量，在任何 iText 代码执行之前防止 CJK 字体系统初始化
             try
             {
@@ -98,10 +105,15 @@ namespace WindowsFormsApp3
             {
                 InitializeIText7Fonts();
             }
-            catch (System.NullReferenceException ex) when (ex.Message.Contains("CjkResourceLoader") || ex.Source == "itext.io")
-            {
-                Console.WriteLine("捕获到iText7 CJK字体加载异常，已忽略，程序将继续运行");
-            }
+catch (System.NullReferenceException ex) when (ex.Message.Contains("CjkResourceLoader") || ex.Source == "itext.io")
+{
+    Console.WriteLine("捕获到iText7 CJK字体加载异常，已忽略，程序将继续运行");
+    LogHelper.Warn($"iText7初始化被CJK异常中断: {ex.Message}");
+}
+catch (Exception ex)
+{
+    LogHelper.Error($"iText7初始化失败: {ex.Message}", ex);
+}
 
             // 初始化字体管理器
             try
@@ -111,6 +123,17 @@ namespace WindowsFormsApp3
             catch (System.NullReferenceException ex) when (ex.Message.Contains("CjkResourceLoader") || ex.Source == "itext.io")
             {
                 Console.WriteLine("捕获到iText7 CJK字体加载异常，已忽略，程序将继续运行");
+            }
+
+            // 初始化 PDFsharp 字体解析器（提高系统字体兼容性）
+            try
+            {
+                PdfSharpFontInitializer.Initialize();
+                LogHelper.Info("PDFsharp 字体解析器初始化完成");
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"PDFsharp 字体解析器初始化失败: {ex.Message}", ex);
             }
 
             // 初始化应用程序设置服务
@@ -295,95 +318,106 @@ namespace WindowsFormsApp3
 
                 return null;
             }
-            
-            /// <summary>
-            /// 初始化 iText7 字体系统，修复 CJK 字体加载异常
-            /// </summary>
-            private static void InitializeIText7Fonts()
+
+        /// <summary>
+        /// 初始化 iText7 字体系统,修复 CJK 字体加载异常
+        /// </summary>
+        private static void InitializeIText7Fonts()
+        {
+            try
             {
+                LogHelper.Info("开始初始化 iText7 字体系统");
+
+                // 设置多个环境变量强制禁用 CJK 字体加载
+                Environment.SetEnvironmentVariable("ITEXT_DISABLE_CJK_FONT_LOADING", "true");
+                Environment.SetEnvironmentVariable("ITEXT_DISABLE_CJK", "true");
+                Environment.SetEnvironmentVariable("ITEXT_NO_CJK", "true");
+
+                // ✅ 注册系统字体目录,让CreateRegisteredFont可用
                 try
                 {
-                    LogHelper.Info("开始初始化 iText7 字体系统");
+                    LogHelper.Info("注册系统字体目录...");
+                    iText.Kernel.Font.PdfFontFactory.RegisterSystemDirectories();
+                    LogHelper.Info("系统字体注册成功");
+                }
+                catch (Exception regEx)
+                {
+                    LogHelper.Warn($"系统字体注册失败: {regEx.Message},将使用备用字体方案");
+                }
 
-                    // 设置多个环境变量强制禁用 CJK 字体加载
-                    Environment.SetEnvironmentVariable("ITEXT_DISABLE_CJK_FONT_LOADING", "true");
-                    Environment.SetEnvironmentVariable("ITEXT_DISABLE_CJK", "true");
-                    Environment.SetEnvironmentVariable("ITEXT_NO_CJK", "true");
+                // 完全避免 CJK 字体系统的任何初始化
+                // 不要访问 CjkResourceLoader 类型,这会触发静态构造函数和 LoadRegistry
+                try
+                {
+                    LogHelper.Debug("跳过 CJK 字体系统初始化,避免触发空引用异常");
+                }
+                catch (Exception ex)
+                {
+                    LogHelper.Debug($"跳过 CJK 初始化时发生异常: {ex.Message}");
+                }
 
-                    // 完全避免 CJK 字体系统的任何初始化
-                    // 不要访问 CjkResourceLoader 类型，这会触发静态构造函数和 LoadRegistry
-                    try
-                    {
-                        LogHelper.Debug("跳过 CJK 字体系统初始化，避免触发空引用异常");
-                    }
-                    catch (Exception ex)
-                    {
-                        LogHelper.Debug($"跳过 CJK 初始化时发生异常: {ex.Message}");
-                    }
+                // 预热字体系统,尝试创建基础字体
+                try
+                {
+                    // 强制使用只包含基本字符的字体,避免触发 CJK 加载
+                    var testFont = iText.Kernel.Font.PdfFontFactory.CreateFont(
+                        iText.IO.Font.Constants.StandardFonts.HELVETICA);
 
-                    // 预热字体系统，尝试创建基础字体
-                    try
-                    {
-                        // 强制使用只包含基本字符的字体，避免触发 CJK 加载
-                        var testFont = iText.Kernel.Font.PdfFontFactory.CreateFont(
-                            iText.IO.Font.Constants.StandardFonts.HELVETICA);
+                    // 尝试创建一些基础字体以确保字体系统正常工作
+                    var testFont2 = iText.Kernel.Font.PdfFontFactory.CreateFont(
+                        iText.IO.Font.Constants.StandardFonts.TIMES_ROMAN);
 
-                        // 尝试创建一些基础字体以确保字体系统正常工作
-                        var testFont2 = iText.Kernel.Font.PdfFontFactory.CreateFont(
-                            iText.IO.Font.Constants.StandardFonts.TIMES_ROMAN);
-
-                        LogHelper.Info("iText7 字体系统预热成功");
-                    }
-                    catch (System.NullReferenceException nullEx)
-                    {
-                        LogHelper.Error($"iText7 字体系统 CJK 空引用异常（已捕获）: {nullEx.Message}");
-                        LogHelper.Info("CJK 异常已被处理，程序将继续运行");
-                    }
-                    catch (Exception ex)
-                    {
-                        LogHelper.Error($"iText7 字体系统预热失败: {ex.Message}");
-                    }
-
-                    LogHelper.Info("iText7 字体系统初始化完成");
+                    LogHelper.Info("iText7 字体系统预热成功");
                 }
                 catch (System.NullReferenceException nullEx)
                 {
-                    LogHelper.Error($"iText7 字体系统初始化 CJK 空引用异常（已捕获）: {nullEx.Message}");
-                    LogHelper.Info("CJK 异常已被处理，程序将继续运行");
-                    // 不抛出异常，允许程序继续运行
+                    LogHelper.Error($"iText7 字体系统 CJK 空引用异常(已捕获): {nullEx.Message}");
+                    LogHelper.Info("CJK 异常已被处理,程序将继续运行");
                 }
                 catch (Exception ex)
                 {
-                    LogHelper.Error($"iText7 字体系统初始化失败: {ex.Message}");
-                    // 不抛出异常，允许程序继续运行
+                    LogHelper.Error($"iText7 字体系统预热失败: {ex.Message}");
                 }
-            }
 
-            /// <summary>
-            /// 初始化日志配置
-            /// </summary>
-            private static void InitializeLogging()
-            {
-                try
-                {
-                    // 确保LogConfig.json文件存在
-                    string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "LogConfig.json");
-                    if (!File.Exists(configPath))
-                    {
-                        // 创建默认配置文件
-                        LogConfigManager.GetConfig();
-                        LogHelper.Info("日志配置文件不存在，已创建默认配置");
-                    }
-                    else
-                    {
-                        LogHelper.Info("已加载日志配置文件");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // 如果初始化失败，使用控制台输出
-                    Console.WriteLine("初始化日志配置失败: " + ex.Message);
-                }
+                LogHelper.Info("iText7 字体系统初始化完成");
             }
+            catch (System.NullReferenceException nullEx)
+            {
+                LogHelper.Error($"iText7 字体系统初始化 CJK 空引用异常(已捕获): {nullEx.Message}");
+                LogHelper.Info("CJK 异常已被处理,程序将继续运行");
+                // 不抛出异常,允许程序继续运行
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"iText7 字体系统初始化失败: {ex.Message}");
+                // 不抛出异常,允许程序继续运行
+            }
+        }/// <summary>
+         /// 初始化日志配置
+         /// </summary>
+        private static void InitializeLogging()
+{
+    try
+    {
+        // 确保LogConfig.json文件存在
+        string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "LogConfig.json");
+        if (!File.Exists(configPath))
+        {
+            // 创建默认配置文件
+            LogConfigManager.GetConfig();
+            LogHelper.Info("日志配置文件不存在,已创建默认配置");
+        }
+        else
+        {
+            LogHelper.Info("已加载日志配置文件");
+        }
+    }
+    catch (Exception ex)
+    {
+        // 如果初始化失败,使用控制台输出
+        Console.WriteLine("初始化日志配置失败: " + ex.Message);
+    }
+}
+
     }
 }

@@ -680,6 +680,7 @@ namespace WindowsFormsApp3
             this.chkIdentifierPage.Size = new System.Drawing.Size(78, 26);
             this.chkIdentifierPage.TabIndex = 53;
             this.chkIdentifierPage.Text = "标识页";
+            this.chkIdentifierPage.CheckedChanged += new AntdUI.BoolEventHandler(this.ChkIdentifierPage_CheckedChanged);
             // 
             // enableImpositionCheckbox
             // 

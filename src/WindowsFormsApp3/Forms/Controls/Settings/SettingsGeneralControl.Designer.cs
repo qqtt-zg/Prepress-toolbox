@@ -14,14 +14,6 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private AntdUI.Label lblHotkey;
         private AntdUI.Input txtHotkey;
 
-
-        // Text Items Section
-        private System.Windows.Forms.Panel grpTextSettings;
-        private System.Windows.Forms.FlowLayoutPanel pnlTextItems; // Container for checkboxes
-        private AntdUI.Button btnMoveUp;
-        private AntdUI.Button btnMoveDown;
-        private AntdUI.Input txtComboPreview; // Multiline
-
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -41,12 +33,6 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.sliderOpacity = new AntdUI.Slider();
             this.lblHotkey = new AntdUI.Label();
             this.txtHotkey = new AntdUI.Input();
-            this.grpTextSettings = new System.Windows.Forms.Panel();
-            this.pnlTextItems = new System.Windows.Forms.FlowLayoutPanel();
-            this.btnMoveUp = new AntdUI.Button();
-            this.btnMoveDown = new AntdUI.Button();
-            this.txtComboPreview = new AntdUI.Input();
-            this.grpTextSettings.SuspendLayout();
             this.SuspendLayout();
             // 
             // txtSeparator
@@ -114,54 +100,6 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.txtHotkey.Size = new System.Drawing.Size(100, 32);
             this.txtHotkey.TabIndex = 7;
             // 
-            // grpTextSettings
-            // 
-            this.grpTextSettings.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.grpTextSettings.Controls.Add(this.pnlTextItems);
-            this.grpTextSettings.Controls.Add(this.btnMoveUp);
-            this.grpTextSettings.Controls.Add(this.btnMoveDown);
-            this.grpTextSettings.Controls.Add(this.txtComboPreview);
-            this.grpTextSettings.Location = new System.Drawing.Point(20, 230);
-            this.grpTextSettings.Name = "grpTextSettings";
-            this.grpTextSettings.Size = new System.Drawing.Size(600, 300);
-            this.grpTextSettings.TabIndex = 8;
-            // 
-            // pnlTextItems
-            // 
-            this.pnlTextItems.AutoScroll = true;
-            this.pnlTextItems.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pnlTextItems.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
-            this.pnlTextItems.Location = new System.Drawing.Point(20, 30);
-            this.pnlTextItems.Name = "pnlTextItems";
-            this.pnlTextItems.Size = new System.Drawing.Size(150, 250);
-            this.pnlTextItems.TabIndex = 0;
-            this.pnlTextItems.WrapContents = false;
-            // 
-            // btnMoveUp
-            // 
-            this.btnMoveUp.Location = new System.Drawing.Point(190, 30);
-            this.btnMoveUp.Name = "btnMoveUp";
-            this.btnMoveUp.Size = new System.Drawing.Size(80, 32);
-            this.btnMoveUp.TabIndex = 1;
-            this.btnMoveUp.Text = "上移";
-            // 
-            // btnMoveDown
-            // 
-            this.btnMoveDown.Location = new System.Drawing.Point(190, 70);
-            this.btnMoveDown.Name = "btnMoveDown";
-            this.btnMoveDown.Size = new System.Drawing.Size(80, 32);
-            this.btnMoveDown.TabIndex = 2;
-            this.btnMoveDown.Text = "下移";
-            // 
-            // txtComboPreview
-            // 
-            this.txtComboPreview.Location = new System.Drawing.Point(290, 30);
-            this.txtComboPreview.Multiline = true;
-            this.txtComboPreview.Name = "txtComboPreview";
-            this.txtComboPreview.ReadOnly = true;
-            this.txtComboPreview.Size = new System.Drawing.Size(280, 100);
-            this.txtComboPreview.TabIndex = 3;
-            // 
             // SettingsGeneralControl
             // 
             this.Controls.Add(this.lblSeparator);
@@ -172,10 +110,8 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.Controls.Add(this.sliderOpacity);
             this.Controls.Add(this.lblHotkey);
             this.Controls.Add(this.txtHotkey);
-            this.Controls.Add(this.grpTextSettings);
             this.Name = "SettingsGeneralControl";
             this.Size = new System.Drawing.Size(800, 600);
-            this.grpTextSettings.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }

@@ -37,20 +37,19 @@ namespace WindowsFormsApp3.Presenters
         private string _exportPath;
         private bool _isCopyMode = true; // 默认复制模式
         
-        // 形状处理信息存储
-        private bool _currentIsShapeSelected;
-        private ShapeType _currentShapeType;
-        private double _currentRoundRadius;
-        private string _currentDimensions;
-        
-        // 旋转处理信息存储
-        private bool _currentNeedsRotation;
-        private int _currentRotationAngle;
-
-        // 排版信息存储（用于折手模式空白页功能）
-        private bool _currentEnableImposition;
-        private LayoutMode _currentLayoutMode;
-        private int _currentLayoutQuantity;
+        // PDF处理相关字段(用于手动模式)
+        private bool _currentIsShapeSelected = false;
+        private ShapeType _currentShapeType = ShapeType.RightAngle;
+        private double _currentRoundRadius = 0;
+        private string _currentDimensions = "";
+        private bool _currentNeedsRotation = false;
+        private int _currentRotationAngle = 0;
+        private bool _currentEnableImposition = false;
+        private LayoutMode _currentLayoutMode = LayoutMode.Continuous;
+        private int _currentLayoutQuantity = 0;
+        // ✅ 添加标识页相关字段
+        private bool _currentAddIdentifierPage = false;
+        private string _currentIdentifierPageContent = "";
 
         /// <summary>
         /// 构造函数
@@ -476,11 +475,16 @@ namespace WindowsFormsApp3.Presenters
                         _currentNeedsRotation = selectionResult.NeedsRotation;
                         _currentRotationAngle = selectionResult.RotationAngle;
                         
-                        // ✅ 保存排版信息（用于折手模式空白页功能）
+                        // ✅ 保存排版信息(用于折手模式空白页功能)
                         _currentEnableImposition = selectionResult.EnableImposition;
                         _currentLayoutMode = selectionResult.LayoutMode;
                         _currentLayoutQuantity = selectionResult.LayoutQuantity;
                         _logger?.LogInformation($"[ProcessNewFileAsync] 排版信息: EnableImposition={_currentEnableImposition}, LayoutMode={_currentLayoutMode}, LayoutQuantity={_currentLayoutQuantity}");
+                        
+                        // ✅ 保存标识页信息
+                        _currentAddIdentifierPage = selectionResult.AddIdentifierPage;
+                        _currentIdentifierPageContent = selectionResult.IdentifierPageContent ?? "";
+                        _logger?.LogInformation($"[ProcessNewFileAsync] 标识页信息: AddIdentifierPage={_currentAddIdentifierPage}, Content='{_currentIdentifierPageContent}'");
                         
                         // ✅ 获取导出路径
                         string exportPath = selectionResult.ExportPath;
@@ -808,12 +812,12 @@ namespace WindowsFormsApp3.Presenters
                         RoundRadius = _currentRoundRadius,
                         FinalDimensions = _currentDimensions,
                         RotationAngle = _currentRotationAngle,
-                        // ✅ 关键修复：传递排版信息以触发折手模式空白页逻辑
+                        // ✅ 关键修复:传递排版信息以触发折手模式空白页逻辑
                         LayoutMode = _currentLayoutMode,
                         LayoutQuantity = _currentLayoutQuantity,
-                        // 标识页设置（如果需要）
-                        AddIdentifierPage = false,
-                        IdentifierPageContent = ""
+                        // ✅ 关键修复:传递标识页信息
+                        AddIdentifierPage = _currentAddIdentifierPage,
+                        IdentifierPageContent = _currentIdentifierPageContent
                     };
 
                     _logger?.LogInformation($"[RenameFileAsync] 使用PdfProcessingOptions: LayoutMode={pdfOptions.LayoutMode}, LayoutQuantity={pdfOptions.LayoutQuantity}");

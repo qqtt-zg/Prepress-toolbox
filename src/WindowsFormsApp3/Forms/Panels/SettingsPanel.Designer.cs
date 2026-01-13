@@ -13,6 +13,7 @@ namespace WindowsFormsApp3.Forms.Panels
         private AntdUI.TabPage pageImposition;
         private AntdUI.TabPage pageEvent;
         private AntdUI.TabPage pageTheme;
+        private AntdUI.TabPage pageFontText;
         private Controls.Settings.SettingsGeneralControl settingsGeneral;
         private Controls.Settings.SettingsRegexControl settingsRegex;
         private Controls.Settings.SettingsMaterialControl settingsMaterial;
@@ -20,6 +21,7 @@ namespace WindowsFormsApp3.Forms.Panels
         private Controls.Settings.SettingsImpositionControl settingsImposition;
         private Controls.Settings.SettingsEventControl settingsEvent;
         private Controls.Settings.ThemeEditorControl themeEditor;
+        private Controls.Settings.SettingsFontTextControl settingsFontText;
 
         protected override void Dispose(bool disposing)
         {
@@ -48,6 +50,8 @@ namespace WindowsFormsApp3.Forms.Panels
             this.settingsEvent = new WindowsFormsApp3.Forms.Controls.Settings.SettingsEventControl();
             this.pageTheme = new AntdUI.TabPage();
             this.themeEditor = new WindowsFormsApp3.Forms.Controls.Settings.ThemeEditorControl();
+            this.pageFontText = new AntdUI.TabPage();
+            this.settingsFontText = new WindowsFormsApp3.Forms.Controls.Settings.SettingsFontTextControl();
             this.tabsMain.SuspendLayout();
             this.pageGeneral.SuspendLayout();
             this.pageRegex.SuspendLayout();
@@ -56,6 +60,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.pageImposition.SuspendLayout();
             this.pageEvent.SuspendLayout();
             this.pageTheme.SuspendLayout();
+            this.pageFontText.SuspendLayout();
             this.SuspendLayout();
             // 
             // tabsMain
@@ -67,6 +72,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.tabsMain.Controls.Add(this.pageImposition);
             this.tabsMain.Controls.Add(this.pageEvent);
             this.tabsMain.Controls.Add(this.pageTheme);
+            this.tabsMain.Controls.Add(this.pageFontText);
             this.tabsMain.Cursor = System.Windows.Forms.Cursors.Default;
             this.tabsMain.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tabsMain.Location = new System.Drawing.Point(0, 0);
@@ -78,6 +84,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.tabsMain.Pages.Add(this.pageImposition);
             this.tabsMain.Pages.Add(this.pageEvent);
             this.tabsMain.Pages.Add(this.pageTheme);
+            this.tabsMain.Pages.Add(this.pageFontText);
             this.tabsMain.Size = new System.Drawing.Size(935, 503);
             this.tabsMain.Style = styleLine1;
             this.tabsMain.TabIndex = 0;
@@ -210,6 +217,24 @@ namespace WindowsFormsApp3.Forms.Panels
             this.themeEditor.Size = new System.Drawing.Size(935, 475);
             this.themeEditor.TabIndex = 0;
             // 
+            // pageFontText
+            // 
+            this.pageFontText.Controls.Add(this.settingsFontText);
+            this.pageFontText.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pageFontText.Location = new System.Drawing.Point(0, 28);
+            this.pageFontText.Name = "pageFontText";
+            this.pageFontText.Size = new System.Drawing.Size(935, 475);
+            this.pageFontText.TabIndex = 7;
+            this.pageFontText.Text = "字体文字";
+            // 
+            // settingsFontText
+            // 
+            this.settingsFontText.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.settingsFontText.Location = new System.Drawing.Point(0, 0);
+            this.settingsFontText.Name = "settingsFontText";
+            this.settingsFontText.Size = new System.Drawing.Size(935, 475);
+            this.settingsFontText.TabIndex = 0;
+            // 
             // SettingsPanel
             // 
             this.Controls.Add(this.tabsMain);
@@ -223,6 +248,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.pageImposition.ResumeLayout(false);
             this.pageEvent.ResumeLayout(false);
             this.pageTheme.ResumeLayout(false);
+            this.pageFontText.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }

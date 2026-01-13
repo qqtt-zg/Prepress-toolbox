@@ -15,6 +15,9 @@ using System.Linq;
 using WindowsFormsApp3.Models;
 using WindowsFormsApp3.Services;
 using System.Collections.Generic;
+using PdfSharp.Pdf;
+using PdfSharp.Pdf.IO;
+using PdfSharp.Drawing;
 
 namespace WindowsFormsApp3.Utils
 {
@@ -1410,67 +1413,67 @@ public static bool ReorganizePagesWithIndirectReference(string filePath)
                     return true;
                 }
 
-                LogHelper.Debug($"开始插入{pageCount}个{pageType}到{positionDesc}（iText7 + pdfCalligraph版本）");
+                LogHelper.Debug($"开始插入{pageCount}个{pageType}到{positionDesc}（iTextSharp.LGPLv2版本）");
 
-                // 修复 iText7 CJK 字体加载问题 - 禁用 CJK 字体自动注册
-                try
-                {
-                    // 设置环境变量禁用 CJK 字体注册，避免空引用异常
-                    System.Environment.SetEnvironmentVariable("ITEXT_DISABLE_CJK_FONT_LOADING", "true");
-                    LogHelper.Debug("已禁用 iText7 CJK 字体自动加载");
-                }
-                catch (Exception ex)
-                {
-                    LogHelper.Debug($"设置 CJK 字体环境变量失败: {ex.Message}");
-                }
+                // 使用 iTextSharp.LGPLv2.Core 实现标识页插入（支持 TTC 字体）
+                return ITextSharpLGPLPdfTools.InsertIdentifierPage(filePath, textContent, fontSize, insertPosition, pageCount);
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"插入{pageType}失败: {ex.Message}", ex);
+                return false;
+            }
+        }
 
-                string tempFile = SystemPath.Combine(SystemPath.GetTempPath(), $"temp_identifier_{Guid.NewGuid()}.pdf");
+        /// <summary>
+        /// 使用 PDFsharp 插入标识页（已弃用，改用 iTextSharp.LGPLv2.Core）
+        /// </summary>
+        [Obsolete("已弃用，请使用 ITextSharpLGPLPdfTools.InsertIdentifierPage")]
+        private static bool InsertIdentifierPageWithPdfSharp(string filePath, string textContent, float fontSize, int insertPosition, int pageCount)
+        {
+            string pageType = string.IsNullOrEmpty(textContent) ? "空白页" : "标识页";
+            string tempFile = SystemPath.Combine(SystemPath.GetTempPath(), $"temp_identifier_{Guid.NewGuid()}.pdf");
 
-                using (var reader = new iText.Kernel.Pdf.PdfReader(filePath))
-                using (var writer = new iText.Kernel.Pdf.PdfWriter(tempFile))
-                using (var pdfDoc = new iText.Kernel.Pdf.PdfDocument(reader, writer))
+            try
+            {
+                // 打开现有PDF文档
+                using (var document = PdfSharp.Pdf.IO.PdfReader.Open(filePath, PdfSharp.Pdf.IO.PdfDocumentOpenMode.Modify))
                 {
-                    if (pdfDoc.GetNumberOfPages() == 0)
+                    if (document.PageCount == 0)
                     {
                         LogHelper.Error("文档没有页面");
                         return false;
                     }
 
-                    // 获取参考页面尺寸和旋转信息
-                    iText.Kernel.Pdf.PdfPage referencePage = GetReferencePage(pdfDoc, insertPosition);
-                    iText.Kernel.Geom.Rectangle pageSize = referencePage.GetCropBox() ?? referencePage.GetMediaBox();
-                    float pageWidth = pageSize.GetWidth();
-                    float pageHeight = pageSize.GetHeight();
-                    int originalRotation = referencePage.GetRotation();
+                    // 获取参考页面尺寸
+                    int refPageIndex = GetReferencePageIndex(document.PageCount, insertPosition);
+                    var referencePage = document.Pages[refPageIndex];
+                    double pageWidth = referencePage.Width.Point;
+                    double pageHeight = referencePage.Height.Point;
+                    int rotation = referencePage.Rotate;
 
-                    LogHelper.Debug($"参考页面尺寸: {pageWidth}x{pageHeight} 点");
-                    LogHelper.Debug($"检测到参考页面旋转角度: {originalRotation}°");
+                    LogHelper.Debug($"参考页面尺寸: {pageWidth}x{pageHeight} 点, 旋转: {rotation}°");
 
-                    // 创建字体（只需要创建一次）
-                    iText.Kernel.Font.PdfFont chineseFont = CreateChineseFontiText7(fontSize);
+                    // 获取字体
+                    PdfSharp.Drawing.XFont font = CreatePdfSharpFont(fontSize);
+                    LogHelper.Debug($"使用字体: {font.FontFamily.Name}");
 
                     // 批量插入页面
                     for (int i = 0; i < pageCount; i++)
                     {
-                        // 计算插入位置（确保每次插入后位置正确）
-                        int actualInsertPosition = CalculateActualInsertPosition(pdfDoc, insertPosition, i);
+                        // 计算插入位置
+                        int actualInsertIndex = CalculatePdfSharpInsertIndex(document.PageCount, insertPosition, i);
 
                         // 创建新页面
-                        iText.Kernel.Pdf.PdfPage newPage = pdfDoc.AddNewPage(actualInsertPosition, new iText.Kernel.Geom.PageSize(pageWidth, pageHeight));
+                        var newPage = document.InsertPage(actualInsertIndex);
+                        newPage.Width = PdfSharp.Drawing.XUnit.FromPoint(pageWidth);
+                        newPage.Height = PdfSharp.Drawing.XUnit.FromPoint(pageHeight);
+                        newPage.Rotate = rotation;
 
-                        // 应用旋转角度
-                        if (originalRotation != 0)
-                        {
-                            newPage.SetRotation(originalRotation);
-                        }
-
-                        // 复制页面框属性
-                        CopyPageBoxProperties(referencePage, newPage);
-
-                        // 只有第一页（或指定页）才添加文字内容
+                        // 只有第一页才添加文字内容
                         if (!string.IsNullOrEmpty(textContent) && i == 0)
                         {
-                            DrawCenteredTextiText7(newPage, textContent, chineseFont, pageWidth, pageHeight, fontSize, pdfDoc);
+                            DrawCenteredTextPdfSharp(newPage, textContent, font, pageWidth, pageHeight);
                             LogHelper.Debug($"第{i + 1}页已添加文字内容: {textContent}");
                         }
                         else
@@ -1479,7 +1482,9 @@ public static bool ReorganizePagesWithIndirectReference(string filePath)
                         }
                     }
 
-                    LogHelper.Debug($"成功插入{pageCount}个{pageType}到{positionDesc}");
+                    // 保存到临时文件
+                    document.Save(tempFile);
+                    LogHelper.Debug($"成功插入{pageCount}个{pageType}");
                 }
 
                 // 替换原文件
@@ -1491,7 +1496,7 @@ public static bool ReorganizePagesWithIndirectReference(string filePath)
                 if (File.Exists(tempFile) && new FileInfo(tempFile).Length > 0)
                 {
                     File.Move(tempFile, filePath);
-                    LogHelper.Debug("iText7标识页插入成功完成");
+                    LogHelper.Debug("PDFsharp标识页插入成功完成");
                     return true;
                 }
                 else
@@ -1502,9 +1507,199 @@ public static bool ReorganizePagesWithIndirectReference(string filePath)
             }
             catch (Exception ex)
             {
-                LogHelper.Error($"插入{pageType}失败: {ex.Message}", ex);
+                LogHelper.Error($"PDFsharp插入标识页失败: {ex.Message}", ex);
+                
+                // 清理临时文件
+                try
+                {
+                    if (File.Exists(tempFile))
+                        File.Delete(tempFile);
+                }
+                catch { }
+                
                 return false;
             }
+        }
+
+        /// <summary>
+        /// 获取参考页面索引（PDFsharp版本）
+        /// </summary>
+        private static int GetReferencePageIndex(int totalPages, int insertPosition)
+        {
+            return insertPosition switch
+            {
+                0 => 0,  // 第一页之前插入，参考第一页
+                -1 => totalPages - 1,  // 最后插入，参考最后一页
+                > 0 when insertPosition <= totalPages => insertPosition - 1,
+                _ => 0  // 默认参考第一页
+            };
+        }
+
+        /// <summary>
+        /// 计算PDFsharp插入索引
+        /// </summary>
+        private static int CalculatePdfSharpInsertIndex(int currentPageCount, int insertPosition, int currentIndex)
+        {
+            return insertPosition switch
+            {
+                0 => currentIndex,  // 在开头插入
+                -1 => currentPageCount,  // 在末尾插入
+                > 0 => insertPosition + currentIndex,  // 在指定位置之后插入
+                _ => currentIndex
+            };
+        }
+
+        /// <summary>
+        /// 创建 PDFsharp 字体（直接使用用户选择的字体，无回退）
+        /// </summary>
+        private static PdfSharp.Drawing.XFont CreatePdfSharpFont(float fontSize)
+        {
+            try
+            {
+                // 从AppSettings读取用户选择的字体
+                string selectedFont = AppSettings.GetValue<string>("IdentifierPageFont") ?? "Microsoft YaHei";
+                LogHelper.Debug($"使用字体: {selectedFont}");
+
+                // 直接创建字体，不做回退
+                var font = new PdfSharp.Drawing.XFont(selectedFont, fontSize, PdfSharp.Drawing.XFontStyleEx.Regular);
+                LogHelper.Debug($"✓ 成功创建字体: {selectedFont}");
+                return font;
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"创建PDFsharp字体失败: {ex.Message}", ex);
+                throw new Exception($"无法创建字体，请在设置中选择兼容的字体。错误: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 使用 PDFsharp 绘制居中文字
+        /// </summary>
+        private static void DrawCenteredTextPdfSharp(PdfSharp.Pdf.PdfPage page, string text, PdfSharp.Drawing.XFont font, double pageWidth, double pageHeight)
+        {
+            try
+            {
+                using (var gfx = PdfSharp.Drawing.XGraphics.FromPdfPage(page))
+                {
+                    // 绘制白色背景
+                    gfx.DrawRectangle(PdfSharp.Drawing.XBrushes.White, 0, 0, pageWidth, pageHeight);
+
+                    // 设置文字格式
+                    var format = new PdfSharp.Drawing.XStringFormat
+                    {
+                        Alignment = PdfSharp.Drawing.XStringAlignment.Center,
+                        LineAlignment = PdfSharp.Drawing.XLineAlignment.Center
+                    };
+
+                    // 计算页边距和可用区域
+                    double margin = 20;
+                    double maxTextWidth = pageWidth - (margin * 2);
+                    double lineHeight = font.Height * 1.2;
+
+                    // 处理文本换行
+                    var lines = WrapTextPdfSharp(gfx, text, font, maxTextWidth);
+
+                    // 计算总文本高度
+                    double totalTextHeight = lines.Count * lineHeight;
+
+                    // 计算起始Y坐标（垂直居中）
+                    double startY = (pageHeight - totalTextHeight) / 2 + font.Height / 2;
+
+                    // 绘制每一行
+                    for (int i = 0; i < lines.Count; i++)
+                    {
+                        double y = startY + (i * lineHeight);
+                        gfx.DrawString(lines[i], font, PdfSharp.Drawing.XBrushes.Black, 
+                            new PdfSharp.Drawing.XPoint(pageWidth / 2, y), format);
+                    }
+
+                    LogHelper.Debug($"PDFsharp绘制文字完成，共{lines.Count}行");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"PDFsharp绘制文字失败: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// PDFsharp 文本换行处理
+        /// </summary>
+        private static List<string> WrapTextPdfSharp(PdfSharp.Drawing.XGraphics gfx, string text, PdfSharp.Drawing.XFont font, double maxWidth)
+        {
+            var lines = new List<string>();
+            
+            if (string.IsNullOrEmpty(text))
+                return lines;
+
+            // 先按换行符分割
+            string[] paragraphs = text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
+
+            foreach (string paragraph in paragraphs)
+            {
+                if (string.IsNullOrEmpty(paragraph))
+                {
+                    lines.Add("");
+                    continue;
+                }
+
+                string remaining = paragraph;
+                while (!string.IsNullOrEmpty(remaining))
+                {
+                    // 测量整行宽度
+                    var size = gfx.MeasureString(remaining, font);
+                    
+                    if (size.Width <= maxWidth)
+                    {
+                        lines.Add(remaining);
+                        break;
+                    }
+
+                    // 需要换行，找到合适的断点
+                    int breakIndex = FindBreakIndex(gfx, remaining, font, maxWidth);
+                    
+                    if (breakIndex <= 0)
+                    {
+                        // 无法找到断点，强制在第一个字符后断开
+                        breakIndex = 1;
+                    }
+
+                    lines.Add(remaining.Substring(0, breakIndex));
+                    remaining = remaining.Substring(breakIndex).TrimStart();
+                }
+            }
+
+            return lines;
+        }
+
+        /// <summary>
+        /// 查找文本换行断点
+        /// </summary>
+        private static int FindBreakIndex(PdfSharp.Drawing.XGraphics gfx, string text, PdfSharp.Drawing.XFont font, double maxWidth)
+        {
+            // 二分查找合适的断点
+            int low = 1;
+            int high = text.Length;
+            int result = 1;
+
+            while (low <= high)
+            {
+                int mid = (low + high) / 2;
+                string testStr = text.Substring(0, mid);
+                var size = gfx.MeasureString(testStr, font);
+
+                if (size.Width <= maxWidth)
+                {
+                    result = mid;
+                    low = mid + 1;
+                }
+                else
+                {
+                    high = mid - 1;
+                }
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -1802,103 +1997,279 @@ public static bool ReorganizePagesWithIndirectReference(string filePath)
         }
 
         /// <summary>
-        /// 创建支持中文的字体（iText7版本）- 完全避免跨文档引用
+        /// 创建支持中文的字体（iText7版本）- 直接使用系统字体文件
         /// </summary>
         private static iText.Kernel.Font.PdfFont CreateChineseFontiText7(float fontSize)
         {
             try
             {
-                LogHelper.Debug("开始创建iText7中文字体（思源黑体）");
+                // 从AppSettings读取用户选择的字体（现在保存的是系统字体名，如 "Microsoft YaHei"）
+                string selectedFont = AppSettings.GetValue<string>("IdentifierPageFont") ?? "Microsoft YaHei";
+                LogHelper.Debug($"尝试加载用户选择的字体: {selectedFont}");
 
-                // 为每次调用创建全新的字体对象，避免跨文档引用
-                // 优先使用思源黑体
+                // 尝试从系统字体目录加载字体
+                string fontPathWithIndex = GetSystemFontPath(selectedFont);
+                if (!string.IsNullOrEmpty(fontPathWithIndex))
+                {
+                    var font = LoadFontFromPath(fontPathWithIndex);
+                    if (font != null)
+                    {
+                        LogHelper.Debug($"✓ 成功加载系统字体: {selectedFont} ({fontPathWithIndex})");
+                        return font;
+                    }
+                }
+
+                // 备用方案：尝试常用中文字体
+                string[] fallbackFonts = { 
+                    "C:\\Windows\\Fonts\\simhei.ttf",      // 黑体（单字体文件，优先）
+                    "C:\\Windows\\Fonts\\simkai.ttf",      // 楷体
+                    "C:\\Windows\\Fonts\\simfang.ttf",     // 仿宋
+                    "C:\\Windows\\Fonts\\msyh.ttc,0",      // 微软雅黑
+                    "C:\\Windows\\Fonts\\simsun.ttc,0"     // 宋体
+                };
+                
+                foreach (string fallbackFontPath in fallbackFonts)
+                {
+                    var font = LoadFontFromPath(fallbackFontPath);
+                    if (font != null)
+                    {
+                        LogHelper.Debug($"✓ 使用备用字体: {fallbackFontPath}");
+                        return font;
+                    }
+                }
 
                 // 尝试使用项目中的思源黑体字体
                 try
                 {
-                    // 获取嵌入的资源字体文件路径
                     string currentDir = SystemPath.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                    string fontPath = SystemPath.Combine(currentDir, "Resources", "Fonts", "NotoSansSC-Regular.ttf");
+                    string notoFontPath = SystemPath.Combine(currentDir, "Resources", "Fonts", "NotoSansSC-Regular.ttf");
 
-                    // 如果当前目录下找不到，尝试从项目源码目录查找
-                    if (!File.Exists(fontPath))
+                    if (File.Exists(notoFontPath))
                     {
-                        string projectDir = SystemPath.GetDirectoryName(SystemPath.GetDirectoryName(currentDir));
-                        fontPath = SystemPath.Combine(projectDir, "src", "WindowsFormsApp3", "Resources", "Fonts", "NotoSansSC-Regular.ttf");
-                    }
-
-                    if (File.Exists(fontPath))
-                    {
-                        var fontProgram = iText.IO.Font.FontProgramFactory.CreateFont(fontPath);
+                        var fontProgram = iText.IO.Font.FontProgramFactory.CreateFont(notoFontPath);
                         if (fontProgram != null)
                         {
-                            var font = iText.Kernel.Font.PdfFontFactory.CreateFont(fontProgram, iText.IO.Font.PdfEncodings.IDENTITY_H);
-                            LogHelper.Debug($"成功创建思源黑体字体: {fontPath}");
+                            var font = iText.Kernel.Font.PdfFontFactory.CreateFont(
+                                fontProgram, 
+                                iText.IO.Font.PdfEncodings.IDENTITY_H,
+                                iText.Kernel.Font.PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED);
+                            LogHelper.Debug($"✓ 使用思源黑体字体: {notoFontPath}");
                             return font;
                         }
                     }
-                    else
-                    {
-                        LogHelper.Debug($"思源黑体字体文件不存在: {fontPath}");
-                    }
                 }
-                catch (Exception fontEx)
+                catch (Exception ex)
                 {
-                    LogHelper.Debug($"思源黑体字体创建失败: {fontEx.Message}");
-                }
-
-                // 尝试使用Windows系统的中文字体作为备选
-                try
-                {
-                    // 尝试使用Windows系统的中文字体
-                    var fontProgram = iText.IO.Font.FontProgramFactory.CreateFont("C:\\Windows\\Fonts\\simhei.ttf");
-                    if (fontProgram != null)
-                    {
-                        var font = iText.Kernel.Font.PdfFontFactory.CreateFont(fontProgram, iText.IO.Font.PdfEncodings.IDENTITY_H);
-                        LogHelper.Debug("成功创建系统黑体字体（备选方案）");
-                        return font;
-                    }
-                }
-                catch (Exception fontEx)
-                {
-                    LogHelper.Debug($"系统字体创建失败: {fontEx.Message}");
+                    LogHelper.Debug($"思源黑体加载失败: {ex.Message}");
                 }
 
                 // 最终回退：使用内置字体
                 var basicFont = iText.Kernel.Font.PdfFontFactory.CreateFont(
                     iText.IO.Font.Constants.StandardFonts.HELVETICA_BOLD);
-
-                LogHelper.Debug("成功创建基础HELVETICA_BOLD字体（回退方案）");
+                LogHelper.Debug("使用基础HELVETICA_BOLD字体（回退方案）");
                 return basicFont;
             }
-            catch (System.NullReferenceException nullEx) when (nullEx.Message.Contains("CjkResourceLoader") || nullEx.Source == "itext.io")
+            catch (Exception ex)
             {
-                LogHelper.Debug("捕获到iText7 CJK字体加载异常，使用基础字体替代");
-                // 使用最基础的字体作为最终回退
-                try
+                LogHelper.Error($"创建iText7字体失败: {ex.Message}");
+                return iText.Kernel.Font.PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA);
+            }
+        }
+
+        /// <summary>
+        /// 从路径加载字体（支持ttf和ttc格式）
+        /// </summary>
+        private static iText.Kernel.Font.PdfFont LoadFontFromPath(string fontPathWithIndex)
+        {
+            try
+            {
+                // 分离文件路径和索引
+                string actualFilePath;
+                int fontIndex = 0;
+                
+                if (fontPathWithIndex.Contains(","))
                 {
-                    return iText.Kernel.Font.PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA);
+                    int lastComma = fontPathWithIndex.LastIndexOf(',');
+                    actualFilePath = fontPathWithIndex.Substring(0, lastComma);
+                    int.TryParse(fontPathWithIndex.Substring(lastComma + 1), out fontIndex);
                 }
-                catch (Exception finalEx)
+                else
                 {
-                    LogHelper.Error($"创建基础字体也失败: {finalEx.Message}");
-                    throw new Exception("无法创建任何字体，PDF操作无法继续");
+                    actualFilePath = fontPathWithIndex;
+                }
+
+                if (!File.Exists(actualFilePath))
+                {
+                    LogHelper.Debug($"字体文件不存在: {actualFilePath}");
+                    return null;
+                }
+
+                string ext = SystemPath.GetExtension(actualFilePath).ToLower();
+                
+                // 对于 TTC 文件，使用特殊的加载方式
+                if (ext == ".ttc")
+                {
+                    // iText7 加载 TTC 文件的正确方式：使用字节数组 + TrueTypeCollection
+                    byte[] fontBytes = File.ReadAllBytes(actualFilePath);
+                    var ttc = new iText.IO.Font.TrueTypeCollection(fontBytes);
+                    var fontProgram = ttc.GetFontByTccIndex(fontIndex);
+                    
+                    if (fontProgram != null)
+                    {
+                        var font = iText.Kernel.Font.PdfFontFactory.CreateFont(
+                            fontProgram,
+                            iText.IO.Font.PdfEncodings.IDENTITY_H,
+                            iText.Kernel.Font.PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED);
+                        LogHelper.Debug($"TTC字体加载成功: {actualFilePath}, 索引: {fontIndex}");
+                        return font;
+                    }
+                }
+                else
+                {
+                    // 对于 TTF/OTF 文件，直接加载
+                    var fontProgram = iText.IO.Font.FontProgramFactory.CreateFont(actualFilePath);
+                    if (fontProgram != null)
+                    {
+                        var font = iText.Kernel.Font.PdfFontFactory.CreateFont(
+                            fontProgram,
+                            iText.IO.Font.PdfEncodings.IDENTITY_H,
+                            iText.Kernel.Font.PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED);
+                        LogHelper.Debug($"TTF字体加载成功: {actualFilePath}");
+                        return font;
+                    }
                 }
             }
             catch (Exception ex)
             {
-                LogHelper.Error($"创建iText7中文字体失败: {ex.Message}");
-                // 最后的备选方案
-                try
+                LogHelper.Debug($"加载字体失败: {fontPathWithIndex}, 错误: {ex.Message}");
+            }
+            
+            return null;
+        }
+
+        /// <summary>
+        /// 根据系统字体名获取字体文件路径
+        /// </summary>
+        private static string GetSystemFontPath(string fontName)
+        {
+            if (string.IsNullOrEmpty(fontName))
+                return null;
+
+            string fontsDir = "C:\\Windows\\Fonts";
+            
+            // 常用字体名到文件名的映射（包含完整路径格式）
+            var fontFileMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                // 微软雅黑系列
+                { "Microsoft YaHei", "msyh.ttc,0" },
+                { "Microsoft YaHei UI", "msyh.ttc,1" },
+                { "Microsoft YaHei Light", "msyhl.ttc,0" },
+                { "微软雅黑", "msyh.ttc,0" },
+                { "微软雅黑 Light", "msyhl.ttc,0" },
+                
+                // 中文基础字体
+                { "SimHei", "simhei.ttf" },
+                { "黑体", "simhei.ttf" },
+                { "SimSun", "simsun.ttc,0" },
+                { "宋体", "simsun.ttc,0" },
+                { "NSimSun", "simsun.ttc,1" },
+                { "新宋体", "simsun.ttc,1" },
+                { "KaiTi", "simkai.ttf" },
+                { "楷体", "simkai.ttf" },
+                { "FangSong", "simfang.ttf" },
+                { "仿宋", "simfang.ttf" },
+                
+                // 华文字体
+                { "STXihei", "STXIHEI.TTF" },
+                { "华文细黑", "STXIHEI.TTF" },
+                { "STKaiti", "STKAITI.TTF" },
+                { "华文楷体", "STKAITI.TTF" },
+                { "STSong", "STSONG.TTF" },
+                { "华文宋体", "STSONG.TTF" },
+                { "STFangsong", "STFANGS.TTF" },
+                { "华文仿宋", "STFANGS.TTF" },
+                { "STZhongsong", "STZHONGS.TTF" },
+                { "华文中宋", "STZHONGS.TTF" },
+                
+                // 英文常用字体
+                { "Arial", "arial.ttf" },
+                { "Arial Black", "ariblk.ttf" },
+                { "Times New Roman", "times.ttf" },
+                { "Courier New", "cour.ttf" },
+                { "Verdana", "verdana.ttf" },
+                { "Tahoma", "tahoma.ttf" },
+                { "Georgia", "georgia.ttf" },
+                { "Consolas", "consola.ttf" },
+                { "Segoe UI", "segoeui.ttf" },
+                { "Calibri", "calibri.ttf" },
+                { "Cambria", "cambria.ttc,0" }
+            };
+
+            // 先尝试从映射表查找
+            if (fontFileMap.TryGetValue(fontName, out string mappedFile))
+            {
+                string[] parts = mappedFile.Split(',');
+                string filePath = SystemPath.Combine(fontsDir, parts[0]);
+                if (File.Exists(filePath))
                 {
-                    return iText.Kernel.Font.PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA);
-                }
-                catch (Exception fallbackEx)
-                {
-                    LogHelper.Error($"创建备选字体也失败: {fallbackEx.Message}");
-                    throw new Exception("无法创建任何字体，PDF操作无法继续");
+                    string result = parts.Length > 1 ? $"{filePath},{parts[1]}" : filePath;
+                    LogHelper.Debug($"从映射表找到字体: {fontName} -> {result}");
+                    return result;
                 }
             }
+
+            // 尝试直接在字体目录中查找匹配的文件
+            try
+            {
+                string[] extensions = { ".ttf", ".ttc", ".otf", ".TTF", ".TTC", ".OTF" };
+                string normalizedName = fontName.Replace(" ", "").ToLower();
+
+                // 尝试多种文件名格式
+                string[] possibleNames = {
+                    fontName,
+                    fontName.Replace(" ", ""),
+                    normalizedName,
+                    fontName.ToLower(),
+                    fontName.ToUpper()
+                };
+
+                foreach (string name in possibleNames)
+                {
+                    foreach (string ext in extensions)
+                    {
+                        string testPath = SystemPath.Combine(fontsDir, name + ext);
+                        if (File.Exists(testPath))
+                        {
+                            string result = ext.ToLower() == ".ttc" ? $"{testPath},0" : testPath;
+                            LogHelper.Debug($"直接匹配找到字体: {fontName} -> {result}");
+                            return result;
+                        }
+                    }
+                }
+
+                // 遍历字体目录查找包含字体名的文件
+                foreach (string file in Directory.GetFiles(fontsDir))
+                {
+                    string ext = SystemPath.GetExtension(file).ToLower();
+                    if (ext != ".ttf" && ext != ".ttc" && ext != ".otf")
+                        continue;
+                        
+                    string fileName = SystemPath.GetFileNameWithoutExtension(file).ToLower();
+                    if (fileName.Contains(normalizedName) || normalizedName.Contains(fileName))
+                    {
+                        string result = ext == ".ttc" ? $"{file},0" : file;
+                        LogHelper.Debug($"模糊匹配找到字体: {fontName} -> {result}");
+                        return result;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Debug($"搜索字体文件失败: {ex.Message}");
+            }
+
+            LogHelper.Debug($"未找到字体文件: {fontName}");
+            return null;
         }
 
         /// <summary>

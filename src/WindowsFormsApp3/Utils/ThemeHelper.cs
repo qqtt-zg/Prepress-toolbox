@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using WindowsFormsApp3.Models;
 
 namespace WindowsFormsApp3.Utils
@@ -12,6 +13,16 @@ namespace WindowsFormsApp3.Utils
     /// </summary>
     public static class ThemeHelper
     {
+        #region Windows API
+        
+        /// <summary>
+        /// 设置窗口主题（用于滚动条主题化）
+        /// </summary>
+        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
+        private static extern int SetWindowTheme(IntPtr hWnd, string pszSubAppName, string pszSubIdList);
+        
+        #endregion
+        
         // 当前应用的主题定义
         private static ThemeDefinition _currentTheme;
         private static bool _isDark = false; // Track dark mode state
@@ -61,6 +72,9 @@ namespace WindowsFormsApp3.Utils
             {
                 ApplyTheme(child);
             }
+            
+            // 🔧 新增：应用滚动条主题
+            ApplyScrollBarThemeRecursive(root, isDark);
         }
 
         private static void ApplyToControl(Control control)
@@ -438,8 +452,21 @@ namespace WindowsFormsApp3.Utils
                 // AntdUI.ColorPicker - 特殊处理
                 else if (typeName == "ColorPicker")
                 {
-                    // ColorPicker 通常不需要额外主题设置，它显示的是用户选择的颜色
-                    SetPropertySafe(control, "ForeColor", _currentTheme.TextPrimary);
+                    try
+                    {
+                        dynamic colorPickerControl = control;
+                        // ColorPicker 需要设置边框和前景色以在深色模式下可见
+                        colorPickerControl.BackColor = _currentTheme.SurfaceLight;
+                        colorPickerControl.ForeColor = _currentTheme.TextPrimary;
+                        colorPickerControl.BorderColor = _currentTheme.Border;
+                    }
+                    catch
+                    {
+                        // Fallback
+                        SetPropertySafe(control, "BackColor", _currentTheme.SurfaceLight);
+                        SetPropertySafe(control, "ForeColor", _currentTheme.TextPrimary);
+                        SetPropertySafe(control, "BorderColor", _currentTheme.Border);
+                    }
                 }
             }
             catch
@@ -493,6 +520,131 @@ namespace WindowsFormsApp3.Utils
                 catch { }
             }
             catch { }
+        }
+        
+        /// <summary>
+        /// 为控件应用滚动条主题
+        /// </summary>
+        /// <param name="control">要应用主题的控件</param>
+        /// <param name="isDark">是否为深色模式</param>
+        private static void ApplyScrollBarTheme(Control control, bool isDark)
+        {
+            if (control == null)
+                return;
+            
+            // 如果句柄还没创建，等待 HandleCreated 事件后再应用
+            if (!control.IsHandleCreated)
+            {
+                EventHandler handler = null;
+                handler = (s, e) =>
+                {
+                    control.HandleCreated -= handler; // 只执行一次
+                    ApplyScrollBarThemeImmediate(control, isDark);
+                };
+                control.HandleCreated += handler;
+                return;
+            }
+            
+            // 句柄已创建，立即应用
+            ApplyScrollBarThemeImmediate(control, isDark);
+        }
+        
+        /// <summary>
+        /// 立即应用滚动条主题（句柄已创建）
+        /// </summary>
+        private static void ApplyScrollBarThemeImmediate(Control control, bool isDark)
+        {
+            if (control == null || !control.IsHandleCreated)
+                return;
+                
+            try
+            {
+                // 设置滚动条主题
+                // "DarkMode_Explorer" 用于深色模式（Windows 10 1809+）
+                // null 恢复默认主题
+                string theme = isDark ? "DarkMode_Explorer" : null;
+                SetWindowTheme(control.Handle, theme, null);
+            }
+            catch (Exception ex)
+            {
+                #if DEBUG
+                System.Diagnostics.Debug.WriteLine($"[ThemeHelper] 应用滚动条主题失败 {control.Name}: {ex.Message}");
+                #endif
+            }
+        }
+        
+        /// <summary>
+        /// 为带滚动条的控件递归应用主题
+        /// </summary>
+        /// <param name="control">根控件</param>
+        /// <param name="isDark">是否为深色模式</param>
+        public static void ApplyScrollBarThemeRecursive(Control control, bool isDark)
+        {
+            if (control == null) return;
+            
+            // 检查控件是否有滚动条
+            bool hasScrollBar = false;
+            
+            if (control is Panel panel && panel.AutoScroll)
+                hasScrollBar = true;
+            else if (control is TextBoxBase) // TextBox, RichTextBox
+                hasScrollBar = true;
+            else if (control is ListBox)
+                hasScrollBar = true;
+            else if (control is DataGridView)
+                hasScrollBar = true;
+            else if (control is TreeView)
+                hasScrollBar = true;
+            else if (control is ListView)
+                hasScrollBar = true;
+            else if (control.GetType().Name.Contains("PdfViewer") || control.GetType().Name.Contains("PdfPreview"))
+                hasScrollBar = true;
+            
+            // 如果控件有滚动条，应用主题
+            if (hasScrollBar)
+            {
+                ApplyScrollBarTheme(control, isDark);
+                
+                // 🔧 特殊处理：DataGridView 的内部滚动条控件
+                if (control is DataGridView dgv)
+                {
+                    // DataGridView 的滚动条是子控件，需要recursively找到并应用主题
+                    ApplyScrollBarThemeToChildren(control, isDark);
+                }
+            }
+            
+            // 递归处理子控件
+            foreach (Control child in control.Controls)
+            {
+                ApplyScrollBarThemeRecursive(child, isDark);
+            }
+        }
+        
+        /// <summary>
+        /// 为控件的所有子控件（包括深层嵌套）应用滚动条主题
+        /// </summary>
+        private static void ApplyScrollBarThemeToChildren(Control parent, bool isDark, int depth = 0)
+        {
+            if (parent == null || depth > 3) return; // 限制递归深度，避免影响太深层的控件
+            
+            foreach (Control child in parent.Controls)
+            {
+                // 滚动条控件通常是 VScrollBar 或 HScrollBar
+                if (child is ScrollBar)
+                {
+                    ApplyScrollBarTheme(child, isDark);
+                }
+                else if (child.GetType().Name == "VScrollBar" || child.GetType().Name == "HScrollBar")
+                {
+                    ApplyScrollBarTheme(child, isDark);
+                }
+                
+                // 只对特定容器类型继续递归（避免影响普通Panel的子控件）
+                if (child.HasChildren && (child is DataGridView || child.GetType().Name.Contains("DataGridView")))
+                {
+                    ApplyScrollBarThemeToChildren(child, isDark, depth + 1);
+                }
+            }
         }
     }
 }

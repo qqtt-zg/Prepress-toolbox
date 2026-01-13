@@ -22,6 +22,9 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         {
             InitializeComponent();
             
+            // 配置颜色面板布局
+            ConfigureColorPanel();
+            
             // 使用 lambda 绑定事件，避免委托类型匹配问题
             // ObjectNEventHandler: (object sender, object value)
             cmbThemes.SelectedValueChanged += (s, value) =>
@@ -654,5 +657,92 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 
             return form;
         }
+        
+        #region Designer Helper Methods
+        
+        private void ConfigureColorPanel()
+        {
+            int y = 10;
+            int labelWidth = 120;
+            int pickerWidth = 200;
+            int rowHeight = 50;
+
+            // 背景色组
+            AddGroupLabel(lblBackgroundGroup, "背景色组", "BgColorsOutlined", ref y);
+            AddColorRow(lblBackground, cpBackground, "主背景:", ref y, labelWidth, pickerWidth, rowHeight);
+            AddColorRow(lblSurface, cpSurface, "卡片:", ref y, labelWidth, pickerWidth, rowHeight);
+            AddColorRow(lblSurfaceLight, cpSurfaceLight, "输入框:", ref y, labelWidth, pickerWidth, rowHeight);
+
+            y += 10;
+
+            // 文字色组
+            AddGroupLabel(lblTextGroup, "文字色组", "FontColorsOutlined", ref y);
+            AddColorRow(lblTextPrimary, cpTextPrimary, "主文字:", ref y, labelWidth, pickerWidth, rowHeight);
+            AddColorRow(lblTextSecondary, cpTextSecondary, "次要文字:", ref y, labelWidth, pickerWidth, rowHeight);
+
+            y += 10;
+
+            // 边框色
+            AddGroupLabel(lblBorderGroup, "边框色", "BorderOutlined", ref y);
+            AddColorRow(lblBorder, cpBorder, "边框:", ref y, labelWidth, pickerWidth, rowHeight);
+
+            y += 10;
+
+            // 强调色组
+            AddGroupLabel(lblAccentGroup, "强调色组", "BgColorsOutlined", ref y);
+            AddColorRow(lblPrimary, cpPrimary, "Primary:", ref y, labelWidth, pickerWidth, rowHeight);
+            AddColorRow(lblSuccess, cpSuccess, "Success:", ref y, labelWidth, pickerWidth, rowHeight);
+            AddColorRow(lblWarning, cpWarning, "Warning:", ref y, labelWidth, pickerWidth, rowHeight);
+            AddColorRow(lblError, cpError, "Error:", ref y, labelWidth, pickerWidth, rowHeight);
+
+            y += 10;
+
+            // 交互色组
+            AddGroupLabel(lblInteractionGroup, "交互色组", "ThunderboltOutlined", ref y);
+            AddColorRow(lblBackActive, cpBackActive, "激活状态:", ref y, labelWidth, pickerWidth, rowHeight);
+            AddColorRow(lblBackHover, cpBackHover, "悬停状态:", ref y, labelWidth, pickerWidth, rowHeight);
+        }
+
+        private void AddGroupLabel(AntdUI.Label label, string text, string iconSvg, ref int y)
+        {
+            // 创建一个小的图标按钮
+            var iconBtn = new AntdUI.Button
+            {
+                IconSvg = iconSvg,
+                Location = new System.Drawing.Point(10, y + 2),
+                Size = new System.Drawing.Size(26, 26),
+                Ghost = true, // 透明背景
+                Type = AntdUI.TTypeMini.Primary, // 使用主色，更醒目
+                IconRatio = 0.8f,
+                TabStop = false,
+                Cursor = System.Windows.Forms.Cursors.Default // 保持默认光标，表明不可点击
+            };
+            this.pnlColorConfig.Controls.Add(iconBtn);
+            
+            // 设置标签
+            label.Font = new System.Drawing.Font("Microsoft YaHei UI", 10F, System.Drawing.FontStyle.Bold);
+            label.Location = new System.Drawing.Point(40, y); // 留出图标的空间
+            label.Size = new System.Drawing.Size(360, 30);
+            label.Text = text;
+            this.pnlColorConfig.Controls.Add(label);
+            y += 35;
+        }
+
+        private void AddColorRow(AntdUI.Label label, AntdUI.ColorPicker picker, string text, ref int y, int labelWidth, int pickerWidth, int rowHeight)
+        {
+            label.Location = new System.Drawing.Point(20, y + 5);
+            label.Size = new System.Drawing.Size(labelWidth, 30);
+            label.Text = text;
+            this.pnlColorConfig.Controls.Add(label);
+
+            picker.Location = new System.Drawing.Point(labelWidth + 30, y);
+            picker.Size = new System.Drawing.Size(pickerWidth, 40);
+            picker.ValueChanged += new AntdUI.ColorEventHandler(this.ColorPicker_ValueChanged);
+            this.pnlColorConfig.Controls.Add(picker);
+
+            y += rowHeight;
+        }
+        
+        #endregion
     }
 }

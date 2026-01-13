@@ -1394,26 +1394,29 @@ namespace WindowsFormsApp3.Forms.Panels
                             ColumnValues = new Dictionary<string, string>(),
                             IsColumnCombineMode = isColumnCombineMode,
                             ExportPath = dialog.SelectedExportPath ?? AppSettings.LastExportPath ?? "",
-                            // ✅ 修复：从对话框读取订单号、尺寸、工艺等值
+                            // ✅ 修复:从对话框读取订单号、尺寸、工艺等值
                             OrderNumber = dialog.OrderNumber ?? "",
                             Dimensions = dialog.AdjustedDimensions ?? "",
-                            // ✅ 修复：工艺 = 颜色模式 + 膜类型（使用 FixedField）
+                            // ✅ 修复:工艺 = 颜色模式 + 膜类型(使用 FixedField)
                             Process = dialog.FixedField ?? "",
-                            // ✅ 修复：从对话框读取行数和列数
+                            // ✅ 修复:从对话框读取行数和列数
                             LayoutRows = dialog.GetRows() > 0 ? dialog.GetRows().ToString() : "",
                             LayoutColumns = dialog.GetColumns() > 0 ? dialog.GetColumns().ToString() : "",
-                            // ✅ 修复：从对话框读取形状处理信息
+                            // ✅ 修复:从对话框读取形状处理信息
                             SelectedShape = (int)dialog.SelectedShape,
                             RoundRadius = dialog.RoundRadius,
                             IsShapeSelected = dialog.GetIsShapeSelected(),
                             CornerRadius = dialog.GetCompatibleCornerRadius(),
-                            // ✅ 修复：从对话框读取旋转信息
+                            // ✅ 修复:从对话框读取旋转信息
                             RotationAngle = dialog.GetRotationAngle(),
                             NeedsRotation = dialog.GetRotationAngle() != 0,
-                            // ✅ 修复：从对话框读取排版信息（用于折手模式空白页功能）
+                            // ✅ 修复:从对话框读取排版信息(用于折手模式空白页功能)
                             EnableImposition = dialog.GetIsImpositionEnabled(),
                             LayoutMode = dialog.GetLayoutMode(),
-                            LayoutQuantity = dialog.GetLayoutQuantity()
+                            LayoutQuantity = dialog.GetLayoutQuantity(),
+                            // ✅ 修复:从对话框读取标识页信息
+                            AddIdentifierPage = dialog.AddIdentifierPage,
+                            IdentifierPageContent = dialog.AddIdentifierPage ? dialog.GenerateIdentifierPageContent() : ""
                         };
                         return DialogResult.OK;
                     }

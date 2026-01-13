@@ -112,6 +112,16 @@ namespace WindowsFormsApp3.Models
         /// </summary>
         public string CompositeColumn { get; set; }
 
+        /// <summary>
+        /// 是否添加标识页
+        /// </summary>
+        public bool AddIdentifierPage { get; set; } = false;
+
+        /// <summary>
+        /// 标识页文字内容
+        /// </summary>
+        public string IdentifierPageContent { get; set; } = "";
+
         public MaterialSelectionResult()
         {
             ColumnValues = new Dictionary<string, string>();

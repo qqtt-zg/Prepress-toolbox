@@ -135,6 +135,7 @@ namespace WindowsFormsApp3.Forms.Panels
                 settingsPath?.SaveSettings();
                 settingsImposition?.SaveSettings();
                 settingsEvent?.SaveSettings();
+                settingsFontText?.SaveSettings();
                 
                 // 最后统一保存到文件
                 Utils.AppSettings.Save();
@@ -182,6 +183,10 @@ namespace WindowsFormsApp3.Forms.Panels
                     break;
                 case "theme":
                     tabsMain.SelectedIndex = 6;
+                    break;
+                case "font":
+                case "text":
+                    tabsMain.SelectedIndex = 7;
                     break;
             }
         }
