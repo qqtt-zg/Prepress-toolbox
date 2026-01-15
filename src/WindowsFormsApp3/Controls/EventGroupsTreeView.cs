@@ -6,6 +6,7 @@ using System.Windows.Forms;
 using WindowsFormsApp3.Forms.Dialogs;
 using WindowsFormsApp3.EventArguments;
 
+
 namespace WindowsFormsApp3.Controls
 {
     /// <summary>
@@ -19,7 +20,7 @@ namespace WindowsFormsApp3.Controls
         public Button btnSavePreset;
         public Button btnDeletePreset;
         public Button btnSaveAsPreset;
-        public ComboBox cboPresets;
+        public AntdUI.Select cboPresets;
         public Label lblPresets;
 
         // 保留状态功能相关
@@ -32,15 +33,58 @@ namespace WindowsFormsApp3.Controls
         private static readonly string ITEM_ICON = "[*]";          // 项目保留标识
 
         // 保留状态颜色配置
-        private static readonly Color PRESERVE_COLOR = Color.Blue;  // 保留分组使用蓝色
+        private Color _preserveColor = Color.Blue;  // 默认蓝色（浅色模式）
 
         public TreeView TreeView => treeView;
+        
+        /// <summary>
+        /// 应用主题
+        /// </summary>
+        public void ApplyTheme(bool isDark)
+        {
+            // 1. 设置保留颜色
+            _preserveColor = isDark ? Color.CornflowerBlue : Color.Blue;
+
+            // 2. 设置 TreeView 颜色
+            var backColor = isDark ? Color.FromArgb(30, 30, 30) : Color.White;
+            var foreColor = isDark ? Color.FromArgb(220, 220, 220) : Color.Black;
+            
+            treeView.BackColor = backColor;
+            treeView.ForeColor = foreColor;
+
+            // 3. 设置底部面板颜色
+            buttonPanel.BackColor = isDark ? Color.FromArgb(45, 45, 45) : Color.FromArgb(248, 248, 248);
+            lblPresets.ForeColor = foreColor;
+
+            // 4. 设置按钮样式
+            ApplyButtonTheme(btnSavePreset, isDark);
+            ApplyButtonTheme(btnDeletePreset, isDark);
+            ApplyButtonTheme(btnSaveAsPreset, isDark);
+            
+            // 5. 设置下拉框样式
+            // 5. 设置下拉框样式 - AntdUI 控件通常会自动适配或由 ThemeHelper 处理
+            // cboPresets.BackColor = isDark ? Color.FromArgb(60, 60, 60) : Color.White;
+            // cboPresets.ForeColor = foreColor;
+            // cboPresets.FlatStyle = FlatStyle.Flat;
+
+            // 6. 刷新节点颜色（应用新的保留颜色）
+            RefreshPreserveVisuals();
+        }
+
+        private void ApplyButtonTheme(Button btn, bool isDark)
+        {
+            if (btn == null) return;
+            
+            btn.BackColor = isDark ? Color.FromArgb(60, 60, 60) : Color.White;
+            btn.ForeColor = isDark ? Color.FromArgb(220, 220, 220) : Color.Black;
+            btn.FlatAppearance.BorderColor = isDark ? Color.FromArgb(80, 80, 80) : Color.Silver;
+        }
 
         // 调试辅助方法 - 在运行时获取按钮信息
         public Button GetSavePresetButton() => btnSavePreset;
         public Button GetDeletePresetButton() => btnDeletePreset;
         public Button GetSaveAsPresetButton() => btnSaveAsPreset;
-        public ComboBox GetPresetsComboBox() => cboPresets;
+        public AntdUI.Select GetPresetsComboBox() => cboPresets;
         public Panel GetButtonPanel() => buttonPanel;
 
         // 调试方法：检查拖拽状态
@@ -108,7 +152,7 @@ namespace WindowsFormsApp3.Controls
             this.SuspendLayout();
 
             // 设置 UserControl 属性
-            this.Size = new Size(250, 480);  // 增加整体宽度以适应更宽的TreeView
+            this.Size = new Size(320, 480);  // 增加整体宽度以适应更宽的TreeView
 
             // 创建 TreeView
             treeView = new TreeView
@@ -121,7 +165,7 @@ namespace WindowsFormsApp3.Controls
                 Location = new Point(0, 0),
                 Name = "treeViewEvents",
                 RightToLeft = RightToLeft.No,
-                Size = new Size(250, 335),  // 增加宽度以完整显示保留分组文本
+                Size = new Size(320, 335),  // 增加宽度以完整显示保留分组文本
                 TabIndex = 0,
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
@@ -130,7 +174,7 @@ namespace WindowsFormsApp3.Controls
             buttonPanel = new Panel
             {
                 Location = new Point(0, 340),
-                Size = new Size(250, 105), // 调整宽度和高度以适应新的TreeView宽度
+                Size = new Size(320, 105), // 调整宽度和高度以适应新的TreeView宽度
                 BorderStyle = BorderStyle.FixedSingle,
                 BackColor = Color.FromArgb(248, 248, 248), // 更柔和的背景色
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
@@ -148,14 +192,14 @@ namespace WindowsFormsApp3.Controls
             };
 
             // 预设下拉框
-            cboPresets = new ComboBox
+            cboPresets = new AntdUI.Select
             {
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Font = new Font("微软雅黑", 8F, FontStyle.Regular, GraphicsUnit.Point, 134),
-                FormattingEnabled = true,
-                Location = new Point(72, 5),
-                Size = new Size(108, 21),
-                TabIndex = 1
+                List = true, // 下拉列表模式
+                Font = new Font("微软雅黑", 9F, FontStyle.Regular, GraphicsUnit.Point, 134), // Slightly larger font
+                Location = new Point(72, 2),
+                Size = new Size(230, 30), // Increased width and height
+                TabIndex = 1,
+                PlaceholderText = "选择预设"
             };
             cboPresets.SelectedIndexChanged += CboPresets_SelectedIndexChanged;
 
@@ -773,13 +817,13 @@ namespace WindowsFormsApp3.Controls
 
                 // 重新添加保留前缀（确保格式统一，无空格）
                 node.Text = $"{PRESERVE_ICON}{cleanText}";
-                node.ForeColor = PRESERVE_COLOR;
+                node.ForeColor = _preserveColor;
                 node.NodeFont = new Font(treeView.Font, FontStyle.Bold | FontStyle.Italic);
 
                 // 分组内所有项目自动继承视觉提示
                 foreach (TreeNode childNode in node.Nodes)
                 {
-                    childNode.ForeColor = PRESERVE_COLOR;
+                    childNode.ForeColor = _preserveColor;
                     // 给项目节点添加保留前缀
                     if (!childNode.Text.StartsWith(ITEM_ICON))
                     {
@@ -886,7 +930,7 @@ namespace WindowsFormsApp3.Controls
                 {
                     node.Text = $"{ITEM_ICON} {node.Text}";
                 }
-                node.ForeColor = PRESERVE_COLOR;
+                node.ForeColor = _preserveColor;
             }
             else
             {
@@ -1107,18 +1151,18 @@ namespace WindowsFormsApp3.Controls
         /// 获取当前使用的保留图标和颜色信息
         /// </summary>
         /// <returns>图标和颜色信息元组</returns>
-        public static (string PreserveIcon, string ItemIcon, Color PreserveColor) GetPreserveIcons()
+        public (string PreserveIcon, string ItemIcon, Color PreserveColor) GetPreserveIcons()
         {
-            return (PRESERVE_ICON, ITEM_ICON, PRESERVE_COLOR);
+            return (PRESERVE_ICON, ITEM_ICON, _preserveColor);
         }
 
         /// <summary>
         /// 获取保留分组的颜色
         /// </summary>
         /// <returns>保留分组颜色</returns>
-        public static Color GetPreserveColor()
+        public Color GetPreserveColor()
         {
-            return PRESERVE_COLOR;
+            return _preserveColor;
         }
 
         private void BtnSavePreset_Click(object sender, EventArgs e)
@@ -1129,7 +1173,7 @@ namespace WindowsFormsApp3.Controls
     
         private void BtnDeletePreset_Click(object sender, EventArgs e)
         {
-            if (cboPresets.SelectedItem != null)
+            if (cboPresets.SelectedValue != null)
             {
                 PresetDeleted?.Invoke(this, EventArgs.Empty);
             }
@@ -1143,7 +1187,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
         private void CboPresets_SelectedIndexChanged(object sender, EventArgs e)
         {
             // 当选择改变时，自动加载预设并更新按钮状态
-            if (cboPresets.SelectedItem != null)
+            if (cboPresets.SelectedValue != null)
             {
                 PresetLoaded?.Invoke(this, EventArgs.Empty);
             }
@@ -1165,12 +1209,12 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
 
         public string SelectedPreset
         {
-            get => cboPresets.SelectedItem?.ToString();
+            get => cboPresets.SelectedValue?.ToString();
             set
             {
                 if (value != null && cboPresets.Items.Contains(value))
                 {
-                    cboPresets.SelectedItem = value;
+                    cboPresets.SelectedValue = value;
                 }
             }
         }
@@ -1179,9 +1223,9 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
         {
             // 内置预设不能删除
             var builtinPresets = new[] { "全功能配置" };
-            var selectedItem = cboPresets.SelectedItem?.ToString();
+            var selectedItem = cboPresets.SelectedValue?.ToString();
             btnDeletePreset.Enabled = enabled && cboPresets.Items.Count > 0 &&
-                                      cboPresets.SelectedItem != null &&
+                                      cboPresets.SelectedValue != null &&
                                       !Array.Exists(builtinPresets, preset => preset == selectedItem);
         }
 

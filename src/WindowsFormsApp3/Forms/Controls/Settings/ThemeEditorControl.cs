@@ -24,8 +24,17 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             
             // 配置颜色面板布局
             ConfigureColorPanel();
+
+            // 确保在控件加载时更新预览
+            this.Load += (s, e) => 
+            {
+                if (_editingTheme != null)
+                {
+                    UpdatePreview();
+                }
+            };
             
-            // 使用 lambda 绑定事件，避免委托类型匹配问题
+            // 使用 lambda 绑定事件,避免委托类型匹配问题
             // ObjectNEventHandler: (object sender, object value)
             cmbThemes.SelectedValueChanged += (s, value) =>
             {
@@ -88,6 +97,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
                 _editingTheme = currentTheme.Clone();
                 LoadThemeColors();
                 UpdatePreview();
+                UpdateEditability(); // 启动时也检查禁用状态
                 _isLoading = false;
             }
         }
@@ -133,233 +143,256 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         {
             if (_editingTheme == null) return;
 
-            // 清除现有控件
+            // 清除现有控件并重置布局属性
             pnlPreview.Controls.Clear();
-            pnlPreview.AutoScroll = false; // 模拟界面通常不需要滚动
-            
-            // 1. 设置主容器背景 (模拟窗体)
+            pnlPreview.AutoScroll = false;
+            pnlPreview.Padding = new Padding(0);  // 移除内边距，确保内容从边缘开始
+
+            // 设置主容器背景
             pnlPreview.BackColor = _editingTheme.Background;
-            
-            // 2. 创建侧边栏
-            var sideBar = new Panel
-            {
-                Dock = DockStyle.Left,
-                Width = 60,
-                BackColor = _editingTheme.Background, // 用户要求侧边栏与主背景一致
-                Padding = new Padding(0, 10, 0, 0)
-            };
-            
-            // 侧边栏菜单项 (使用 Panel 模拟)
-            // 选中项 (Active)
-            var menuActive = new Panel
-            {
-                Height = 36,
-                Dock = DockStyle.Top,
-                BackColor = _editingTheme.BackActive,
-                Padding = new Padding(15, 8, 0, 0)
-            };
-            var iconActive = new Label // 模拟图标
-            {
-                Text = "📂",
-                ForeColor = _editingTheme.Primary,
-                AutoSize = true,
-                Font = new Font("Segoe UI Emoji", 10),
-                Location = new Point(18, 8),
-                BackColor = Color.Transparent
-            };
-            menuActive.Controls.Add(iconActive);
-            
-            // 普通项 (Normal)
-            var menuNormal = new Panel
-            {
-                Height = 36,
-                Dock = DockStyle.Top,
-                BackColor = Color.Transparent,
-                Padding = new Padding(15, 8, 0, 0)
-            };
-            var iconNormal = new Label
-            {
-                Text = "⚙️",
-                ForeColor = _editingTheme.TextSecondary,
-                AutoSize = true,
-                Font = new Font("Segoe UI Emoji", 10),
-                Location = new Point(18, 8),
-                BackColor = Color.Transparent
-            };
-            menuNormal.Controls.Add(iconNormal);
-            
-            // 悬停项 (Hover)
-            var menuHover = new Panel
-            {
-                Height = 36,
-                Dock = DockStyle.Top,
-                BackColor = _editingTheme.BackHover,
-                Padding = new Padding(15, 8, 0, 0)
-            };
-            var iconHover = new Label
-            {
-                Text = "🗂️",
-                ForeColor = _editingTheme.TextPrimary,
-                AutoSize = true,
-                Font = new Font("Segoe UI Emoji", 10),
-                Location = new Point(18, 8),
-                BackColor = Color.Transparent
-            };
-            menuHover.Controls.Add(iconHover);
-            
-            sideBar.Controls.Add(menuHover);
-            sideBar.Controls.Add(menuNormal);
-            sideBar.Controls.Add(menuActive);
-            
-            // 3. 内容区域
-            var contentArea = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = _editingTheme.Background, // 保持与主背景一致
-                Padding = new Padding(15)
-            };
-            
-            // 模拟顶部栏 (Header)
-            var header = new Panel
-            {
-                Height = 40,
-                Dock = DockStyle.Top,
-                BackColor = _editingTheme.Surface, // Header 通常需要一点区分，或者是白色/深灰
-            };
-            
-            var lblHeader = new Label
-            {
-                Text = "应用预览",
-                ForeColor = _editingTheme.TextPrimary,
-                Font = new Font("Microsoft YaHei UI", 10, FontStyle.Bold),
-                Location = new Point(10, 10),
-                AutoSize = true,
-                BackColor = Color.Transparent
-            };
-            header.Controls.Add(lblHeader);
-            
-            // 4. 内容卡片
-            var card = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = _editingTheme.Surface,
-                Padding = new Padding(15)
-            };
-            
-            // 如果有边框色，加个边框 (Panel 比较难直接加边框，这里忽略或用 Padding+BackColor 模拟)
-            // 这里简单处理：
-            
-            // 卡片内的元素
-            int y = 15;
-            
-            // 标题
-            var cardTitle = new Label
-            {
-                Text = "设置选项",
-                ForeColor = _editingTheme.TextPrimary,
-                Font = new Font("Microsoft YaHei UI", 11, FontStyle.Bold),
-                Location = new Point(15, y),
-                AutoSize = true,
-                BackColor = Color.Transparent
-            };
-            card.Controls.Add(cardTitle);
-            y += 35;
-            
-            // 说明文本
-            var cardDesc = new Label
-            {
-                Text = "这是一个模拟的设置面板，用于展示主题颜色的实际应用效果。",
-                ForeColor = _editingTheme.TextSecondary,
-                Font = new Font("Microsoft YaHei UI", 9),
-                Location = new Point(15, y),
-                Size = new Size(200, 40),
-                BackColor = Color.Transparent
-            };
-            card.Controls.Add(cardDesc);
-            y += 50;
-            
-            // 输入框模拟
-            var lblInput = new Label
-            {
-                Text = "输入框示例:",
-                ForeColor = _editingTheme.TextPrimary,
-                Location = new Point(15, y),
-                AutoSize = true,
-                BackColor = Color.Transparent
-            };
-            card.Controls.Add(lblInput);
-            y += 25;
-            
-            var inputBox = new Panel
-            {
-                Size = new Size(200, 30),
-                Location = new Point(15, y),
-                BackColor = _editingTheme.SurfaceLight
-            };
-            
-            // 绘制边框
-            inputBox.Paint += (s, e) =>
-            {
-                using (var pen = new Pen(_editingTheme.Border))
+
+                // ===== 1. 顶部工具栏 (模拟 FileRenamePanel 的顶部控制面板) =====
+                var toolbar = new Panel
                 {
-                    e.Graphics.DrawRectangle(pen, 0, 0, inputBox.Width - 1, inputBox.Height - 1);
+                    Dock = DockStyle.Top,
+                    Height = 40,
+                    BackColor = _editingTheme.Surface,
+                    Padding = new Padding(5, 5, 5, 5)
+                };
+
+                // 输入框模拟
+                var inputBox = new Panel
+                {
+                    Location = new Point(5, 8),
+                    Size = new Size(120, 24),
+                    BackColor = _editingTheme.SurfaceLight
+                };
+                inputBox.Paint += (s, e) =>
+                {
+                    using (var pen = new Pen(_editingTheme.Border))
+                    {
+                        e.Graphics.DrawRectangle(pen, 0, 0, inputBox.Width - 1, inputBox.Height - 1);
+                    }
+                };
+                var inputText = new Label
+                {
+                    Text = "选择文件夹...",
+                    ForeColor = _editingTheme.TextSecondary,
+                    Font = new Font("Microsoft YaHei UI", 7F),
+                    Location = new Point(3, 5),
+                    AutoSize = true,
+                    BackColor = Color.Transparent
+                };
+                inputBox.Controls.Add(inputText);
+                toolbar.Controls.Add(inputBox);
+
+                // 按钮模拟 - 展示所有四种强调色
+                var btn1 = CreateMiniButton("选择", _editingTheme.Primary, new Point(130, 8));
+                var btn2 = CreateMiniButton("导入", _editingTheme.Success, new Point(175, 8));
+                var btn3 = CreateMiniButton("监控", _editingTheme.Warning, new Point(220, 8));
+                var btn4 = CreateMiniButton("删除", _editingTheme.Error, new Point(265, 8));
+                toolbar.Controls.Add(btn1);
+                toolbar.Controls.Add(btn2);
+                toolbar.Controls.Add(btn3);
+                toolbar.Controls.Add(btn4);
+
+                // ===== 2. 中间表格区域 (模拟 DataGridView) =====
+                // 使用 TableLayoutPanel 精确控制表头和数据区域的布局
+                var mainTablePanel = new TableLayoutPanel
+                {
+                    Dock = DockStyle.Fill,
+                    BackColor = _editingTheme.Surface,
+                    Padding = new Padding(0),
+                    Margin = new Padding(0),
+                    ColumnCount = 1,
+                    RowCount = 2,
+                    CellBorderStyle = TableLayoutPanelCellBorderStyle.None
+                };
+                mainTablePanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+                mainTablePanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));  // 表头固定 28px
+                mainTablePanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));  // 数据区域填充剩余空间
+                // 列定义 - 动态计算列宽以填充整个可用宽度
+                int availableWidth = pnlPreview.ClientSize.Width - 2; // 减去边框
+                var headers = new[] 
+                { 
+                    ("序号", (int)(availableWidth * 0.10)),      // 10%
+                    ("原文件名", (int)(availableWidth * 0.25)),  // 25%
+                    ("新文件名", (int)(availableWidth * 0.25)),  // 25%
+                    ("订单号", (int)(availableWidth * 0.20)),    // 20%
+                    ("材料", (int)(availableWidth * 0.20))       // 20%
+                };
+                
+                // ===== 表头 (独立面板，使用 Dock.Top) =====
+                var tableHeader = new Panel
+                {
+                    Height = 28,
+                    Dock = DockStyle.Top,
+                    BackColor = _editingTheme.SurfaceLight,
+                };
+                // 绘制表头边框线
+                tableHeader.Paint += (s, e) =>
+                {
+                    using (var pen = new Pen(_editingTheme.Border))
+                    {
+                        e.Graphics.DrawLine(pen, 0, tableHeader.Height - 1, tableHeader.Width, tableHeader.Height - 1);
+                        int x = 0;
+                        foreach (var (_, width) in headers)
+                        {
+                            x += width;
+                            e.Graphics.DrawLine(pen, x, 0, x, tableHeader.Height);
+                        }
+                    }
+                };
+                // 表头文字
+                int headerX = 0;
+                foreach (var (text, width) in headers)
+                {
+                    var headerLabel = new Label
+                    {
+                        Text = text,
+                        Location = new Point(headerX + 2, 5),
+                        Size = new Size(width - 4, 16),
+                        ForeColor = _editingTheme.TextPrimary,
+                        Font = new Font("Microsoft YaHei UI", 8F, FontStyle.Bold),
+                        TextAlign = ContentAlignment.MiddleCenter,
+                        BackColor = Color.Transparent
+                    };
+                    tableHeader.Controls.Add(headerLabel);
+                    headerX += width;
                 }
-            };
-            
-            var inputText = new Label
+
+                // ===== 数据行区域 (可滚动) =====
+                // 数据滚动区域 (Dock.Fill 到 mainTablePanel)
+                var scrollableDataPanel = new Panel
+                {
+                    Dock = DockStyle.Fill,
+                    BackColor = _editingTheme.Surface,
+                    AutoScroll = true
+                };
+                // 表格行数据
+                var rowData = new[]
+                {
+                    new[] { "1", "文件001.pdf", "订单A_..", "A001", "铜版纸" },
+                    new[] { "2", "文件002.pdf", "订单B_..", "B002", "哑粉纸" },
+                    new[] { "3", "文件003.pdf", "订单C_..", "C003", "白卡纸" },
+                    new[] { "4", "文件004.pdf", "订单D_..", "D004", "铜版纸" },
+                    new[] { "5", "文件005.pdf", "订单E_..", "E005", "哑粉纸" },
+                    new[] { "6", "文件006.pdf", "订单F_..", "F006", "白卡纸" },
+                    new[] { "7", "文件007.pdf", "订单G_..", "G007", "铜版纸" },
+                    new[] { "8", "文件008.pdf", "订单H_..", "H008", "哑粉纸" },
+                    new[] { "9", "文件009.pdf", "订单I_..", "I009", "白卡纸" },
+                    new[] { "10", "文件010.pdf", "订单J_..", "J010", "铜版纸" },
+                    new[] { "11", "文件011.pdf", "订单K_..", "K011", "哑粉纸" },
+                    new[] { "12", "文件012.pdf", "订单L_..", "L012", "白卡纸" },
+                    new[] { "13", "文件013.pdf", "订单M_..", "M013", "铜版纸" },
+                    new[] { "14", "文件014.pdf", "订单N_..", "N014", "哑粉纸" },
+                    new[] { "15", "文件015.pdf", "订单O_..", "O015", "白卡纸" },
+                    new[] { "16", "文件016.pdf", "订单P_..", "P016", "铜版纸" },
+                    new[] { "17", "文件017.pdf", "订单Q_..", "Q017", "哑粉纸" },
+                    new[] { "18", "文件018.pdf", "订单R_..", "R018", "白卡纸" },
+                    new[] { "19", "文件019.pdf", "订单S_..", "S019", "铜版纸" },
+                    new[] { "20", "文件020.pdf", "订单T_..", "T020", "哑粉纸" }
+                };
+
+                // 数据行 (从后往前添加,因为 Dock.Top 后添加的在上面)
+                for (int i = rowData.Length - 1; i >= 0; i--)
+                {
+                    var row = new Panel
+                    {
+                        Height = 20,
+                        Dock = DockStyle.Top,
+                        BackColor = _editingTheme.Surface,
+                    };
+                    // 捕获当前索引用于 Paint 事件
+                    int rowIndex = i;
+                    // 绘制行网格线
+                    row.Paint += (s, e) =>
+                    {
+                        using (var pen = new Pen(_editingTheme.Border))
+                        {
+                            // 底部边框线
+                            e.Graphics.DrawLine(pen, 0, row.Height - 1, row.Width, row.Height - 1);
+                            // 纵向列分隔线
+                            int lineX = 0;
+                            foreach (var (_, width) in headers)
+                            {
+                                lineX += width;
+                                e.Graphics.DrawLine(pen, lineX, 0, lineX, row.Height);
+                            }
+                        }
+                    };
+
+                    // 单元格内容
+                    int cellX = 0;
+                    for (int j = 0; j < rowData[i].Length; j++)
+                    {
+                        var cellLabel = new Label
+                        {
+                            Text = rowData[i][j],
+                            Location = new Point(cellX + 2, 2),
+                            Size = new Size(headers[j].Item2 - 4, 16),
+                            ForeColor = _editingTheme.TextPrimary,
+                            Font = new Font("Microsoft YaHei UI", 7F),
+                            TextAlign = j == 0 ? ContentAlignment.MiddleCenter : ContentAlignment.MiddleLeft,
+                            BackColor = Color.Transparent
+                        };
+                        row.Controls.Add(cellLabel);
+                        cellX += headers[j].Item2;
+                    }
+                    scrollableDataPanel.Controls.Add(row);
+                }
+
+                // ===== 3. 底部状态栏 =====
+                var statusBar = new Panel
+                {
+                    Dock = DockStyle.Bottom,
+                    Height = 20,
+                    BackColor = _editingTheme.Surface,
+                    Padding = new Padding(5, 2, 5, 2)
+                };
+
+                var statusText = new Label
+                {
+                    Text = "状态: 未监控 │ 模式: 复制 │ 组合: 订单号_材料...",
+                    ForeColor = _editingTheme.TextSecondary,
+                    Font = new Font("Microsoft YaHei UI", 7F),
+                    Location = new Point(5, 2),
+                    AutoSize = true,
+                    BackColor = Color.Transparent
+                };
+                statusBar.Controls.Add(statusText);
+
+
+                // 组装内部表格：使用 TableLayoutPanel 单元格位置
+                tableHeader.Dock = DockStyle.Fill;         // 填满单元格
+                scrollableDataPanel.Dock = DockStyle.Fill; // 填满单元格
+                mainTablePanel.Controls.Add(tableHeader, 0, 0);         // 第0行：表头
+                mainTablePanel.Controls.Add(scrollableDataPanel, 0, 1); // 第1行：数据区域
+
+                // ===== 组装预览界面 =====
+                // WinForms Dock 规则: 后添加的控件先处理 Dock
+                // 所以添加顺序应该是: Fill -> Bottom -> Top
+                pnlPreview.Controls.Add(mainTablePanel); // Fill (最后处理，填充剩余空间)
+                pnlPreview.Controls.Add(statusBar);      // Bottom (倒数第二处理)
+                pnlPreview.Controls.Add(toolbar);        // Top (最先处理，占据顶部40px)
+        }
+        
+        /// <summary>
+        /// 创建迷你按钮用于预览
+        /// </summary>
+        private Label CreateMiniButton(string text, Color backColor, Point location)
+        {
+            return new Label
             {
-                Text = "示例文本...",
-                ForeColor = _editingTheme.TextSecondary,
-                Location = new Point(5, 5),
-                AutoSize = true,
-                BackColor = Color.Transparent
+                Text = text,
+                BackColor = backColor,
+                ForeColor = Color.White,
+                Location = location,
+                Size = new Size(40, 24),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Font = new Font("Microsoft YaHei UI", 7F),
+                Cursor = Cursors.Hand
             };
-            inputBox.Controls.Add(inputText);
-            card.Controls.Add(inputBox);
-            y += 45;
-            
-            // 按钮组 - 使用 Label 模拟按钮以展示即时颜色
-            var btnPrimary = CreateSimulatedButton("Primary", _editingTheme.Primary, Color.White, new Point(15, y));
-            card.Controls.Add(btnPrimary);
-            
-            var btnSuccess = CreateSimulatedButton("Success", _editingTheme.Success, Color.White, new Point(105, y));
-            card.Controls.Add(btnSuccess);
-            y += 40; // Next row
-            
-            var btnWarning = CreateSimulatedButton("Warning", _editingTheme.Warning, Color.White, new Point(15, y));
-            card.Controls.Add(btnWarning);
-            
-            var btnError = CreateSimulatedButton("Error", _editingTheme.Error, Color.White, new Point(105, y));
-            card.Controls.Add(btnError);
-            
-            // 组装界面: SideBar | Content (Header + Card)
-            var mainRight = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.Transparent,
-                Padding = new Padding(10) // 间距
-            };
-            
-            // Header 放在 mainRight 顶部
-            header.Dock = DockStyle.Top;
-            
-            // Card 放在 mainRight 剩余部分
-            card.Dock = DockStyle.Fill;
-            card.BringToFront();
-            
-            var cardContainer = new Panel
-            {
-                Dock = DockStyle.Fill,
-                Padding = new Padding(0, 10, 0, 0), // Header 和 Card 的间距
-                BackColor = Color.Transparent
-            };
-            cardContainer.Controls.Add(card);
-            
-            mainRight.Controls.Add(cardContainer);
-            mainRight.Controls.Add(header);
-            
-            pnlPreview.Controls.Add(mainRight);
-            pnlPreview.Controls.Add(sideBar);
         }
 
         /// <summary>
@@ -390,8 +423,27 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 
             // 如果是内置主题，可以基于它创建新主题，但不能直接修改颜色
             EnableColorPickers(canEdit);
+            
+            // 设置按钮启用状态
             btnSave.Enabled = canEdit;
             btnDelete.Enabled = canEdit;
+            
+            // 为禁用按钮设置更明显的样式（解决深色模式下不清晰的问题）
+            if (!canEdit)
+            {
+                // 禁用状态：使用更亮的文字颜色确保在深色背景下清晰可见
+                btnSave.BackColor = Color.FromArgb(100, 100, 100);
+                btnSave.ForeColor = Color.FromArgb(240, 240, 240);
+                btnDelete.BackColor = Color.FromArgb(100, 100, 100);
+                btnDelete.ForeColor = Color.FromArgb(240, 240, 240);
+            }
+            else
+            {
+                // 启用状态：恢复原本的 Type 颜色
+                // AntdUI 按钮会根据 Type 自动设置颜色
+                btnSave.BackColor = Color.Empty;
+                btnDelete.BackColor = Color.Empty;
+            }
         }
 
         /// <summary>

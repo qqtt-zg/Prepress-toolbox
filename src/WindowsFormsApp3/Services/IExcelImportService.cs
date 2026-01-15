@@ -37,6 +37,12 @@ namespace WindowsFormsApp3.Services
         int MaterialColumnIndex { get; set; }
 
         /// <summary>
+        /// 获取或设置选中的正则表达式模式
+        /// 用于在数据匹配时提取文件名中的正则结果
+        /// </summary>
+        string SelectedRegexPattern { get; set; }
+
+        /// <summary>
         /// 获取Excel导入表单实例
         /// </summary>
         ExcelImportForm ExcelImportFormInstance { get; }

@@ -23,6 +23,7 @@ namespace WindowsFormsApp3.Services
         private int _returnColumnIndex = -1;
         private int _serialColumnIndex = -1;
         private int _materialColumnIndex = -1;
+        private string _selectedRegexPattern;
         private ExcelImportForm _excelImportFormInstance;
         private Interfaces.ILogger _logger;
         
@@ -203,6 +204,16 @@ namespace WindowsFormsApp3.Services
         }
 
         /// <summary>
+        /// 获取或设置选中的正则表达式模式
+        /// 用于在数据匹配时提取文件名中的正则结果
+        /// </summary>
+        public string SelectedRegexPattern
+        {
+            get { return _selectedRegexPattern; }
+            set { _selectedRegexPattern = value; }
+        }
+
+        /// <summary>
         /// 获取Excel导入配置窗体实例
         /// </summary>
         public ExcelImportForm ExcelImportFormInstance
@@ -294,6 +305,7 @@ namespace WindowsFormsApp3.Services
                     _searchColumnIndex = _excelImportFormInstance.SearchColumnIndex;
                     _returnColumnIndex = _excelImportFormInstance.ReturnColumnIndex;
                     _serialColumnIndex = _excelImportFormInstance.NewColumnIndex;
+                    _selectedRegexPattern = _excelImportFormInstance.SelectedRegexPattern;
 
                     // 验证数据和索引
                     if (!ValidateImportResult())
@@ -302,7 +314,7 @@ namespace WindowsFormsApp3.Services
                         return false;
                     }
 
-                    _logger?.LogInformation("Excel导入配置完成");
+                    _logger?.LogInformation($"Excel导入配置完成 - 正则表达式: {_selectedRegexPattern}");
                     return true;
                 }
                 
@@ -730,6 +742,7 @@ namespace WindowsFormsApp3.Services
             _returnColumnIndex = -1;
             _serialColumnIndex = -1;
             _materialColumnIndex = -1;
+            _selectedRegexPattern = null;
             _logger?.LogInformation("清空导入数据");
         }
 

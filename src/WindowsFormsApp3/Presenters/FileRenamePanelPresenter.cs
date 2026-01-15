@@ -1231,22 +1231,18 @@ namespace WindowsFormsApp3.Presenters
 
                 foreach (var fileInfo in fileList)
                 {
-                    // 跳过没有正则结果的文件
-                    if (string.IsNullOrEmpty(fileInfo.RegexResult))
-                    {
-                        continue;
-                    }
-
-                    // ✅ 新增: 检测并使用保留的正则结果
-                    string regexResultForMatching = fileInfo.RegexResult;
+                    string regexResultForMatching = null;
                     
-                    // 检查是否为返单文件(包含保留分组前缀)
+                    // ✅ 修复：先检查是否为保留分组文件
+                    bool hasPreserveGroupPrefix = false;
                     if (!string.IsNullOrEmpty(fileInfo.OriginalName))
                     {
                         string originalNameWithoutExt = Path.GetFileNameWithoutExtension(fileInfo.OriginalName);
                         
                         // 检测是否包含保留分组前缀模式 (如 &ID-, &MT- 等)
-                        if (System.Text.RegularExpressions.Regex.IsMatch(originalNameWithoutExt, @"&[A-Z]+-"))
+                        hasPreserveGroupPrefix = System.Text.RegularExpressions.Regex.IsMatch(originalNameWithoutExt, @"&[A-Z]+-");
+                        
+                        if (hasPreserveGroupPrefix)
                         {
                             _logger?.LogDebug($"检测到保留分组前缀，尝试提取保留的正则结果: '{originalNameWithoutExt}'");
                             
@@ -1276,19 +1272,35 @@ namespace WindowsFormsApp3.Presenters
                                     if (!string.IsNullOrEmpty(preservedRegexResult))
                                     {
                                         regexResultForMatching = preservedRegexResult;
-                                        _logger?.LogInformation($"✅ 使用保留的正则结果进行匹配: '{regexResultForMatching}' (原RegexResult: '{fileInfo.RegexResult}', 文件: '{fileInfo.OriginalName}')");
+                                        _logger?.LogInformation($"✅ 使用保留的正则结果进行匹配: '{regexResultForMatching}' (文件: '{fileInfo.OriginalName}')");
                                     }
                                 }
                                 else
                                 {
-                                    _logger?.LogDebug($"保留数据中未找到正则结果，使用当前RegexResult: '{fileInfo.RegexResult}'");
+                                    _logger?.LogDebug($"保留数据中未找到正则结果，将使用 ExcelImportService 的正则表达式");
+                                    hasPreserveGroupPrefix = false; // 标记为非保留分组文件
                                 }
                             }
                             else
                             {
-                                _logger?.LogDebug($"保留分组配置为空，使用当前RegexResult: '{fileInfo.RegexResult}'");
+                                _logger?.LogDebug($"保留分组配置为空，将使用 ExcelImportService 的正则表达式");
+                                hasPreserveGroupPrefix = false; // 标记为非保留分组文件
                             }
                         }
+                    }
+                    
+                    // ✅ 如果不是保留分组文件或保留数据中没有正则结果，使用 ExcelImportService 的正则表达式
+                    if (!hasPreserveGroupPrefix || string.IsNullOrEmpty(regexResultForMatching))
+                    {
+                        regexResultForMatching = ExtractRegexResultForMatching(fileInfo.OriginalName ?? "");
+                        
+                        if (string.IsNullOrEmpty(regexResultForMatching))
+                        {
+                            _logger?.LogDebug($"跳过文件（无正则结果）: {fileInfo.OriginalName}");
+                            continue;
+                        }
+                        
+                        _logger?.LogInformation($"✅ 使用 ExcelImportService 的正则表达式提取结果: '{regexResultForMatching}' (文件: '{fileInfo.OriginalName}')");
                     }
 
                     var matchData = MatchExcelData(regexResultForMatching);
@@ -2015,6 +2027,92 @@ namespace WindowsFormsApp3.Presenters
         }
 
         /// <summary>
+        /// 从文件名中提取正则匹配结果（用于数据匹配）
+        /// 使用 ExcelImportService 中保存的正则表达式
+        /// </summary>
+        /// <param name="fileName">文件名</param>
+        /// <returns>正则匹配结果</returns>
+        private string ExtractRegexResultForMatching(string fileName)
+        {
+            try
+            {
+                // ✅ 修复：使用 ExcelImportService 的正则表达式
+                var pattern = _excelImportService?.SelectedRegexPattern;
+                _logger?.LogInformation($"[ExtractRegexResultForMatching] 开始提取正则结果 - 文件名: {fileName}, 正则: {pattern}");
+                
+                if (string.IsNullOrEmpty(pattern))
+                {
+                    _logger?.LogWarning($"[ExtractRegexResultForMatching] ExcelImportService 的正则表达式为空");
+                    return null;
+                }
+
+                var match = Regex.Match(fileName, pattern);
+                if (match.Success)
+                {
+                    // 优先使用第一个捕获组的值，如果没有捕获组则使用整个匹配
+                    string result;
+                    if (match.Groups.Count > 1 && match.Groups[1].Success)
+                    {
+                        result = match.Groups[1].Value;
+                        _logger?.LogInformation($"[ExtractRegexResultForMatching] 提取捕获组结果: '{result}'");
+                    }
+                    else
+                    {
+                        result = match.Value;
+                        _logger?.LogInformation($"[ExtractRegexResultForMatching] 使用完整匹配结果: '{result}'");
+                    }
+                    return result;
+                }
+
+                _logger?.LogWarning($"[ExtractRegexResultForMatching] 正则匹配失败 - 文件名: {fileName}, 正则: {pattern}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, $"[ExtractRegexResultForMatching] 提取正则结果失败: {fileName}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 根据文件名是否包含分组前缀来选择合适的正则提取方法
+        /// </summary>
+        /// <param name="fileName">文件名</param>
+        /// <returns>正则匹配结果</returns>
+        private string ExtractRegexResultBasedOnPrefix(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName))
+                return null;
+
+            try
+            {
+                string fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+                
+                // 检查是否包含分组前缀 (如 &ID-, &MT- 等)
+                bool hasGroupPrefix = Regex.IsMatch(fileNameWithoutExt, @"&[A-Z]+-");
+                
+                if (hasGroupPrefix)
+                {
+                    // 有分组前缀 - 使用 FileRenamePanel 的正则 (用于显示)
+                    _logger?.LogDebug($"[ExtractRegexResultBasedOnPrefix] 检测到分组前缀,使用 FileRenamePanel 正则: '{fileName}'");
+                    return ExtractRegexResult(fileName);
+                }
+                else
+                {
+                    // 无分组前缀 - 使用 ExcelImportForm 的正则 (用于数据匹配)
+                    _logger?.LogDebug($"[ExtractRegexResultBasedOnPrefix] 无分组前缀,使用 ExcelImportForm 正则: '{fileName}'");
+                    return ExtractRegexResultForMatching(fileName);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, $"[ExtractRegexResultBasedOnPrefix] 提取正则结果失败: {fileName}");
+                return null;
+            }
+        }
+
+
+        /// <summary>
         /// 处理正则表达式变化事件
         /// </summary>
         public async Task HandleRegexPatternChangedAsync(string newPattern)
@@ -2036,7 +2134,7 @@ namespace WindowsFormsApp3.Presenters
                 foreach (var file in fileList)
                 {
                     // 更新正则匹配结果
-                    file.RegexResult = ExtractRegexResult(file.OriginalName ?? "");
+                    file.RegexResult = ExtractRegexResultBasedOnPrefix(file.OriginalName ?? "");
 
                     // 如果启用了自动刷新，也更新新文件名
                     if (AppSettings.AutoRefreshFileNameOnRegexChange)
@@ -2098,7 +2196,7 @@ namespace WindowsFormsApp3.Presenters
             {
                 FullPath = filePath,
                 OriginalName = Path.GetFileName(filePath),
-                RegexResult = ExtractRegexResult(Path.GetFileName(filePath))
+                RegexResult = ExtractRegexResultBasedOnPrefix(Path.GetFileName(filePath))
             };
 
             // ✅ 新增：检查是否为返单文件，如果是则从保留分组中提取数据

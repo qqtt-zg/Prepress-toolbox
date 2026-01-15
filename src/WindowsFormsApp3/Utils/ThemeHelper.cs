@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using WindowsFormsApp3.Models;
+using WindowsFormsApp3.Controls;
 
 namespace WindowsFormsApp3.Utils
 {
@@ -86,6 +87,13 @@ namespace WindowsFormsApp3.Utils
             {
                 ApplyToAntdUIControl(control);
                 return;
+            }
+
+            // Handle EventGroupsTreeView explicitly
+            if (control is EventGroupsTreeView eventGroupsTree)
+            {
+                eventGroupsTree.ApplyTheme(_isDark);
+                // Allow recursion to theme ScrollBars if any
             }
 
             // Handle UserControl (Settings controls, etc.)

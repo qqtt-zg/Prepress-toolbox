@@ -38,23 +38,44 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             InitializeEventGroups();
             InitializeTreeViewEvents();
             
-            // 1. 先加载预设列表
-            LoadEventPresetsList();
-            
-            // 2. 获取要使用的预设配置
-            var presetConfig = GetPresetConfigurationToLoad();
-            
-            // 3. 加载分组配置（用于非预设情况）
-            LoadEventGroupConfigs();
-            
-            // 4. 构建 TreeView（使用预设配置）
-            LoadEventGroups();
-            LoadEventItemsWithPreset(presetConfig);
+            // 数据加载移至 OnLoad 以确保控件尺寸正确
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+
+            if (!DesignMode)
+            {
+                // 1. 先加载预设列表
+                LoadEventPresetsList();
+
+                // 2. 获取要使用的预设配置
+                var presetConfig = GetPresetConfigurationToLoad();
+
+                // 3. 加载分组配置（用于非预设情况）
+                LoadEventGroupConfigs();
+
+                // 4. 构建 TreeView（使用预设配置）
+                LoadEventGroups();
+                LoadEventItemsWithPreset(presetConfig);
+            }
         }
         
         private void SetupTreeView()
         {
-            // TreeView 的额外配置在这里进行（如果需要）
+            // TreeView 的额外配置在这里进行
+            if (eventGroupsTreeView != null)
+            {
+                // 强制使用 Dock 填充，确保随父控件调整大小
+                eventGroupsTreeView.Dock = DockStyle.Fill;
+                // 移除 Anchor 设置，避免与 Dock 冲突
+                eventGroupsTreeView.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom; 
+                // 注意：虽然 Dock 会自动处理 Anchor，但显示设置 Dock 是最稳健的
+                
+                // 确保布局刷新
+                eventGroupsTreeView.PerformLayout();
+            }
         }
 
         private void InitializeEventGroups()
@@ -204,11 +225,14 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         {
             var presetNames = GetEventItemsPresetNames();
             eventGroupsTreeView.GetPresetsComboBox().Items.Clear();
-            eventGroupsTreeView.GetPresetsComboBox().Items.AddRange(presetNames.ToArray());
+            foreach (var name in presetNames)
+            {
+                eventGroupsTreeView.GetPresetsComboBox().Items.Add(name);
+            }
 
             var last = AppSettings.Get("LastSelectedEventPreset") as string;
             if(!string.IsNullOrEmpty(last) && presetNames.Contains(last))
-                eventGroupsTreeView.GetPresetsComboBox().SelectedItem = last;
+                eventGroupsTreeView.GetPresetsComboBox().SelectedValue = last;
             else if (presetNames.Count > 0)
                 eventGroupsTreeView.GetPresetsComboBox().SelectedIndex = 0;
         }
@@ -220,7 +244,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         {
             try
             {
-                var selectedPreset = eventGroupsTreeView.GetPresetsComboBox().SelectedItem?.ToString();
+                var selectedPreset = eventGroupsTreeView.GetPresetsComboBox().SelectedValue?.ToString();
                 if (string.IsNullOrEmpty(selectedPreset))
                     return null;
                     
@@ -388,7 +412,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
                  AppSettings.Set("EventGroupConfigs", json);
                  
                  // 保存当前预设
-                 var selectedPreset = eventGroupsTreeView.GetPresetsComboBox().SelectedItem?.ToString();
+                 var selectedPreset = eventGroupsTreeView.GetPresetsComboBox().SelectedValue?.ToString();
                  if (!string.IsNullOrEmpty(selectedPreset))
                  {
                      SavePresetConfiguration(selectedPreset);
@@ -426,14 +450,17 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             // Ported logic
             var presetNames = GetEventItemsPresetNames();
             eventGroupsTreeView.GetPresetsComboBox().Items.Clear();
-            eventGroupsTreeView.GetPresetsComboBox().Items.AddRange(presetNames.ToArray());
+            foreach (var name in presetNames)
+            {
+                eventGroupsTreeView.GetPresetsComboBox().Items.Add(name);
+            }
 
             var last = AppSettings.Get("LastSelectedEventPreset") as string;
             string presetToLoad = null;
             
             if(!string.IsNullOrEmpty(last) && presetNames.Contains(last))
             {
-                eventGroupsTreeView.GetPresetsComboBox().SelectedItem = last;
+                eventGroupsTreeView.GetPresetsComboBox().SelectedValue = last;
                 presetToLoad = last;
             }
             else if (presetNames.Count > 0)
@@ -468,7 +495,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         {
             try
             {
-                var selectedPreset = eventGroupsTreeView.GetPresetsComboBox().SelectedItem?.ToString();
+                var selectedPreset = eventGroupsTreeView.GetPresetsComboBox().SelectedValue?.ToString();
                 if (string.IsNullOrEmpty(selectedPreset))
                 {
                     MessageBox.Show("请先选择一个预设", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -496,7 +523,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         {
             try
             {
-                var selectedPreset = eventGroupsTreeView.GetPresetsComboBox().SelectedItem?.ToString();
+                var selectedPreset = eventGroupsTreeView.GetPresetsComboBox().SelectedValue?.ToString();
                 if (string.IsNullOrEmpty(selectedPreset)) return;
 
                 // 记录最后选择的预设
@@ -556,7 +583,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         {
             try
             {
-                var selectedPreset = eventGroupsTreeView.GetPresetsComboBox().SelectedItem?.ToString();
+                var selectedPreset = eventGroupsTreeView.GetPresetsComboBox().SelectedValue?.ToString();
                 if (string.IsNullOrEmpty(selectedPreset))
                 {
                     MessageBox.Show("请先选择一个预设", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -628,7 +655,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 
                 // 刷新预设列表并选择新预设
                 LoadEventPresets();
-                eventGroupsTreeView.GetPresetsComboBox().SelectedItem = newPresetName;
+                eventGroupsTreeView.GetPresetsComboBox().SelectedValue = newPresetName;
 
                 MessageBox.Show($"预设 '{newPresetName}' 已保存", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }

@@ -213,6 +213,9 @@ namespace WindowsFormsApp3.Forms.Main
             {
                 mainContainer.Panel1.BackColor = Color.FromArgb(40, 42, 46); // 侧边栏 - 使用深色主背景色
                 navMenu.BackColor = Color.FromArgb(40, 42, 46);              // 导航菜单 - 使用深色主背景色
+                logoPanel.BackColor = Color.FromArgb(40, 42, 46);            // Logo区域 - 使用深色主背景色
+                panelCollapseWrapper.BackColor = Color.FromArgb(40, 42, 46); // 折叠按钮区域 - 使用深色主背景色
+
                 contentPanel.BackColor = Color.FromArgb(30, 30, 30);         // Content Area
                 headerPanel.BackColor = Color.FromArgb(45, 45, 45);          // Header
                 headerPanel.BackColor = Color.FromArgb(45, 45, 45);          // Header
@@ -221,6 +224,9 @@ namespace WindowsFormsApp3.Forms.Main
             {
                 mainContainer.Panel1.BackColor = Color.FromArgb(248, 249, 250); // 侧边栏 - 使用浅色主背景色
                 navMenu.BackColor = Color.FromArgb(248, 249, 250);              // 导航菜单 - 使用浅色主背景色
+                logoPanel.BackColor = Color.FromArgb(248, 249, 250);            // Logo区域 - 使用浅色主背景色
+                panelCollapseWrapper.BackColor = Color.FromArgb(248, 249, 250); // 折叠按钮区域 - 使用浅色主背景色
+
                 contentPanel.BackColor = Color.FromArgb(248, 249, 250);         // 浅色模式：内容区浅灰
                 headerPanel.BackColor = Color.White;
 
@@ -265,6 +271,8 @@ namespace WindowsFormsApp3.Forms.Main
                     // 明确设置导航菜单使用主背景色
                     navMenu.BackColor = theme.Background;
                     mainContainer.Panel1.BackColor = theme.Background;
+                    logoPanel.BackColor = theme.Background;
+                    panelCollapseWrapper.BackColor = theme.Background;
                     
                     // 更新所有已缓存的面板
                     foreach (var panel in panelCache.Values)
