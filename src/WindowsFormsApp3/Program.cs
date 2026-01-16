@@ -115,15 +115,7 @@ catch (Exception ex)
     LogHelper.Error($"iText7初始化失败: {ex.Message}", ex);
 }
 
-            // 初始化字体管理器
-            try
-            {
-                FontManager.Initialize();
-            }
-            catch (System.NullReferenceException ex) when (ex.Message.Contains("CjkResourceLoader") || ex.Source == "itext.io")
-            {
-                Console.WriteLine("捕获到iText7 CJK字体加载异常，已忽略，程序将继续运行");
-            }
+
 
             // 初始化 PDFsharp 字体解析器（提高系统字体兼容性）
             try

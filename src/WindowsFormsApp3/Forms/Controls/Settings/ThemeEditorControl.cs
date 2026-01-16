@@ -16,6 +16,10 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private ThemeDefinition _editingTheme;
         private bool _isLoading;
 
+        // 滚动条模式控件引用（用于禁用/启用）
+        private AntdUI.Label _scrollBarLeftLabel;
+        private AntdUI.Label _scrollBarRightLabel;
+
         public event EventHandler ThemeChanged;
 
         public ThemeEditorControl()
@@ -114,7 +118,9 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             // 背景色组
             cpBackground.Value = _editingTheme.Background;
             cpSurface.Value = _editingTheme.Surface;
+            cpSurface.Value = _editingTheme.Surface;
             cpSurfaceLight.Value = _editingTheme.SurfaceLight;
+            cpInputBackground.Value = _editingTheme.InputBackground;
 
             // 文字色组
             cpTextPrimary.Value = _editingTheme.TextPrimary;
@@ -127,11 +133,18 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             cpPrimary.Value = _editingTheme.Primary;
             cpSuccess.Value = _editingTheme.Success;
             cpWarning.Value = _editingTheme.Warning;
+            cpWarning.Value = _editingTheme.Warning;
             cpError.Value = _editingTheme.Error;
+
+            // 强调色组 (新)
+            cpAccentColor4.Value = _editingTheme.AccentColor4;
 
             // 交互色组
             cpBackActive.Value = _editingTheme.BackActive;
             cpBackHover.Value = _editingTheme.BackHover;
+
+            // 滚动条色组
+            swScrollBarMode.Checked = _editingTheme.UseScrollBarDarkMode;
 
             _isLoading = false;
         }
@@ -439,10 +452,26 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             }
             else
             {
-                // 启用状态：恢复原本的 Type 颜色
-                // AntdUI 按钮会根据 Type 自动设置颜色
-                btnSave.BackColor = Color.Empty;
-                btnDelete.BackColor = Color.Empty;
+                // 启用状态：恢复原本的 Type 颜色 (使用当前应用的主题色)
+                var currentAppTheme = _themeManager?.GetCurrentTheme();
+                if (currentAppTheme != null)
+                {
+                    btnSave.BackColor = currentAppTheme.Success;
+                    btnSave.ForeColor = Color.White;
+                    
+                    btnDelete.BackColor = currentAppTheme.Error;
+                    btnDelete.ForeColor = Color.White;
+                    
+                    // Apply, Import, Export 按钮颜色也确保正确 (可选)
+                    btnApply.BackColor = currentAppTheme.Primary;
+                    btnApply.ForeColor = Color.White;
+                }
+                else
+                {
+                     // Fallback mechanism if theme manager is somehow null
+                    btnSave.BackColor = Color.Empty;
+                    btnDelete.BackColor = Color.Empty;
+                }
             }
         }
 
@@ -453,16 +482,27 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         {
             cpBackground.Enabled = enabled;
             cpSurface.Enabled = enabled;
+            cpSurface.Enabled = enabled;
             cpSurfaceLight.Enabled = enabled;
+            cpInputBackground.Enabled = enabled;
             cpTextPrimary.Enabled = enabled;
             cpTextSecondary.Enabled = enabled;
             cpBorder.Enabled = enabled;
             cpPrimary.Enabled = enabled;
             cpSuccess.Enabled = enabled;
             cpWarning.Enabled = enabled;
+            cpWarning.Enabled = enabled;
             cpError.Enabled = enabled;
+            cpAccentColor4.Enabled = enabled;
             cpBackActive.Enabled = enabled;
             cpBackHover.Enabled = enabled;
+            swScrollBarMode.Enabled = enabled;
+            
+            // 同时禁用/启用滚动条模式的左右标签
+            if (_scrollBarLeftLabel != null)
+                _scrollBarLeftLabel.Enabled = enabled;
+            if (_scrollBarRightLabel != null)
+                _scrollBarRightLabel.Enabled = enabled;
         }
 
         /// <summary>
@@ -475,16 +515,21 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             // 更新编辑中的主题颜色
             _editingTheme.Background = cpBackground.Value;
             _editingTheme.Surface = cpSurface.Value;
+            _editingTheme.Surface = cpSurface.Value;
             _editingTheme.SurfaceLight = cpSurfaceLight.Value;
+            _editingTheme.InputBackground = cpInputBackground.Value;
             _editingTheme.TextPrimary = cpTextPrimary.Value;
             _editingTheme.TextSecondary = cpTextSecondary.Value;
             _editingTheme.Border = cpBorder.Value;
             _editingTheme.Primary = cpPrimary.Value;
             _editingTheme.Success = cpSuccess.Value;
             _editingTheme.Warning = cpWarning.Value;
+            _editingTheme.Warning = cpWarning.Value;
             _editingTheme.Error = cpError.Value;
+            _editingTheme.AccentColor4 = cpAccentColor4.Value;
             _editingTheme.BackActive = cpBackActive.Value;
             _editingTheme.BackHover = cpBackHover.Value;
+            _editingTheme.UseScrollBarDarkMode = swScrollBarMode.Checked;
 
             // 更新预览
             UpdatePreview();
@@ -722,8 +767,9 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             // 背景色组
             AddGroupLabel(lblBackgroundGroup, "背景色组", "BgColorsOutlined", ref y);
             AddColorRow(lblBackground, cpBackground, "主背景:", ref y, labelWidth, pickerWidth, rowHeight);
-            AddColorRow(lblSurface, cpSurface, "卡片:", ref y, labelWidth, pickerWidth, rowHeight);
-            AddColorRow(lblSurfaceLight, cpSurfaceLight, "输入框:", ref y, labelWidth, pickerWidth, rowHeight);
+            AddColorRow(lblSurface, cpSurface, "卡片(容器):", ref y, labelWidth, pickerWidth, rowHeight);
+            AddColorRow(lblSurfaceLight, cpSurfaceLight, "面板(浅):", ref y, labelWidth, pickerWidth, rowHeight);
+            AddColorRow(lblInputBackground, cpInputBackground, "输入框:", ref y, labelWidth, pickerWidth, rowHeight);
 
             y += 10;
 
@@ -745,7 +791,12 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             AddColorRow(lblPrimary, cpPrimary, "Primary:", ref y, labelWidth, pickerWidth, rowHeight);
             AddColorRow(lblSuccess, cpSuccess, "Success:", ref y, labelWidth, pickerWidth, rowHeight);
             AddColorRow(lblWarning, cpWarning, "Warning:", ref y, labelWidth, pickerWidth, rowHeight);
+            AddColorRow(lblWarning, cpWarning, "Warning:", ref y, labelWidth, pickerWidth, rowHeight);
             AddColorRow(lblError, cpError, "Error:", ref y, labelWidth, pickerWidth, rowHeight);
+            
+            // 新增强调色1-4
+            AddColorRow(lblAccentColor4, cpAccentColor4, "Accent 4 (旋转):", ref y, labelWidth, pickerWidth, rowHeight);
+
 
             y += 10;
 
@@ -753,6 +804,12 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             AddGroupLabel(lblInteractionGroup, "交互色组", "ThunderboltOutlined", ref y);
             AddColorRow(lblBackActive, cpBackActive, "激活状态:", ref y, labelWidth, pickerWidth, rowHeight);
             AddColorRow(lblBackHover, cpBackHover, "悬停状态:", ref y, labelWidth, pickerWidth, rowHeight);
+
+            y += 10;
+
+            // 滚动条色组
+            AddGroupLabel(lblScrollBarGroup, "滚动条模式", "BarsOutlined", ref y);
+            AddScrollBarModeRow(lblScrollBarMode, swScrollBarMode, "模式:", ref y, labelWidth, rowHeight);
         }
 
         private void AddGroupLabel(AntdUI.Label label, string text, string iconSvg, ref int y)
@@ -794,6 +851,51 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 
             y += rowHeight;
         }
+
+        private void AddScrollBarModeRow(AntdUI.Label label, AntdUI.Switch switchControl, string text, ref int y, int labelWidth, int rowHeight)
+        {
+            label.Location = new System.Drawing.Point(20, y);
+            label.Size = new System.Drawing.Size(labelWidth, 40);
+            label.Text = text;
+            this.pnlColorConfig.Controls.Add(label);
+
+            // 左侧标签："浅色"
+            _scrollBarLeftLabel = new AntdUI.Label
+            {
+                Location = new System.Drawing.Point(labelWidth + 30, y),
+                Size = new System.Drawing.Size(50, 40),
+                Text = "浅色",
+                TextAlign = System.Drawing.ContentAlignment.MiddleRight
+            };
+            this.pnlColorConfig.Controls.Add(_scrollBarLeftLabel);
+
+            // 配置 Switch 控件（深色/浅色开关）
+            switchControl.Location = new System.Drawing.Point(labelWidth + 85, y + 8);
+            switchControl.Size = new System.Drawing.Size(50, 24);
+            
+            // 右侧标签："深色"
+            _scrollBarRightLabel = new AntdUI.Label
+            {
+                Location = new System.Drawing.Point(labelWidth + 140, y),
+                Size = new System.Drawing.Size(50, 40),
+                Text = "深色",
+                TextAlign = System.Drawing.ContentAlignment.MiddleLeft
+            };
+            this.pnlColorConfig.Controls.Add(_scrollBarRightLabel);
+            
+            switchControl.CheckedChanged += (s, e) =>
+            {
+                if (!_isLoading)
+                {
+                    ColorPicker_ValueChanged(null, null); // 触发保存逻辑
+                }
+            };
+            this.pnlColorConfig.Controls.Add(switchControl);
+
+            y += rowHeight;
+        }
+
+        // 移除旧的 UpdateScrollBarModeText 方法（不再需要）
         
         #endregion
     }

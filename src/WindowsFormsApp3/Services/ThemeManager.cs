@@ -65,6 +65,7 @@ namespace WindowsFormsApp3.Services
                 Background = Color.FromArgb(248, 249, 250),
                 Surface = Color.White,
                 SurfaceLight = Color.White,
+                InputBackground = Color.White,
                 TextPrimary = Color.FromArgb(33, 37, 41),
                 TextSecondary = Color.FromArgb(108, 117, 125),
                 Border = Color.FromArgb(222, 226, 230),
@@ -73,7 +74,12 @@ namespace WindowsFormsApp3.Services
                 Warning = Color.FromArgb(255, 193, 7),
                 Error = Color.FromArgb(220, 53, 69),
                 BackActive = Color.FromArgb(230, 240, 255),
-                BackHover = Color.FromArgb(245, 247, 250)
+                BackHover = Color.FromArgb(245, 247, 250),
+                UseScrollBarDarkMode = false, // 浅色主题使用浅色滚动条
+                AccentColor1 = Color.DodgerBlue,     // 行数
+                AccentColor2 = Color.ForestGreen,    // 列数
+                AccentColor3 = Color.Orange,         // 数量
+                AccentColor4 = Color.MediumPurple    // 旋转
             };
         }
 
@@ -89,6 +95,7 @@ namespace WindowsFormsApp3.Services
                 Background = Color.FromArgb(40, 42, 46),
                 Surface = Color.FromArgb(48, 50, 54),
                 SurfaceLight = Color.FromArgb(55, 57, 61),
+                InputBackground = Color.FromArgb(55, 57, 61), // 默认同 SurfaceLight，用户可调
                 TextPrimary = Color.FromArgb(230, 230, 235),
                 TextSecondary = Color.FromArgb(160, 165, 170),
                 Border = Color.FromArgb(65, 67, 71),
@@ -97,7 +104,12 @@ namespace WindowsFormsApp3.Services
                 Warning = Color.FromArgb(160, 100, 50),
                 Error = Color.FromArgb(140, 60, 60),
                 BackActive = Color.FromArgb(45, 55, 65),
-                BackHover = Color.FromArgb(55, 57, 61)
+                BackHover = Color.FromArgb(55, 57, 61),
+                UseScrollBarDarkMode = true,  // 深色主题使用深色滚动条
+                AccentColor1 = Color.DodgerBlue,
+                AccentColor2 = Color.ForestGreen,
+                AccentColor3 = Color.Orange,
+                AccentColor4 = Color.MediumPurple
             };
         }
 
@@ -113,6 +125,7 @@ namespace WindowsFormsApp3.Services
                 Background = Color.FromArgb(199, 237, 204),
                 Surface = Color.FromArgb(212, 245, 217),
                 SurfaceLight = Color.FromArgb(220, 248, 224),
+                InputBackground = Color.FromArgb(220, 248, 224),
                 TextPrimary = Color.FromArgb(25, 50, 30),
                 TextSecondary = Color.FromArgb(60, 90, 70),
                 Border = Color.FromArgb(180, 225, 185),
@@ -121,7 +134,12 @@ namespace WindowsFormsApp3.Services
                 Warning = Color.FromArgb(255, 193, 7),
                 Error = Color.FromArgb(220, 53, 69),
                 BackActive = Color.FromArgb(185, 230, 195),
-                BackHover = Color.FromArgb(205, 240, 210)
+                BackHover = Color.FromArgb(205, 240, 210),
+                UseScrollBarDarkMode = false, // 护眼绿使用浅色滚动条
+                AccentColor1 = Color.DodgerBlue,
+                AccentColor2 = Color.ForestGreen,
+                AccentColor3 = Color.Orange,
+                AccentColor4 = Color.MediumPurple
             };
         }
 
@@ -137,6 +155,7 @@ namespace WindowsFormsApp3.Services
                 Background = Color.FromArgb(225, 235, 245),
                 Surface = Color.FromArgb(235, 243, 250),
                 SurfaceLight = Color.White,
+                InputBackground = Color.White,
                 TextPrimary = Color.FromArgb(30, 50, 80),
                 TextSecondary = Color.FromArgb(90, 110, 140),
                 Border = Color.FromArgb(200, 215, 230),
@@ -145,7 +164,12 @@ namespace WindowsFormsApp3.Services
                 Warning = Color.FromArgb(255, 193, 7),
                 Error = Color.FromArgb(220, 53, 69),
                 BackActive = Color.FromArgb(210, 225, 240),
-                BackHover = Color.FromArgb(220, 232, 243)
+                BackHover = Color.FromArgb(220, 232, 243),
+                UseScrollBarDarkMode = false, // 经典蓝使用浅色滚动条
+                AccentColor1 = Color.DodgerBlue,
+                AccentColor2 = Color.ForestGreen,
+                AccentColor3 = Color.Orange,
+                AccentColor4 = Color.MediumPurple
             };
         }
 

@@ -151,25 +151,33 @@ namespace WindowsFormsApp3.Utils
             }
             else if (control is TextBox txt)
             {
-                txt.BackColor = _currentTheme.SurfaceLight;
+                Color inputBack = _currentTheme.InputBackground;
+                if (inputBack.IsEmpty) inputBack = _currentTheme.SurfaceLight;
+                txt.BackColor = inputBack;
                 txt.ForeColor = _currentTheme.TextPrimary;
                 txt.BorderStyle = BorderStyle.FixedSingle;
             }
             else if (control is RichTextBox rtb)
             {
-                rtb.BackColor = _currentTheme.SurfaceLight;
+                Color inputBack = _currentTheme.InputBackground;
+                if (inputBack.IsEmpty) inputBack = _currentTheme.SurfaceLight;
+                rtb.BackColor = inputBack;
                 rtb.ForeColor = _currentTheme.TextPrimary;
                 rtb.BorderStyle = BorderStyle.FixedSingle;
             }
             else if (control is ComboBox combo)
             {
-                combo.BackColor = _currentTheme.SurfaceLight;
+                Color inputBack = _currentTheme.InputBackground;
+                if (inputBack.IsEmpty) inputBack = _currentTheme.SurfaceLight;
+                combo.BackColor = inputBack;
                 combo.ForeColor = _currentTheme.TextPrimary;
                 combo.FlatStyle = FlatStyle.Flat;
             }
             else if (control is ListBox listBox)
             {
-                listBox.BackColor = _currentTheme.SurfaceLight;
+                Color inputBack = _currentTheme.InputBackground;
+                if (inputBack.IsEmpty) inputBack = _currentTheme.SurfaceLight;
+                listBox.BackColor = inputBack;
                 listBox.ForeColor = _currentTheme.TextPrimary;
                 listBox.BorderStyle = BorderStyle.FixedSingle;
             }
@@ -304,9 +312,12 @@ namespace WindowsFormsApp3.Utils
             try
             {
                 // AntdUI.Input
-                if (typeName == "Input")
+                if (typeName == "Input" || typeName == "InputNumber")
                 {
-                    SetPropertySafe(control, "BackColor", _currentTheme.SurfaceLight);
+                    Color inputBack = _currentTheme.InputBackground;
+                    if (inputBack.IsEmpty) inputBack = _currentTheme.SurfaceLight;
+
+                    SetPropertySafe(control, "BackColor", inputBack);
                     SetPropertySafe(control, "ForeColor", _currentTheme.TextPrimary);
                     SetPropertySafe(control, "BorderColor", _currentTheme.Border);
                     SetPropertySafe(control, "PlaceholderColor", _currentTheme.TextSecondary);
@@ -318,7 +329,9 @@ namespace WindowsFormsApp3.Utils
                     {
                         if (control is  AntdUI.Select selectControl)
                         {
-                            selectControl.BackColor = _currentTheme.SurfaceLight;
+                            Color inputBack = _currentTheme.InputBackground;
+                            if (inputBack.IsEmpty) inputBack = _currentTheme.SurfaceLight;
+                            selectControl.BackColor = inputBack;
                             selectControl.ForeColor = _currentTheme.TextPrimary;
                             selectControl.BorderColor = _currentTheme.Border;
                             
@@ -585,15 +598,48 @@ namespace WindowsFormsApp3.Utils
         /// 为带滚动条的控件递归应用主题
         /// </summary>
         /// <param name="control">根控件</param>
-        /// <param name="isDark">是否为深色模式</param>
+        /// <param name="isDark">是否为深色模式（如果主题未设置 UseScrollBarDarkMode 则使用此值）</param>
         public static void ApplyScrollBarThemeRecursive(Control control, bool isDark)
         {
             if (control == null) return;
             
+            // 🔧 优先使用主题中的 UseScrollBarDarkMode 设置，如果未设置则使用传入的 isDark
+            bool scrollBarDarkMode = _currentTheme?.UseScrollBarDarkMode ?? isDark;
+            
             // 检查控件是否有滚动条
             bool hasScrollBar = false;
             
-            if (control is Panel panel && panel.AutoScroll)
+            // 🔧 优先检查 PDF 相关控件（因为 PdfPreviewControl 继承自 Panel）
+            if (control is PdfPreviewControl pdfPreview)
+            {
+                // 🔧 特殊处理：PdfPreviewControl 有自己的主题设置方法
+                pdfPreview.SetScrollBarTheme(scrollBarDarkMode);
+                LogHelper.Debug($"[ThemeHelper] 已设置 PdfPreviewControl 滚动条主题: isDark={scrollBarDarkMode} (来自主题设置: {_currentTheme?.UseScrollBarDarkMode})");
+                // 不要 return，继续递归处理子控件
+            }
+            else if (control.GetType().Name == "PdfiumPdfPreviewControl" || 
+                     control.GetType().FullName?.Contains("PdfiumPdfPreviewControl") == true)
+            {
+                // 🔧 特殊处理：PdfiumPdfPreviewControl
+                try
+                {
+                    dynamic pdfiumControl = control;
+                    pdfiumControl.SetScrollBarTheme(scrollBarDarkMode);
+                    LogHelper.Debug($"[ThemeHelper] 已设置 PdfiumPdfPreviewControl 滚动条主题: isDark={scrollBarDarkMode}");
+                }
+                catch (Exception ex)
+                {
+                    LogHelper.Error($"[ThemeHelper] 设置 PdfiumPdfPreviewControl 主题失败: {ex.Message}");
+                }
+                // 不要 return，继续递归处理子控件
+            }
+            else if (control.GetType().Name.Contains("PdfViewer") || control.GetType().Name.Contains("PdfRenderer"))
+            {
+                // 🔧 特殊处理：PdfiumViewer 的 PdfViewer 或 PdfRenderer 控件
+                hasScrollBar = true;
+                LogHelper.Debug($"[ThemeHelper] 发现 PDF 相关控件: {control.GetType().Name}");
+            }
+            else if (control is Panel panel && panel.AutoScroll)
                 hasScrollBar = true;
             else if (control is TextBoxBase) // TextBox, RichTextBox
                 hasScrollBar = true;
@@ -605,19 +651,17 @@ namespace WindowsFormsApp3.Utils
                 hasScrollBar = true;
             else if (control is ListView)
                 hasScrollBar = true;
-            else if (control.GetType().Name.Contains("PdfViewer") || control.GetType().Name.Contains("PdfPreview"))
-                hasScrollBar = true;
             
             // 如果控件有滚动条，应用主题
             if (hasScrollBar)
             {
-                ApplyScrollBarTheme(control, isDark);
+                ApplyScrollBarTheme(control, scrollBarDarkMode);
                 
                 // 🔧 特殊处理：DataGridView 的内部滚动条控件
                 if (control is DataGridView dgv)
                 {
                     // DataGridView 的滚动条是子控件，需要recursively找到并应用主题
-                    ApplyScrollBarThemeToChildren(control, isDark);
+                    ApplyScrollBarThemeToChildren(control, scrollBarDarkMode);
                 }
             }
             

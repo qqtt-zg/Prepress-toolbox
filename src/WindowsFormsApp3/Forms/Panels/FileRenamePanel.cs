@@ -739,6 +739,9 @@ namespace WindowsFormsApp3.Forms.Panels
             // 监控按钮状态
             UpdateMonitorButtonState();
 
+            // 手动/批量模式按钮状态
+            UpdateImmediateModeButtonState(IsImmediateMode);
+
             // 更新状态栏显示（事件分组预览）
             UpdateEventGroupPreview();
         }
@@ -783,8 +786,13 @@ namespace WindowsFormsApp3.Forms.Panels
                 }
             }
 
-            // 设置选中值（优先级：上次选择 > 当前目录 > 第一项）
-            string targetDir = lastSelectedDir ?? currentDir;
+            // 设置选中值（优先级：当前目录 > 上次选择 > 第一项）
+            // 🔧 修复：优先使用当前 InputDirectory，因为它已经被 Presenter 更新了
+            string targetDir = currentDir;
+            if (string.IsNullOrEmpty(targetDir))
+            {
+                targetDir = lastSelectedDir;
+            }
 
             if (!string.IsNullOrEmpty(targetDir))
             {
@@ -1297,12 +1305,17 @@ namespace WindowsFormsApp3.Forms.Panels
         // 对话框方法实现
         public string ShowFolderBrowser(string description = "选择文件夹", string selectedPath = "")
         {
-            using (var dialog = new FolderBrowserDialog { Description = description })
+            // 使用 Ookii.Dialogs 提供更好的文件夹选择体验
+            using (var dialog = new Ookii.Dialogs.WinForms.VistaFolderBrowserDialog())
             {
+                dialog.Description = description;
+                dialog.UseDescriptionForTitle = true; // 将描述用作对话框标题
+
                 if (!string.IsNullOrEmpty(selectedPath) && Directory.Exists(selectedPath))
                 {
                     dialog.SelectedPath = selectedPath;
                 }
+
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
                     return dialog.SelectedPath;

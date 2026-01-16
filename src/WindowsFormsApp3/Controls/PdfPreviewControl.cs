@@ -422,6 +422,27 @@ namespace WindowsFormsApp3.Controls
             base.Refresh();
         }
 
+        /// <summary>
+        /// 设置滚动条主题（深色/浅色模式）
+        /// </summary>
+        /// <param name="isDark">是否为深色模式</param>
+        public void SetScrollBarTheme(bool isDark)
+        {
+            _pdfiumControl?.SetScrollBarTheme(isDark);
+        }
+
+        /// <summary>
+        /// 设置预览背景颜色
+        /// </summary>
+        /// <param name="color">背景颜色</param>
+        public void SetPreviewBackgroundColor(Color color)
+        {
+            if (_pdfiumControl != null)
+            {
+                _pdfiumControl.SetPreviewBackgroundColor(color);
+            }
+        }
+
         #endregion
 
         #region 受保护方法

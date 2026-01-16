@@ -17,6 +17,8 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private AntdUI.ColorPicker cpSurface;
         private AntdUI.Label lblSurfaceLight;
         private AntdUI.ColorPicker cpSurfaceLight;
+        private AntdUI.Label lblInputBackground;
+        private AntdUI.ColorPicker cpInputBackground;
 
         // 颜色组 - 文字色
         private AntdUI.Label lblTextGroup;
@@ -40,6 +42,14 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private AntdUI.ColorPicker cpWarning;
         private AntdUI.Label lblError;
         private AntdUI.ColorPicker cpError;
+        private AntdUI.Label lblAccentColor1;
+        private AntdUI.ColorPicker cpAccentColor1;
+        private AntdUI.Label lblAccentColor2;
+        private AntdUI.ColorPicker cpAccentColor2;
+        private AntdUI.Label lblAccentColor3;
+        private AntdUI.ColorPicker cpAccentColor3;
+        private AntdUI.Label lblAccentColor4;
+        private AntdUI.ColorPicker cpAccentColor4;
 
         // 颜色组 - 交互色
         private AntdUI.Label lblInteractionGroup;
@@ -47,6 +57,11 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private AntdUI.ColorPicker cpBackActive;
         private AntdUI.Label lblBackHover;
         private AntdUI.ColorPicker cpBackHover;
+
+        // 颜色组 - 滚动条
+        private AntdUI.Label lblScrollBarGroup;
+        private AntdUI.Label lblScrollBarMode;
+        private AntdUI.Switch swScrollBarMode;
         private System.Windows.Forms.FlowLayoutPanel flowColors;
 
         protected override void Dispose(bool disposing)
@@ -69,7 +84,10 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 			this.lblSurface = new AntdUI.Label();
 			this.cpSurface = new AntdUI.ColorPicker();
 			this.lblSurfaceLight = new AntdUI.Label();
+			this.lblSurfaceLight = new AntdUI.Label();
 			this.cpSurfaceLight = new AntdUI.ColorPicker();
+            this.lblInputBackground = new AntdUI.Label();
+            this.cpInputBackground = new AntdUI.ColorPicker();
 			this.lblTextGroup = new AntdUI.Label();
 			this.lblTextPrimary = new AntdUI.Label();
 			this.cpTextPrimary = new AntdUI.ColorPicker();
@@ -86,12 +104,24 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 			this.lblWarning = new AntdUI.Label();
 			this.cpWarning = new AntdUI.ColorPicker();
 			this.lblError = new AntdUI.Label();
+			this.lblError = new AntdUI.Label();
 			this.cpError = new AntdUI.ColorPicker();
+            this.lblAccentColor1 = new AntdUI.Label();
+            this.cpAccentColor1 = new AntdUI.ColorPicker();
+            this.lblAccentColor2 = new AntdUI.Label();
+            this.cpAccentColor2 = new AntdUI.ColorPicker();
+            this.lblAccentColor3 = new AntdUI.Label();
+            this.cpAccentColor3 = new AntdUI.ColorPicker();
+            this.lblAccentColor4 = new AntdUI.Label();
+            this.cpAccentColor4 = new AntdUI.ColorPicker();
 			this.lblInteractionGroup = new AntdUI.Label();
 			this.lblBackActive = new AntdUI.Label();
 			this.cpBackActive = new AntdUI.ColorPicker();
 			this.lblBackHover = new AntdUI.Label();
 			this.cpBackHover = new AntdUI.ColorPicker();
+            this.lblScrollBarGroup = new AntdUI.Label();
+            this.lblScrollBarMode = new AntdUI.Label();
+            this.swScrollBarMode = new AntdUI.Switch();
 			this.flowColors = new System.Windows.Forms.FlowLayoutPanel();
 			this.btnPreview = new AntdUI.Button();
 			this.lblPreviewText = new AntdUI.Label();
@@ -184,6 +214,21 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 			this.cpSurfaceLight.Size = new System.Drawing.Size(0, 0);
 			this.cpSurfaceLight.TabIndex = 0;
 			this.cpSurfaceLight.Value = System.Drawing.Color.FromArgb(((int)(((byte)(22)))), ((int)(((byte)(119)))), ((int)(((byte)(255)))));
+            // 
+            // lblInputBackground
+            // 
+            this.lblInputBackground.Location = new System.Drawing.Point(0, 0);
+            this.lblInputBackground.Name = "lblInputBackground";
+            this.lblInputBackground.Size = new System.Drawing.Size(0, 0);
+            this.lblInputBackground.TabIndex = 0;
+            // 
+            // cpInputBackground
+            // 
+            this.cpInputBackground.Location = new System.Drawing.Point(0, 0);
+            this.cpInputBackground.Name = "cpInputBackground";
+            this.cpInputBackground.Size = new System.Drawing.Size(0, 0);
+            this.cpInputBackground.TabIndex = 0;
+            this.cpInputBackground.Value = System.Drawing.Color.FromArgb(((int)(((byte)(22)))), ((int)(((byte)(119)))), ((int)(((byte)(255)))));
 			// 
 			// lblTextGroup
 			// 
@@ -310,6 +355,66 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 			this.cpError.Size = new System.Drawing.Size(0, 0);
 			this.cpError.TabIndex = 0;
 			this.cpError.Value = System.Drawing.Color.FromArgb(((int)(((byte)(22)))), ((int)(((byte)(119)))), ((int)(((byte)(255)))));
+            // 
+            // lblAccentColor1
+            // 
+            this.lblAccentColor1.Location = new System.Drawing.Point(0, 0);
+            this.lblAccentColor1.Name = "lblAccentColor1";
+            this.lblAccentColor1.Size = new System.Drawing.Size(0, 0);
+            this.lblAccentColor1.TabIndex = 0;
+            // 
+            // cpAccentColor1
+            // 
+            this.cpAccentColor1.Location = new System.Drawing.Point(0, 0);
+            this.cpAccentColor1.Name = "cpAccentColor1";
+            this.cpAccentColor1.Size = new System.Drawing.Size(0, 0);
+            this.cpAccentColor1.TabIndex = 0;
+            this.cpAccentColor1.Value = System.Drawing.Color.FromArgb(((int)(((byte)(22)))), ((int)(((byte)(119)))), ((int)(((byte)(255)))));
+            // 
+            // lblAccentColor2
+            // 
+            this.lblAccentColor2.Location = new System.Drawing.Point(0, 0);
+            this.lblAccentColor2.Name = "lblAccentColor2";
+            this.lblAccentColor2.Size = new System.Drawing.Size(0, 0);
+            this.lblAccentColor2.TabIndex = 0;
+            // 
+            // cpAccentColor2
+            // 
+            this.cpAccentColor2.Location = new System.Drawing.Point(0, 0);
+            this.cpAccentColor2.Name = "cpAccentColor2";
+            this.cpAccentColor2.Size = new System.Drawing.Size(0, 0);
+            this.cpAccentColor2.TabIndex = 0;
+            this.cpAccentColor2.Value = System.Drawing.Color.FromArgb(((int)(((byte)(22)))), ((int)(((byte)(119)))), ((int)(((byte)(255)))));
+            // 
+            // lblAccentColor3
+            // 
+            this.lblAccentColor3.Location = new System.Drawing.Point(0, 0);
+            this.lblAccentColor3.Name = "lblAccentColor3";
+            this.lblAccentColor3.Size = new System.Drawing.Size(0, 0);
+            this.lblAccentColor3.TabIndex = 0;
+            // 
+            // cpAccentColor3
+            // 
+            this.cpAccentColor3.Location = new System.Drawing.Point(0, 0);
+            this.cpAccentColor3.Name = "cpAccentColor3";
+            this.cpAccentColor3.Size = new System.Drawing.Size(0, 0);
+            this.cpAccentColor3.TabIndex = 0;
+            this.cpAccentColor3.Value = System.Drawing.Color.FromArgb(((int)(((byte)(22)))), ((int)(((byte)(119)))), ((int)(((byte)(255)))));
+            // 
+            // lblAccentColor4
+            // 
+            this.lblAccentColor4.Location = new System.Drawing.Point(0, 0);
+            this.lblAccentColor4.Name = "lblAccentColor4";
+            this.lblAccentColor4.Size = new System.Drawing.Size(0, 0);
+            this.lblAccentColor4.TabIndex = 0;
+            // 
+            // cpAccentColor4
+            // 
+            this.cpAccentColor4.Location = new System.Drawing.Point(0, 0);
+            this.cpAccentColor4.Name = "cpAccentColor4";
+            this.cpAccentColor4.Size = new System.Drawing.Size(0, 0);
+            this.cpAccentColor4.TabIndex = 0;
+            this.cpAccentColor4.Value = System.Drawing.Color.FromArgb(((int)(((byte)(22)))), ((int)(((byte)(119)))), ((int)(((byte)(255)))));
 			// 
 			// lblInteractionGroup
 			// 
@@ -347,6 +452,27 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 			this.cpBackHover.Size = new System.Drawing.Size(0, 0);
 			this.cpBackHover.TabIndex = 0;
 			this.cpBackHover.Value = System.Drawing.Color.FromArgb(((int)(((byte)(22)))), ((int)(((byte)(119)))), ((int)(((byte)(255)))));
+            // 
+            // lblScrollBarGroup
+            // 
+            this.lblScrollBarGroup.Location = new System.Drawing.Point(0, 0);
+            this.lblScrollBarGroup.Name = "lblScrollBarGroup";
+            this.lblScrollBarGroup.Size = new System.Drawing.Size(0, 0);
+            this.lblScrollBarGroup.TabIndex = 0;
+            // 
+            // lblScrollBarMode
+            // 
+            this.lblScrollBarMode.Location = new System.Drawing.Point(0, 0);
+            this.lblScrollBarMode.Name = "lblScrollBarMode";
+            this.lblScrollBarMode.Size = new System.Drawing.Size(0, 0);
+            this.lblScrollBarMode.TabIndex = 0;
+            // 
+            // swScrollBarMode
+            // 
+            this.swScrollBarMode.Location = new System.Drawing.Point(0, 0);
+            this.swScrollBarMode.Name = "swScrollBarMode";
+            this.swScrollBarMode.Size = new System.Drawing.Size(0, 0);
+            this.swScrollBarMode.TabIndex = 0;
 			// 
 			// flowColors
 			// 

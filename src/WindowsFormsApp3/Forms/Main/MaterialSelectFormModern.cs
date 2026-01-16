@@ -531,6 +531,65 @@ namespace WindowsFormsApp3
         }
 
         /// <summary>
+        /// 自动调整标签字体大小以适应文本
+        /// </summary>
+        /// <param name="label">要调整的标签控件</param>
+        /// <param name="minFontSize">最小字体大小</param>
+        /// <param name="maxFontSize">最大字体大小</param>
+        private void AutoResizeLabelFont(AntdUI.Label label, float minFontSize = 6f, float maxFontSize = 9f)
+        {
+            if (label == null || string.IsNullOrEmpty(label.Text)) return;
+            
+            try
+            {
+                // 计算可用宽度(控件宽度 - 左右内边距)
+                int availableWidth = label.Width - label.Padding.Left - label.Padding.Right;
+                
+                if (availableWidth <= 0) return;
+                
+                // 从最大字体开始尝试
+                float fontSize = maxFontSize;
+                Font testFont = null;
+                SizeF textSize = SizeF.Empty;
+                
+                try
+                {
+                    using (Graphics g = label.CreateGraphics())
+                    {
+                        testFont = new Font(label.Font.FontFamily, fontSize, label.Font.Style);
+                        textSize = g.MeasureString(label.Text, testFont);
+                        
+                        // 如果文本超出宽度,逐步减小字体
+                        while (textSize.Width > availableWidth && fontSize > minFontSize)
+                        {
+                            fontSize -= 0.5f;
+                            testFont.Dispose();
+                            testFont = new Font(label.Font.FontFamily, fontSize, label.Font.Style);
+                            textSize = g.MeasureString(label.Text, testFont);
+                        }
+                    }
+                    
+                    // 应用新字体
+                    if (Math.Abs(label.Font.Size - fontSize) > 0.1f)
+                    {
+                        var oldFont = label.Font;
+                        label.Font = new Font(label.Font.FontFamily, fontSize, label.Font.Style);
+                        oldFont.Dispose();
+                    }
+                }
+                finally
+                {
+                    testFont?.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"自动调整标签字体大小失败: {ex.Message}", ex);
+            }
+        }
+
+
+        /// <summary>
         /// 初始化显示标签字段引用
         /// </summary>
         private void InitializeDisplayLabels()
@@ -561,6 +620,8 @@ namespace WindowsFormsApp3
                 fileNameLabel.MouseDown += FileNameLabel_MouseDown;
                 fileNameLabel.MouseMove += FileNameLabel_MouseMove;
                 fileNameLabel.MouseUp += FileNameLabel_MouseUp;
+                // 添加 SizeChanged 事件处理,当控件大小变化时自动调整字体
+                fileNameLabel.SizeChanged += (s, e) => AutoResizeLabelFont(fileNameLabel);
             }
         }
 
@@ -943,34 +1004,72 @@ namespace WindowsFormsApp3
         /// <param name="selectedIndex">选中的按钮索引</param>
         private void UpdateFilmTypeButtonStates(int selectedIndex)
         {
+            // 获取当前主题（通过服务容器获取ThemeManager实例）
+            var themeManager = ServiceLocator.Instance.GetThemeManager();
+            ThemeDefinition theme = null;
+            bool isDark = false;
+
+            if (themeManager != null)
+            {
+                theme = themeManager.GetCurrentTheme();
+                if (theme != null)
+                {
+                    isDark = IsThemeDark(theme);
+                }
+            }
+
             // 重置所有按钮状态
             if (filmTypeLightButton != null)
+            {
                 filmTypeLightButton.Type = AntdUI.TTypeMini.Default;
+                if (theme != null) ApplyThemeToMaterialButton(filmTypeLightButton, theme, isDark);
+            }
             if (filmTypeMatteButton != null)
+            {
                 filmTypeMatteButton.Type = AntdUI.TTypeMini.Default;
+                if (theme != null) ApplyThemeToMaterialButton(filmTypeMatteButton, theme, isDark);
+            }
             if (filmTypeNoneButton != null)
+            {
                 filmTypeNoneButton.Type = AntdUI.TTypeMini.Default;
+                if (theme != null) ApplyThemeToMaterialButton(filmTypeNoneButton, theme, isDark);
+            }
             if (filmTypeRedButton != null)
+            {
                 filmTypeRedButton.Type = AntdUI.TTypeMini.Default;
+                if (theme != null) ApplyThemeToMaterialButton(filmTypeRedButton, theme, isDark);
+            }
             
             // 设置选中按钮状态
             switch (selectedIndex)
             {
                 case 0:
                     if (filmTypeLightButton != null)
+                    {
                         filmTypeLightButton.Type = AntdUI.TTypeMini.Primary;
+                        if (theme != null) ApplyThemeToMaterialButton(filmTypeLightButton, theme, isDark);
+                    }
                     break;
                 case 1:
                     if (filmTypeMatteButton != null)
+                    {
                         filmTypeMatteButton.Type = AntdUI.TTypeMini.Primary;
+                        if (theme != null) ApplyThemeToMaterialButton(filmTypeMatteButton, theme, isDark);
+                    }
                     break;
                 case 2:
                     if (filmTypeNoneButton != null)
+                    {
                         filmTypeNoneButton.Type = AntdUI.TTypeMini.Primary;
+                        if (theme != null) ApplyThemeToMaterialButton(filmTypeNoneButton, theme, isDark);
+                    }
                     break;
                 case 3:
                     if (filmTypeRedButton != null)
+                    {
                         filmTypeRedButton.Type = AntdUI.TTypeMini.Primary;
+                        if (theme != null) ApplyThemeToMaterialButton(filmTypeRedButton, theme, isDark);
+                    }
                     break;
             }
         }
@@ -1110,17 +1209,43 @@ namespace WindowsFormsApp3
         /// 更新形状按钮状态
         /// </summary>
         /// <param name="selectedIndex">选中的按钮索引，-1表示取消选择</param>
-        private void UpdateShapeButtonStates(int selectedIndex)
+ private void UpdateShapeButtonStates(int selectedIndex)
         {
+            // 获取当前主题
+            var themeManager = ServiceLocator.Instance.GetThemeManager();
+            ThemeDefinition theme = null;
+            bool isDark = false;
+
+            if (themeManager != null)
+            {
+                theme = themeManager.GetCurrentTheme();
+                if (theme != null)
+                {
+                    isDark = IsThemeDark(theme);
+                }
+            }
+
             // 重置所有按钮状态
             if (shapeRightAngleButton != null)
+            {
                 shapeRightAngleButton.Type = AntdUI.TTypeMini.Default;
+                if (theme != null) ApplyThemeToMaterialButton(shapeRightAngleButton, theme, isDark);
+            }
             if (shapeCircleButton != null)
+            {
                 shapeCircleButton.Type = AntdUI.TTypeMini.Default;
+                if (theme != null) ApplyThemeToMaterialButton(shapeCircleButton, theme, isDark);
+            }
             if (shapeSpecialButton != null)
+            {
                 shapeSpecialButton.Type = AntdUI.TTypeMini.Default;
+                if (theme != null) ApplyThemeToMaterialButton(shapeSpecialButton, theme, isDark);
+            }
             if (shapeRoundRectButton != null)
+            {
                 shapeRoundRectButton.Type = AntdUI.TTypeMini.Default;
+                if (theme != null) ApplyThemeToMaterialButton(shapeRoundRectButton, theme, isDark);
+            }
             
             // 设置选中按钮状态
             if (selectedIndex >= 0)
@@ -1129,19 +1254,31 @@ namespace WindowsFormsApp3
                 {
                     case 0:
                         if (shapeRightAngleButton != null)
+                        {
                             shapeRightAngleButton.Type = AntdUI.TTypeMini.Primary;
+                            if (theme != null) ApplyThemeToMaterialButton(shapeRightAngleButton, theme, isDark);
+                        }
                         break;
                     case 1:
                         if (shapeCircleButton != null)
+                        {
                             shapeCircleButton.Type = AntdUI.TTypeMini.Primary;
+                            if (theme != null) ApplyThemeToMaterialButton(shapeCircleButton, theme, isDark);
+                        }
                         break;
                     case 2:
                         if (shapeSpecialButton != null)
+                        {
                             shapeSpecialButton.Type = AntdUI.TTypeMini.Primary;
+                            if (theme != null) ApplyThemeToMaterialButton(shapeSpecialButton, theme, isDark);
+                        }
                         break;
                     case 3:
                         if (shapeRoundRectButton != null)
+                        {
                             shapeRoundRectButton.Type = AntdUI.TTypeMini.Primary;
+                            if (theme != null) ApplyThemeToMaterialButton(shapeRoundRectButton, theme, isDark);
+                        }
                         break;
                 }
             }
@@ -1772,9 +1909,19 @@ namespace WindowsFormsApp3
                     // 设置膜类型按钮状态
                     string[] filmTypes = { "光膜", "哑膜", "不过膜", "红膜" };
                     int index = Array.IndexOf(filmTypes, lastFilmType);
+                    
                     if (index >= 0)
                     {
-                        UpdateFilmTypeButtonStates(index);
+                        // 🔧 特殊处理：如果是"不过膜"，视为隐式默认值，不显示高亮状态
+                        if (lastFilmType == "不过膜")
+                        {
+                            UpdateFilmTypeButtonStates(-1);
+                            LogHelper.Debug($"恢复膜类型: {lastFilmType} (视作默认值，不显示高亮)");
+                        }
+                        else
+                        {
+                            UpdateFilmTypeButtonStates(index);
+                        }
                     }
                     else
                     {
@@ -1911,6 +2058,11 @@ namespace WindowsFormsApp3
                 // 取消dropdown16的选择状态
                 ClearDropdown16Selection();
 
+                // 获取当前主题
+                var themeManager = ServiceLocator.Instance.GetThemeManager();
+                ThemeDefinition theme = themeManager?.GetCurrentTheme();
+                bool isDark = theme != null && IsThemeDark(theme);
+
                 if (sender is AntdUI.Button clickedButton)
                 {
                     // 检查是否点击了已选中的按钮
@@ -1929,6 +2081,8 @@ namespace WindowsFormsApp3
                                 foreach (var btn in tabPage.Controls.OfType<AntdUI.Button>())
                                 {
                                     btn.Type = AntdUI.TTypeMini.Default; // 重置为默认样式
+                                    // 重新应用主题样式以更新ForeColor
+                                    if (theme != null) ApplyThemeToMaterialButton(btn, theme, isDark);
                                 }
                             }
                         }
@@ -1950,6 +2104,8 @@ namespace WindowsFormsApp3
                             foreach (var btn in tabPage.Controls.OfType<AntdUI.Button>())
                             {
                                 btn.Type = AntdUI.TTypeMini.Default; // 重置为默认样式
+                                // 重新应用主题样式以更新ForeColor
+                                if (theme != null) ApplyThemeToMaterialButton(btn, theme, isDark);
                             }
                         }
                     }
@@ -1957,6 +2113,8 @@ namespace WindowsFormsApp3
                     // 设置选中按钮状态
                     SelectedMaterial = clickedButton.Text;
                     clickedButton.Type = AntdUI.TTypeMini.Primary; // 高亮显示选中状态
+                    // 重新应用主题样式以更新选中按钮的ForeColor
+                    if (theme != null) ApplyThemeToMaterialButton(clickedButton, theme, isDark);
 
                     // 保存选择的材料
                     AppSettings.Set("LastSelectedMaterial", SelectedMaterial);
@@ -1981,6 +2139,11 @@ namespace WindowsFormsApp3
         {
             try
             {
+                // 获取当前主题
+                var themeManager = ServiceLocator.Instance.GetThemeManager();
+                ThemeDefinition theme = themeManager?.GetCurrentTheme();
+                bool isDark = theme != null && IsThemeDark(theme);
+
                 // 获取选择的值
                 if (!string.IsNullOrEmpty(dropdown16.Text) && dropdown16.Text != "更多材料")
                 {
@@ -2000,6 +2163,8 @@ namespace WindowsFormsApp3
                                 foreach (var btn in tabPage.Controls.OfType<AntdUI.Button>())
                                 {
                                     btn.Type = AntdUI.TTypeMini.Default;
+                                    // 重新应用主题样式以更新ForeColor
+                                    if (theme != null) ApplyThemeToMaterialButton(btn, theme, isDark);
                                 }
                             }
                         }
@@ -2035,6 +2200,8 @@ namespace WindowsFormsApp3
                                 foreach (var btn in tabPage.Controls.OfType<AntdUI.Button>())
                                 {
                                     btn.Type = AntdUI.TTypeMini.Default;
+                                    // 重新应用主题样式以更新ForeColor
+                                    if (theme != null) ApplyThemeToMaterialButton(btn, theme, isDark);
                                 }
                             }
                         }
@@ -2059,6 +2226,8 @@ namespace WindowsFormsApp3
                                 foreach (var btn in tabPage.Controls.OfType<AntdUI.Button>())
                                 {
                                     btn.Type = AntdUI.TTypeMini.Default;
+                                    // 重新应用主题样式以更新ForeColor
+                                    if (theme != null) ApplyThemeToMaterialButton(btn, theme, isDark);
                                 }
                             }
                         }
@@ -2337,11 +2506,13 @@ namespace WindowsFormsApp3
                 if (string.IsNullOrEmpty(fileName))
                 {
                     fileNameLabel.Text = "材料选择";
+                    AutoResizeLabelFont(fileNameLabel);
                     return;
                 }
 
                 // 直接显示文件名
                 fileNameLabel.Text = fileName;
+                AutoResizeLabelFont(fileNameLabel);
             }
             catch (Exception ex)
             {
@@ -2349,6 +2520,7 @@ namespace WindowsFormsApp3
                 if (fileNameLabel != null)
                 {
                     fileNameLabel.Text = "材料选择";
+                    AutoResizeLabelFont(fileNameLabel);
                 }
             }
         }
@@ -2361,6 +2533,7 @@ namespace WindowsFormsApp3
             if (fileNameLabel != null)
             {
                 fileNameLabel.Text = "材料选择";
+                AutoResizeLabelFont(fileNameLabel);
             }
         }
 
@@ -2960,6 +3133,9 @@ namespace WindowsFormsApp3
 
             // 🔧 构造函数预定位优化：窗口位置已在构造函数中设置，无需再次移动
             LogHelper.Debug("[MaterialSelectFormModern] 构造函数预定位已生效，跳过动画恢复");
+
+            // 🔧 应用当前主题
+            ApplyCurrentTheme();
         }
 
         /// <summary>
@@ -3759,6 +3935,7 @@ namespace WindowsFormsApp3
                             case ShapeType.RightAngle:
                                 RoundRadius = 0;
                                 showRadiusInput = false;
+                                // ✅ 修复：恢复上次选择的直角时也应该保持明确选择状态
                                 break;
                             case ShapeType.Circle:
                                 RoundRadius = 0;
@@ -3787,7 +3964,7 @@ namespace WindowsFormsApp3
                             case "直角":
                                 SelectedShape = ShapeType.RightAngle;
                                 RoundRadius = 0;
-                                _isShapeExplicitlySelected = true; // 从设置恢复的形状也是明确选择
+                                _isShapeExplicitlySelected = true; // ✅ 修复：恢复上次选择的直角时也应该保持明确选择状态
                                 break;
                             case "圆形":
                                 SelectedShape = ShapeType.Circle;
@@ -4326,6 +4503,11 @@ namespace WindowsFormsApp3
             {
                 if (colorModeButton == null) return;
 
+                // 获取当前主题的文字颜色
+                var themeManager = ServiceLocator.Instance.GetThemeManager();
+                var theme = themeManager?.GetCurrentTheme();
+                Color textColor = theme?.TextPrimary ?? Color.Black;
+
                 // 设置按钮类型为默认，避免默认的主题颜色干扰
                 colorModeButton.Type = AntdUI.TTypeMini.Default;
                 colorModeButton.Ghost = true; // 启用ghost模式，透明背景
@@ -4333,13 +4515,13 @@ namespace WindowsFormsApp3
                 if (colorMode == "彩色")
                 {
                     colorModeButton.Text = "彩色"; // 只显示中文文字
-                    colorModeButton.ForeColor = Color.Black; // 统一黑色文字
+                    colorModeButton.ForeColor = textColor; // 使用主题文字颜色
                     colorModeButton.DefaultBorderColor = Color.Red; // 彩色模式显示红色边框
                 }
                 else
                 {
                     colorModeButton.Text = "黑白"; // 只显示中文文字
-                    colorModeButton.ForeColor = Color.Black; // 统一黑色文字
+                    colorModeButton.ForeColor = textColor; // 使用主题文字颜色
                     colorModeButton.DefaultBorderColor = Color.Green; // 黑白模式显示绿色边框
                 }
 
@@ -4351,7 +4533,7 @@ namespace WindowsFormsApp3
                 if (colorModeButton != null)
                 {
                     colorModeButton.Text = colorMode;
-                    colorModeButton.ForeColor = Color.Black; // 统一黑色文字
+                    colorModeButton.ForeColor = Color.Black; // 出错时使用默认黑色
                     colorModeButton.DefaultBorderColor = Color.Black; // 默认黑色边框
                 }
             }
@@ -6579,6 +6761,25 @@ namespace WindowsFormsApp3
                 _pdfControlInitialized = true;
                 LogHelper.Info("[PDF 预览] PDF预览控件初始化完成");
 
+                // 🔧 应用当前主题到新创建的PDF控件
+                try
+                {
+                    var themeManager = ServiceLocator.Instance.GetThemeManager();
+                    var theme = themeManager.GetThemeByName(AppSettings.CurrentThemeName);
+                    if (theme != null)
+                    {
+                        bool isDark = IsThemeDark(theme);
+                        _realPdfPreviewControl.BackColor = theme.SurfaceLight;
+                        _realPdfPreviewControl.SetPreviewBackgroundColor(theme.SurfaceLight); // 🔧 设置预览背景色
+                        _realPdfPreviewControl.SetScrollBarTheme(isDark);
+                        LogHelper.Debug($"[PDF 预览] 已应用主题: {theme.Name}, isDark={isDark}");
+                    }
+                }
+                catch (Exception themeEx)
+                {
+                    LogHelper.Warn($"[PDF 预览] 应用主题失败: {themeEx.Message}");
+                }
+
                 // 如果有待加载的PDF，现在加载它
                 if (!string.IsNullOrEmpty(_pendingPdfToLoad))
                 {
@@ -6743,5 +6944,409 @@ namespace WindowsFormsApp3
         {
 
         }
+
+        #region 主题支持
+
+        /// <summary>
+        /// 应用主题到窗体及所有控件
+        /// </summary>
+        /// <param name="theme">主题定义</param>
+        public void ApplyTheme(ThemeDefinition theme)
+        {
+            if (theme == null) return;
+
+            try
+            {
+                LogHelper.Debug($"[MaterialSelectFormModern] 开始应用主题: {theme.Name}");
+
+                // 判断是否为深色主题
+                bool isDark = IsThemeDark(theme);
+
+                // 1. 应用窗体背景
+                this.BackColor = theme.Background;
+
+                // 2. 应用分隔线
+                if (fileNameSeparator != null)
+                    fileNameSeparator.BackColor = theme.Border;
+
+                // 3. 应用标签页控件
+                ApplyThemeToTabs(theme, isDark);
+
+                // 4. 应用所有 AntdUI 按钮
+                ApplyThemeToButtons(theme, isDark);
+
+                // 5. 应用所有 AntdUI 输入框
+                ApplyThemeToInputs(theme);
+
+                // 6. 应用所有 AntdUI 下拉框
+                ApplyThemeToSelects(theme, isDark);
+
+                // 7. 应用所有 AntdUI 标签
+                ApplyThemeToLabels(theme);
+
+                // 8. 应用所有 AntdUI 复选框和单选框
+                ApplyThemeToCheckboxesAndRadios(theme);
+
+                // 9. 应用 GroupBox
+                ApplyThemeToGroupBoxes(theme);
+
+                // 10. 应用 TreeView
+                ApplyThemeToTreeView(theme, isDark);
+
+                // 11. 应用 PDF 预览面板
+                ApplyThemeToPdfPreview(theme, isDark);
+
+                // 12. 应用滚动条主题
+                ThemeHelper.ApplyScrollBarThemeRecursive(this, isDark);
+
+                LogHelper.Debug($"[MaterialSelectFormModern] 主题应用完成: {theme.Name}");
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[MaterialSelectFormModern] 应用主题失败: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// 判断主题是否为深色主题
+        /// </summary>
+        private bool IsThemeDark(ThemeDefinition theme)
+        {
+            // 通过背景色亮度判断
+            var brightness = (theme.Background.R * 299 + theme.Background.G * 587 + theme.Background.B * 114) / 1000;
+            return brightness < 128;
+        }
+
+        /// <summary>
+        /// 应用主题到标签页控件
+        /// </summary>
+        private void ApplyThemeToTabs(ThemeDefinition theme, bool isDark)
+        {
+            if (tabs1 != null)
+            {
+                tabs1.BackColor = theme.Background;
+                tabs1.ForeColor = theme.TextPrimary;
+
+                // 设置标签页
+                foreach (Control tabPage in tabs1.Controls)
+                {
+                    if (tabPage is AntdUI.TabPage antdTabPage)
+                    {
+                        antdTabPage.BackColor = theme.Background;
+                        antdTabPage.ForeColor = theme.TextPrimary;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 应用主题到所有按钮
+        /// </summary>
+        private void ApplyThemeToButtons(ThemeDefinition theme, bool isDark)
+        {
+            // 材料按钮列表
+            var materialButtons = new[] {
+                materialButton1, materialButton2, materialButton3, materialButton4, materialButton5,
+                materialButton6, materialButton7, materialButton8, materialButton9, materialButton10,
+                materialButton11, materialButton12, materialButton13, materialButton14, materialButton15
+            };
+
+            foreach (var btn in materialButtons)
+            {
+                if (btn != null)
+                {
+                    ApplyThemeToMaterialButton(btn, theme, isDark);
+                }
+            }
+
+            // 膜类型按钮
+            var filmButtons = new[] { filmTypeLightButton, filmTypeMatteButton, filmTypeRedButton, filmTypeNoneButton };
+            foreach (var btn in filmButtons)
+            {
+                if (btn != null)
+                {
+                    ApplyThemeToMaterialButton(btn, theme, isDark);
+                }
+            }
+
+            // 形状按钮
+            var shapeButtons = new[] { shapeRightAngleButton, shapeCircleButton, shapeSpecialButton, shapeRoundRectButton };
+            foreach (var btn in shapeButtons)
+            {
+                if (btn != null)
+                {
+                    ApplyThemeToMaterialButton(btn, theme, isDark);
+                }
+            }
+
+            // 颜色模式按钮 - 需要特殊处理以保持状态指示边框颜色
+            if (colorModeButton != null)
+            {
+                ApplyThemeToMaterialButton(colorModeButton, theme, isDark);
+                // 重新应用特定的边框颜色(红色/绿色)，覆盖主题边框色
+                SetColorModeButtonWithIcon(ColorMode);
+            }
+
+            // 确认/取消按钮 - 保持原有样式（Primary/Default）
+            if (confirmButton != null)
+            {
+                // Primary 按钮保持主题色
+                confirmButton.BackColor = theme.Primary;
+                confirmButton.DefaultBack = theme.Primary; // 🔧 显式设置默认背景色，确保非Primary类型也能生效
+                confirmButton.ForeColor = Color.White;
+            }
+
+            if (cancelButton != null)
+            {
+                cancelButton.DefaultBack = theme.Surface;
+                cancelButton.ForeColor = theme.TextPrimary;
+                cancelButton.DefaultBorderColor = theme.Border;
+            }
+
+            // 预览折叠按钮
+            if (previewCollapseButton != null)
+            {
+                previewCollapseButton.DefaultBack = theme.Surface;
+                previewCollapseButton.ForeColor = theme.TextPrimary;
+                previewCollapseButton.DefaultBorderColor = theme.Border;
+            }
+        }
+
+        /// <summary>
+        /// 应用主题到材料/选项按钮（非选中状态）
+        /// </summary>
+        private void ApplyThemeToMaterialButton(AntdUI.Button btn, ThemeDefinition theme, bool isDark)
+        {
+            // 检查按钮是否处于选中状态（通过 Type 判断，而非 BorderWidth，因为 Designer 可能默认设置了 BorderWidth）
+            bool isSelected = btn.Type == AntdUI.TTypeMini.Primary;
+
+            if (isSelected)
+            {
+                // 选中状态：保持边框高亮，但调整背景
+                btn.DefaultBack = theme.BackActive;
+                btn.ForeColor = theme.Primary;
+            }
+            else
+            {
+                // 非选中状态
+                btn.DefaultBack = theme.Surface;
+                btn.ForeColor = theme.TextPrimary;
+                btn.DefaultBorderColor = theme.Border;
+            }
+        }
+
+        /// <summary>
+        /// 应用主题到所有输入框
+        /// </summary>
+        private void ApplyThemeToInputs(ThemeDefinition theme)
+        {
+            var inputs = new[] {
+                orderNumberTextBox, quantityTextBox, incrementTextBox,
+                serialNumberTextBox, dimensionsTextBox, radiusTextBox
+            };
+
+            foreach (var input in inputs)
+            {
+                if (input != null)
+                {
+                    input.BackColor = theme.SurfaceLight;
+                    input.ForeColor = theme.TextPrimary;
+                    input.BorderColor = theme.Border;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 应用主题到所有下拉框
+        /// </summary>
+        private void ApplyThemeToSelects(ThemeDefinition theme, bool isDark)
+        {
+            var selects = new AntdUI.Select[] { bleedDropdown, dropdown16 };
+
+            foreach (var select in selects)
+            {
+                if (select != null)
+                {
+                    select.BackColor = theme.SurfaceLight;
+                    select.ForeColor = theme.TextPrimary;
+                    select.BorderColor = theme.Border;
+                    // 设置下拉列表的主题模式
+                    select.ColorScheme = isDark ? AntdUI.TAMode.Dark : AntdUI.TAMode.Light;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 应用主题到所有标签
+        /// </summary>
+        private void ApplyThemeToLabels(ThemeDefinition theme)
+        {
+            // 普通标签：使用主文本色
+            var labels = new AntdUI.Label[] {
+                fileNameLabel, orderNumberLabel, quantityLabel, serialNumberLabel,
+                dimensionsLabel, pdfSizeDisplayLabel, label1
+            };
+
+            foreach (var label in labels)
+            {
+                if (label != null)
+                {
+                    label.ForeColor = theme.TextPrimary;
+                }
+            }
+
+            // 🔧 特殊处理：使用强调色组的四个标签
+            // Rows (Accent 1) -> Primary (主色 - 蓝)
+            if (rowsDisplayLabel != null)
+            {
+                rowsDisplayLabel.ForeColor = theme.Primary;
+            }
+
+            // Columns (Accent 2) -> Success (成功色 - 绿)
+            if (columnsDisplayLabel != null)
+            {
+                columnsDisplayLabel.ForeColor = theme.Success;
+            }
+
+            // LayoutCount (Accent 3) -> Warning (警告色 - 橙)
+            if (layoutCountDisplayLabel != null)
+            {
+                layoutCountDisplayLabel.ForeColor = theme.Warning;
+            }
+
+            // Rotation (Accent 4) -> Keep independent (Purple)
+            if (rotationDisplayLabel != null)
+            {
+                rotationDisplayLabel.ForeColor = IsColorValid(theme.AccentColor4) ? theme.AccentColor4 : Color.MediumPurple;
+            }
+        }
+
+        private bool IsColorValid(Color color)
+        {
+            return color != Color.Empty && color != Color.Transparent && !(color.R == 0 && color.G == 0 && color.B == 0 && color.A == 0);
+        }
+
+        /// <summary>
+        /// 应用主题到复选框和单选框
+        /// </summary>
+        private void ApplyThemeToCheckboxesAndRadios(ThemeDefinition theme)
+        {
+            // 复选框
+            var checkboxes = new AntdUI.Checkbox[] {
+                autoIncrementCheckbox, chkIdentifierPage, enableImpositionCheckbox, duplicateLayoutCheckbox
+            };
+
+            foreach (var checkbox in checkboxes)
+            {
+                if (checkbox != null)
+                {
+                    checkbox.ForeColor = theme.TextPrimary;
+                }
+            }
+
+            // 单选框
+            var radios = new AntdUI.Radio[] {
+                flatSheetRadioButton, rollMaterialRadioButton,
+                continuousLayoutRadioButton, foldingLayoutRadioButton
+            };
+
+            foreach (var radio in radios)
+            {
+                if (radio != null)
+                {
+                    radio.ForeColor = theme.TextPrimary;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 应用主题到 GroupBox
+        /// </summary>
+        private void ApplyThemeToGroupBoxes(ThemeDefinition theme)
+        {
+            var groupBoxes = new[] { materialTypeGroupBox, layoutModeGroupBox };
+
+            foreach (var groupBox in groupBoxes)
+            {
+                if (groupBox != null)
+                {
+                    groupBox.BackColor = theme.Background;
+                    groupBox.ForeColor = theme.TextPrimary;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 应用主题到 TreeView
+        /// </summary>
+        private void ApplyThemeToTreeView(ThemeDefinition theme, bool isDark)
+        {
+            if (folderTreeView != null)
+            {
+                folderTreeView.BackColor = theme.Background;
+                folderTreeView.ForeColor = theme.TextPrimary;
+                folderTreeView.LineColor = theme.Border;
+            }
+        }
+
+        /// <summary>
+        /// 应用主题到 PDF 预览面板
+        /// </summary>
+        private void ApplyThemeToPdfPreview(ThemeDefinition theme, bool isDark)
+        {
+            // PDF 预览面板背景
+            if (pdfPreviewPanel != null)
+            {
+                pdfPreviewPanel.BackColor = theme.Surface;
+            }
+
+            // PDF 预览控件占位符
+            if (pdfPreviewControl != null)
+            {
+                pdfPreviewControl.BackColor = theme.SurfaceLight;
+            }
+
+            // 真实的 PDF 预览控件
+            if (_realPdfPreviewControl != null)
+            {
+                _realPdfPreviewControl.BackColor = theme.SurfaceLight;
+                _realPdfPreviewControl.SetPreviewBackgroundColor(theme.SurfaceLight); // 🔧 设置预览背景色
+                _realPdfPreviewControl.SetScrollBarTheme(isDark);
+            }
+        }
+
+        /// <summary>
+        /// 使用当前主题设置应用主题
+        /// </summary>
+        public void ApplyCurrentTheme()
+        {
+            try
+            {
+                var themeManager = ServiceLocator.Instance.GetThemeManager();
+                var themeName = AppSettings.CurrentThemeName;
+                var theme = themeManager.GetThemeByName(themeName);
+
+                if (theme != null)
+                {
+                    ApplyTheme(theme);
+                }
+                else
+                {
+                    LogHelper.Warn($"[MaterialSelectFormModern] 未找到主题: {themeName}，使用默认主题");
+                    // 使用默认浅色主题
+                    var defaultTheme = themeManager.GetThemeByName("浅色");
+                    if (defaultTheme != null)
+                    {
+                        ApplyTheme(defaultTheme);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[MaterialSelectFormModern] 应用当前主题失败: {ex.Message}", ex);
+            }
+        }
+
+        #endregion
     }
 }

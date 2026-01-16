@@ -1,0 +1,1225 @@
+[2026-01-15 16:30:35.229] [DEBUG] 自动保存定时器触发，保存待处理的更改
+[2026-01-15 16:30:35.229] [DEBUG] [SaveSettingsInternal] Material='ulyy,50#yy,100#yy,b,kyb,hc,kyhc,tm,kytm,gy,ls,ltb,alb,ltyy,zdb,np,pet,lthc,dxjhc,yy', Separator='-', ToggleMinimizeHotkey='Ctrl+B'
+[2026-01-15 16:30:35.230] [DEBUG] [SaveSettingsInternal] 已保存到文件: C:\Users\admin\AppData\Roaming\大诚重命名工具\application_settings.json
+[2026-01-15 16:30:35.230] [DEBUG] 应用程序设置保存成功
+[2026-01-15 16:30:35.230] [DEBUG] 已提交所有待处理的配置更改
+[2026-01-15 16:30:38.207] [INFO] 开始Excel导入流程
+[2026-01-15 16:30:39.380] [INFO] 选择了Excel文件: C:\Users\admin\Desktop\测试搜友.xlsx
+[2026-01-15 16:30:39.386] [DEBUG] [AppSettings.Indexer] 从属性获取 CompositeColumns: 
+[2026-01-15 16:30:39.387] [DEBUG] [AppSettings.Indexer] 从属性获取 CompositeColumnSeparator: -
+[2026-01-15 16:30:39.388] [DEBUG] [AppSettings.Indexer] 从属性获取 LastSelectedRegex2: 威立德
+[2026-01-15 16:30:40.700] [DEBUG] [SaveSettingsInternal] Material='ulyy,50#yy,100#yy,b,kyb,hc,kyhc,tm,kytm,gy,ls,ltb,alb,ltyy,zdb,np,pet,lthc,dxjhc,yy', Separator='-', ToggleMinimizeHotkey='Ctrl+B'
+[2026-01-15 16:30:40.701] [DEBUG] [SaveSettingsInternal] 已保存到文件: C:\Users\admin\AppData\Roaming\大诚重命名工具\application_settings.json
+[2026-01-15 16:30:40.701] [DEBUG] 应用程序设置保存成功
+[2026-01-15 16:30:40.702] [DEBUG] [SaveSettingsInternal] Material='ulyy,50#yy,100#yy,b,kyb,hc,kyhc,tm,kytm,gy,ls,ltb,alb,ltyy,zdb,np,pet,lthc,dxjhc,yy', Separator='-', ToggleMinimizeHotkey='Ctrl+B'
+[2026-01-15 16:30:40.703] [DEBUG] [SaveSettingsInternal] 已保存到文件: C:\Users\admin\AppData\Roaming\大诚重命名工具\application_settings.json
+[2026-01-15 16:30:40.703] [DEBUG] 应用程序设置保存成功
+[2026-01-15 16:30:40.709] [INFO] 用户确认导入配置
+[2026-01-15 16:30:40.710] [DEBUG] 导入数据验证: 搜索列索引: 1, 返回列索引: 2, 序号列索引: 0, 总列数: 3
+[2026-01-15 16:30:40.711] [INFO] Excel导入配置完成 - 正则表达式: ^\d+\s+[A-Z]{3}\d{6}\s+\d+张
+[2026-01-15 16:30:40.711] [INFO] Excel导入流程完成，结果: True
+[2026-01-15 16:30:40.712] [DEBUG] 检查是否有有效数据: True
+[2026-01-15 16:30:40.712] [DEBUG] 同步列索引: Search=1, Return=2, Serial=0
+[2026-01-15 16:30:41.358] [INFO] [LoadMaterials] 开始加载材料列表
+[2026-01-15 16:30:41.358] [INFO] 加载了 6 个材料
+[2026-01-15 16:30:45.349] [INFO] [ProcessNewFileAsync] 开始处理文件: C:\Users\admin\Desktop\测试\02 HYS001549 120张+++.pdf
+[2026-01-15 16:30:45.352] [INFO] [ExtractRegexResult] 开始提取正则结果 - 文件名: 02 HYS001549 120张+++.pdf, 正则: (.+).pdf
+[2026-01-15 16:30:45.353] [INFO] [ExtractRegexResult] 提取捕获组结果: '02 HYS001549 120张+++'
+[2026-01-15 16:30:45.353] [INFO] [CreateFileRenameInfo] 开始解析PDF尺寸: C:\Users\admin\Desktop\测试\02 HYS001549 120张+++.pdf
+[2026-01-15 16:30:45.390] [DEBUG] 页面框信息 - 文件: C:\Users\admin\Desktop\测试\02 HYS001549 120张+++.pdf
+[2026-01-15 16:30:45.391] [DEBUG]   MediaBox: 1315.272x907.0868
+[2026-01-15 16:30:45.391] [DEBUG]   CropBox: 238.11x153.071
+[2026-01-15 16:30:45.391] [DEBUG]   TrimBox: 238.11x153.071
+[2026-01-15 16:30:45.392] [DEBUG]   BleedBox: 238.11x153.071
+[2026-01-15 16:30:45.392] [DEBUG]   ArtBox: 226.772x141.732
+[2026-01-15 16:30:45.392] [DEBUG] 使用有效的CropBox - 文件: C:\Users\admin\Desktop\测试\02 HYS001549 120张+++.pdf
+[2026-01-15 16:30:45.392] [DEBUG] 检测到页面旋转 270 度，已调整宽高 - 文件: C:\Users\admin\Desktop\测试\02 HYS001549 120张+++.pdf
+[2026-01-15 16:30:45.392] [DEBUG] iText7获取PDF尺寸成功 - 文件: C:\Users\admin\Desktop\测试\02 HYS001549 120张+++.pdf, 尺寸: 54x84mm, 使用Adobe Acrobat兼容逻辑
+[2026-01-15 16:30:45.393] [INFO] [CreateFileRenameInfo] PDF尺寸解析成功: 54x84mm
+[2026-01-15 16:30:45.393] [INFO] [CreateFileRenameInfo] 设置默认出血位: 2mm
+[2026-01-15 16:30:45.394] [INFO] [CreateFileRenameInfo] PDF页数: 5
+[2026-01-15 16:30:45.394] [INFO] [ProcessNewFileAsync] IsImmediateMode=True, FileName=02 HYS001549 120张+++.pdf, RegexResult=02 HYS001549 120张+++
+[2026-01-15 16:30:45.394] [INFO] [ProcessNewFileAsync] 手动模式 - 准备显示材料选择对话框
+[2026-01-15 16:30:45.394] [INFO] [参数验证] 材料列表数量: 6
+[2026-01-15 16:30:45.395] [INFO] [参数验证] 材料列表: 铜版纸, 胶版纸, 特种纸, 不干胶, PET...
+[2026-01-15 16:30:45.395] [INFO] [参数验证] 文件名: 02 HYS001549 120张+++.pdf
+[2026-01-15 16:30:45.395] [INFO] [参数验证] 正则结果: 02 HYS001549 120张+++
+[2026-01-15 16:30:45.396] [INFO] [参数验证] PDF尺寸: 54 x 84
+[2026-01-15 16:30:45.396] [INFO] [参数验证] Excel数据: 8行
+[2026-01-15 16:30:45.396] [INFO] [跨线程修复] 使用Invoke在UI线程上显示对话框
+[2026-01-15 16:30:45.396] [DEBUG] [AppSettings.Indexer] 从属性获取 EnableColumnCombine: 
+[2026-01-15 16:30:45.396] [DEBUG] 检查是否有有效数据: True
+[2026-01-15 16:30:45.396] [DEBUG] 检查是否有有效数据: True
+[2026-01-15 16:30:45.398] [DEBUG] [ShowMaterialSelectionDialog] 使用列索引: search=1, return=2, serial=0
+[2026-01-15 16:30:45.409] [DEBUG] [MaterialSelectFormModern] ========== 开始预定位窗口 ==========
+[2026-01-15 16:30:45.409] [DEBUG] [MaterialSelectFormModern] 预定位读取设置: X=748, Y=31, Width=400, Height=886, Maximized=False
+[2026-01-15 16:30:45.409] [DEBUG] [MaterialSelectFormModern] 预定位设置StartPosition为Manual
+[2026-01-15 16:30:45.409] [DEBUG] [MaterialSelectFormModern] 预定位设置Location: (748, 31)
+[2026-01-15 16:30:45.409] [DEBUG] [MaterialSelectFormModern] 预定位设置Size: (400, 886)
+[2026-01-15 16:30:45.409] [DEBUG] [MaterialSelectFormModern] 预定位设置WindowState为Normal
+[2026-01-15 16:30:45.412] [DEBUG] [MaterialSelectFormModern] ========== 预定位完成，窗口将直接在目标位置显示 ==========
+[2026-01-15 16:30:45.412] [DEBUG] [WindowPositionManager] PDF预览状态检查: ShouldExpand=True
+[2026-01-15 16:30:45.413] [DEBUG] [预定位] 恢复预览展开状态和窗体大小
+[2026-01-15 16:30:45.413] [DEBUG] [MaterialSelectFormModern] 显示标签初始化完成: rowsDisplayLabel=True, columnsDisplayLabel=True, layoutCountDisplayLabel=True, rotationDisplayLabel=True, pdfSizeDisplayLabel=True, duplicateLayoutCheckbox=True
+[2026-01-15 16:30:45.414] [DEBUG] [AppSettings.Indexer] 从属性获取 LastCornerRadius: 0
+[2026-01-15 16:30:45.416] [DEBUG] 已设置 6 个材料按钮和 21 个下拉框选项的事件处理
+[2026-01-15 16:30:45.417] [DEBUG] [AppSettings.Indexer] 从属性获取 TetBleedValues: 2,1.5,0,3
+[2026-01-15 16:30:45.417] [DEBUG] [AppSettings.Indexer] 从属性获取 LastSelectedTetBleed: 2
+[2026-01-15 16:30:45.417] [DEBUG] 恢复上次选择的出血位: 2
+[2026-01-15 16:30:45.417] [DEBUG] 工具提示初始化完成
+[2026-01-15 16:30:45.418] [DEBUG] [InitializeControlValues] 设置序号输入框: 1
+[2026-01-15 16:30:45.419] [DEBUG] [AppSettings.Indexer] 从属性获取 LastOrderNumber1: 122-7
+[2026-01-15 16:30:45.419] [DEBUG] [AppSettings.Indexer] 从属性获取 AutoIncrementOrderNumber1: True
+[2026-01-15 16:30:45.419] [DEBUG] [SaveSettingsInternal] Material='ulyy,50#yy,100#yy,b,kyb,hc,kyhc,tm,kytm,gy,ls,ltb,alb,ltyy,zdb,np,pet,lthc,dxjhc,yy', Separator='-', ToggleMinimizeHotkey='Ctrl+B'
+[2026-01-15 16:30:45.420] [DEBUG] [SaveSettingsInternal] 已保存到文件: C:\Users\admin\AppData\Roaming\大诚重命名工具\application_settings.json
+[2026-01-15 16:30:45.420] [DEBUG] 应用程序设置保存成功
+[2026-01-15 16:30:45.420] [DEBUG] 保存自动递增状态: True
+[2026-01-15 16:30:45.420] [DEBUG] 恢复自动递增状态: True
+[2026-01-15 16:30:45.420] [DEBUG] [AppSettings.Indexer] 从属性获取 LastColorMode: 黑白
+[2026-01-15 16:30:45.421] [DEBUG] 已设置颜色模式按钮: 黑白, 颜色模式: 黑白
+[2026-01-15 16:30:45.421] [DEBUG] 已设置颜色模式按钮，颜色模式: 黑白
+[2026-01-15 16:30:45.422] [DEBUG] [AppSettings.Indexer] 从属性获取 LastFilmType: 光膜
+[2026-01-15 16:30:45.422] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 LastSelectedShape: RightAngle
+[2026-01-15 16:30:45.423] [DEBUG] [AppSettings.Indexer] 从属性获取 LastCornerRadius: 0
+[2026-01-15 16:30:45.423] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ZeroShapeCode: Z
+[2026-01-15 16:30:45.423] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 RoundShapeCode: R
+[2026-01-15 16:30:45.423] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 EllipseShapeCode: Y
+[2026-01-15 16:30:45.423] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 CircleShapeCode: C
+[2026-01-15 16:30:45.423] [DEBUG] [AppSettings.Indexer] 从属性获取 HideRadiusValue: False
+[2026-01-15 16:30:45.424] [DEBUG] 形状状态恢复后更新尺寸显示: 80x50Z
+[2026-01-15 16:30:45.424] [DEBUG] [AppSettings.Indexer] 从属性获取 LastIncrementValue: 
+[2026-01-15 16:30:45.424] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 MarkPageEnabled: False
+[2026-01-15 16:30:45.424] [DEBUG] 恢复标识页状态: False
+[2026-01-15 16:30:45.425] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 LastSelectedShape: RightAngle
+[2026-01-15 16:30:45.425] [DEBUG] 清空圆角输入框（非圆角矩形）
+[2026-01-15 16:30:45.426] [DEBUG] [MaterialSelectFormModern] 排版控件事件处理器设置完成
+[2026-01-15 16:30:45.427] [DEBUG] 从AppSettings.ExportPaths加载了 2 个导出路径
+[2026-01-15 16:30:45.428] [DEBUG] 添加导出路径: C:\Users\admin\Desktop -> Desktop
+[2026-01-15 16:30:45.428] [DEBUG] 添加导出路径: F:\点源自动 -> 点源自动
+[2026-01-15 16:30:45.428] [DEBUG] 总共加载了 2 个导出文件夹配置，其中 2 个有效
+[2026-01-15 16:30:45.429] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.430] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.430] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.430] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.431] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.431] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.431] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.431] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.431] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.431] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.432] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.432] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.432] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.432] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.432] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.432] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.433] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.433] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.433] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.433] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.434] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.434] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.434] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.434] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.434] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.434] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.435] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.435] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.435] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.435] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.435] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.435] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.436] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 ExportPathCheckboxSettings: {
+  "C:\\Users\\admin\\Desktop": false,
+  "F:\\点源自动": true
+}
+[2026-01-15 16:30:45.436] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 LastSelectedExportPath: C:\Users\admin\Desktop
+[2026-01-15 16:30:45.436] [DEBUG] 恢复导出路径: C:\Users\admin\Desktop
+[2026-01-15 16:30:45.436] [DEBUG] 文件夹树形菜单初始化完成，共加载 2 个主菜单
+[2026-01-15 16:30:45.438] [DEBUG] [LayoutResultsCache] 已清除布局计算结果
+[2026-01-15 16:30:45.438] [DEBUG] [MaterialSelectFormModern] 排版设置已更新
+[2026-01-15 16:30:45.438] [DEBUG] [LayoutResultsCache] 已清除布局计算结果
+[2026-01-15 16:30:45.438] [DEBUG] [MaterialSelectFormModern] 排版设置已更新
+[2026-01-15 16:30:45.439] [DEBUG] [LayoutResultsCache] 已清除布局计算结果
+[2026-01-15 16:30:45.439] [DEBUG] [MaterialSelectFormModern] 排版控件初始化完成
+[2026-01-15 16:30:45.439] [DEBUG] [PDF 预览] 控件初始化完成
+[2026-01-15 16:30:45.440] [DEBUG] AutoFillQuantity 开始执行:
+[2026-01-15 16:30:45.440] [DEBUG]   - Excel数据行数: 8
+[2026-01-15 16:30:45.440] [DEBUG]   - 搜索列索引: 1
+[2026-01-15 16:30:45.441] [DEBUG]   - 返回列索引: 2
+[2026-01-15 16:30:45.441] [DEBUG]   - 序号列索引: 0
+[2026-01-15 16:30:45.441] [DEBUG]   - 正则结果: '02 HYS001549 120张+++'
+[2026-01-15 16:30:45.441] [DEBUG]   - 初始序号: '1'
+[2026-01-15 16:30:45.441] [DEBUG]   - 已匹配行数: 0
+[2026-01-15 16:30:45.441] [DEBUG] 没有传递matchedRows，重新匹配数据
+[2026-01-15 16:30:45.442] [DEBUG] 收集到的序号数量: 0
+[2026-01-15 16:30:45.442] [DEBUG] 没有从Excel获取到序号，使用传入序号: '1'
+[2026-01-15 16:30:45.442] [DEBUG] 使用传入序号成功更新文本框: '1'
+[2026-01-15 16:30:45.455] [DEBUG] [SaveSettingsInternal] Material='ulyy,50#yy,100#yy,b,kyb,hc,kyhc,tm,kytm,gy,ls,ltb,alb,ltyy,zdb,np,pet,lthc,dxjhc,yy', Separator='-', ToggleMinimizeHotkey='Ctrl+B'
+[2026-01-15 16:30:45.455] [DEBUG] [SaveSettingsInternal] 已保存到文件: C:\Users\admin\AppData\Roaming\大诚重命名工具\application_settings.json
+[2026-01-15 16:30:45.455] [DEBUG] 应用程序设置保存成功
+[2026-01-15 16:30:45.455] [DEBUG] 保存导出路径: C:\Users\admin\Desktop
+[2026-01-15 16:30:45.456] [DEBUG] 选择导出路径: C:\Users\admin\Desktop
+[2026-01-15 16:30:45.456] [DEBUG] [SaveSettingsInternal] Material='ulyy,50#yy,100#yy,b,kyb,hc,kyhc,tm,kytm,gy,ls,ltb,alb,ltyy,zdb,np,pet,lthc,dxjhc,yy', Separator='-', ToggleMinimizeHotkey='Ctrl+B'
+[2026-01-15 16:30:45.456] [DEBUG] [SaveSettingsInternal] 已保存到文件: C:\Users\admin\AppData\Roaming\大诚重命名工具\application_settings.json
+[2026-01-15 16:30:45.456] [DEBUG] 应用程序设置保存成功
+[2026-01-15 16:30:45.457] [DEBUG] 保存导出路径: C:\Users\admin\Desktop
+[2026-01-15 16:30:45.457] [DEBUG] 选择导出路径: C:\Users\admin\Desktop
+[2026-01-15 16:30:45.469] [DEBUG] MaterialSelectFormModern_Load事件被触发
+[2026-01-15 16:30:45.471] [DEBUG] 从AppSettings.Material加载了20个材料: ulyy, 50#yy, 100#yy, b, kyb, hc, kyhc, tm, kytm, gy, ls, ltb, alb, ltyy, zdb, np, pet, lthc, dxjhc, yy
+[2026-01-15 16:30:45.472] [DEBUG] 材料加载完成: 按钮显示15个，下拉框显示5个
+[2026-01-15 16:30:45.473] [DEBUG] [AppSettings.Indexer] 从属性获取 LastSelectedMaterial: hc
+[2026-01-15 16:30:45.473] [DEBUG] 从按钮恢复材料选择: hc
+[2026-01-15 16:30:45.475] [DEBUG] [MaterialSelectFormModern] 排版设置已更新
+[2026-01-15 16:30:45.475] [DEBUG] [MaterialSelectFormModern] 恢复启用排版状态: True
+[2026-01-15 16:30:45.476] [DEBUG] [MaterialSelectFormModern] 恢复材料类型: 平张
+[2026-01-15 16:30:45.476] [DEBUG] [MaterialSelectFormModern] 排版设置已更新
+[2026-01-15 16:30:45.477] [DEBUG] [MaterialSelectFormModern] 排版设置已更新
+[2026-01-15 16:30:45.478] [DEBUG] [MaterialSelectFormModern] 恢复排版模式: 折手模式
+[2026-01-15 16:30:45.478] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 LastDuplicateLayoutEnabled: False
+[2026-01-15 16:30:45.479] [DEBUG] [MaterialSelectFormModern] 恢复一式两联状态: False
+[2026-01-15 16:30:45.479] [DEBUG] [MaterialSelectFormModern] 排版控件状态已从AppSettings恢复
+[2026-01-15 16:30:45.484] [DEBUG] [PDF 预览] Load 事件中标记待加载 PDF: C:\Users\admin\Desktop\测试\02 HYS001549 120张+++.pdf
+[2026-01-15 16:30:45.484] [DEBUG] [WindowPositionManager] PDF预览状态检查: ShouldExpand=True
+[2026-01-15 16:30:45.485] [DEBUG] [状态检查] 保存的预览状态: True, 当前状态: False
+[2026-01-15 16:30:45.485] [DEBUG] [状态检查] 检测到状态不一致，调用LoadPreviewStateFromSettings修正
+[2026-01-15 16:30:45.486] [DEBUG] [WindowPositionManager] PDF预览状态检查: ShouldExpand=True
+[2026-01-15 16:30:45.495] [DEBUG] [PDF 预览] 开始初始化真实PDF预览控件
+[2026-01-15 16:30:45.539] [DEBUG] [PdfPreviewControl] PdfiumViewer PDF预览控件初始化完成
+[2026-01-15 16:30:45.540] [DEBUG] [PdfPreviewControl] 加载动画组件初始化完成
+[2026-01-15 16:30:45.543] [DEBUG] [PdfiumPdfPreviewControl] 滚动条主题已设置: isDark=False, theme=null, result=0, Handle=1974428
+[2026-01-15 16:30:45.544] [DEBUG] [PDF 预览] 真实PDF控件已添加到预览面板
+[2026-01-15 16:30:45.544] [INFO] [PDF 预览] PDF预览控件初始化完成
+[2026-01-15 16:30:45.545] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 CurrentThemeName: 深色
+[2026-01-15 16:30:45.545] [DEBUG] [PdfiumPdfPreviewControl] SetScrollBarTheme 被调用: isDark=True
+[2026-01-15 16:30:45.546] [DEBUG] [PdfiumPdfPreviewControl] 滚动条主题已设置: isDark=True, theme=DarkMode_Explorer, result=0, Handle=1974428
+[2026-01-15 16:30:45.546] [DEBUG] [PDF 预览] 已应用主题: 深色, isDark=True
+[2026-01-15 16:30:45.546] [DEBUG] [PDF 预览] 从设置恢复展开状态（直接设置，避免位置干扰）
+[2026-01-15 16:30:45.546] [DEBUG] Excel数据检查: 有效数据 (8行, 3列)
+[2026-01-15 16:30:45.546] [DEBUG] Excel数据有效性: True
+[2026-01-15 16:30:45.547] [DEBUG] 跳过自动序号填充：存在有效的Excel数据
+[2026-01-15 16:30:45.547] [DEBUG] [MaterialSelectFormModern] 构造函数预定位已生效，跳过动画恢复
+[2026-01-15 16:30:45.547] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 CurrentThemeName: 深色
+[2026-01-15 16:30:45.547] [DEBUG] [MaterialSelectFormModern] 开始应用主题: 深色
+[2026-01-15 16:30:45.553] [DEBUG] [PdfiumPdfPreviewControl] SetScrollBarTheme 被调用: isDark=True
+[2026-01-15 16:30:45.553] [DEBUG] [PdfiumPdfPreviewControl] 滚动条主题已设置: isDark=True, theme=DarkMode_Explorer, result=0, Handle=1974428
+[2026-01-15 16:30:45.553] [DEBUG] [PdfiumPdfPreviewControl] SetScrollBarTheme 被调用: isDark=True
+[2026-01-15 16:30:45.554] [DEBUG] [PdfiumPdfPreviewControl] 滚动条主题已设置: isDark=True, theme=DarkMode_Explorer, result=0, Handle=1974428
+[2026-01-15 16:30:45.554] [DEBUG] [ThemeHelper] 已设置 PdfPreviewControl 滚动条主题: isDark=True (来自主题设置: True)
+[2026-01-15 16:30:45.561] [DEBUG] [PdfiumPdfPreviewControl] SetScrollBarTheme 被调用: isDark=True
+[2026-01-15 16:30:45.561] [DEBUG] [PdfiumPdfPreviewControl] 滚动条主题已设置: isDark=True, theme=DarkMode_Explorer, result=0, Handle=1974428
+[2026-01-15 16:30:45.561] [DEBUG] [ThemeHelper] 已设置 PdfiumPdfPreviewControl 滚动条主题: isDark=True
+[2026-01-15 16:30:45.561] [DEBUG] [ThemeHelper] 发现 PDF 相关控件: PdfViewer
+[2026-01-15 16:30:45.561] [DEBUG] [ThemeHelper] 发现 PDF 相关控件: PdfRenderer
+[2026-01-15 16:30:45.562] [DEBUG] [MaterialSelectFormModern] 主题应用完成: 深色
+[2026-01-15 16:30:45.562] [DEBUG] [AppSettings.Indexer] 从属性获取 AutoIncrementOrderNumber1: True
+[2026-01-15 16:30:45.563] [DEBUG] [SaveSettingsInternal] Material='ulyy,50#yy,100#yy,b,kyb,hc,kyhc,tm,kytm,gy,ls,ltb,alb,ltyy,zdb,np,pet,lthc,dxjhc,yy', Separator='-', ToggleMinimizeHotkey='Ctrl+B'
+[2026-01-15 16:30:45.564] [DEBUG] [SaveSettingsInternal] 已保存到文件: C:\Users\admin\AppData\Roaming\大诚重命名工具\application_settings.json
+[2026-01-15 16:30:45.564] [DEBUG] 应用程序设置保存成功
+[2026-01-15 16:30:45.565] [DEBUG] [PDF 预览] 页面改变: 1 / 0
+[2026-01-15 16:30:45.654] [DEBUG] [PDF 预览] 加载新文件: C:\Users\admin\Desktop\测试\02 HYS001549 120张+++.pdf
+[2026-01-15 16:30:45.656] [DEBUG] [PdfPreviewControl] 显示加载动画
+[2026-01-15 16:30:45.657] [DEBUG] [PdfPreviewControl] 开始加载PDF: C:\Users\admin\Desktop\测试\02 HYS001549 120张+++.pdf
+[2026-01-15 16:30:45.698] [DEBUG] [PDF 预览] 页面改变: 1 / 5
+[2026-01-15 16:30:45.698] [DEBUG] [PDF 页码] 更新显示: 页码: 第1页 / 共5页
+[2026-01-15 16:30:45.700] [DEBUG] [PDF 预览] 页面改变: 1 / 5
+[2026-01-15 16:30:45.701] [DEBUG] [PDF 页码] 更新显示: 页码: 第1页 / 共5页
+[2026-01-15 16:30:45.707] [WARN] [PDF 预览] 真实PDF控件加载出错
+[2026-01-15 16:30:45.707] [ERROR] [PdfPreviewControl] PDF加载失败
+[2026-01-15 16:30:45.707] [WARN] [PDF 预览] 真实PDF控件加载出错
+[2026-01-15 16:30:45.707] [DEBUG] [PdfPreviewControl] 隐藏加载动画
+[2026-01-15 16:30:45.888] [DEBUG] [MaterialSelectFormModern] 获取排版配置: FlatSheet, Folding, PDF原始尺寸: 84x54
+[2026-01-15 16:30:45.889] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_PaperWidth: 320
+[2026-01-15 16:30:45.889] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_PaperHeight: 464
+[2026-01-15 16:30:45.890] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginTop: 20
+[2026-01-15 16:30:45.890] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginBottom: 20
+[2026-01-15 16:30:45.890] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginLeft: 7
+[2026-01-15 16:30:45.891] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginRight: 7
+[2026-01-15 16:30:45.891] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_Rows: 0
+[2026-01-15 16:30:45.891] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_Columns: 0
+[2026-01-15 16:30:45.893] [DEBUG] [MaterialSelectFormModern] 使用当前文件路径: C:\Users\admin\Desktop\测试\02 HYS001549 120张+++.pdf
+[2026-01-15 16:30:45.895] [DEBUG] [PDF 预览] Shown事件中检查PDF加载
+[2026-01-15 16:30:45.896] [DEBUG] [MaterialSelectFormModern] 获取排版配置: FlatSheet, Folding, PDF原始尺寸: 84x54
+[2026-01-15 16:30:45.896] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_PaperWidth: 320
+[2026-01-15 16:30:45.897] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_PaperHeight: 464
+[2026-01-15 16:30:45.897] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginTop: 20
+[2026-01-15 16:30:45.897] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginBottom: 20
+[2026-01-15 16:30:45.898] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginLeft: 7
+[2026-01-15 16:30:45.898] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginRight: 7
+[2026-01-15 16:30:45.898] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_Rows: 0
+[2026-01-15 16:30:45.899] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_Columns: 0
+[2026-01-15 16:30:45.900] [DEBUG] [MaterialSelectFormModern] 使用当前文件路径: C:\Users\admin\Desktop\测试\02 HYS001549 120张+++.pdf
+[2026-01-15 16:30:45.898] [DEBUG] [排版分析] 检测到PDF页面旋转角度: 270°
+[2026-01-15 16:30:45.901] [DEBUG] [排版分析] 原始裁剪框尺寸（未旋转）: 84.0x54.0mm
+[2026-01-15 16:30:45.902] [DEBUG] [排版分析] 检测到PDF页面旋转角度: 270°
+[2026-01-15 16:30:45.902] [DEBUG] [排版分析] 原始裁剪框尺寸（未旋转）: 84.0x54.0mm
+[2026-01-15 16:30:45.902] [DEBUG] [排版分析] 成功获取PDF信息: 页面旋转=270°, 原始尺寸=84.0x54.0mm(来源:裁剪框), 旋转后有效尺寸=54.0x84.0mm
+[2026-01-15 16:30:45.904] [DEBUG] [排版分析] 成功获取PDF信息: 页面旋转=270°, 原始尺寸=84.0x54.0mm(来源:裁剪框), 旋转后有效尺寸=54.0x84.0mm
+[2026-01-15 16:30:45.905] [DEBUG] [MaterialSelectFormModern] 获取排版配置: FlatSheet, Folding, PDF原始尺寸: 84x54
+[2026-01-15 16:30:45.905] [DEBUG] [ImpositionService] 开始平张布局计算: 纸张尺寸=320×464mm, PDF尺寸=54.0×84.0mm
+[2026-01-15 16:30:45.905] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_PaperWidth: 320
+[2026-01-15 16:30:45.906] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_PaperHeight: 464
+[2026-01-15 16:30:45.906] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginTop: 20
+[2026-01-15 16:30:45.906] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginBottom: 20
+[2026-01-15 16:30:45.906] [DEBUG] [ImpositionService] 布局计算: 不旋转=5列×5行=25页, 旋转90度=3列×7行=21页
+[2026-01-15 16:30:45.906] [DEBUG] [ImpositionService] 旋转角度计算: PDF页面旋转=270°(已在尺寸计算中考虑), 布局旋转=0°, 最终输出旋转=0°
+[2026-01-15 16:30:45.905] [DEBUG] [ImpositionService] 开始平张布局计算: 纸张尺寸=320×464mm, PDF尺寸=54.0×84.0mm
+[2026-01-15 16:30:45.907] [DEBUG] [ImpositionService] 布局计算: 不旋转=5列×5行=25页, 旋转90度=3列×7行=21页
+[2026-01-15 16:30:45.907] [DEBUG] [ImpositionService] 旋转角度计算: PDF页面旋转=270°(已在尺寸计算中考虑), 布局旋转=0°, 最终输出旋转=0°
+[2026-01-15 16:30:45.906] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginLeft: 7
+[2026-01-15 16:30:45.909] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginRight: 7
+[2026-01-15 16:30:45.909] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_Rows: 0
+[2026-01-15 16:30:45.909] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_Columns: 0
+[2026-01-15 16:30:45.909] [DEBUG] [MaterialSelectFormModern] 使用当前文件路径: C:\Users\admin\Desktop\测试\02 HYS001549 120张+++.pdf
+[2026-01-15 16:30:45.909] [DEBUG] [LayoutResultsCache] 更新布局计算结果: 行数=5, 列数=5
+[2026-01-15 16:30:45.910] [DEBUG] [MaterialSelectFormModern] UpdateLayoutDisplay(ImpositionResult) 被调用: Success=True, RotationAngle=0, Rows=5, Columns=5, InvokeRequired=False, ThreadId=1
+[2026-01-15 16:30:45.910] [DEBUG] [MaterialSelectFormModern] 更新旋转角度显示: RotationAngle=0, UseRotation=False, 在UI线程执行: True
+[2026-01-15 16:30:45.911] [DEBUG] [MaterialSelectFormModern] 设置rotationDisplayLabel.Text = '旋转角度: 0°'
+[2026-01-15 16:30:45.911] [DEBUG] [MaterialSelectFormModern] rotationDisplayLabel.Text设置完成: '旋转角度: 0°'
+[2026-01-15 16:30:45.910] [DEBUG] [排版分析] 检测到PDF页面旋转角度: 270°
+[2026-01-15 16:30:45.912] [DEBUG] [排版分析] 原始裁剪框尺寸（未旋转）: 84.0x54.0mm
+[2026-01-15 16:30:45.912] [DEBUG] [MaterialSelectFormModern] 布局计算描述: 平张5行×5列 = 25页/纸，不旋转，最终旋转0°，利用率114.4%
+[2026-01-15 16:30:45.912] [DEBUG] [MaterialSelectFormModern] 获取排版配置: FlatSheet, Folding, PDF原始尺寸: 84x54
+[2026-01-15 16:30:45.912] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_PaperWidth: 320
+[2026-01-15 16:30:45.912] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_PaperHeight: 464
+[2026-01-15 16:30:45.912] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginTop: 20
+[2026-01-15 16:30:45.913] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginBottom: 20
+[2026-01-15 16:30:45.913] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginLeft: 7
+[2026-01-15 16:30:45.913] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginRight: 7
+[2026-01-15 16:30:45.913] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_Rows: 0
+[2026-01-15 16:30:45.914] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_Columns: 0
+[2026-01-15 16:30:45.914] [DEBUG] [MaterialSelectFormModern] 计算结果验证: ✅ 计算成功; ✅ 材料利用率优秀 (> 90%); ✅ 布局效率高，每页可放置多个页面; 📄 平张模式: 适合标准尺寸的单页印刷
+[2026-01-15 16:30:45.914] [DEBUG] [MaterialSelectFormModern] 布局计算完成: 5x5, 利用率: 114.4%, 旋转角度: 0°
+[2026-01-15 16:30:45.914] [DEBUG] [LayoutResultsCache] 更新布局计算结果: 行数=5, 列数=5
+[2026-01-15 16:30:45.914] [DEBUG] [MaterialSelectFormModern] UpdateLayoutDisplay(ImpositionResult) 被调用: Success=True, RotationAngle=0, Rows=5, Columns=5, InvokeRequired=False, ThreadId=1
+[2026-01-15 16:30:45.914] [DEBUG] [MaterialSelectFormModern] 更新旋转角度显示: RotationAngle=0, UseRotation=False, 在UI线程执行: True
+[2026-01-15 16:30:45.915] [DEBUG] [MaterialSelectFormModern] 设置rotationDisplayLabel.Text = '旋转角度: 0°'
+[2026-01-15 16:30:45.915] [DEBUG] [MaterialSelectFormModern] rotationDisplayLabel.Text设置完成: '旋转角度: 0°'
+[2026-01-15 16:30:45.915] [DEBUG] [MaterialSelectFormModern] 布局计算描述: 平张5行×5列 = 25页/纸，不旋转，最终旋转0°，利用率114.4%
+[2026-01-15 16:30:45.915] [DEBUG] [MaterialSelectFormModern] 获取排版配置: FlatSheet, Folding, PDF原始尺寸: 84x54
+[2026-01-15 16:30:45.915] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_PaperWidth: 320
+[2026-01-15 16:30:45.915] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_PaperHeight: 464
+[2026-01-15 16:30:45.916] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginTop: 20
+[2026-01-15 16:30:45.916] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginBottom: 20
+[2026-01-15 16:30:45.916] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginLeft: 7
+[2026-01-15 16:30:45.916] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginRight: 7
+[2026-01-15 16:30:45.916] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_Rows: 0
+[2026-01-15 16:30:45.916] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_Columns: 0
+[2026-01-15 16:30:45.916] [DEBUG] [MaterialSelectFormModern] 计算结果验证: ✅ 计算成功; ✅ 材料利用率优秀 (> 90%); ✅ 布局效率高，每页可放置多个页面; 📄 平张模式: 适合标准尺寸的单页印刷
+[2026-01-15 16:30:45.917] [DEBUG] [MaterialSelectFormModern] 布局计算完成: 5x5, 利用率: 114.4%, 旋转角度: 0°
+[2026-01-15 16:30:45.917] [DEBUG] [排版分析] 成功获取PDF信息: 页面旋转=270°, 原始尺寸=84.0x54.0mm(来源:裁剪框), 旋转后有效尺寸=54.0x84.0mm
+[2026-01-15 16:30:45.917] [DEBUG] [ImpositionService] 开始平张布局计算: 纸张尺寸=320×464mm, PDF尺寸=54.0×84.0mm
+[2026-01-15 16:30:45.917] [DEBUG] [ImpositionService] 布局计算: 不旋转=5列×5行=25页, 旋转90度=3列×7行=21页
+[2026-01-15 16:30:45.917] [DEBUG] [ImpositionService] 旋转角度计算: PDF页面旋转=270°(已在尺寸计算中考虑), 布局旋转=0°, 最终输出旋转=0°
+[2026-01-15 16:30:45.918] [DEBUG] [LayoutResultsCache] 更新布局计算结果: 行数=5, 列数=5
+[2026-01-15 16:30:45.918] [DEBUG] [MaterialSelectFormModern] UpdateLayoutDisplay(ImpositionResult) 被调用: Success=True, RotationAngle=0, Rows=5, Columns=5, InvokeRequired=False, ThreadId=1
+[2026-01-15 16:30:45.918] [DEBUG] [MaterialSelectFormModern] 更新旋转角度显示: RotationAngle=0, UseRotation=False, 在UI线程执行: True
+[2026-01-15 16:30:45.918] [DEBUG] [MaterialSelectFormModern] 设置rotationDisplayLabel.Text = '旋转角度: 0°'
+[2026-01-15 16:30:45.918] [DEBUG] [MaterialSelectFormModern] rotationDisplayLabel.Text设置完成: '旋转角度: 0°'
+[2026-01-15 16:30:45.918] [DEBUG] [MaterialSelectFormModern] 布局计算描述: 平张5行×5列 = 25页/纸，不旋转，最终旋转0°，利用率114.4%
+[2026-01-15 16:30:45.919] [DEBUG] [MaterialSelectFormModern] 获取排版配置: FlatSheet, Folding, PDF原始尺寸: 84x54
+[2026-01-15 16:30:45.919] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_PaperWidth: 320
+[2026-01-15 16:30:45.919] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_PaperHeight: 464
+[2026-01-15 16:30:45.919] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginTop: 20
+[2026-01-15 16:30:45.919] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginBottom: 20
+[2026-01-15 16:30:45.919] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginLeft: 7
+[2026-01-15 16:30:45.920] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_MarginRight: 7
+[2026-01-15 16:30:45.920] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_Rows: 0
+[2026-01-15 16:30:45.920] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 Imposition_Columns: 0
+[2026-01-15 16:30:45.920] [DEBUG] [MaterialSelectFormModern] 计算结果验证: ✅ 计算成功; ✅ 材料利用率优秀 (> 90%); ✅ 布局效率高，每页可放置多个页面; 📄 平张模式: 适合标准尺寸的单页印刷
+[2026-01-15 16:30:45.920] [DEBUG] [MaterialSelectFormModern] 布局计算完成: 5x5, 利用率: 114.4%, 旋转角度: 0°
+[2026-01-15 16:30:46.129] [ERROR] [ApplyBestFitZoom] 异常: 索引超出范围。必须为非负值并小于集合大小。
+参数名: index
+[2026-01-15 16:30:46.130] [DEBUG] [PDF 预览] 页面改变: 1 / 5
+[2026-01-15 16:30:46.130] [DEBUG] [PDF 页码] 更新显示: 页码: 第1页 / 共5页
+[2026-01-15 16:30:46.133] [DEBUG] [PDF 预览] 页面改变: 1 / 5
+[2026-01-15 16:30:46.133] [DEBUG] [PDF 页码] 更新显示: 页码: 第1页 / 共5页
+[2026-01-15 16:30:46.144] [DEBUG] [PDF 预览] Shown事件中额外刷新PDF预览
+[2026-01-15 16:30:46.445] [DEBUG] [PDF 预览] Shown事件最终确认应用缩放
+[2026-01-15 16:30:46.445] [DEBUG] [PDF 预览] 页面改变: 1 / 5
+[2026-01-15 16:30:46.446] [DEBUG] [PDF 页码] 更新显示: 页码: 第1页 / 共5页
+[2026-01-15 16:30:46.446] [DEBUG] [PDF 预览] 页面改变: 1 / 5
+[2026-01-15 16:30:46.447] [DEBUG] [PDF 页码] 更新显示: 页码: 第1页 / 共5页
+[2026-01-15 16:30:46.447] [DEBUG] [ApplyBestFitZoom] 页面尺寸: 153.07x238.11 (宽高比=0.6429), 控件尺寸: 383.00x245.00 (宽高比=1.5633), 选择模式: FitHeight (高度适应)
+[2026-01-15 16:30:46.447] [DEBUG] [PDF 预览] 页面改变: 1 / 5
+[2026-01-15 16:30:46.448] [DEBUG] [PDF 页码] 更新显示: 页码: 第1页 / 共5页
+[2026-01-15 16:30:46.456] [DEBUG] [PDF 预览] 窗体内容准备完成，恢复显示
+[2026-01-15 16:30:46.865] [DEBUG] [SaveSettingsInternal] Material='ulyy,50#yy,100#yy,b,kyb,hc,kyhc,tm,kytm,gy,ls,ltb,alb,ltyy,zdb,np,pet,lthc,dxjhc,yy', Separator='-', ToggleMinimizeHotkey='Ctrl+B'
+[2026-01-15 16:30:46.866] [DEBUG] [SaveSettingsInternal] 已保存到文件: C:\Users\admin\AppData\Roaming\大诚重命名工具\application_settings.json
+[2026-01-15 16:30:46.866] [DEBUG] 应用程序设置保存成功
+[2026-01-15 16:30:46.866] [DEBUG] 保存订单号: 122-8
+[2026-01-15 16:30:47.702] [DEBUG] [MaterialSelectFormModern] 保存启用排版状态: True
+[2026-01-15 16:30:47.703] [DEBUG] [MaterialSelectFormModern] 保存材料类型: 平张
+[2026-01-15 16:30:47.703] [DEBUG] [MaterialSelectFormModern] 保存排版模式: 折手模式
+[2026-01-15 16:30:47.703] [DEBUG] [MaterialSelectFormModern] 保存一式两联状态: False
+[2026-01-15 16:30:47.703] [DEBUG] [SaveSettingsInternal] Material='ulyy,50#yy,100#yy,b,kyb,hc,kyhc,tm,kytm,gy,ls,ltb,alb,ltyy,zdb,np,pet,lthc,dxjhc,yy', Separator='-', ToggleMinimizeHotkey='Ctrl+B'
+[2026-01-15 16:30:47.704] [DEBUG] [SaveSettingsInternal] 已保存到文件: C:\Users\admin\AppData\Roaming\大诚重命名工具\application_settings.json
+[2026-01-15 16:30:47.704] [DEBUG] 应用程序设置保存成功
+[2026-01-15 16:30:47.704] [DEBUG] [MaterialSelectFormModern] 排版控件状态已保存到AppSettings
+[2026-01-15 16:30:47.705] [DEBUG] [MaterialSelectFormModern] 已关闭PDF预览，释放文件句柄
+[2026-01-15 16:30:47.705] [DEBUG] [WindowPositionManager] 当前窗口状态: WindowState=Normal, Location={X=748,Y=31}, Size={Width=400, Height=886}, ClientSize={Width=400, Height=886}
+[2026-01-15 16:30:47.706] [DEBUG] [WindowPositionManager] 保存窗口正常状态: Location={X=748,Y=31}, Size={Width=400, Height=886}
+[2026-01-15 16:30:47.706] [DEBUG] [SaveSettingsInternal] Material='ulyy,50#yy,100#yy,b,kyb,hc,kyhc,tm,kytm,gy,ls,ltb,alb,ltyy,zdb,np,pet,lthc,dxjhc,yy', Separator='-', ToggleMinimizeHotkey='Ctrl+B'
+[2026-01-15 16:30:47.708] [DEBUG] [SaveSettingsInternal] 已保存到文件: C:\Users\admin\AppData\Roaming\大诚重命名工具\application_settings.json
+[2026-01-15 16:30:47.708] [DEBUG] 应用程序设置保存成功
+[2026-01-15 16:30:47.709] [DEBUG] 已提交所有待处理的配置更改
+[2026-01-15 16:30:47.709] [DEBUG] [WindowPositionManager] 保存窗口状态: Maximized=False, PreviewExpanded=True
+[2026-01-15 16:30:47.709] [DEBUG] [MaterialSelectFormModern] 保存窗口位置: Location={X=748,Y=31}, Size={Width=400, Height=886}, PreviewExpanded=True
+[2026-01-15 16:30:47.709] [DEBUG] [MaterialSelectFormModern] 已立即提交窗口位置设置到文件
+[2026-01-15 16:30:47.709] [DEBUG] [MaterialSelectFormModern] 窗体关闭完成
+[2026-01-15 16:30:47.709] [DEBUG] [MaterialSelectFormModern] 保存启用排版状态: True
+[2026-01-15 16:30:47.709] [DEBUG] [MaterialSelectFormModern] 保存材料类型: 平张
+[2026-01-15 16:30:47.709] [DEBUG] [MaterialSelectFormModern] 保存排版模式: 折手模式
+[2026-01-15 16:30:47.709] [DEBUG] [MaterialSelectFormModern] 保存一式两联状态: False
+[2026-01-15 16:30:47.709] [DEBUG] [SaveSettingsInternal] Material='ulyy,50#yy,100#yy,b,kyb,hc,kyhc,tm,kytm,gy,ls,ltb,alb,ltyy,zdb,np,pet,lthc,dxjhc,yy', Separator='-', ToggleMinimizeHotkey='Ctrl+B'
+[2026-01-15 16:30:47.710] [DEBUG] [SaveSettingsInternal] 已保存到文件: C:\Users\admin\AppData\Roaming\大诚重命名工具\application_settings.json
+[2026-01-15 16:30:47.710] [DEBUG] 应用程序设置保存成功
+[2026-01-15 16:30:47.710] [DEBUG] [MaterialSelectFormModern] 排版控件状态已保存到AppSettings
+[2026-01-15 16:30:47.710] [DEBUG] [MaterialSelectFormModern] 已关闭PDF预览，释放文件句柄
+[2026-01-15 16:30:47.711] [DEBUG] [WindowPositionManager] 当前窗口状态: WindowState=Normal, Location={X=748,Y=31}, Size={Width=400, Height=886}, ClientSize={Width=400, Height=886}
+[2026-01-15 16:30:47.711] [DEBUG] [WindowPositionManager] 保存窗口正常状态: Location={X=748,Y=31}, Size={Width=400, Height=886}
+[2026-01-15 16:30:47.711] [DEBUG] [SaveSettingsInternal] Material='ulyy,50#yy,100#yy,b,kyb,hc,kyhc,tm,kytm,gy,ls,ltb,alb,ltyy,zdb,np,pet,lthc,dxjhc,yy', Separator='-', ToggleMinimizeHotkey='Ctrl+B'
+[2026-01-15 16:30:47.711] [DEBUG] [SaveSettingsInternal] 已保存到文件: C:\Users\admin\AppData\Roaming\大诚重命名工具\application_settings.json
+[2026-01-15 16:30:47.711] [DEBUG] 应用程序设置保存成功
+[2026-01-15 16:30:47.712] [DEBUG] 已提交所有待处理的配置更改
+[2026-01-15 16:30:47.712] [DEBUG] [WindowPositionManager] 保存窗口状态: Maximized=False, PreviewExpanded=True
+[2026-01-15 16:30:47.712] [DEBUG] [MaterialSelectFormModern] 保存窗口位置: Location={X=748,Y=31}, Size={Width=400, Height=886}, PreviewExpanded=True
+[2026-01-15 16:30:47.712] [DEBUG] [MaterialSelectFormModern] 已立即提交窗口位置设置到文件
+[2026-01-15 16:30:47.712] [DEBUG] [MaterialSelectFormModern] 窗体关闭完成
+[2026-01-15 16:30:47.730] [INFO] [ProcessNewFileAsync] 材料选择对话框返回: OK
+[2026-01-15 16:30:47.730] [INFO] [ProcessNewFileAsync] 用户选择材料: hc
+[2026-01-15 16:30:47.730] [INFO] [ProcessNewFileAsync] 多值输出: 数量数=1, 序号数=1, 总文件数=1
+[2026-01-15 16:30:47.731] [INFO] [ProcessNewFileAsync] 排版信息: EnableImposition=True, LayoutMode=Folding, LayoutQuantity=25
+[2026-01-15 16:30:47.731] [INFO] [ProcessNewFileAsync] 标识页信息: AddIdentifierPage=False, Content=''
+[2026-01-15 16:30:47.732] [DEBUG] [GetRegexResultForMatching] 无分组前缀，使用 cmbRegex2: '02 HYS001549 120张+++.pdf'
+[2026-01-15 16:30:47.733] [INFO] [ExtractRegexResultForMatching] 开始提取正则结果 - 文件名: 02 HYS001549 120张+++.pdf, 正则: ^\d+\s+[A-Z]{3}\d{6}\s+\d+张
+[2026-01-15 16:30:47.733] [INFO] [ExtractRegexResultForMatching] 使用完整匹配结果: '02 HYS001549 120张'
+[2026-01-15 16:30:47.734] [INFO] ✅ [GetRegexResultForMatching] 使用 cmbRegex2 匹配结果: '02 HYS001549 120张'
+[2026-01-15 16:30:47.735] [DEBUG] Excel列数: 3
+[2026-01-15 16:30:47.735] [DEBUG] Excel列名: 序号, 物料号, 数量
+[2026-01-15 16:30:47.735] [WARN] ⚠️ Excel数据中没有找到'列组合'列！可用列: 序号, 物料号, 数量
+[2026-01-15 16:30:47.736] [INFO] [GenerateNewFileName] 开始生成新文件名
+[2026-01-15 16:30:47.737] [INFO] [GenerateNewFileName] 原文件名: 02 HYS001549 120张+++.pdf
+[2026-01-15 16:30:47.737] [INFO] [GenerateNewFileName] 正则结果: 02 HYS001549 120张+++
+[2026-01-15 16:30:47.737] [INFO] [GenerateNewFileName] 序号: 1
+[2026-01-15 16:30:47.737] [INFO] [GenerateNewFileName] 材料: hc
+[2026-01-15 16:30:47.737] [INFO] [GenerateNewFileName] 数量: 1
+[2026-01-15 16:30:47.737] [INFO] [GenerateNewFileName] 列组合: (空)
+[2026-01-15 16:30:47.737] [DEBUG] [AppSettings.Indexer] 从属性获取 EnableColumnCombine: 
+[2026-01-15 16:30:47.738] [INFO] [CreateFileNameComponentsConfigFromEventGroup] 开始从EventGroup创建配置
+[2026-01-15 16:30:47.738] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 LastSelectedEventPreset: 测试保留
+[2026-01-15 16:30:47.738] [DEBUG] [EventGroupConfigurationService] 当前选中的预设方案: 测试保留
+[2026-01-15 16:30:47.739] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 EventItemsPreset_测试保留: {
+  "Groups": [
+    {
+      "Id": "order",
+      "DisplayName": "订单组",
+      "Prefix": "&ID-",
+      "IsEnabled": true,
+      "SortOrder": 0,
+      "IsPreserved": true
+    },
+    {
+      "Id": "material",
+      "DisplayName": "材料组",
+      "Prefix": "&MT-",
+      "IsEnabled": true,
+      "SortOrder": 1,
+      "IsPreserved": true
+    },
+    {
+      "Id": "quantity",
+      "DisplayName": "数量组",
+      "Prefix": "&DN-",
+      "IsEnabled": true,
+      "SortOrder": 2,
+      "IsPreserved": false
+    },
+    {
+      "Id": "process",
+      "DisplayName": "工艺组",
+      "Prefix": "&DP-",
+      "IsEnabled": true,
+      "SortOrder": 3,
+      "IsPreserved": true
+    },
+    {
+      "Id": "customer",
+      "DisplayName": "客户组",
+      "Prefix": "&CU-",
+      "IsEnabled": true,
+      "SortOrder": 4,
+      "IsPreserved": true
+    },
+    {
+      "Id": "remark",
+      "DisplayName": "备注组",
+      "Prefix": "&MK-",
+      "IsEnabled": true,
+      "SortOrder": 5,
+      "IsPreserved": true
+    },
+    {
+      "Id": "row",
+      "DisplayName": "行数组",
+      "Prefix": "&Row-",
+      "IsEnabled": true,
+      "SortOrder": 6,
+      "IsPreserved": false
+    },
+    {
+      "Id": "column",
+      "DisplayName": "列数组",
+      "Prefix": "&Col-",
+      "IsEnabled": true,
+      "SortOrder": 7,
+      "IsPreserved": false
+    },
+    {
+      "Id": "ungrouped",
+      "DisplayName": "未分组",
+      "Prefix": "",
+      "IsEnabled": false,
+      "SortOrder": 8,
+      "IsPreserved": false
+    }
+  ],
+  "Items": [
+    {
+      "Name": "订单号",
+      "GroupId": "order",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "材料",
+      "GroupId": "material",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "数量",
+      "GroupId": "quantity",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "工艺",
+      "GroupId": "process",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "正则结果",
+      "GroupId": "customer",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "尺寸",
+      "GroupId": "remark",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "行数",
+      "GroupId": "row",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "列数",
+      "GroupId": "column",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "序号",
+      "GroupId": "ungrouped",
+      "IsEnabled": false,
+      "SortOrder": 0
+    },
+    {
+      "Name": "列组合",
+      "GroupId": "ungrouped",
+      "IsEnabled": false,
+      "SortOrder": 1
+    }
+  ],
+  "Version": "1.0"
+}
+[2026-01-15 16:30:47.739] [DEBUG] [EventGroupConfigurationService] 预设方案配置键: EventItemsPreset_测试保留
+[2026-01-15 16:30:47.739] [DEBUG] [EventGroupConfigurationService] 配置JSON长度: 2719
+[2026-01-15 16:30:47.739] [DEBUG] [EventGroupConfigurationService] 成功加载预设方案 测试保留，包含 9 个分组，10 个项目
+[2026-01-15 16:30:47.739] [INFO] [CreateFileNameComponentsConfigFromEventGroup] 使用EventGroup配置
+[2026-01-15 16:30:47.740] [INFO] [CreateFileNameComponentsConfigFromEventGroup] 启用组件: 订单号
+[2026-01-15 16:30:47.740] [INFO] [CreateFileNameComponentsConfigFromEventGroup] 启用组件: 材料
+[2026-01-15 16:30:47.740] [INFO] [CreateFileNameComponentsConfigFromEventGroup] 启用组件: 数量
+[2026-01-15 16:30:47.740] [INFO] [CreateFileNameComponentsConfigFromEventGroup] 启用组件: 工艺
+[2026-01-15 16:30:47.741] [INFO] [CreateFileNameComponentsConfigFromEventGroup] 启用组件: 正则结果
+[2026-01-15 16:30:47.741] [INFO] [CreateFileNameComponentsConfigFromEventGroup] 启用组件: 尺寸
+[2026-01-15 16:30:47.741] [INFO] [CreateFileNameComponentsConfigFromEventGroup] 启用组件: 行数
+[2026-01-15 16:30:47.741] [INFO] [CreateFileNameComponentsConfigFromEventGroup] 启用组件: 列数
+[2026-01-15 16:30:47.741] [DEBUG] [AppSettings.Indexer] 从属性获取 EnableColumnCombine: 
+[2026-01-15 16:30:47.742] [INFO] [CreateFileNameComponentsConfigFromEventGroup] 最终配置 - CompositeColumnEnabled: False
+[2026-01-15 16:30:47.743] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 LastSelectedEventPreset: 测试保留
+[2026-01-15 16:30:47.743] [DEBUG] [EventGroupConfigurationService] 当前选中的预设方案: 测试保留
+[2026-01-15 16:30:47.743] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 EventItemsPreset_测试保留: {
+  "Groups": [
+    {
+      "Id": "order",
+      "DisplayName": "订单组",
+      "Prefix": "&ID-",
+      "IsEnabled": true,
+      "SortOrder": 0,
+      "IsPreserved": true
+    },
+    {
+      "Id": "material",
+      "DisplayName": "材料组",
+      "Prefix": "&MT-",
+      "IsEnabled": true,
+      "SortOrder": 1,
+      "IsPreserved": true
+    },
+    {
+      "Id": "quantity",
+      "DisplayName": "数量组",
+      "Prefix": "&DN-",
+      "IsEnabled": true,
+      "SortOrder": 2,
+      "IsPreserved": false
+    },
+    {
+      "Id": "process",
+      "DisplayName": "工艺组",
+      "Prefix": "&DP-",
+      "IsEnabled": true,
+      "SortOrder": 3,
+      "IsPreserved": true
+    },
+    {
+      "Id": "customer",
+      "DisplayName": "客户组",
+      "Prefix": "&CU-",
+      "IsEnabled": true,
+      "SortOrder": 4,
+      "IsPreserved": true
+    },
+    {
+      "Id": "remark",
+      "DisplayName": "备注组",
+      "Prefix": "&MK-",
+      "IsEnabled": true,
+      "SortOrder": 5,
+      "IsPreserved": true
+    },
+    {
+      "Id": "row",
+      "DisplayName": "行数组",
+      "Prefix": "&Row-",
+      "IsEnabled": true,
+      "SortOrder": 6,
+      "IsPreserved": false
+    },
+    {
+      "Id": "column",
+      "DisplayName": "列数组",
+      "Prefix": "&Col-",
+      "IsEnabled": true,
+      "SortOrder": 7,
+      "IsPreserved": false
+    },
+    {
+      "Id": "ungrouped",
+      "DisplayName": "未分组",
+      "Prefix": "",
+      "IsEnabled": false,
+      "SortOrder": 8,
+      "IsPreserved": false
+    }
+  ],
+  "Items": [
+    {
+      "Name": "订单号",
+      "GroupId": "order",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "材料",
+      "GroupId": "material",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "数量",
+      "GroupId": "quantity",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "工艺",
+      "GroupId": "process",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "正则结果",
+      "GroupId": "customer",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "尺寸",
+      "GroupId": "remark",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "行数",
+      "GroupId": "row",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "列数",
+      "GroupId": "column",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "序号",
+      "GroupId": "ungrouped",
+      "IsEnabled": false,
+      "SortOrder": 0
+    },
+    {
+      "Name": "列组合",
+      "GroupId": "ungrouped",
+      "IsEnabled": false,
+      "SortOrder": 1
+    }
+  ],
+  "Version": "1.0"
+}
+[2026-01-15 16:30:47.743] [DEBUG] [EventGroupConfigurationService] 预设方案配置键: EventItemsPreset_测试保留
+[2026-01-15 16:30:47.743] [DEBUG] [EventGroupConfigurationService] 配置JSON长度: 2719
+[2026-01-15 16:30:47.743] [DEBUG] [EventGroupConfigurationService] 成功加载预设方案 测试保留，包含 9 个分组，10 个项目
+[2026-01-15 16:30:47.743] [INFO] GetComponentOrderFromSettings: 使用EventGroup配置设置组件顺序
+[2026-01-15 16:30:47.744] [INFO] GetComponentOrderFromSettings: 从EventGroup添加组件 '订单号'
+[2026-01-15 16:30:47.744] [INFO] GetComponentOrderFromSettings: 从EventGroup添加组件 '材料'
+[2026-01-15 16:30:47.744] [INFO] GetComponentOrderFromSettings: 从EventGroup添加组件 '数量'
+[2026-01-15 16:30:47.744] [INFO] GetComponentOrderFromSettings: 从EventGroup添加组件 '工艺'
+[2026-01-15 16:30:47.744] [INFO] GetComponentOrderFromSettings: 从EventGroup添加组件 '正则结果'
+[2026-01-15 16:30:47.744] [INFO] GetComponentOrderFromSettings: 从EventGroup添加组件 '尺寸'
+[2026-01-15 16:30:47.745] [INFO] GetComponentOrderFromSettings: 从EventGroup添加组件 '行数'
+[2026-01-15 16:30:47.745] [INFO] GetComponentOrderFromSettings: 从EventGroup添加组件 '列数'
+[2026-01-15 16:30:47.745] [INFO] GetComponentOrderFromSettings: 最终组件顺序 = [订单号, 材料, 数量, 工艺, 正则结果, 尺寸, 行数, 列数]
+[2026-01-15 16:30:47.746] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 LastSelectedEventPreset: 测试保留
+[2026-01-15 16:30:47.746] [DEBUG] [EventGroupConfigurationService] 当前选中的预设方案: 测试保留
+[2026-01-15 16:30:47.747] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 EventItemsPreset_测试保留: {
+  "Groups": [
+    {
+      "Id": "order",
+      "DisplayName": "订单组",
+      "Prefix": "&ID-",
+      "IsEnabled": true,
+      "SortOrder": 0,
+      "IsPreserved": true
+    },
+    {
+      "Id": "material",
+      "DisplayName": "材料组",
+      "Prefix": "&MT-",
+      "IsEnabled": true,
+      "SortOrder": 1,
+      "IsPreserved": true
+    },
+    {
+      "Id": "quantity",
+      "DisplayName": "数量组",
+      "Prefix": "&DN-",
+      "IsEnabled": true,
+      "SortOrder": 2,
+      "IsPreserved": false
+    },
+    {
+      "Id": "process",
+      "DisplayName": "工艺组",
+      "Prefix": "&DP-",
+      "IsEnabled": true,
+      "SortOrder": 3,
+      "IsPreserved": true
+    },
+    {
+      "Id": "customer",
+      "DisplayName": "客户组",
+      "Prefix": "&CU-",
+      "IsEnabled": true,
+      "SortOrder": 4,
+      "IsPreserved": true
+    },
+    {
+      "Id": "remark",
+      "DisplayName": "备注组",
+      "Prefix": "&MK-",
+      "IsEnabled": true,
+      "SortOrder": 5,
+      "IsPreserved": true
+    },
+    {
+      "Id": "row",
+      "DisplayName": "行数组",
+      "Prefix": "&Row-",
+      "IsEnabled": true,
+      "SortOrder": 6,
+      "IsPreserved": false
+    },
+    {
+      "Id": "column",
+      "DisplayName": "列数组",
+      "Prefix": "&Col-",
+      "IsEnabled": true,
+      "SortOrder": 7,
+      "IsPreserved": false
+    },
+    {
+      "Id": "ungrouped",
+      "DisplayName": "未分组",
+      "Prefix": "",
+      "IsEnabled": false,
+      "SortOrder": 8,
+      "IsPreserved": false
+    }
+  ],
+  "Items": [
+    {
+      "Name": "订单号",
+      "GroupId": "order",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "材料",
+      "GroupId": "material",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "数量",
+      "GroupId": "quantity",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "工艺",
+      "GroupId": "process",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "正则结果",
+      "GroupId": "customer",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "尺寸",
+      "GroupId": "remark",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "行数",
+      "GroupId": "row",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "列数",
+      "GroupId": "column",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "序号",
+      "GroupId": "ungrouped",
+      "IsEnabled": false,
+      "SortOrder": 0
+    },
+    {
+      "Name": "列组合",
+      "GroupId": "ungrouped",
+      "IsEnabled": false,
+      "SortOrder": 1
+    }
+  ],
+  "Version": "1.0"
+}
+[2026-01-15 16:30:47.747] [DEBUG] [EventGroupConfigurationService] 预设方案配置键: EventItemsPreset_测试保留
+[2026-01-15 16:30:47.747] [DEBUG] [EventGroupConfigurationService] 配置JSON长度: 2719
+[2026-01-15 16:30:47.747] [DEBUG] [EventGroupConfigurationService] 成功加载预设方案 测试保留，包含 9 个分组，10 个项目
+[2026-01-15 16:30:47.747] [INFO] [GetPrefixesFromEventGroupConfig] 已添加映射: '订单号' -> '&ID-'
+[2026-01-15 16:30:47.748] [INFO] [GetPrefixesFromEventGroupConfig] 已添加映射: '材料' -> '&MT-'
+[2026-01-15 16:30:47.748] [INFO] [GetPrefixesFromEventGroupConfig] 已添加映射: '数量' -> '&DN-'
+[2026-01-15 16:30:47.748] [INFO] [GetPrefixesFromEventGroupConfig] 已添加映射: '工艺' -> '&DP-'
+[2026-01-15 16:30:47.748] [INFO] [GetPrefixesFromEventGroupConfig] 已添加映射: '正则结果' -> '&CU-'
+[2026-01-15 16:30:47.748] [INFO] [GetPrefixesFromEventGroupConfig] 已添加映射: '尺寸' -> '&MK-'
+[2026-01-15 16:30:47.748] [INFO] [GetPrefixesFromEventGroupConfig] 已添加映射: '行数' -> '&Row-'
+[2026-01-15 16:30:47.748] [INFO] [GetPrefixesFromEventGroupConfig] 已添加映射: '列数' -> '&Col-'
+[2026-01-15 16:30:47.749] [INFO] 获取到的前缀配置: 订单号=&ID-, 材料=&MT-, 数量=&DN-, 工艺=&DP-, 正则结果=&CU-, 尺寸=&MK-, 行数=&Row-, 列数=&Col-
+[2026-01-15 16:30:47.749] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 LastSelectedEventPreset: 测试保留
+[2026-01-15 16:30:47.749] [DEBUG] [EventGroupConfigurationService] 当前选中的预设方案: 测试保留
+[2026-01-15 16:30:47.749] [DEBUG] [AppSettings.Indexer] 从CustomSettings获取 EventItemsPreset_测试保留: {
+  "Groups": [
+    {
+      "Id": "order",
+      "DisplayName": "订单组",
+      "Prefix": "&ID-",
+      "IsEnabled": true,
+      "SortOrder": 0,
+      "IsPreserved": true
+    },
+    {
+      "Id": "material",
+      "DisplayName": "材料组",
+      "Prefix": "&MT-",
+      "IsEnabled": true,
+      "SortOrder": 1,
+      "IsPreserved": true
+    },
+    {
+      "Id": "quantity",
+      "DisplayName": "数量组",
+      "Prefix": "&DN-",
+      "IsEnabled": true,
+      "SortOrder": 2,
+      "IsPreserved": false
+    },
+    {
+      "Id": "process",
+      "DisplayName": "工艺组",
+      "Prefix": "&DP-",
+      "IsEnabled": true,
+      "SortOrder": 3,
+      "IsPreserved": true
+    },
+    {
+      "Id": "customer",
+      "DisplayName": "客户组",
+      "Prefix": "&CU-",
+      "IsEnabled": true,
+      "SortOrder": 4,
+      "IsPreserved": true
+    },
+    {
+      "Id": "remark",
+      "DisplayName": "备注组",
+      "Prefix": "&MK-",
+      "IsEnabled": true,
+      "SortOrder": 5,
+      "IsPreserved": true
+    },
+    {
+      "Id": "row",
+      "DisplayName": "行数组",
+      "Prefix": "&Row-",
+      "IsEnabled": true,
+      "SortOrder": 6,
+      "IsPreserved": false
+    },
+    {
+      "Id": "column",
+      "DisplayName": "列数组",
+      "Prefix": "&Col-",
+      "IsEnabled": true,
+      "SortOrder": 7,
+      "IsPreserved": false
+    },
+    {
+      "Id": "ungrouped",
+      "DisplayName": "未分组",
+      "Prefix": "",
+      "IsEnabled": false,
+      "SortOrder": 8,
+      "IsPreserved": false
+    }
+  ],
+  "Items": [
+    {
+      "Name": "订单号",
+      "GroupId": "order",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "材料",
+      "GroupId": "material",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "数量",
+      "GroupId": "quantity",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "工艺",
+      "GroupId": "process",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "正则结果",
+      "GroupId": "customer",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "尺寸",
+      "GroupId": "remark",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "行数",
+      "GroupId": "row",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "列数",
+      "GroupId": "column",
+      "IsEnabled": true,
+      "SortOrder": 0
+    },
+    {
+      "Name": "序号",
+      "GroupId": "ungrouped",
+      "IsEnabled": false,
+      "SortOrder": 0
+    },
+    {
+      "Name": "列组合",
+      "GroupId": "ungrouped",
+      "IsEnabled": false,
+      "SortOrder": 1
+    }
+  ],
+  "Version": "1.0"
+}
+[2026-01-15 16:30:47.749] [DEBUG] [EventGroupConfigurationService] 预设方案配置键: EventItemsPreset_测试保留
+[2026-01-15 16:30:47.749] [DEBUG] [EventGroupConfigurationService] 配置JSON长度: 2719
+[2026-01-15 16:30:47.750] [DEBUG] [EventGroupConfigurationService] 成功加载预设方案 测试保留，包含 9 个分组，10 个项目
+[2026-01-15 16:30:47.750] [DEBUG] [GetPreserveGroupConfig] 标记保留分组ID: 'order' (分组: 订单组)
+[2026-01-15 16:30:47.751] [DEBUG] [GetPreserveGroupConfig] 标记保留前缀: '&ID-' (分组: 订单组)
+[2026-01-15 16:30:47.751] [DEBUG] [GetPreserveGroupConfig] 标记保留组件: '订单号' (分组: 订单组)
+[2026-01-15 16:30:47.751] [DEBUG] [GetPreserveGroupConfig] 标记保留分组ID: 'material' (分组: 材料组)
+[2026-01-15 16:30:47.751] [DEBUG] [GetPreserveGroupConfig] 标记保留前缀: '&MT-' (分组: 材料组)
+[2026-01-15 16:30:47.751] [DEBUG] [GetPreserveGroupConfig] 标记保留组件: '材料' (分组: 材料组)
+[2026-01-15 16:30:47.751] [DEBUG] [GetPreserveGroupConfig] 标记保留分组ID: 'process' (分组: 工艺组)
+[2026-01-15 16:30:47.751] [DEBUG] [GetPreserveGroupConfig] 标记保留前缀: '&DP-' (分组: 工艺组)
+[2026-01-15 16:30:47.751] [DEBUG] [GetPreserveGroupConfig] 标记保留组件: '工艺' (分组: 工艺组)
+[2026-01-15 16:30:47.751] [DEBUG] [GetPreserveGroupConfig] 标记保留分组ID: 'customer' (分组: 客户组)
+[2026-01-15 16:30:47.751] [DEBUG] [GetPreserveGroupConfig] 标记保留前缀: '&CU-' (分组: 客户组)
+[2026-01-15 16:30:47.752] [DEBUG] [GetPreserveGroupConfig] 标记保留组件: '正则结果' (分组: 客户组)
+[2026-01-15 16:30:47.752] [DEBUG] [GetPreserveGroupConfig] 标记保留分组ID: 'remark' (分组: 备注组)
+[2026-01-15 16:30:47.752] [DEBUG] [GetPreserveGroupConfig] 标记保留前缀: '&MK-' (分组: 备注组)
+[2026-01-15 16:30:47.752] [DEBUG] [GetPreserveGroupConfig] 标记保留组件: '尺寸' (分组: 备注组)
+[2026-01-15 16:30:47.752] [INFO] 获取到的保留分组配置: 15 个条目 - [order, &ID-, 订单号, material, &MT-, 材料, process, &DP-, 工艺, customer, &CU-, 正则结果, remark, &MK-, 尺寸]
+[2026-01-15 16:30:47.761] [DEBUG] [BuildFileName] 开始构建文件名
+[2026-01-15 16:30:47.761] [DEBUG] [BuildFileName] 输入参数 - LayoutRows='5', LayoutColumns='5', Separator='-'
+[2026-01-15 16:30:47.762] [DEBUG] [BuildFileName] 原始文件名: '02 HYS001549 120张+++'
+[2026-01-15 16:30:47.762] [DEBUG] [BuildFileName] 保留分组提取条件 - OriginalFileName非空: True, PreserveGroupData为null: False, PreserveGroupData为空: True, 应该提取: True
+[2026-01-15 16:30:47.762] [DEBUG] [BuildFileName] 开始提取保留分组数据，原始文件名: '02 HYS001549 120张+++'
+[2026-01-15 16:30:47.764] [DEBUG] [ExtractPreserveGroupData] 开始提取保留分组数据: '02 HYS001549 120张+++'
+[2026-01-15 16:30:47.765] [DEBUG] [ExtractPreserveGroupData] 保留分组配置: order=True, &ID-=True, 订单号=True, material=True, &MT-=True, 材料=True, process=True, &DP-=True, 工艺=True, customer=True, &CU-=True, 正则结果=True, remark=True, &MK-=True, 尺寸=True
+[2026-01-15 16:30:47.765] [DEBUG] [ExtractPreserveGroupData] Prefixes内容（调试）: 订单号=&ID-, 材料=&MT-, 数量=&DN-, 工艺=&DP-, 正则结果=&CU-, 尺寸=&MK-, 行数=&Row-, 列数=&Col-
+[2026-01-15 16:30:47.765] [DEBUG] [ExtractPreserveGroupData] 多重映射: &ID- -> 订单号
+[2026-01-15 16:30:47.765] [DEBUG] [ExtractPreserveGroupData] 单一映射（优先）: &ID- -> 订单号
+[2026-01-15 16:30:47.765] [DEBUG] [ExtractPreserveGroupData] 多重映射: &MT- -> 材料
+[2026-01-15 16:30:47.765] [DEBUG] [ExtractPreserveGroupData] 单一映射（优先）: &MT- -> 材料
+[2026-01-15 16:30:47.766] [DEBUG] [ExtractPreserveGroupData] 多重映射: &DN- -> 数量
+[2026-01-15 16:30:47.766] [DEBUG] [ExtractPreserveGroupData] 单一映射（优先）: &DN- -> 数量
+[2026-01-15 16:30:47.766] [DEBUG] [ExtractPreserveGroupData] 多重映射: &DP- -> 工艺
+[2026-01-15 16:30:47.766] [DEBUG] [ExtractPreserveGroupData] 单一映射（优先）: &DP- -> 工艺
+[2026-01-15 16:30:47.766] [DEBUG] [ExtractPreserveGroupData] 多重映射: &CU- -> 正则结果
+[2026-01-15 16:30:47.766] [DEBUG] [ExtractPreserveGroupData] 单一映射（优先）: &CU- -> 正则结果
+[2026-01-15 16:30:47.767] [DEBUG] [ExtractPreserveGroupData] 多重映射: &MK- -> 尺寸
+[2026-01-15 16:30:47.767] [DEBUG] [ExtractPreserveGroupData] 单一映射（优先）: &MK- -> 尺寸
+[2026-01-15 16:30:47.767] [DEBUG] [ExtractPreserveGroupData] 多重映射: &Row- -> 行数
+[2026-01-15 16:30:47.767] [DEBUG] [ExtractPreserveGroupData] 单一映射（优先）: &Row- -> 行数
+[2026-01-15 16:30:47.767] [DEBUG] [ExtractPreserveGroupData] 多重映射: &Col- -> 列数
+[2026-01-15 16:30:47.767] [DEBUG] [ExtractPreserveGroupData] 单一映射（优先）: &Col- -> 列数
+[2026-01-15 16:30:47.767] [DEBUG] [ExtractPreserveGroupData] 最终单一映射: &ID-->订单号, &MT-->材料, &DN-->数量, &DP-->工艺, &CU-->正则结果, &MK-->尺寸, &Row-->行数, &Col-->列数
+[2026-01-15 16:30:47.768] [DEBUG] [ExtractPreserveGroupData] 最终多重映射: &ID-->[订单号], &MT-->[材料], &DN-->[数量], &DP-->[工艺], &CU-->[正则结果], &MK-->[尺寸], &Row-->[行数], &Col-->[列数]
+[2026-01-15 16:30:47.768] [DEBUG] [ExtractPreserveGroupData] 前缀到分组ID映射: &ID-->order, &MT-->material, &DN-->quantity, &DP-->process, &CU-->customer, &MK-->remark, &Row-->row, &Col-->column
+[2026-01-15 16:30:47.768] [DEBUG] [ExtractPreserveGroupData] 提取完成，共提取 0 个保留分组
+[2026-01-15 16:30:47.768] [DEBUG] [BuildFileName] 提取完成，保留分组数据: 0 个分组
+[2026-01-15 16:30:47.769] [DEBUG] [BuildFileName] 保留分组数据: 0 个分组
+[2026-01-15 16:30:47.769] [DEBUG] [BuildFileName] 组件可用性 - 正则结果:True, 订单号:True, 材料:True, 数量:True, 工艺:True, 尺寸:True, 行数:True, 列数:True, 序号:True
+[2026-01-15 16:30:47.769] [DEBUG] [BuildFileName] 组件值 - 正则结果:02 HYS001549 120张+++, 订单号:122-8, 材料:hc, 数量:1F, 工艺:黑白光膜, 尺寸:80x50Z, 行数:5, 列数:5, 序号:1
+[2026-01-15 16:30:47.769] [DEBUG] [BuildFileName] Prefixes字典大小: 8
+[2026-01-15 16:30:47.770] [DEBUG] [BuildFileName] Prefixes内容: 订单号=&ID-, 材料=&MT-, 数量=&DN-, 工艺=&DP-, 正则结果=&CU-, 尺寸=&MK-, 行数=&Row-, 列数=&Col-
+[2026-01-15 16:30:47.770] [DEBUG] [ShouldUseGroupedFormat] 检查 Prefixes: 分组数=8 -> true
+[2026-01-15 16:30:47.770] [DEBUG] [BuildFileName] 检测到多个分组，优先使用分组格式构建文件名
+[2026-01-15 16:30:47.771] [DEBUG] [BuildFileNameByGroupFormat] 开始按分组格式构建文件名
+[2026-01-15 16:30:47.771] [DEBUG] [BuildFileNameByGroupFormat] 当前Prefixes字典大小: 8
+[2026-01-15 16:30:47.772] [DEBUG] [BuildComponentToGroupPrefixMapping] 订单号 -> '&ID-'
+[2026-01-15 16:30:47.772] [DEBUG] [BuildComponentToGroupPrefixMapping] 材料 -> '&MT-'
+[2026-01-15 16:30:47.772] [DEBUG] [BuildComponentToGroupPrefixMapping] 数量 -> '&DN-'
+[2026-01-15 16:30:47.772] [DEBUG] [BuildComponentToGroupPrefixMapping] 工艺 -> '&DP-'
+[2026-01-15 16:30:47.772] [DEBUG] [BuildComponentToGroupPrefixMapping] 正则结果 -> '&CU-'
+[2026-01-15 16:30:47.773] [DEBUG] [BuildComponentToGroupPrefixMapping] 尺寸 -> '&MK-'
+[2026-01-15 16:30:47.773] [DEBUG] [BuildComponentToGroupPrefixMapping] 行数 -> '&Row-'
+[2026-01-15 16:30:47.773] [DEBUG] [BuildComponentToGroupPrefixMapping] 列数 -> '&Col-'
+[2026-01-15 16:30:47.773] [DEBUG] [BuildComponentToGroupPrefixMapping] 完成映射，共 8 个组件: 订单号=&ID-, 材料=&MT-, 数量=&DN-, 工艺=&DP-, 正则结果=&CU-, 尺寸=&MK-, 行数=&Row-, 列数=&Col-
+[2026-01-15 16:30:47.774] [DEBUG] [GetValueWithPreserveSupport] 订单号: 使用当前值 '122-8'
+[2026-01-15 16:30:47.774] [DEBUG] [BuildFileNameByGroupFormat] 添加到分组 &ID-: 订单号 = '122-8'
+[2026-01-15 16:30:47.774] [DEBUG] [GetValueWithPreserveSupport] 材料: 使用当前值 'hc'
+[2026-01-15 16:30:47.774] [DEBUG] [BuildFileNameByGroupFormat] 添加到分组 &MT-: 材料 = 'hc'
+[2026-01-15 16:30:47.775] [DEBUG] [GetValueWithPreserveSupport] 数量: 使用当前值 '1'
+[2026-01-15 16:30:47.775] [DEBUG] [BuildFileNameByGroupFormat] 添加到分组 &DN-: 数量 = '1F'
+[2026-01-15 16:30:47.775] [DEBUG] [GetValueWithPreserveSupport] 工艺: 使用当前值 '黑白光膜'
+[2026-01-15 16:30:47.775] [DEBUG] [BuildFileNameByGroupFormat] 添加到分组 &DP-: 工艺 = '黑白光膜'
+[2026-01-15 16:30:47.775] [DEBUG] [GetValueWithPreserveSupport] 正则结果: 使用当前值 '02 HYS001549 120张+++'
+[2026-01-15 16:30:47.775] [DEBUG] [BuildFileNameByGroupFormat] 添加到分组 &CU-: 正则结果 = '02 HYS001549 120张+++'
+[2026-01-15 16:30:47.775] [DEBUG] [GetValueWithPreserveSupport] 尺寸: 使用当前值 '80x50Z'
+[2026-01-15 16:30:47.776] [DEBUG] [BuildFileNameByGroupFormat] 添加到分组 &MK-: 尺寸 = '80x50Z'
+[2026-01-15 16:30:47.776] [DEBUG] [GetValueWithPreserveSupport] 行数: 使用当前值 '5'
+[2026-01-15 16:30:47.776] [DEBUG] [BuildFileNameByGroupFormat] 添加到分组 &Row-: 行数 = '5'
+[2026-01-15 16:30:47.776] [DEBUG] [GetValueWithPreserveSupport] 列数: 使用当前值 '5'
+[2026-01-15 16:30:47.776] [DEBUG] [BuildFileNameByGroupFormat] 添加到分组 &Col-: 列数 = '5'
+[2026-01-15 16:30:47.776] [DEBUG] [BuildFileNameByGroupFormat] 分组 &ID-: 项目数=1, 分隔符使用=False, 结果='&ID-122-8'
+[2026-01-15 16:30:47.776] [DEBUG] [BuildFileNameByGroupFormat] 分组 &MT-: 项目数=1, 分隔符使用=False, 结果='&MT-hc'
+[2026-01-15 16:30:47.777] [DEBUG] [BuildFileNameByGroupFormat] 分组 &DN-: 项目数=1, 分隔符使用=False, 结果='&DN-1F'
+[2026-01-15 16:30:47.777] [DEBUG] [BuildFileNameByGroupFormat] 分组 &DP-: 项目数=1, 分隔符使用=False, 结果='&DP-黑白光膜'
+[2026-01-15 16:30:47.777] [DEBUG] [BuildFileNameByGroupFormat] 分组 &CU-: 项目数=1, 分隔符使用=False, 结果='&CU-02 HYS001549 120张+++'
+[2026-01-15 16:30:47.777] [DEBUG] [BuildFileNameByGroupFormat] 分组 &MK-: 项目数=1, 分隔符使用=False, 结果='&MK-80x50Z'
+[2026-01-15 16:30:47.777] [DEBUG] [BuildFileNameByGroupFormat] 分组 &Row-: 项目数=1, 分隔符使用=False, 结果='&Row-5'
+[2026-01-15 16:30:47.777] [DEBUG] [BuildFileNameByGroupFormat] 分组 &Col-: 项目数=1, 分隔符使用=False, 结果='&Col-5'
+[2026-01-15 16:30:47.778] [DEBUG] [BuildFileNameByGroupFormat] 完成，共生成 8 个部分
+[2026-01-15 16:30:47.778] [DEBUG] [BuildFileName] 共添加了 8 个组件部分: [&ID-122-8, &MT-hc, &DN-1F, &DP-黑白光膜, &CU-02 HYS001549 120张+++, &MK-80x50Z, &Row-5, &Col-5]
+[2026-01-15 16:30:47.778] [DEBUG] [ShouldUseGroupedFormat] 检查 Prefixes: 分组数=8 -> true
+[2026-01-15 16:30:47.778] [DEBUG] [BuildFileName] 按分组格式构建，分组间不使用分隔符，直接相接
+[2026-01-15 16:30:47.778] [DEBUG] [BuildFileName] 最终生成的文件名: '&ID-122-8&MT-hc&DN-1F&DP-黑白光膜&CU-02 HYS001549 120张+++&MK-80x50Z&Row-5&Col-5.pdf'
+[2026-01-15 16:30:47.778] [INFO] [GenerateNewFileName] 生成的新文件名: &ID-122-8&MT-hc&DN-1F&DP-黑白光膜&CU-02 HYS001549 120张+++&MK-80x50Z&Row-5&Col-5.pdf
+[2026-01-15 16:30:47.779] [INFO] [ProcessNewFileAsync] 文件 1/1: 数量=1, 序号=1, 新名称=&ID-122-8&MT-hc&DN-1F&DP-黑白光膜&CU-02 HYS001549 120张+++&MK-80x50Z&Row-5&Col-5.pdf
+[2026-01-15 16:30:47.780] [DEBUG] 填入空行 1: 02 HYS001549 120张+++.pdf
+[2026-01-15 16:30:47.781] [INFO] [RenameFileAsync] 开始重命名: 02 HYS001549 120张+++.pdf
+[2026-01-15 16:30:47.781] [INFO] [RenameFileAsync] 导出路径: C:\Users\admin\Desktop
+[2026-01-15 16:30:47.781] [INFO] [RenameFileAsync] 新文件名: &ID-122-8&MT-hc&DN-1F&DP-黑白光膜&CU-02 HYS001549 120张+++&MK-80x50Z&Row-5&Col-5.pdf
+[2026-01-15 16:30:47.781] [INFO] [RenameFileAsync] isPdfFile=True, needsPdfProcessing=True
+[2026-01-15 16:30:47.781] [INFO] [RenameFileAsync] 排版: EnableImposition=True, LayoutMode=Folding, LayoutQuantity=25
+[2026-01-15 16:30:47.782] [INFO] [RenameFileAsync] 使用PdfProcessingOptions: LayoutMode=Folding, LayoutQuantity=25
+[2026-01-15 16:30:47.782] [DEBUG] === 开始执行RenameFileImmediately (带PDF处理) ===
+[2026-01-15 16:30:47.783] [DEBUG] PDF处理选项 - AddPdfLayers: False, ShapeType: RightAngle, RoundRadius: 0
+[2026-01-15 16:30:47.783] [DEBUG] 没有PDF处理需求，使用标准重命名方法
+[2026-01-15 16:30:47.784] [DEBUG] === 开始执行RenameFileImmediately ===
+[2026-01-15 16:30:47.784] [DEBUG] 文件信息: 02 HYS001549 120张+++.pdf
+[2026-01-15 16:30:47.784] [DEBUG] 导出路径: C:\Users\admin\Desktop
+[2026-01-15 16:30:47.784] [DEBUG] 复制模式: True
+[2026-01-15 16:30:47.784] [DEBUG] 构建新文件路径: C:\Users\admin\Desktop\&ID-122-8&MT-hc&DN-1F&DP-黑白光膜&CU-02 HYS001549 120张+++&MK-80x50Z&Row-5&Col-5.pdf
+[2026-01-15 16:30:47.785] [DEBUG] 处理冲突后路径: C:\Users\admin\Desktop\&ID-122-8&MT-hc&DN-1F&DP-黑白光膜&CU-02 HYS001549 120张+++&MK-80x50Z&Row-5&Col-5.pdf
+[2026-01-15 16:30:47.785] [DEBUG] 执行文件复制: C:\Users\admin\Desktop\测试\02 HYS001549 120张+++.pdf -> C:\Users\admin\Desktop\&ID-122-8&MT-hc&DN-1F&DP-黑白光膜&CU-02 HYS001549 120张+++&MK-80x50Z&Row-5&Col-5.pdf
+[2026-01-15 16:30:47.787] [DEBUG] 文件重命名成功
+[2026-01-15 16:30:47.787] [INFO] Publishing event: FileRenamedEvent
+[2026-01-15 16:30:47.787] [INFO] [RenameFileAsync] 成功重命名并处理PDF: 02 HYS001549 120张+++.pdf -> &ID-122-8&MT-hc&DN-1F&DP-黑白光膜&CU-02 HYS001549 120张+++&MK-80x50Z&Row-5&Col-5.pdf

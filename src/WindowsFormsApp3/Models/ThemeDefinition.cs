@@ -39,6 +39,12 @@ namespace WindowsFormsApp3.Models
         [JsonConverter(typeof(ColorConverter))]
         public Color SurfaceLight { get; set; }
 
+        /// <summary>
+        /// 输入框背景色 (独立设置，用于区分 SurfaceLight)
+        /// </summary>
+        [JsonConverter(typeof(ColorConverter))]
+        public Color InputBackground { get; set; }
+
         #endregion
 
         #region 文字颜色
@@ -93,6 +99,30 @@ namespace WindowsFormsApp3.Models
         [JsonConverter(typeof(ColorConverter))]
         public Color Error { get; set; }
 
+        /// <summary>
+        /// 强调色1（预设：蓝色 - 用于行数显示）
+        /// </summary>
+        [JsonConverter(typeof(ColorConverter))]
+        public Color AccentColor1 { get; set; }
+
+        /// <summary>
+        /// 强调色2（预设：绿色 - 用于列数显示）
+        /// </summary>
+        [JsonConverter(typeof(ColorConverter))]
+        public Color AccentColor2 { get; set; }
+
+        /// <summary>
+        /// 强调色3（预设：橙色 - 用于数量显示）
+        /// </summary>
+        [JsonConverter(typeof(ColorConverter))]
+        public Color AccentColor3 { get; set; }
+
+        /// <summary>
+        /// 强调色4（预设：紫色 - 用于旋转角度显示）
+        /// </summary>
+        [JsonConverter(typeof(ColorConverter))]
+        public Color AccentColor4 { get; set; }
+
         #endregion
 
         #region 交互色
@@ -111,6 +141,15 @@ namespace WindowsFormsApp3.Models
 
         #endregion
 
+        #region 滚动条颜色
+
+        /// <summary>
+        /// 滚动条使用深色模式 (true=深色, false=浅色)
+        /// </summary>
+        public bool UseScrollBarDarkMode { get; set; }
+
+        #endregion
+
         /// <summary>
         /// 克隆主题定义
         /// </summary>
@@ -123,6 +162,7 @@ namespace WindowsFormsApp3.Models
                 Background = this.Background,
                 Surface = this.Surface,
                 SurfaceLight = this.SurfaceLight,
+                InputBackground = this.InputBackground,
                 TextPrimary = this.TextPrimary,
                 TextSecondary = this.TextSecondary,
                 Border = this.Border,
@@ -131,7 +171,12 @@ namespace WindowsFormsApp3.Models
                 Warning = this.Warning,
                 Error = this.Error,
                 BackActive = this.BackActive,
-                BackHover = this.BackHover
+                BackHover = this.BackHover,
+                UseScrollBarDarkMode = this.UseScrollBarDarkMode,
+                AccentColor1 = this.AccentColor1,
+                AccentColor2 = this.AccentColor2,
+                AccentColor3 = this.AccentColor3,
+                AccentColor4 = this.AccentColor4
             };
         }
     }

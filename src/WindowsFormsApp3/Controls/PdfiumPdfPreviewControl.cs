@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using PdfiumViewer;
 using WindowsFormsApp3.Utils;
@@ -13,12 +14,20 @@ namespace WindowsFormsApp3.Controls
     /// </summary>
     public class PdfiumPdfPreviewControl : UserControl
     {
+        #region Windows API
+        
+        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
+        private static extern int SetWindowTheme(IntPtr hWnd, string pszSubAppName, string pszSubIdList);
+        
+        #endregion
+        
         #region 私有字段
 
         private PdfViewer _pdfViewer;
         private PdfDocument _pdfDocument;
         private string _currentFilePath;
         private bool _isInitialized = false;
+        private bool _isDarkTheme = false;
 
         #endregion
 
@@ -112,6 +121,9 @@ namespace WindowsFormsApp3.Controls
             // 绑定事件
             _pdfViewer.Renderer.DisplayRectangleChanged += Renderer_DisplayRectangleChanged;
             
+            // 🔧 绑定 HandleCreated 事件以应用滚动条主题
+            _pdfViewer.Renderer.HandleCreated += (s, e) => ApplyScrollBarThemeToRenderer();
+            
             // 鼠标进入时自动获得焦点，以便键盘快捷键可以工作
             _pdfViewer.MouseEnter += (s, e) => _pdfViewer.Focus();
             _pdfViewer.Renderer.MouseEnter += (s, e) => _pdfViewer.Focus();
@@ -203,7 +215,8 @@ namespace WindowsFormsApp3.Controls
             _pdfViewer.Renderer.ContextMenuStrip = contextMenu;
 
             this.Controls.Add(_pdfViewer);
-            this.BackColor = Color.White;
+            // 🔧 移除硬编码的背景色，使用控件默认颜色，支持后续主题设置
+            this.BackColor = SystemColors.Control;
 
             _isInitialized = true;
 
@@ -529,7 +542,89 @@ namespace WindowsFormsApp3.Controls
             base.Refresh();
         }
 
+        /// <summary>
+        /// 设置滚动条主题（深色/浅色模式）
+        /// </summary>
+        /// <param name="isDark">是否为深色模式</param>
+        public void SetScrollBarTheme(bool isDark)
+        {
+            LogHelper.Debug($"[PdfiumPdfPreviewControl] SetScrollBarTheme 被调用: isDark={isDark}");
+            _isDarkTheme = isDark;
+            
+            try
+            {
+                // 直接使用 Windows API 设置 PdfViewer 内部 Renderer 的滚动条主题
+                if (_pdfViewer?.Renderer != null)
+                {
+                    if (_pdfViewer.Renderer.IsHandleCreated)
+                    {
+                        ApplyScrollBarThemeToRenderer();
+                    }
+                    else
+                    {
+                        LogHelper.Debug($"[PdfiumPdfPreviewControl] Renderer 句柄未创建，等待 HandleCreated 事件");
+                    }
+                    // 如果句柄未创建，会在 HandleCreated 事件中应用
+                }
+                else
+                {
+                    LogHelper.Debug($"[PdfiumPdfPreviewControl] _pdfViewer 或 Renderer 为空");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[PdfiumPdfPreviewControl] 设置滚动条主题失败: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// 应用滚动条主题到 Renderer
+        /// </summary>
+        private void ApplyScrollBarThemeToRenderer()
+        {
+            if (_pdfViewer?.Renderer == null)
+            {
+                LogHelper.Debug($"[PdfiumPdfPreviewControl] ApplyScrollBarThemeToRenderer: Renderer 为空");
+                return;
+            }
+            
+            if (!_pdfViewer.Renderer.IsHandleCreated)
+            {
+                LogHelper.Debug($"[PdfiumPdfPreviewControl] ApplyScrollBarThemeToRenderer: Renderer 句柄未创建");
+                return;
+            }
+                
+            try
+            {
+                // "DarkMode_Explorer" 用于深色模式（Windows 10 1809+）
+                // null 恢复默认主题
+                string theme = _isDarkTheme ? "DarkMode_Explorer" : null;
+                int result = SetWindowTheme(_pdfViewer.Renderer.Handle, theme, null);
+                _pdfViewer.Renderer.Invalidate();
+                LogHelper.Debug($"[PdfiumPdfPreviewControl] 滚动条主题已设置: isDark={_isDarkTheme}, theme={theme ?? "null"}, result={result}, Handle={_pdfViewer.Renderer.Handle}");
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[PdfiumPdfPreviewControl] 应用滚动条主题失败: {ex.Message}");
+            }
+        }
+
         #endregion
+
+        /// <summary>
+        /// 设置预览背景颜色
+        /// </summary>
+        /// <param name="color">背景颜色</param>
+        public void SetPreviewBackgroundColor(Color color)
+        {
+            this.BackColor = color;
+            if (_pdfViewer != null)
+            {
+                _pdfViewer.BackColor = color;
+            }
+        }
+
+
 
         #region 事件处理
 

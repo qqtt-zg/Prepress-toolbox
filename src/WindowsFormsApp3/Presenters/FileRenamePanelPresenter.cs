@@ -406,10 +406,12 @@ namespace WindowsFormsApp3.Presenters
                             // 在UI线程上调用对话框
                             viewControl.Invoke((Action)(() =>
                             {
+                                // ✅ 修复：使用匹配正则结果（cmbRegex2）传递给对话框，用于Excel数据匹配
+                                string matchingRegexResult = GetRegexResultForMatching(fileInfo);
                                 dialogResult = _view.ShowMaterialSelectionDialog(
                                     materials: _materials,
                                     fileName: fileInfo.FullPath,  // ✅ 修复：传递完整路径用于PDF预览
-                                    regexResult: fileInfo.RegexResult ?? "",
+                                    regexResult: matchingRegexResult ?? "",
                                     width: fileInfo.Width ?? "",
                                     height: fileInfo.Height ?? "",
                                     tetBleed: fileInfo.TetBleed ?? "",
@@ -425,10 +427,12 @@ namespace WindowsFormsApp3.Presenters
                         {
                             _logger?.LogError($"[跨线程修复] 无法转换_view为Control类型，直接调用");
                             // 如果无法转换，直接调用（可能失败）
+                            // ✅ 修复：使用匹配正则结果(cmbRegex2)传递给对话框，用于Excel数据匹配
+                            string matchingRegexResult = GetRegexResultForMatching(fileInfo);
                             dialogResult = _view.ShowMaterialSelectionDialog(
                                 materials: _materials,
                                 fileName: fileInfo.FullPath,  // ✅ 修复：传递完整路径
-                                regexResult: fileInfo.RegexResult ?? "",
+                                regexResult: matchingRegexResult ?? "",
                                 width: fileInfo.Width ?? "",
                                 height: fileInfo.Height ?? "",
                                 tetBleed: fileInfo.TetBleed ?? "",
@@ -575,7 +579,7 @@ namespace WindowsFormsApp3.Presenters
                         
                         if (successCount > 0)
                         {
-                            _view.ShowSuccess($"已生成 {successCount}/{fileCount} 个文件");
+                            _view.ShowSuccess($"{fileInfo.OriginalName} → 已生成 {successCount}/{fileCount} 个文件");
                         }
                     }
                     else
@@ -742,7 +746,17 @@ namespace WindowsFormsApp3.Presenters
 
                 if (successCount > 0)
                 {
-                    _view.ShowSuccess($"成功重命名 {successCount} 个文件");
+                    // 获取第一个成功文件的原文件名作为通知的一部分
+                    var firstFile = fileList.FirstOrDefault(f => !string.IsNullOrEmpty(f.NewName));
+                    string originalName = firstFile?.OriginalName ?? "";
+                    if (successCount == 1 && !string.IsNullOrEmpty(originalName))
+                    {
+                        _view.ShowSuccess($"{originalName} → 重命名成功");
+                    }
+                    else
+                    {
+                        _view.ShowSuccess($"成功重命名 {successCount} 个文件");
+                    }
                 }
 
                 if (failCount > 0)
@@ -2134,7 +2148,8 @@ namespace WindowsFormsApp3.Presenters
                 foreach (var file in fileList)
                 {
                     // 更新正则匹配结果
-                    file.RegexResult = ExtractRegexResultBasedOnPrefix(file.OriginalName ?? "");
+                    // ✅ 修复：RegexResult 始终使用 FileRenamePanel 的正则表达式 (_cmbRegex)
+                    file.RegexResult = ExtractRegexResult(file.OriginalName ?? "");
 
                     // 如果启用了自动刷新，也更新新文件名
                     if (AppSettings.AutoRefreshFileNameOnRegexChange)
@@ -2196,7 +2211,9 @@ namespace WindowsFormsApp3.Presenters
             {
                 FullPath = filePath,
                 OriginalName = Path.GetFileName(filePath),
-                RegexResult = ExtractRegexResultBasedOnPrefix(Path.GetFileName(filePath))
+                // ✅ 修复：RegexResult 始终使用 FileRenamePanel 的正则表达式 (_cmbRegex)
+                // 数据匹配会单独使用 GetRegexResultForMatching 方法来判断使用哪个正则
+                RegexResult = ExtractRegexResult(Path.GetFileName(filePath))
             };
 
             // ✅ 新增：检查是否为返单文件，如果是则从保留分组中提取数据
@@ -2616,8 +2633,6 @@ namespace WindowsFormsApp3.Presenters
             if (fileInfo == null)
                 return string.Empty;
 
-            string regexResult = fileInfo.RegexResult ?? string.Empty;
-
             try
             {
                 // 检查是否为返单文件(包含保留分组前缀)
@@ -2655,20 +2670,33 @@ namespace WindowsFormsApp3.Presenters
                                 string preservedRegexResult = preserveData["正则结果"];
                                 if (!string.IsNullOrEmpty(preservedRegexResult))
                                 {
-                                    regexResult = preservedRegexResult;
-                                    _logger?.LogInformation($"✅ [GetRegexResultForMatching] 使用保留的正则结果: '{regexResult}' (原RegexResult: '{fileInfo.RegexResult}')");
+                                    _logger?.LogInformation($"✅ [GetRegexResultForMatching] 使用保留的正则结果: '{preservedRegexResult}'");
+                                    return preservedRegexResult;
                                 }
                             }
+                        }
+                    }
+                    else
+                    {
+                        // ✅ 修复：无分组前缀 - 使用 cmbRegex2 (ExcelImportForm) 进行数据匹配
+                        _logger?.LogDebug($"[GetRegexResultForMatching] 无分组前缀，使用 cmbRegex2: '{fileInfo.OriginalName}'");
+                        string matchingResult = ExtractRegexResultForMatching(fileInfo.OriginalName);
+                        if (!string.IsNullOrEmpty(matchingResult))
+                        {
+                            _logger?.LogInformation($"✅ [GetRegexResultForMatching] 使用 cmbRegex2 匹配结果: '{matchingResult}'");
+                            return matchingResult;
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, $"[GetRegexResultForMatching] 获取匹配正则结果时发生异常，使用原始RegexResult: '{fileInfo.RegexResult}'");
+                _logger?.LogError(ex, $"[GetRegexResultForMatching] 获取匹配正则结果时发生异常");
             }
 
-            return regexResult;
+            // 降级：使用 RegexResult (来自 _cmbRegex)
+            _logger?.LogDebug($"[GetRegexResultForMatching] 降级使用 RegexResult: '{fileInfo.RegexResult}'");
+            return fileInfo.RegexResult ?? string.Empty;
         }
 
         /// <summary>
