@@ -150,6 +150,22 @@ namespace WindowsFormsApp3.Forms.Panels
         }
         
         /// <summary>
+        /// 显示警告消息
+        /// </summary>
+        protected void ShowWarning(string message, string title = "警告")
+        {
+            MessageBox.Show(message, title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+        
+        /// <summary>
+        /// 显示成功消息
+        /// </summary>
+        protected void ShowSuccess(string message, string title = "成功")
+        {
+            MessageBox.Show(message, title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        
+        /// <summary>
         /// 显示错误消息
         /// </summary>
         protected void ShowError(string message, string title = "错误")

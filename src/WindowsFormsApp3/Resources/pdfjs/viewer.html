@@ -1,0 +1,612 @@
+<!doctype html>
+<html dir="ltr" mozdisallowselectionprint>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1"
+    />
+    <title>PDF 预览</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* 深色主题（默认） */
+      :root,
+      body.dark {
+        --bg-color: #525659;
+        --toolbar-bg: #2b2b2b;
+        --toolbar-color: #f1f1f1;
+        --btn-hover: rgba(255, 255, 255, 0.1);
+        --btn-active: rgba(255, 255, 255, 0.15);
+        --page-bg: #fff;
+        --separator: #3e3e3e;
+        --input-bg: #1a1a1a;
+        --input-border: #3e3e3e;
+        --sidebar-bg: #2b2b2b;
+        --sidebar-border: #3e3e3e;
+        --sidebar-tab-bg: #1a1a1a;
+        --sidebar-item-hover: rgba(255, 255, 255, 0.05);
+        --sidebar-item-active: #2a2a2a;
+        --text-color: #ddd;
+        --text-muted: #999;
+        --text-input: #ddd;
+        --accent-color: #4a9eff;
+        --loading-bg: rgba(0, 0, 0, 0.85);
+        --tooltip-bg: #000;
+        --scrollbar-track: #333;
+        --scrollbar-thumb: #666;
+      }
+
+      /* 浅色主题 */
+      body:not(.dark) {
+        --bg-color: #f5f5f5;
+        --toolbar-bg: #ffffff;
+        --toolbar-color: #333333;
+        --btn-hover: rgba(0, 0, 0, 0.05);
+        --btn-active: rgba(0, 0, 0, 0.1);
+        --page-bg: #fff;
+        --separator: #e0e0e0;
+        --input-bg: #f8f8f8;
+        --input-border: #dcdcdc;
+        --sidebar-bg: #ffffff;
+        --sidebar-border: #e0e0e0;
+        --sidebar-tab-bg: #f8f8f8;
+        --sidebar-item-hover: rgba(0, 0, 0, 0.03);
+        --sidebar-item-active: #e8f4ff;
+        --text-color: #333;
+        --text-muted: #666;
+        --text-input: #333;
+        --accent-color: #1890ff;
+        --loading-bg: rgba(0, 0, 0, 0.75);
+        --tooltip-bg: #333;
+        --scrollbar-track: #f0f0f0;
+        --scrollbar-thumb: #bbb;
+      }
+
+      body {
+        background: var(--bg-color);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        height: 100vh;
+        overflow: hidden;
+        user-select: none;
+      }
+
+      /* 工具栏 */
+      #toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--toolbar-bg);
+        color: var(--toolbar-color);
+        padding: 0 16px;
+        height: 56px; /* 更高的工具栏，符合现代设计 */
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        position: relative;
+        z-index: 100;
+      }
+
+      .toolbar-section {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .toolbar-section.center {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      .toolbar-btn {
+        background: transparent;
+        border: none;
+        color: var(--toolbar-color);
+        width: 36px;
+        height: 36px;
+        border-radius: 50%; /* 圆形按钮 */
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+        position: relative;
+      }
+
+      .toolbar-btn:hover:not(:disabled) {
+        background: var(--btn-hover);
+      }
+
+      .toolbar-btn:active:not(:disabled) {
+        background: var(--btn-active);
+      }
+
+      .toolbar-btn:disabled {
+        opacity: 0.3;
+        cursor: default;
+      }
+
+      .toolbar-btn svg {
+        width: 20px;
+        height: 20px;
+        fill: currentColor;
+      }
+
+      /* 分隔符 */
+      .separator {
+        width: 1px;
+        height: 24px;
+        background: var(--separator);
+        margin: 0 8px;
+      }
+
+      /*页码显示 */
+      #pageInfoContainer {
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
+        border-radius: 4px;
+        padding: 4px 12px;
+        font-size: 13px;
+        min-width: 100px;
+        text-align: center;
+        color: var(--text-input);
+        margin: 0 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+      }
+
+      #pageInput {
+        background: transparent;
+        border: none;
+        color: var(--text-input);
+        font-size: 13px;
+        width: 40px;
+        text-align: center;
+        outline: none;
+        cursor: pointer;
+      }
+
+      #pageInput:focus {
+        background: var(--input-border);
+        border-radius: 2px;
+        cursor: text;
+      }
+
+      #totalPages {
+        color: var(--text-muted);
+      }
+
+      /* 缩放比例 */
+      #zoomLevel {
+        font-size: 13px;
+        min-width: 45px;
+        text-align: center;
+        margin: 0 4px;
+      }
+
+      /* 主容器 */
+      #mainContainer {
+        position: absolute;
+        top: 56px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+      }
+
+      /* 边栏 */
+      #sidebar {
+        width: 250px;
+        background: var(--sidebar-bg);
+        border-right: 1px solid var(--sidebar-border);
+        display: flex;
+        flex-direction: column;
+        transition: margin-left 0.3s ease;
+      }
+
+      #sidebar.hidden {
+        margin-left: -250px;
+      }
+
+      /* 边栏标签页 */
+      #sidebarTabs {
+        display: flex;
+        background: var(--sidebar-tab-bg);
+        border-bottom: 1px solid var(--sidebar-border);
+      }
+
+      .sidebar-tab {
+        flex: 1;
+        padding: 10px;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 13px;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+      }
+
+      .sidebar-tab:hover {
+        background: var(--sidebar-item-hover);
+        color: var(--text-color);
+      }
+
+      .sidebar-tab.active {
+        color: var(--text-color);
+        border-bottom-color: var(--accent-color);
+      }
+
+      /* 边栏内容 */
+      #sidebarContent {
+        flex: 1;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .sidebar-panel {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow-y: auto;
+        display: none;
+      }
+
+      .sidebar-panel.active {
+        display: block;
+      }
+
+      /* 缩略图容器 */
+      #thumbnailContainer {
+        padding: 8px;
+      }
+
+      .thumbnail-item {
+        margin-bottom: 12px;
+        padding: 8px;
+        background: var(--input-bg);
+        border-radius: 4px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+      }
+
+      .thumbnail-item:hover {
+        background: var(--sidebar-item-hover);
+      }
+
+      .thumbnail-item.active {
+        border-color: var(--accent-color);
+        background: #2a2a2a;
+      }
+
+      .thumbnail-canvas {
+        width: 100%;
+        display: block;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .thumbnail-label {
+        text-align: center;
+        color: #999;
+        font-size: 11px;
+        margin-top: 4px;
+      }
+
+      /* 图层容器 */
+      #layerContainer {
+        padding: 12px;
+      }
+
+      .layer-item {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        margin-bottom: 4px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .layer-item:hover {
+        background: var(--sidebar-item-hover);
+      }
+
+      .layer-checkbox {
+        margin-right: 8px;
+      }
+
+      .layer-name {
+        color: var(--text-color);
+        font-size: 13px;
+      }
+
+      .empty-message {
+        color: var(--text-muted);
+        text-align: center;
+        padding: 20px;
+        font-size: 13px;
+      }
+
+      /* 预览容器 */
+      #viewerContainer {
+        flex: 1;
+        overflow: auto;
+        background: var(--bg-color);
+        /* 自定义滚动条 */
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+        position: relative;
+      }
+
+      /* 可拖拽时的光标 - 仅在页面大于容器时显示 */
+      #viewerContainer.draggable {
+        cursor: grab;
+      }
+
+      #viewerContainer.dragging {
+        cursor: grabbing;
+        user-select: none;
+      }
+
+      #viewerContainer::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+
+      #viewerContainer::-webkit-scrollbar-track {
+        background: var(--scrollbar-track);
+      }
+
+      #viewerContainer::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb);
+        border-radius: 5px;
+        border: 2px solid var(--scrollbar-track);
+      }
+
+      #viewer {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 8px; /* 减少内边距从24px到8px */
+        min-height: 100%;
+        width: fit-content;
+        margin: 0 auto;
+      }
+
+      .page {
+        background: var(--page-bg);
+        margin-bottom: 24px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        transition: transform 0.2s;
+      }
+
+      /* 适应宽度时移除水平margin */
+      .page.fit-width {
+        margin-bottom: 0;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Loading 消息 */
+      #loadingMessage {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--loading-bg);
+        color: #fff;
+        padding: 30px 50px;
+        border-radius: 8px;
+        font-size: 16px;
+        z-index: 300;
+        display: none;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      }
+
+      #loadingMessage.show {
+        display: block;
+      }
+
+      /* 加载动画 */
+      .loading-spinner {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* 加载遮罩 */
+      #loadingOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: 250;
+        display: none;
+      }
+
+      #loadingOverlay.show {
+        display: block;
+      }
+
+      /* 工具提示 (Tooltip) */
+      [data-tooltip]:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--tooltip-bg);
+        color: #fff;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0.8;
+        z-index: 300;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="toolbar">
+      <!-- 左侧：边栏切换 + 页面导航 -->
+      <div class="toolbar-section">
+        <button
+          class="toolbar-btn"
+          id="toggleSidebar"
+          data-tooltip="显示/隐藏边栏"
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+          </svg>
+        </button>
+        <div class="separator"></div>
+        <button
+          class="toolbar-btn"
+          id="prevPage"
+          data-tooltip="上一页"
+          disabled
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+          </svg>
+        </button>
+        <div id="pageInfoContainer">
+          <input
+            type="text"
+            id="pageInput"
+            value="0"
+            title="点击输入页码，按回车跳转"
+          />
+          <span>/</span>
+          <span id="totalPages">0</span>
+        </div>
+        <button
+          class="toolbar-btn"
+          id="nextPage"
+          data-tooltip="下一页"
+          disabled
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- 中间：缩放控制 -->
+      <div class="toolbar-section center">
+        <button class="toolbar-btn" id="zoomOut" data-tooltip="缩小">
+          <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z" /></svg>
+        </button>
+        <span id="zoomLevel">100%</span>
+        <button class="toolbar-btn" id="zoomIn" data-tooltip="放大">
+          <svg viewBox="0 0 24 24">
+            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+          </svg>
+        </button>
+        <div class="separator"></div>
+        <button class="toolbar-btn" id="fitWidth" data-tooltip="适应宽度">
+          <!-- Fit Width Icon -->
+          <svg viewBox="0 0 24 24">
+            <path d="M4 11h16v2H4zM2 6h20v2H2zM2 16h20v2H2z" />
+          </svg>
+        </button>
+        <button class="toolbar-btn" id="fitPage" data-tooltip="适应页面">
+          <!-- Fit Page Icon -->
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M16 2H8C6.9 2 6 2.9 6 4v16c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 14H9v-2h6v2zm0-4H9v-2h6v2zm0-4H9V6h6v2z"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <!-- 右侧：旋转和其他 -->
+      <div class="toolbar-section">
+        <button class="toolbar-btn" id="rotateCCW" data-tooltip="逆时针旋转">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M7.11 8.53L5.7 7.11C4.8 8.27 4.24 9.61 4.07 11h2.02c.14-.87.49-1.72 1.02-2.47zM6.09 13H4.07c.17 1.39.72 2.73 1.62 3.89l1.41-1.42c-.54-.75-.88-1.6-1.01-2.47zm1.01 5.32c1.16.9 2.51 1.44 3.9 1.61v-2.02c-.87-.15-1.72-.49-2.48-1.03l-1.42 1.44zM13 4.07V1L8.45 5.55 13 10V6.92c2.84.48 5 2.94 5 5.91s-2.16 5.43-5 5.91v2.02c3.94-.49 7-3.85 7-7.93s-3.06-7.44-7-7.92z"
+            />
+          </svg>
+        </button>
+        <button class="toolbar-btn" id="rotateCW" data-tooltip="顺时针旋转">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M15.55 5.55L11 1v3.07C7.06 4.56 4 7.92 4 12s3.06 7.44 7 7.93v-2.02c-2.84-.48-5-2.94-5-5.91s2.16-5.43 5-5.91V10l4.55-4.45zM19.93 11c-.17-1.39-.72-2.73-1.62-3.89l-1.42 1.42c.54.75.88 1.6 1.02 2.47h2.02zM13 17.9v2.02c1.39-.17 2.74-.71 3.9-1.61l-1.44-1.44c-.75.54-1.59.89-2.46 1.03zm3.89-2.42l1.42 1.41c.9-1.16 1.45-2.5 1.62-3.89h-2.02c-.14.87-.48 1.72-1.02 2.48z"
+            />
+          </svg>
+        </button>
+        <div class="separator"></div>
+        <button class="toolbar-btn" id="toggleBoxes" data-tooltip="显示/隐藏印刷框线">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"/>
+            <rect x="5" y="5" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2,2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 主容器：边栏 + PDF预览区 -->
+    <div id="mainContainer">
+      <!-- 左侧边栏 -->
+      <div id="sidebar" class="hidden">
+        <div id="sidebarTabs">
+          <button class="sidebar-tab active" data-tab="thumbnails">
+            缩略图
+          </button>
+          <button class="sidebar-tab" data-tab="layers">图层</button>
+        </div>
+        <div id="sidebarContent">
+          <!-- 缩略图视图 -->
+          <div id="thumbnailView" class="sidebar-panel active">
+            <div id="thumbnailContainer"></div>
+          </div>
+          <!-- 图层视图 -->
+          <div id="layerView" class="sidebar-panel">
+            <div id="layerContainer">
+              <p class="empty-message">无可用图层</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PDF预览区 -->
+      <div id="viewerContainer">
+        <div id="viewer"></div>
+      </div>
+    </div>
+
+    <div id="loadingOverlay"></div>
+    <div id="loadingMessage">
+      <div class="loading-spinner"></div>
+      <div id="loadingText">准备就绪</div>
+    </div>
+
+    <script src="build/pdf.min.js"></script>
+    <script src="bridge.js"></script>
+  </body>
+</html>

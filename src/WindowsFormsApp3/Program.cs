@@ -11,6 +11,8 @@ using WindowsFormsApp3.Utils;
 using WindowsFormsApp3.Services;
 using System.IO;
 using System.Diagnostics;
+using CefSharp;
+using CefSharp.WinForms;
 
 namespace WindowsFormsApp3
 {
@@ -220,6 +222,17 @@ catch (Exception ex)
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
 
+                // 初始化CefSharp（必须在创建任何浏览器控件之前）
+                try
+                {
+                    InitializeCefSharp();
+                }
+                catch (Exception ex)
+                {
+                    LogHelper.Error($"CefSharp初始化失败: {ex.Message}", ex);
+                    Console.WriteLine($"CefSharp初始化失败: {ex.Message}");
+                }
+
                 Application.Run(new MainShellForm());
 
                 mutex.ReleaseMutex();
@@ -410,6 +423,45 @@ catch (Exception ex)
         Console.WriteLine("初始化日志配置失败: " + ex.Message);
     }
 }
+
+        /// <summary>
+        /// 初始化CefSharp
+        /// </summary>
+        private static void InitializeCefSharp()
+        {
+            if (Cef.IsInitialized)
+            {
+                LogHelper.Debug("CefSharp已经初始化");
+                return;
+            }
+
+            LogHelper.Info("开始初始化CefSharp...");
+
+            var settings = new CefSettings
+            {
+                // 禁用日志减少输出
+                LogSeverity = LogSeverity.Disable,
+                // 设置缓存路径
+                CachePath = Path.Combine(Application.StartupPath, "CefCache"),
+                // 设置语言
+                Locale = "zh-CN",
+                // 设置浏览器子进程路径
+                BrowserSubprocessPath = Path.Combine(Application.StartupPath, "CefSharp.BrowserSubprocess.exe")
+            };
+
+            // 添加命令行参数
+            settings.CefCommandLineArgs.Add("lang", "zh-CN");
+            // 禁用GPU加速以提高兼容性
+            settings.CefCommandLineArgs.Add("disable-gpu", "1");
+            // 允许本地文件访问
+            settings.CefCommandLineArgs.Add("allow-file-access-from-files", "1");
+            settings.CefCommandLineArgs.Add("allow-universal-access-from-files", "1");
+
+            // 初始化Cef
+            Cef.Initialize(settings, performDependencyCheck: true, browserProcessHandler: null);
+
+            LogHelper.Info("CefSharp初始化完成");
+        }
 
     }
 }

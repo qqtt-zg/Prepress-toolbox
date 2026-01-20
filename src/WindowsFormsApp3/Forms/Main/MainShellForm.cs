@@ -236,6 +236,12 @@ namespace WindowsFormsApp3.Forms.Main
             foreach (var panel in panelCache.Values)
             {
                 ThemeHelper.ApplyTheme(panel, isDark);
+                
+                // 如果是 PDF 操作面板，应用 PDF 主题
+                if (panel is Panels.PdfOperationsPanel pdfPanel)
+                {
+                    pdfPanel.ApplyTheme(isDark);
+                }
             }
 
             // 保存设置
@@ -279,6 +285,12 @@ namespace WindowsFormsApp3.Forms.Main
                     {
                         ThemeHelper.ApplyTheme(panel, isDark); // Ensure isDark is updated for each panel context if needed
                         ThemeHelper.ApplyTheme(panel, theme);
+                        
+                        // 如果是 PDF 操作面板，应用 PDF 主题
+                        if (panel is Panels.PdfOperationsPanel pdfPanel)
+                        {
+                            pdfPanel.ApplyTheme(isDark);
+                        }
                     }
                     
                     // Krypton 适配
@@ -306,7 +318,7 @@ namespace WindowsFormsApp3.Forms.Main
             }
             catch (Exception ex)
             {
-                Utils.LogHelper.Error("应用主题失败", ex);
+                LogHelper.Error("应用主题失败", ex);
                 // 回退到默认主题
                 SetTheme(false);
             }
@@ -349,6 +361,14 @@ namespace WindowsFormsApp3.Forms.Main
                 Text = "数据库", 
                 IconSvg = "DatabaseOutlined", 
                 Tag = "database" 
+            });
+
+            // 3. PDF操作
+            navMenu.Items.Add(new AntdUI.MenuItem 
+            { 
+                Text = "PDF操作", 
+                IconSvg = "FilePdfOutlined", 
+                Tag = "pdf_operations"
             });
 
 
@@ -620,6 +640,9 @@ namespace WindowsFormsApp3.Forms.Main
                     // 所有设置相关菜单都返回设置面板
                     return new WindowsFormsApp3.Forms.Panels.SettingsPanel();
                     
+                case "pdf_operations":
+                    return new WindowsFormsApp3.Forms.Panels.PdfOperationsPanel();
+                    
                 default:
                     return CreatePlaceholderPanel(panelKey);
             }
@@ -674,6 +697,7 @@ namespace WindowsFormsApp3.Forms.Main
                 "rename" => "文件重命名",
                 "excel" => "Excel导入",
                 "settings" => "设置",
+                "pdf_operations" => "PDF操作",
                 _ => panelKey
             };
         }

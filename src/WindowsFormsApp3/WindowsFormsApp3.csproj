@@ -16,6 +16,7 @@
     <!-- 根据Context7文档添加CefSharp所需的RuntimeIdentifier配置 -->
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
     <SelfContained Condition="'$(SelfContained)' == ''">false</SelfContained>
+    <NoWarn>$(NoWarn);NU1603;NU1903</NoWarn>
   </PropertyGroup>
 
   <!-- 确保图标文件被正确嵌入为资源 -->
@@ -51,6 +52,7 @@
   <!-- NuGet包引用 -->
   <ItemGroup>
     <PackageReference Include="AntdUI" Version="2.2.4" />
+    <PackageReference Include="CefSharp.WinForms" Version="109.1.110" />
     <PackageReference Include="EPPlus" Version="5.0.4" />
     <PackageReference Include="itext" Version="9.3.0" />
     <PackageReference Include="itext.bouncy-castle-adapter" Version="9.3.0" />
@@ -66,6 +68,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
     <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3650.58" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Ookii.Dialogs.WinForms" Version="4.0.0" />
     <PackageReference Include="PDFsharp" Version="6.2.0" />
@@ -114,6 +117,13 @@
       <HintPath>lib\PdfiumViewer.dll</HintPath>
       <Private>True</Private>
     </Reference>
+  </ItemGroup>
+
+  <!-- PDF.js资源文件 -->
+  <ItemGroup>
+    <Content Include="Resources\pdfjs\**\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

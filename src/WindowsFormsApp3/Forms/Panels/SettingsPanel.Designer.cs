@@ -86,7 +86,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.tabsMain.Pages.Add(this.pageTheme);
 			this.tabsMain.Pages.Add(this.pageFontText);
 			this.tabsMain.SelectedIndex = 6;
-			this.tabsMain.Size = new System.Drawing.Size(921, 569);
+			this.tabsMain.Size = new System.Drawing.Size(940, 526);
 			this.tabsMain.Style = styleLine1;
 			this.tabsMain.TabIndex = 0;
 			// 
@@ -96,7 +96,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.pageTheme.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.pageTheme.Location = new System.Drawing.Point(0, 28);
 			this.pageTheme.Name = "pageTheme";
-			this.pageTheme.Size = new System.Drawing.Size(921, 541);
+			this.pageTheme.Size = new System.Drawing.Size(940, 498);
 			this.pageTheme.TabIndex = 6;
 			this.pageTheme.Text = "主题";
 			// 
@@ -105,7 +105,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.themeEditor.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.themeEditor.Location = new System.Drawing.Point(0, 0);
 			this.themeEditor.Name = "themeEditor";
-			this.themeEditor.Size = new System.Drawing.Size(921, 541);
+			this.themeEditor.Size = new System.Drawing.Size(940, 498);
 			this.themeEditor.TabIndex = 0;
 			// 
 			// pageGeneral
@@ -114,7 +114,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.pageGeneral.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.pageGeneral.Location = new System.Drawing.Point(0, 28);
 			this.pageGeneral.Name = "pageGeneral";
-			this.pageGeneral.Size = new System.Drawing.Size(921, 541);
+			this.pageGeneral.Size = new System.Drawing.Size(940, 498);
 			this.pageGeneral.TabIndex = 0;
 			this.pageGeneral.Text = "常规设置";
 			// 
@@ -123,7 +123,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.settingsGeneral.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.settingsGeneral.Location = new System.Drawing.Point(0, 0);
 			this.settingsGeneral.Name = "settingsGeneral";
-			this.settingsGeneral.Size = new System.Drawing.Size(921, 541);
+			this.settingsGeneral.Size = new System.Drawing.Size(940, 498);
 			this.settingsGeneral.TabIndex = 0;
 			this.settingsGeneral.Load += new System.EventHandler(this.settingsGeneral_Load);
 			// 
@@ -133,7 +133,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.pageRegex.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.pageRegex.Location = new System.Drawing.Point(0, 28);
 			this.pageRegex.Name = "pageRegex";
-			this.pageRegex.Size = new System.Drawing.Size(921, 541);
+			this.pageRegex.Size = new System.Drawing.Size(940, 498);
 			this.pageRegex.TabIndex = 1;
 			this.pageRegex.Text = "正则管理";
 			// 
@@ -142,7 +142,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.settingsRegex.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.settingsRegex.Location = new System.Drawing.Point(0, 0);
 			this.settingsRegex.Name = "settingsRegex";
-			this.settingsRegex.Size = new System.Drawing.Size(921, 541);
+			this.settingsRegex.Size = new System.Drawing.Size(940, 498);
 			this.settingsRegex.TabIndex = 0;
 			// 
 			// pageMaterial
@@ -151,7 +151,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.pageMaterial.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.pageMaterial.Location = new System.Drawing.Point(0, 28);
 			this.pageMaterial.Name = "pageMaterial";
-			this.pageMaterial.Size = new System.Drawing.Size(921, 541);
+			this.pageMaterial.Size = new System.Drawing.Size(940, 498);
 			this.pageMaterial.TabIndex = 2;
 			this.pageMaterial.Text = "材料形状";
 			// 
@@ -160,7 +160,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.settingsMaterial.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.settingsMaterial.Location = new System.Drawing.Point(0, 0);
 			this.settingsMaterial.Name = "settingsMaterial";
-			this.settingsMaterial.Size = new System.Drawing.Size(921, 541);
+			this.settingsMaterial.Size = new System.Drawing.Size(940, 498);
 			this.settingsMaterial.TabIndex = 0;
 			this.settingsMaterial.Load += new System.EventHandler(this.settingsMaterial_Load);
 			// 
@@ -170,7 +170,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.pagePath.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.pagePath.Location = new System.Drawing.Point(0, 28);
 			this.pagePath.Name = "pagePath";
-			this.pagePath.Size = new System.Drawing.Size(921, 541);
+			this.pagePath.Size = new System.Drawing.Size(940, 498);
 			this.pagePath.TabIndex = 3;
 			this.pagePath.Text = "导出路径";
 			// 
@@ -179,7 +179,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.settingsPath.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.settingsPath.Location = new System.Drawing.Point(0, 0);
 			this.settingsPath.Name = "settingsPath";
-			this.settingsPath.Size = new System.Drawing.Size(921, 541);
+			this.settingsPath.Size = new System.Drawing.Size(940, 498);
 			this.settingsPath.TabIndex = 0;
 			// 
 			// pageImposition
@@ -188,7 +188,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.pageImposition.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.pageImposition.Location = new System.Drawing.Point(0, 28);
 			this.pageImposition.Name = "pageImposition";
-			this.pageImposition.Size = new System.Drawing.Size(921, 541);
+			this.pageImposition.Size = new System.Drawing.Size(940, 498);
 			this.pageImposition.TabIndex = 4;
 			this.pageImposition.Text = "自动排版";
 			// 
@@ -197,7 +197,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.settingsImposition.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.settingsImposition.Location = new System.Drawing.Point(0, 0);
 			this.settingsImposition.Name = "settingsImposition";
-			this.settingsImposition.Size = new System.Drawing.Size(921, 541);
+			this.settingsImposition.Size = new System.Drawing.Size(940, 498);
 			this.settingsImposition.TabIndex = 0;
 			// 
 			// pageEvent
@@ -206,7 +206,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.pageEvent.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.pageEvent.Location = new System.Drawing.Point(0, 28);
 			this.pageEvent.Name = "pageEvent";
-			this.pageEvent.Size = new System.Drawing.Size(921, 541);
+			this.pageEvent.Size = new System.Drawing.Size(940, 498);
 			this.pageEvent.TabIndex = 5;
 			this.pageEvent.Text = "事件分组";
 			// 
@@ -215,7 +215,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.settingsEvent.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.settingsEvent.Location = new System.Drawing.Point(0, 0);
 			this.settingsEvent.Name = "settingsEvent";
-			this.settingsEvent.Size = new System.Drawing.Size(921, 541);
+			this.settingsEvent.Size = new System.Drawing.Size(940, 498);
 			this.settingsEvent.TabIndex = 0;
 			// 
 			// pageFontText
@@ -224,7 +224,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.pageFontText.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.pageFontText.Location = new System.Drawing.Point(0, 28);
 			this.pageFontText.Name = "pageFontText";
-			this.pageFontText.Size = new System.Drawing.Size(921, 541);
+			this.pageFontText.Size = new System.Drawing.Size(940, 498);
 			this.pageFontText.TabIndex = 7;
 			this.pageFontText.Text = "字体文字";
 			// 
@@ -233,14 +233,14 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.settingsFontText.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.settingsFontText.Location = new System.Drawing.Point(0, 0);
 			this.settingsFontText.Name = "settingsFontText";
-			this.settingsFontText.Size = new System.Drawing.Size(921, 541);
+			this.settingsFontText.Size = new System.Drawing.Size(940, 498);
 			this.settingsFontText.TabIndex = 0;
 			// 
 			// SettingsPanel
 			// 
 			this.Controls.Add(this.tabsMain);
 			this.Name = "SettingsPanel";
-			this.Size = new System.Drawing.Size(921, 569);
+			this.Size = new System.Drawing.Size(940, 526);
 			this.tabsMain.ResumeLayout(false);
 			this.pageTheme.ResumeLayout(false);
 			this.pageGeneral.ResumeLayout(false);

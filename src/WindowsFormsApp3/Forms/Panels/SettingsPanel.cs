@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using WindowsFormsApp3.Forms.Controls.Settings;
+using WindowsFormsApp3.Utils;
 
 namespace WindowsFormsApp3.Forms.Panels
 {
@@ -109,7 +110,7 @@ namespace WindowsFormsApp3.Forms.Panels
             }
             catch (Exception ex)
             {
-                Utils.LogHelper.Error("初始化主题编辑器失败", ex);
+                LogHelper.Error("初始化主题编辑器失败", ex);
             }
         }
 
@@ -138,7 +139,7 @@ namespace WindowsFormsApp3.Forms.Panels
                 settingsFontText?.SaveSettings();
                 
                 // 最后统一保存到文件
-                Utils.AppSettings.Save();
+                AppSettings.Save();
                 
                 // 触发快捷键更新
                 if (this.ParentForm is WindowsFormsApp3.Forms.Main.MainShellForm mainForm)
@@ -150,7 +151,7 @@ namespace WindowsFormsApp3.Forms.Panels
             }
             catch (System.Exception ex)
             {
-                Utils.LogHelper.Error("保存设置失败", ex);
+                LogHelper.Error("保存设置失败", ex);
                 MessageBox.Show($"保存失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
