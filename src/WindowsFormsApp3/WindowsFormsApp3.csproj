@@ -51,7 +51,7 @@
   
   <!-- NuGet包引用 -->
   <ItemGroup>
-    <PackageReference Include="AntdUI" Version="2.2.4" />
+    <PackageReference Include="AntdUI" Version="2.2.14" />
     <PackageReference Include="CefSharp.WinForms" Version="109.1.110" />
     <PackageReference Include="EPPlus" Version="5.0.4" />
     <PackageReference Include="itext" Version="9.3.0" />
@@ -122,6 +122,14 @@
   <!-- PDF.js资源文件 -->
   <ItemGroup>
     <Content Include="Resources\pdfjs\**\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Poppler工具文件 -->
+  <ItemGroup>
+    <Content Include="..\..\poppler\**\*.*">
+      <Link>poppler\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

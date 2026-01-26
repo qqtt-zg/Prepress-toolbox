@@ -79,7 +79,7 @@ namespace WindowsFormsApp3.Models
                     case FontEmbeddingStatus.FullyEmbedded:
                         return "完全嵌入";
                     case FontEmbeddingStatus.SubsetEmbedded:
-                        return "子集嵌入";
+                        return "已嵌入子集";
                     case FontEmbeddingStatus.NotEmbedded:
                         return "未嵌入";
                     default:

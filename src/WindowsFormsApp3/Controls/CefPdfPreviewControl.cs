@@ -19,6 +19,7 @@ namespace WindowsFormsApp3.Controls
         private ChromiumWebBrowser _browser;
         private bool _isInitialized = false;
         private string _pendingPdfPath;
+        private bool? _pendingIsDark; // 待应用的主题状态
         private int _currentPage = 0;
         private int _totalPages = 0;
 
@@ -172,14 +173,41 @@ namespace WindowsFormsApp3.Controls
             {
                 LogHelper.Debug($"[CefPdfPreview] 开始加载PDF: {filePath}");
 
+                // 等待浏览器完全初始化并且可以执行JavaScript
+                if (!_browser.IsBrowserInitialized || !_browser.CanExecuteJavascriptInMainFrame)
+                {
+                    LogHelper.Debug("[CefPdfPreview] 等待浏览器和Frame初始化...");
+                    // 等待最多10秒
+                    int waitCount = 0;
+                    while ((!_browser.IsBrowserInitialized || !_browser.CanExecuteJavascriptInMainFrame) && waitCount < 100)
+                    {
+                        await Task.Delay(100);
+                        waitCount++;
+                    }
+                    
+                    if (!_browser.IsBrowserInitialized || !_browser.CanExecuteJavascriptInMainFrame)
+                    {
+                        LogHelper.Error("[CefPdfPreview] 浏览器或Frame初始化超时");
+                        LoadError?.Invoke(this, new PdfLoadErrorEventArgs("浏览器初始化超时"));
+                        return;
+                    }
+                }
+
+                LogHelper.Debug("[CefPdfPreview] 浏览器和Frame已就绪，可以执行JavaScript");
+
                 // 读取PDF并转换为Base64
                 byte[] pdfBytes = File.ReadAllBytes(filePath);
                 string base64 = Convert.ToBase64String(pdfBytes);
                 string dataUrl = $"data:application/pdf;base64,{base64}";
 
-                // 调用JavaScript加载PDF
+                // 调用JavaScript加载PDF（使用GetMainFrame().ExecuteJavaScriptAsync）
                 string script = $"loadPdf('{dataUrl}');";
-                await _browser.EvaluateScriptAsync(script);
+                
+                // ExecuteJavaScriptAsync 不返回值，直接调用
+                _browser.GetMainFrame().ExecuteJavaScriptAsync(script);
+                
+                // 等待一小段时间让脚本执行
+                await Task.Delay(100);
 
                 LogHelper.Debug($"[CefPdfPreview] PDF Base64已发送, 大小: {pdfBytes.Length / 1024}KB");
             }
@@ -195,9 +223,10 @@ namespace WindowsFormsApp3.Controls
         /// </summary>
         public async Task GoToPageAsync(int page)
         {
-            if (_browser != null && _isInitialized && page >= 1 && page <= _totalPages)
+            if (_browser != null && _isInitialized && _browser.CanExecuteJavascriptInMainFrame && page >= 1 && page <= _totalPages)
             {
-                await _browser.EvaluateScriptAsync($"goToPage({page});");
+                _browser.GetMainFrame().ExecuteJavaScriptAsync($"goToPage({page});");
+                await Task.Delay(50); // 等待脚本执行
             }
         }
 
@@ -206,9 +235,10 @@ namespace WindowsFormsApp3.Controls
         /// </summary>
         public async Task RotateClockwiseAsync()
         {
-            if (_browser != null && _isInitialized)
+            if (_browser != null && _isInitialized && _browser.CanExecuteJavascriptInMainFrame)
             {
-                await _browser.EvaluateScriptAsync("state.rotation = (state.rotation + 90) % 360; renderPage(state.currentPage);");
+                _browser.GetMainFrame().ExecuteJavaScriptAsync("state.rotation = (state.rotation + 90) % 360; renderPage(state.currentPage);");
+                await Task.Delay(50); // 等待脚本执行
             }
         }
 
@@ -217,9 +247,10 @@ namespace WindowsFormsApp3.Controls
         /// </summary>
         public async Task RotateCounterClockwiseAsync()
         {
-            if (_browser != null && _isInitialized)
+            if (_browser != null && _isInitialized && _browser.CanExecuteJavascriptInMainFrame)
             {
-                await _browser.EvaluateScriptAsync("state.rotation = (state.rotation - 90 + 360) % 360; renderPage(state.currentPage);");
+                _browser.GetMainFrame().ExecuteJavaScriptAsync("state.rotation = (state.rotation - 90 + 360) % 360; renderPage(state.currentPage);");
+                await Task.Delay(50); // 等待脚本执行
             }
         }
 
@@ -231,15 +262,16 @@ namespace WindowsFormsApp3.Controls
         {
             try
             {
-                if (_browser?.IsBrowserInitialized == true)
+                if (_browser?.CanExecuteJavascriptInMainFrame == true)
                 {
                     var script = $"if(typeof setDarkMode === 'function') {{ setDarkMode({isDark.ToString().ToLower()}); }}";
-                    await _browser.EvaluateScriptAsync(script);
+                    _browser.GetMainFrame().ExecuteJavaScriptAsync(script);
+                    await Task.Delay(50); // 等待脚本执行
                     LogHelper.Debug($"[CefPdfPreview] PDF主题已切换: {(isDark ? "深色" : "浅色")}");
                 }
                 else
                 {
-                    LogHelper.Debug("[CefPdfPreview] 浏览器未初始化，主题将在初始化后应用");
+                    LogHelper.Debug("[CefPdfPreview] Frame未就绪，主题将在就绪后应用");
                 }
             }
             catch (Exception ex)
@@ -254,6 +286,9 @@ namespace WindowsFormsApp3.Controls
         /// <param name="isDark">是否为深色模式</param>
         public void ApplyTheme(bool isDark)
         {
+            // 更新待应用状态
+            _pendingIsDark = isDark;
+            
             // 异步调用，不等待结果
             _ = SetDarkModeAsync(isDark);
         }
@@ -266,11 +301,12 @@ namespace WindowsFormsApp3.Controls
         {
             try
             {
-                if (_browser?.IsBrowserInitialized == true)
+                if (_browser?.CanExecuteJavascriptInMainFrame == true)
                 {
                     // 调用JS函数(如果存在)
                     var script = $"if(typeof toggleBoxDisplay === 'function') {{ if(showBoxes !== {show.ToString().ToLower()}) toggleBoxDisplay(); }}";
-                    await _browser.EvaluateScriptAsync(script);
+                    _browser.GetMainFrame().ExecuteJavaScriptAsync(script);
+                    await Task.Delay(50); // 等待脚本执行
                 }
             }
             catch (Exception ex)
@@ -287,13 +323,14 @@ namespace WindowsFormsApp3.Controls
         {
             try
             {
-                if (_browser?.IsBrowserInitialized == true)
+                if (_browser?.CanExecuteJavascriptInMainFrame == true)
                 {
-                    await _browser.EvaluateScriptAsync(script);
+                    _browser.GetMainFrame().ExecuteJavaScriptAsync(script);
+                    await Task.Delay(50); // 等待脚本执行
                 }
                 else
                 {
-                    LogHelper.Warn("[CefPdfPreview] 浏览器未初始化，无法执行脚本");
+                    LogHelper.Warn("[CefPdfPreview] Frame未就绪，无法执行脚本");
                 }
             }
             catch (Exception ex)
@@ -321,6 +358,21 @@ namespace WindowsFormsApp3.Controls
                     this.BeginInvoke(new Action(async () =>
                     {
                         await LoadPdfAsync(path);
+                    }));
+                }
+
+                // 如果有待应用的主题，现在应用
+                if (_pendingIsDark.HasValue)
+                {
+                    var isDark = _pendingIsDark.Value;
+                    // 不清除 _pendingIsDark，因为 SetDarkModeAsync 内部会检查 Frame 是否就绪
+                    // 如果这里清除，SetDarkModeAsync 失败后就没机会重试了
+                    // 但考虑到 FrameLoadEnd 就是就绪信号，我们可以清除或者让它保持为当前状态
+                    // 这里我们保留它作为"当前期望的主题状态"
+                    
+                    this.BeginInvoke(new Action(async () =>
+                    {
+                        await SetDarkModeAsync(isDark);
                     }));
                 }
             }

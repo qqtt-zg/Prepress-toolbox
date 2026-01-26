@@ -289,12 +289,13 @@ namespace WindowsFormsApp3.Forms.Panels
 			// 
 			// _progressOverlay
 			// 
-			this._progressOverlay.BackColor = System.Drawing.Color.Transparent;
 			this._progressOverlay.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+			this._progressOverlay.BackColor = System.Drawing.Color.Transparent;
 			this._progressOverlay.Location = new System.Drawing.Point(0, 0);
 			this._progressOverlay.Margin = new System.Windows.Forms.Padding(0);
 			this._progressOverlay.Name = "_progressOverlay";
+			this._progressOverlay.Progress = 0;
 			this._progressOverlay.ProgressColor = System.Drawing.Color.FromArgb(((int)(((byte)(180)))), ((int)(((byte)(24)))), ((int)(((byte)(144)))), ((int)(((byte)(255)))));
 			this._progressOverlay.Size = new System.Drawing.Size(940, 4);
 			this._progressOverlay.TabIndex = 2;

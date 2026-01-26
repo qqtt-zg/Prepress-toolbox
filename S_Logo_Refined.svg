@@ -1,0 +1,85 @@
+<svg width="800" height="400" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 方案A: 科技蓝青渐变 -->
+    <linearGradient id="blueTech" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0052D4;stop-opacity:1" /> <!-- 深蓝 -->
+      <stop offset="100%" style="stop-color:#4364F7;stop-opacity:1" /> <!-- 亮蓝 -->
+    </linearGradient>
+    <linearGradient id="cyanTech" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00F260;stop-opacity:1" /> <!-- 荧光绿 -->
+      <stop offset="100%" style="stop-color:#0575E6;stop-opacity:1" /> <!-- 深青 -->
+    </linearGradient>
+
+    <!-- 方案C: 经典蓝橙升级渐变 -->
+    <linearGradient id="royalBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#240b36;stop-opacity:1" /> <!-- 深紫蓝 -->
+      <stop offset="100%" style="stop-color:#c31432;stop-opacity:1" /> <!-- 紫红 (此处调整为更现代的深蓝紫) -->
+      <!-- 修正为皇家蓝渐变 -->
+       <stop offset="0%" style="stop-color:#141E30;stop-opacity:1" />
+       <stop offset="100%" style="stop-color:#243B55;stop-opacity:1" />
+    </linearGradient>
+    <!-- 重新定义蓝橙方案的渐变 -->
+    <linearGradient id="modernBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2E3192;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1BFFFF;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="modernOrange" x1="100%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#FF512F;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F09819;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- 阴影增加层次 -->
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="2" dy="2" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge> 
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/> 
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="800" height="400" fill="#111" />
+
+  <!-- 方案 A: 科技蓝青 (左侧) -->
+  <g transform="translate(50, 50)">
+    <text x="150" y="280" fill="#ddd" font-family="Arial" font-size="20" text-anchor="middle">方案 A: 科技清爽 (Blue & Cyan)</text>
+    <g transform="translate(150, 130) scale(1.2) rotate(-10)">
+      <!-- 优化形状：加大外圆角，强化 S 流动感 -->
+      <!-- 上半部分 -->
+      <path d="M-60, -20 L40, -20 Q70, -20, 70, 10 L70, 30 L-20, 30 L-60, -10 Q-70, -20, -60, -20 Z" 
+            fill="url(#blueTech)" 
+            d="M-50,-40 L50,-40 Q80,-40, 80, -10 L40,40 L-50,40 L-80,0 Q-90,-40, -50,-40 Z"
+            />
+      <!-- 重画更流畅的图形 -->
+      <!-- 上部: 蓝色 -->
+      <path d="M-20,0 L60,-60 Q90,-80, 100,-40 L60,40 L-20,0 Z" 
+            fill="url(#modernBlue)" 
+            transform="translate(-20, -10)" />
+            
+      <!-- 下部: 橙色 -->
+      <path d="M20,0 L-60,60 Q-90,80, -100,40 L-60,-40 L20,0 Z" 
+            fill="url(#cyanTech)" 
+            transform="translate(20, 10)" />
+    </g>
+  </g>
+
+  <!-- 方案 B: 经典蓝橙升级 (右侧) -->
+  <g transform="translate(450, 50)">
+    <text x="150" y="280" fill="#ddd" font-family="Arial" font-size="20" text-anchor="middle">方案 B: 经典强化 (Vibrant Blue & Orange)</text>
+    <g transform="translate(150, 130) scale(1.3)">
+      <!-- 更加圆润流畅的S形构造 -->
+      
+      <!-- 上部 (蓝): 左上角大圆角，右下角尖锐 -->
+      <path d="M-80,-40 L20,-40 Q60,-40, 60,0 L20,50 L-80,-10 Q-100,-25, -80,-40 Z" 
+            fill="#0052D4" style="fill:url(#modernBlue); filter:url(#dropShadow)" />
+            
+      <!-- 下部 (橙): 右下角大圆角，左上角尖锐 -->
+      <path d="M80,40 L-20,40 Q-60,40, -60,0 L-20,-50 L80,10 Q100,25, 80,40 Z" 
+            fill="#F09819" style="fill:url(#modernOrange); filter:url(#dropShadow)" />
+    </g>
+  </g>
+</svg>

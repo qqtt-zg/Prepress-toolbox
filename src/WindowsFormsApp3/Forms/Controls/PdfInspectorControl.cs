@@ -7,7 +7,9 @@ using AntdUI;
 using WindowsFormsApp3.Models;
 using WindowsFormsApp3.Services;
 using WindowsFormsApp3.Utils;
+using WindowsFormsApp3.Forms;
 using WinFormsPanel = System.Windows.Forms.Panel;
+using System.ComponentModel;
 
 namespace WindowsFormsApp3.Forms.Controls
 {
@@ -18,7 +20,7 @@ namespace WindowsFormsApp3.Forms.Controls
     public partial class PdfInspectorControl : UserControl
     {
         private PdfInspectorService _inspectorService;
-        private PdfFontInspectorService _fontInspectorService;
+        private PdfFontInspectorService_Poppler _fontInspectorService;
         private PdfFontOutlineService _fontOutlineService;
         private PdfInspectorInfo _currentInfo;
         private DocumentFontInfo _fontInfo;
@@ -58,121 +60,46 @@ namespace WindowsFormsApp3.Forms.Controls
 
         public PdfInspectorControl()
         {
-            _inspectorService = new PdfInspectorService();
-            _fontInspectorService = new PdfFontInspectorService();
-            _fontOutlineService = new PdfFontOutlineService();
             InitializeComponent();
+            
+            // 初始化标签页（在Designer初始化组件后调用）
+            InitializeTabs();
+
+            if (LicenseManager.UsageMode == LicenseUsageMode.Designtime)
+                return;
+
+            LogHelper.Debug("[PdfInspectorControl] Initializing Inspector Services...");
+            _inspectorService = new PdfInspectorService();
+            
+            LogHelper.Debug("[PdfInspectorControl] Instantiating PdfFontInspectorService_Poppler...");
+            _fontInspectorService = new PdfFontInspectorService_Poppler();
+            
+            _fontOutlineService = new PdfFontOutlineService();
         }
 
-        private void InitializeComponent()
+        private void InitializeTabs()
         {
-            this.SuspendLayout();
-
-            // 基本设置
-            this.Size = new Size(400, 600);
-            this.BackColor = Color.White;
-            this.Padding = new Padding(0);
-
-            // 暂时注释掉头部面板，先让标签页显示出来
-            // CreateHeaderPanel();
-
-            // 创建内容面板
-            CreateContentPanel();
-
-            this.ResumeLayout(false);
-        }
-
-        /// <summary>
-        /// 创建头部面板
-        /// </summary>
-        private void CreateHeaderPanel()
-        {
-            _headerPanel = new WinFormsPanel
-            {
-                Dock = DockStyle.Top,
-                Height = 45,
-                BackColor = Color.FromArgb(250, 250, 250),
-                Padding = new Padding(15, 8, 15, 8)
-            };
-
-            // 单位选择器
-            _unitSelector = new AntdUI.Select
-            {
-                Location = new Point(15, 8),
-                Width = 100
-            };
-            _unitSelector.Items.AddRange(new object[] { "毫米 (mm)", "英寸 (in)", "点 (pt)" });
-            _unitSelector.SelectedIndex = 0;
-            _unitSelector.SelectedValueChanged += UnitSelector_SelectedValueChanged;
-
-            // 刷新按钮
-            _refreshButton = new AntdUI.Button
-            {
-                Text = "刷新",
-                Location = new Point(125, 8),
-                Width = 70,
-                Type = AntdUI.TTypeMini.Primary
-            };
-            _refreshButton.Click += RefreshButton_Click;
-
-            _headerPanel.Controls.Add(_unitSelector);
-            _headerPanel.Controls.Add(_refreshButton);
-
-            this.Controls.Add(_headerPanel);
-        }
-
-        /// <summary>
-        /// 创建内容面板
-        /// </summary>
-        private void CreateContentPanel()
-        {
-            _contentPanel = new WinFormsPanel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.White,
-                Padding = new Padding(0)
-            };
-
-            // 创建主标签页控件（参考 MaterialSelectFormModern 的正确用法）
-            var styleLine = new AntdUI.Tabs.StyleLine();
-            _mainTabs = new AntdUI.Tabs
-            {
-                Dock = DockStyle.Fill,
-                Location = new Point(0, 0),
-                Name = "mainTabs",
-                Style = styleLine,  // 关键：设置 Style
-                Gap = 10
-            };
-
-            LogHelper.Debug("[PdfInspectorControl] 开始创建标签页");
-
             // 创建所有标签页
             CreateCurrentPageTab();
             CreateAllPagesTab();
             CreateIssuesTab();
             CreateFontsTab();
 
-            LogHelper.Debug($"[PdfInspectorControl] 所有标签页创建完成");
-
-            // 同时添加到 Controls 和 Pages（这是正确的方式）
-            _mainTabs.Controls.Add(_currentPageTabPage);
-            _mainTabs.Controls.Add(_allPagesTabPage);
-            _mainTabs.Controls.Add(_issuesTabPage);
-            _mainTabs.Controls.Add(_fontsTabPage);
-            
-            _mainTabs.Pages.Add(_currentPageTabPage);
-            _mainTabs.Pages.Add(_allPagesTabPage);
-            _mainTabs.Pages.Add(_issuesTabPage);
-            _mainTabs.Pages.Add(_fontsTabPage);
-
-            LogHelper.Debug($"[PdfInspectorControl] 主标签页数量: Controls={_mainTabs.Controls.Count}, Pages={_mainTabs.Pages.Count}");
-
-            _contentPanel.Controls.Add(_mainTabs);
-            this.Controls.Add(_contentPanel);
-            
-            // 暂时注释掉，测试标签页是否能显示
-            // _headerPanel.BringToFront();
+            if (_mainTabs != null)
+            {
+                _mainTabs.Controls.Add(_currentPageTabPage);
+                _mainTabs.Controls.Add(_allPagesTabPage);
+                _mainTabs.Controls.Add(_issuesTabPage);
+                _mainTabs.Controls.Add(_fontsTabPage);
+                
+                _mainTabs.Pages.Add(_currentPageTabPage);
+                _mainTabs.Pages.Add(_allPagesTabPage);
+                _mainTabs.Pages.Add(_issuesTabPage);
+                _mainTabs.Pages.Add(_fontsTabPage);
+            }
         }
+
+
 
         /// <summary>
         /// 创建当前页面标签页
@@ -199,6 +126,39 @@ namespace WindowsFormsApp3.Forms.Controls
             _boxesTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
             _currentPagePanel.Controls.Add(_boxesTable);
+            
+            // Edit Button Panel
+            var editPanel = new WinFormsPanel { Dock = DockStyle.Top, Height = 45, Padding = new Padding(0, 5, 0, 5) };
+            var editButton = new AntdUI.Button
+            {
+                Text = "编辑页面几何框",
+                IconSvg = "EditOutlined",
+                Type = TTypeMini.Primary,
+                Dock = DockStyle.Right,
+                Width = 140
+            };
+            editButton.Click += EditPageBoxButton_Click;
+            editPanel.Controls.Add(editButton);
+            
+            _currentPagePanel.Controls.Add(editPanel);
+            // Reverse order because Dock=Top. Added last appears at top? No, Dock=Top stacks. 
+            // _boxesTable is added first (Top). editPanel added second (Top). editPanel will be below _boxesTable.
+            // Wait, Dock=Top: First added is at the top. Subsequent Dock=Top goes *under* previous Dock=Top.
+            // So if I want Edit Button at Top, I must add it *before* _boxesTable.
+            
+            // Correction: WinForms Dock=Top logic:
+            // Controls[0] is at the bottom of the Dock stack? No.
+            // The last control added with Dock.Top appears at the very top of the Z-order, and thus physically at the top.
+            // Let's verify: Control A (Top), Control B (Top). Visual: B, A.
+            // So if I want Edit Panel at the very top, I should add it LAST.
+            // Currently _boxesTable is added. If I add editPanel now, editPanel will be ABOVE _boxesTable.
+            // That is what I want.
+            
+            // Wait, standard practice:
+            // panel.Controls.Add(A); A.Dock = Top; -> A is Top.
+            // panel.Controls.Add(B); B.Dock = Top; -> B is above A.
+            // So YES, adding editPanel NOW (after _boxesTable) will put it at the very top.
+
 
             _currentPageTabPage = new AntdUI.TabPage
             {
@@ -207,6 +167,36 @@ namespace WindowsFormsApp3.Forms.Controls
                 Dock = DockStyle.Fill
             };
             _currentPageTabPage.Controls.Add(_currentPagePanel);
+        }
+
+        /// <summary>
+        /// 编辑页面几何框
+        /// </summary>
+        private void EditPageBoxButton_Click(object sender, EventArgs e)
+        {
+            if (_currentInfo?.CurrentPageBoxes == null) return;
+
+            var form = new PageBoxEditForm(_currentInfo.CurrentPageBoxes, _currentUnit);
+            if (form.ShowDialog() == DialogResult.OK)
+            {
+                if (form.ResultInfo != null)
+                {
+                    // Save changes
+                    bool success = _inspectorService.SavePageBox(_currentInfo.FilePath, form.ResultInfo, form.ApplyToAllPages);
+                    if (success)
+                    {
+                        AntdUI.Notification.success(this.FindForm(), "保存成功", "页面几何框已更新");
+                        // Reload
+                        LoadPdf(_currentInfo.FilePath, _currentInfo.CurrentPage);
+                        // Trigger external update event if needed
+                        // OnPdfModified(new PdfModifiedEventArgs(_currentInfo.FilePath)); 
+                    }
+                    else
+                    {
+                        AntdUI.Notification.error(this.FindForm(), "保存失败", "无法保存页面几何框修改");
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -224,7 +214,9 @@ namespace WindowsFormsApp3.Forms.Controls
             _pagesTable = new AntdUI.Table
             {
                 Dock = DockStyle.Fill,
-                Bordered = true
+                Bordered = true,
+                VisibleHeader = true,
+                FixedHeader = true
             };
             _pagesTable.CellClick += PagesTable_CellClick;
 
@@ -254,7 +246,9 @@ namespace WindowsFormsApp3.Forms.Controls
             _issuesTable = new AntdUI.Table
             {
                 Dock = DockStyle.Fill,
-                Bordered = true
+                Bordered = true,
+                VisibleHeader = true,
+                FixedHeader = true
             };
             _issuesTable.CellClick += IssuesTable_CellClick;
 
@@ -289,16 +283,18 @@ namespace WindowsFormsApp3.Forms.Controls
                 var toolbarPanel = new WinFormsPanel
                 {
                     Dock = DockStyle.Top,
-                    Height = 40,
+                    AutoSize = true,
+                    AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                    MinimumSize = new Size(0, 50),
                     BackColor = Color.White,
-                    Padding = new Padding(0, 0, 0, 10)
+                    Padding = new Padding(0, 5, 0, 10) // 增加底部内边距
                 };
 
                 // 转曲按钮
                 _outlineButton = new AntdUI.Button
                 {
                     Text = "转曲",
-                    Location = new Point(0, 5),
+                    Location = new Point(0, 10),
                     Width = 80,
                     Height = 30,
                     Type = AntdUI.TTypeMini.Primary,
@@ -314,7 +310,7 @@ namespace WindowsFormsApp3.Forms.Controls
                 var infoLabel = new AntdUI.Label
                 {
                     Text = "将PDF中的文字转换为路径（曲线），转曲后文字将无法编辑",
-                    Location = new Point(90, 10),
+                    Location = new Point(90, 15),
                     AutoSize = true,
                     ForeColor = Color.Gray,
                     Font = new Font("Microsoft YaHei UI", 8F),
@@ -330,12 +326,21 @@ namespace WindowsFormsApp3.Forms.Controls
                 _fontsTable = new AntdUI.Table
                 {
                     Dock = DockStyle.Fill,
-                    Bordered = true
+                    Bordered = true,
+                    VisibleHeader = true,  // 确保列头可见
+                    FixedHeader = true     // 固定列头
                 };
 
-                _fontsPanel.Controls.Add(_fontsTable);
+                // 先添加工具栏（Dock.Top），再添加表格（Dock.Fill）
+                // 注意：在WinForms中，为了让Dock=Fill的控件不遮挡Dock=Top的控件，
+                // Dock=Top的控件需要在Z-order的底部（先被Dock处理），
+                // 而Dock=Fill的控件需要在Z-order的顶部（最后被Dock处理）。
                 _fontsPanel.Controls.Add(toolbarPanel);
-                toolbarPanel.BringToFront();
+                _fontsPanel.Controls.Add(_fontsTable);
+                
+                // 明确设置Z-order确保布局正确
+                toolbarPanel.SendToBack(); // 底部 Z-order -> 优先 Dock
+                _fontsTable.BringToFront(); // 顶部 Z-order -> 最后 Dock (Fill剩余空间)
 
                 _fontsTabPage = new AntdUI.TabPage
                 {

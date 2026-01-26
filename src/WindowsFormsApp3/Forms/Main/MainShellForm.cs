@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Drawing;
@@ -7,6 +8,7 @@ using System.Runtime.InteropServices;
 using WindowsFormsApp3.Utils; // For AppSettings
 using WindowsFormsApp3.Forms.Panels;
 using WindowsFormsApp3.Services;
+using WindowsFormsApp3.Models;
 
 namespace WindowsFormsApp3.Forms.Main
 {
@@ -16,6 +18,7 @@ namespace WindowsFormsApp3.Forms.Main
     public partial class MainShellForm : Form
     {
         private Dictionary<string, UserControl> panelCache;
+        private Dictionary<AntdUI.Button, string> navButtons = new Dictionary<AntdUI.Button, string>();
         
         // 系统托盘
         private System.Windows.Forms.NotifyIcon trayIcon;
@@ -112,29 +115,25 @@ namespace WindowsFormsApp3.Forms.Main
 
         private void BtnCollapse_Click(object sender, EventArgs e)
         {
-            bool isCollapsed = !navMenu.Collapsed;
-            navMenu.Collapsed = isCollapsed;
+            // If current distance is wide (170), we collapse (to 92).
+            // If current distance is narrow (92), we expand (to 170).
             
-            // 同步底部菜单的折叠状态 - 已移除，合并到主菜单
-
-            
-            if (isCollapsed)
+             if (mainContainer.SplitterDistance > 100)
             {
-                mainContainer.SplitterDistance = 50;
+                // Collapse
+                mainContainer.SplitterDistance = 92;
                 titleLabel.Visible = false;
                 versionLabel.Visible = false;
                 btnCollapse.IconSvg = "MenuUnfoldOutlined";
             }
             else
             {
+                // Expand
                 mainContainer.SplitterDistance = 170;
                 titleLabel.Visible = true;
                 versionLabel.Visible = true;
                 btnCollapse.IconSvg = "MenuFoldOutlined";
             }
-            
-            // 每次折叠状态改变后重新布局（虽然折叠时隐藏了，但展开时需要重新计算位置以防万一）
-
         }
 
 
@@ -157,11 +156,6 @@ namespace WindowsFormsApp3.Forms.Main
 
 
             InitializeMenuItems(); 
- 
-            // 设置菜单直角高亮
-            navMenu.Radius = 0;
-            // 设置高亮背景色（更柔和的深灰蓝）
-            navMenu.BackActive = Color.FromArgb(66, 72, 78);
             
             InitializeTrayIcon();
             RegisterHotkeys();
@@ -181,6 +175,17 @@ namespace WindowsFormsApp3.Forms.Main
 
             // 默认显示文件重命名面板
             SwitchToPanel("rename");
+            
+            // 默认激活"首页"按钮
+            var homeButton = navButtons.FirstOrDefault(kvp => kvp.Value == "rename").Key;
+            if (homeButton != null)
+            {
+                var theme = Services.ServiceLocator.Instance.GetThemeManager().GetCurrentTheme();
+                homeButton.Type = AntdUI.TTypeMini.Primary; // 使用Primary
+                homeButton.Ghost = false;
+                homeButton.BackColor = theme.BackActive;
+                homeButton.ForeColor = theme.TextPrimary;
+            }
             
             // InitializeBottomMenu(); // 已合并到InitializeMenuItems
 
@@ -212,18 +217,17 @@ namespace WindowsFormsApp3.Forms.Main
             if (isDark)
             {
                 mainContainer.Panel1.BackColor = Color.FromArgb(40, 42, 46); // 侧边栏 - 使用深色主背景色
-                navMenu.BackColor = Color.FromArgb(40, 42, 46);              // 导航菜单 - 使用深色主背景色
+                navPanel.BackColor = Color.FromArgb(40, 42, 46);             // 导航菜单 - 使用深色主背景色
                 logoPanel.BackColor = Color.FromArgb(40, 42, 46);            // Logo区域 - 使用深色主背景色
                 panelCollapseWrapper.BackColor = Color.FromArgb(40, 42, 46); // 折叠按钮区域 - 使用深色主背景色
 
                 contentPanel.BackColor = Color.FromArgb(30, 30, 30);         // Content Area
                 headerPanel.BackColor = Color.FromArgb(45, 45, 45);          // Header
-                headerPanel.BackColor = Color.FromArgb(45, 45, 45);          // Header
             }
             else
             {
                 mainContainer.Panel1.BackColor = Color.FromArgb(248, 249, 250); // 侧边栏 - 使用浅色主背景色
-                navMenu.BackColor = Color.FromArgb(248, 249, 250);              // 导航菜单 - 使用浅色主背景色
+                navPanel.BackColor = Color.FromArgb(248, 249, 250);             // 导航菜单 - 使用浅色主背景色
                 logoPanel.BackColor = Color.FromArgb(248, 249, 250);            // Logo区域 - 使用浅色主背景色
                 panelCollapseWrapper.BackColor = Color.FromArgb(248, 249, 250); // 折叠按钮区域 - 使用浅色主背景色
 
@@ -275,7 +279,7 @@ namespace WindowsFormsApp3.Forms.Main
                     ThemeHelper.ApplyTheme(this, theme);
                     
                     // 明确设置导航菜单使用主背景色
-                    navMenu.BackColor = theme.Background;
+                    navPanel.BackColor = theme.Background;
                     mainContainer.Panel1.BackColor = theme.Background;
                     logoPanel.BackColor = theme.Background;
                     panelCollapseWrapper.BackColor = theme.Background;
@@ -309,6 +313,9 @@ namespace WindowsFormsApp3.Forms.Main
                             materialForm.ApplyTheme(theme);
                         }
                     }
+                    
+                    // 刷新导航按钮的颜色
+                    RefreshNavigationButtonColors(theme);
                 }
                 else
                 {
@@ -328,76 +335,155 @@ namespace WindowsFormsApp3.Forms.Main
         /// 初始化底部菜单按钮 - 使用独立的Menu控件以保持样式完全一致
         /// </summary>
 
-
+        /// <summary>
+        /// 刷新导航按钮的颜色（主题切换时调用）
+        /// </summary>
+        private void RefreshNavigationButtonColors(ThemeDefinition theme)
+        {
+            if (theme == null || navButtons == null || navButtons.Count == 0)
+                return;
+                
+            foreach (var btn in navButtons.Keys)
+            {
+                // 检查当前激活的按钮（Ghost为false表示激活状态）
+                if (!btn.Ghost)
+                {
+                    // 已激活的按钮，更新为新主题的激活颜色
+                    btn.BackColor = theme.BackActive;
+                    btn.ForeColor = theme.TextPrimary;
+                }
+                else
+                {
+                    // 未激活按钮，保持透明背景和淡色文字
+                    btn.BackColor = Color.Transparent;
+                    btn.ForeColor = theme.TextSecondary;
+                }
+            }
+        }
         
         private void ShowAboutDialog()
         {
             // 获取程序集版本
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            string versionStr = version != null ? $"V{version.Major}.{version.Minor}.{version.Build}" : "V2.3.7";
+            string versionStr = version != null ? $"V{version.Major}.{version.Minor}.{version.Build}" : "V2.3.9";
             
             MessageBox.Show($"大诚工具箱 (Prepress Toolbox)\n版本: {versionStr}\n\n一个专业的印前处理辅助工具。", 
                 "关于", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         
         /// <summary>
-        /// 初始化导航菜单项
+        /// 初始化导航菜单项 (Button Implementation)
         /// </summary>
         private void InitializeMenuItems()
         {
-            // TitlePanel and NavMenu are created in InitializeComponent
+            navPanel.Controls.Clear();
+            navButtons.Clear();
+
+            // 1. 首页 (重命名)
+            AddNavButton("首页", "FolderOpenOutlined", "rename");
             
-            // 创建菜单项
-            // 1. 文件重命名
-            navMenu.Items.Add(new AntdUI.MenuItem 
-            { 
-                Text = "首页", 
-                IconSvg = "FolderOpenOutlined", 
-                Tag = "rename"
-            });
-
-            navMenu.Items.Add(new AntdUI.MenuItem 
-            { 
-                Text = "数据库", 
-                IconSvg = "DatabaseOutlined", 
-                Tag = "database" 
-            });
-
+            // 2. 数据库
+            AddNavButton("数据库", "DatabaseOutlined", "database");
+            
             // 3. PDF操作
-            navMenu.Items.Add(new AntdUI.MenuItem 
-            { 
-                Text = "PDF操作", 
-                IconSvg = "FilePdfOutlined", 
-                Tag = "pdf_operations"
-            });
+            AddNavButton("PDF操作", "FilePdfOutlined", "pdf_operations");
+            
+            // 4. 拼版工具
+            AddNavButton("拼版工具", "AppstoreAddOutlined", "imposition_workspace");
+             
+             // 5. 设置
+            AddNavButton("设置", "SettingOutlined", "settings");
+            
+            // 6. 更多菜单 (Special handling)
+            // AddNavButton("菜单", "MoreOutlined", "menu_root"); // Can treat as normal button but override click
+            AddNavButton("菜单", "MoreOutlined", "menu_root", true);
+        }
 
+        private void AddNavButton(string text, string iconSvg, string tag, bool isMenu = false)
+        {
+            // 侧边栏固定宽度170，减去PaddingLeft(5)，按钮宽90
+            // 居中计算：(170 - 5 - 90) / 2 ≈ 37
+            int marginLeft = 37;
 
+            // 获取当前主题以设置正确的初始颜色
+            var theme = Services.ServiceLocator.Instance.GetThemeManager().GetCurrentTheme();
+            Color initialColor = theme != null ? theme.TextSecondary : Color.Gray;
 
-            // 4. 设置
-            navMenu.Items.Add(new AntdUI.MenuItem
+            var btn = new AntdUI.Button
             {
-                Text = "设置",
-                IconSvg = "SettingOutlined",
-                Tag = "settings"
-            });
-
-            // 5. 菜单 (包含子项)
-            var menuRoot = new AntdUI.MenuItem
-            {
-                Text = "菜单",
-                IconSvg = "MoreOutlined",
-                Tag = "menu_root"
+                Size = new Size(100, 100),
+                Radius = 6, // Slightly rounded square
+                Type = AntdUI.TTypeMini.Default, 
+                Ghost = true, // Start transparent
+                IconSvg = iconSvg,
+                IconRatio = 3f, // 适中的图标比例
+                IconSize = new Size(40, 40), // 图标大小32×32像素
+                IconPosition = AntdUI.TAlignMini.Top, // Icon on top
+                Text = text, // Show text
+                Tag = tag,
+                Margin = new Padding(marginLeft, 0, marginLeft, 8), // 水平居中
+                ForeColor = initialColor, // 使用主题定义的次要文字颜色
+                Font = new Font("Microsoft YaHei UI", 9F), // Ensure readable font size
+                // Tooltip logic could be added here if needed
             };
+            
+            // For menu button, maybe align differently or just add to end
+            
+            btn.Click += NavButton_Click;
+            navPanel.Controls.Add(btn);
+            navButtons.Add(btn, tag);
+        }
 
-            // 使用 Sub 属性添加子菜单
-            menuRoot.Sub.Add(new AntdUI.MenuItem { Text = "打开日志", Tag = "open_log" });
-            menuRoot.Sub.Add(new AntdUI.MenuItem { Text = "关于", Tag = "about" });
-            menuRoot.Sub.Add(new AntdUI.MenuItem { Text = "退出", Tag = "exit" });
-
-            navMenu.Items.Add(menuRoot);
-
-            // 绑定事件 (放在代码中以避免设计器自动移除)
-            navMenu.SelectChanged += NavMenu_SelectChanged;
+        /// <summary>
+        /// 导航按钮点击事件
+        /// </summary>
+        private void NavButton_Click(object sender, EventArgs e)
+        {
+            if (sender is AntdUI.Button btn && btn.Tag != null)
+            {
+                string key = btn.Tag.ToString();
+                
+                if (key == "menu_root")
+                {
+                    // Show Context Menu
+                    ShowMoreMenu(btn);
+                    return;
+                }
+                
+                // 获取当前主题
+                var themeManager = Services.ServiceLocator.Instance.GetThemeManager();
+                var theme = themeManager.GetCurrentTheme();
+                
+                // Highlight logic
+                foreach(var b in navButtons.Keys)
+                {
+                    // Reset all to normal state
+                    b.Type = AntdUI.TTypeMini.Default;
+                    b.Ghost = true; // 恢复透明背景
+                    b.BackColor = Color.Transparent; // 确保背景透明
+                    b.ForeColor = theme.TextSecondary; // 恢复未选中时的文字颜色(主题次要颜色)
+                }
+                
+                // 使用交互色组的激活状态颜色高亮选中的按钮
+                btn.Type = AntdUI.TTypeMini.Primary; // 使用Primary类型（如果有定义样式）或保持Default配合BackColor
+                btn.Ghost = false; // 取消透明，显示背景色
+                btn.BackColor = theme.BackActive; // 设置激活背景色
+                btn.ForeColor = theme.TextPrimary; // 设置高亮文字颜色
+                
+                // Switch Panel
+                SwitchToPanel(key);
+            }
+        }
+        
+        private void ShowMoreMenu(Control anchor)
+        {
+            var contextMenu = new ContextMenuStrip();
+            contextMenu.Items.Add("打开日志", null, (s, e) => OpenLogFolder());
+            contextMenu.Items.Add("关于", null, (s, e) => ShowAboutDialog());
+            contextMenu.Items.Add("-");
+            contextMenu.Items.Add("退出", null, (s, e) => ExitApplication());
+            
+            contextMenu.Show(anchor, new Point(anchor.Width, 0)); // Show to the right
         }
         
         /// <summary>
@@ -486,37 +572,7 @@ namespace WindowsFormsApp3.Forms.Main
         /// <summary>
         /// 菜单选择改变事件
         /// </summary>
-        private void NavMenu_SelectChanged(object sender, AntdUI.MenuSelectEventArgs e)
-        {
-            if (e.Value == null || e.Value.Tag == null) return;
-            
-            string key = e.Value.Tag.ToString();
-            
 
-            // 忽略父节点点击
-            if (key == "settings_root" || key == "menu_root") return;
-
-            if (key == "about")
-            {
-                ShowAboutDialog();
-                // 恢复之前的选择（可选）或者不处理
-                return;
-            }
-            
-            if (key == "open_log")
-            {
-                OpenLogFolder();
-                return;
-            }
-            
-            if (key == "exit")
-            {
-                ExitApplication();
-                return;
-            }
-
-            SwitchToPanel(key);
-        }
         
         /// <summary>
         /// 初始化系统托盘图标
@@ -577,6 +633,12 @@ namespace WindowsFormsApp3.Forms.Main
                     // 应用当前临渧题到新创建的面板
                     var isDark = AppSettings.CurrentThemeName == "深色";
                     ThemeHelper.ApplyTheme(newPanel, isDark);
+
+                    // 如果是 PDF 操作面板，需额外调用 ApplyTheme 以触发 JS 主题切换
+                    if (newPanel is WindowsFormsApp3.Forms.Panels.PdfOperationsPanel pdfPanel)
+                    {
+                        pdfPanel.ApplyTheme(isDark);
+                    }
                 }
 
                 var panel = panelCache[primaryKey];
@@ -642,6 +704,9 @@ namespace WindowsFormsApp3.Forms.Main
                     
                 case "pdf_operations":
                     return new WindowsFormsApp3.Forms.Panels.PdfOperationsPanel();
+
+                case "imposition_workspace":
+                    return new WindowsFormsApp3.Forms.Panels.ImpositionWorkspacePanel();
                     
                 default:
                     return CreatePlaceholderPanel(panelKey);

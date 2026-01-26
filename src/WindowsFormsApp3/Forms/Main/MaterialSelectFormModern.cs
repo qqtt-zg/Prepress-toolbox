@@ -1912,16 +1912,8 @@ namespace WindowsFormsApp3
                     
                     if (index >= 0)
                     {
-                        // 🔧 特殊处理：如果是"不过膜"，视为隐式默认值，不显示高亮状态
-                        if (lastFilmType == "不过膜")
-                        {
-                            UpdateFilmTypeButtonStates(-1);
-                            LogHelper.Debug($"恢复膜类型: {lastFilmType} (视作默认值，不显示高亮)");
-                        }
-                        else
-                        {
-                            UpdateFilmTypeButtonStates(index);
-                        }
+                        // 正常恢复膜类型选中状态，包括"不过膜"
+                        UpdateFilmTypeButtonStates(index);
                     }
                     else
                     {

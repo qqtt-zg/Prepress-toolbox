@@ -15,7 +15,7 @@ namespace WindowsFormsApp3.Forms.Main
         private System.Windows.Forms.Label versionLabel;
         private System.Windows.Forms.Panel logoPanel;
 
-        private AntdUI.Menu navMenu;
+        private System.Windows.Forms.FlowLayoutPanel navPanel;
         private System.Windows.Forms.Panel contentPanel;
         
         // Window Controls (Right side)
@@ -54,7 +54,7 @@ namespace WindowsFormsApp3.Forms.Main
             this.components = new System.ComponentModel.Container();
             this.kryptonManager = new Krypton.Toolkit.KryptonManager(this.components);
             this.mainContainer = new System.Windows.Forms.SplitContainer();
-            this.navMenu = new AntdUI.Menu();
+            this.navPanel = new System.Windows.Forms.FlowLayoutPanel();
             this.panelCollapseWrapper = new System.Windows.Forms.Panel();
             this.btnCollapse = new AntdUI.Button();
             this.logoPanel = new System.Windows.Forms.Panel();
@@ -77,7 +77,6 @@ namespace WindowsFormsApp3.Forms.Main
             this.panelCollapseWrapper.SuspendLayout();
             this.logoPanel.SuspendLayout();
             this.headerPanel.SuspendLayout();
-
             this.SuspendLayout();
             // 
             // mainContainer
@@ -91,7 +90,7 @@ namespace WindowsFormsApp3.Forms.Main
             // mainContainer.Panel1
             // 
             this.mainContainer.Panel1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(36)))), ((int)(((byte)(41)))), ((int)(((byte)(46)))));
-            this.mainContainer.Panel1.Controls.Add(this.navMenu);
+            this.mainContainer.Panel1.Controls.Add(this.navPanel);
             this.mainContainer.Panel1.Controls.Add(this.panelCollapseWrapper);
             this.mainContainer.Panel1.Controls.Add(this.logoPanel);
             // 
@@ -104,18 +103,18 @@ namespace WindowsFormsApp3.Forms.Main
             this.mainContainer.SplitterWidth = 1;
             this.mainContainer.TabIndex = 0;
             // 
-            // navMenu
+            // navPanel
             // 
-            this.navMenu.AutoCollapse = true;
-            this.navMenu.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(36)))), ((int)(((byte)(41)))), ((int)(((byte)(46)))));
-            this.navMenu.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.navMenu.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(200)))));
-            this.navMenu.Indent = true;
-            this.navMenu.Location = new System.Drawing.Point(0, 50);
-            this.navMenu.Margin = new System.Windows.Forms.Padding(2);
-            this.navMenu.Name = "navMenu";
-            this.navMenu.Size = new System.Drawing.Size(170, 602);
-            this.navMenu.TabIndex = 0;
+            this.navPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(36)))), ((int)(((byte)(41)))), ((int)(((byte)(46)))));
+            this.navPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.navPanel.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
+            this.navPanel.Location = new System.Drawing.Point(0, 50);
+            this.navPanel.Margin = new System.Windows.Forms.Padding(2);
+            this.navPanel.Name = "navPanel";
+            this.navPanel.Padding = new System.Windows.Forms.Padding(5, 10, 0, 0);
+            this.navPanel.Size = new System.Drawing.Size(170, 602);
+            this.navPanel.TabIndex = 0;
+            this.navPanel.WrapContents = false;
             // 
             // panelCollapseWrapper
             // 
@@ -175,7 +174,7 @@ namespace WindowsFormsApp3.Forms.Main
             this.versionLabel.Name = "versionLabel";
             this.versionLabel.Size = new System.Drawing.Size(41, 17);
             this.versionLabel.TabIndex = 1;
-            this.versionLabel.Text = "v2.3.4";
+            this.versionLabel.Text = "v2.3.8";
             this.versionLabel.TextAlign = System.Drawing.ContentAlignment.BottomRight;
             this.versionLabel.MouseDown += new System.Windows.Forms.MouseEventHandler(this.TitlePanel_MouseDown);
             // 

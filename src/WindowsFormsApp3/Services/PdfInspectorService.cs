@@ -307,6 +307,64 @@ namespace WindowsFormsApp3.Services
 
             return bleedInfo;
         }
+        
+        /// <summary>
+        /// 保存页面框修改
+        /// </summary>
+        public bool SavePageBox(string filePath, PageBoxInfo newInfo, bool applyToAllPages)
+        {
+            try
+            {
+                string tempPath = filePath + ".tmp";
+                
+                int startPage = 0;
+                int endPage = 0;
+                
+                using (PdfReader reader = new PdfReader(filePath))
+                using (PdfWriter writer = new PdfWriter(tempPath))
+                using (PdfDocument document = new PdfDocument(reader, writer))
+                {
+                    startPage = applyToAllPages ? 1 : newInfo.PageNumber;
+                    endPage = applyToAllPages ? document.GetNumberOfPages() : newInfo.PageNumber;
+
+                    for (int i = startPage; i <= endPage; i++)
+                    {
+                        PdfPage page = document.GetPage(i);
+                        
+                        // Update MediaBox (Changes physical page size)
+                        if (newInfo.MediaBox.IsDefined)
+                         page.SetMediaBox(new Rectangle((float)newInfo.MediaBox.Left, (float)newInfo.MediaBox.Bottom, (float)newInfo.MediaBox.Width, (float)newInfo.MediaBox.Height));
+                            
+                        // Update CropBox (Visible region)
+                        if (newInfo.CropBox.IsDefined)
+                            page.SetCropBox(new Rectangle((float)newInfo.CropBox.Left, (float)newInfo.CropBox.Bottom, (float)newInfo.CropBox.Width, (float)newInfo.CropBox.Height));
+
+                        // Update BleedBox
+                        if (newInfo.BleedBox.IsDefined)
+                            page.SetBleedBox(new Rectangle((float)newInfo.BleedBox.Left, (float)newInfo.BleedBox.Bottom, (float)newInfo.BleedBox.Width, (float)newInfo.BleedBox.Height));
+                        
+                        // Update TrimBox
+                        if (newInfo.TrimBox.IsDefined)
+                            page.SetTrimBox(new Rectangle((float)newInfo.TrimBox.Left, (float)newInfo.TrimBox.Bottom, (float)newInfo.TrimBox.Width, (float)newInfo.TrimBox.Height));
+                        
+                        // ArtBox skipped as usually not key for simple editing
+                    }
+                }
+
+                // File swap
+                if (File.Exists(filePath)) File.Delete(filePath);
+                File.Move(tempPath, filePath);
+                
+                LogHelper.Info($"成功保存页面框修改: {filePath}, 应用到页码范围: {startPage}-{endPage}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"保存页面框修改失败: {ex.Message}");
+                if (File.Exists(filePath + ".tmp")) File.Delete(filePath + ".tmp");
+                return false;
+            }
+        }
     }
 
     /// <summary>

@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using WindowsFormsApp3.Utils;
+using System.ComponentModel;
 
 namespace WindowsFormsApp3.Controls
 {
@@ -90,7 +91,7 @@ namespace WindowsFormsApp3.Controls
 
         public PdfPreviewControl()
         {
-            _isDesignMode = DesignMode;
+            _isDesignMode = DesignMode || LicenseManager.UsageMode == LicenseUsageMode.Designtime;
             InitializeUI();
         }
 
