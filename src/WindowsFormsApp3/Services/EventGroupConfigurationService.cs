@@ -45,6 +45,29 @@ namespace WindowsFormsApp3.Services
                 }
                 
                 LogHelper.Debug($"[EventGroupConfigurationService] 成功加载预设方案 {currentPresetName}，包含 {config.Groups?.Count ?? 0} 个分组，{config.Items?.Count ?? 0} 个项目");
+                
+                // ✅ 自动迁移：将 "排版模式" 重命名为 "材料类型"
+                bool modified = false;
+                if (config.Items != null)
+                {
+                    foreach (var item in config.Items)
+                    {
+                        if (item.Name == "排版模式")
+                        {
+                            item.Name = "材料类型";
+                            modified = true;
+                            LogHelper.Debug($"[EventGroupConfigurationService] 自动迁移：已将项目 '排版模式' 重命名为 '材料类型'");
+                        }
+                    }
+                }
+
+                if (modified)
+                {
+                    // 可选：保存回配置？暂时只在内存中修改即可生效
+                    // AppSettings.Instance[presetKey] = JsonConvert.SerializeObject(config);
+                    // AppSettings.Save(); 
+                }
+
                 return config;
             }
             catch (System.Exception ex)

@@ -1,0 +1,133 @@
+INFO  2026-01-26T05:48:03 +193ms service=default version=1.1.36 args=["serve","--hostname","127.0.0.1","--port","59024"] opencode
+INFO  2026-01-26T05:48:03 +0ms service=config path=C:\Users\admin\.config\opencode\config.json loading
+INFO  2026-01-26T05:48:03 +1ms service=config path=C:\Users\admin\.config\opencode\opencode.json loading
+INFO  2026-01-26T05:48:03 +6ms service=config path=C:\Users\admin\.config\opencode\opencode.jsonc loading
+INFO  2026-01-26T05:48:03 +512ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:48:03 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:48:03 +1ms service=server status=completed duration=1 method=GET path=/global/health request
+INFO  2026-01-26T05:48:05 +2013ms service=server method=GET path=/global/event request
+INFO  2026-01-26T05:48:05 +0ms service=server status=started method=GET path=/global/event request
+INFO  2026-01-26T05:48:05 +0ms service=server global event connected
+INFO  2026-01-26T05:48:05 +2ms service=server status=completed duration=2 method=GET path=/global/event request
+INFO  2026-01-26T05:48:05 +1ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:48:05 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:48:05 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:48:05 +0ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:48:05 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:48:05 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:48:05 +4ms service=server method=GET path=/path request
+INFO  2026-01-26T05:48:05 +0ms service=server status=started method=GET path=/path request
+INFO  2026-01-26T05:48:05 +1ms service=default directory=C:\Users\admin\AppData\Local\OpenCode creating instance
+INFO  2026-01-26T05:48:05 +0ms service=project directory=C:\Users\admin\AppData\Local\OpenCode fromDirectory
+INFO  2026-01-26T05:48:05 +1ms service=server method=GET path=/config request
+INFO  2026-01-26T05:48:05 +0ms service=server status=started method=GET path=/config request
+INFO  2026-01-26T05:48:05 +0ms service=server method=GET path=/project request
+INFO  2026-01-26T05:48:05 +0ms service=server status=started method=GET path=/project request
+INFO  2026-01-26T05:48:05 +0ms service=server method=GET path=/provider request
+INFO  2026-01-26T05:48:05 +0ms service=server status=started method=GET path=/provider request
+INFO  2026-01-26T05:48:05 +0ms service=server method=GET path=/provider/auth request
+INFO  2026-01-26T05:48:05 +0ms service=server status=started method=GET path=/provider/auth request
+INFO  2026-01-26T05:48:05 +2ms service=default directory=C:\Users\admin\AppData\Local\OpenCode bootstrapping
+INFO  2026-01-26T05:48:05 +3ms service=bun cmd=["C:\\Users\\admin\\AppData\\Local\\OpenCode\\opencode-cli.exe","add","@opencode-ai/plugin@1.1.36","--exact"] cwd=C:\Users\admin\.config\opencode running
+INFO  2026-01-26T05:48:05 +5ms service=plugin name=CodexAuthPlugin loading internal plugin
+INFO  2026-01-26T05:48:05 +0ms service=plugin name=CopilotAuthPlugin loading internal plugin
+INFO  2026-01-26T05:48:05 +1ms service=plugin path=oh-my-opencode loading plugin
+INFO  2026-01-26T05:48:05 +0ms service=bun pkg=oh-my-opencode version=latest installing package using Bun's default registry resolution
+INFO  2026-01-26T05:48:05 +0ms service=bun cmd=["C:\\Users\\admin\\AppData\\Local\\OpenCode\\opencode-cli.exe","add","--force","--exact","--cwd","C:\\Users\\admin\\.cache\\opencode","oh-my-opencode@latest"] cwd=C:\Users\admin\.cache\opencode running
+INFO  2026-01-26T05:48:05 +15ms service=bun code=0 stdout=bun add v1.3.5 (1e86cebd)
+
+installed @opencode-ai/plugin@1.1.36
+
+[6.00ms] done
+ stderr=Saved lockfile
+ done
+INFO  2026-01-26T05:48:05 +0ms service=bun cmd=["C:\\Users\\admin\\AppData\\Local\\OpenCode\\opencode-cli.exe","install"] cwd=C:\Users\admin\.config\opencode running
+INFO  2026-01-26T05:48:05 +16ms service=bun code=0 stdout=bun install v1.3.5 (1e86cebd)
+
+Checked 3 installs across 4 packages (no changes) [5.00ms]
+ stderr= done
+INFO  2026-01-26T05:48:10 +4260ms service=bun code=1 stdout=bun add v1.3.5 (1e86cebd)
+ stderr=Resolving dependencies
+error: moving "@ast-grep/cli-win32-x64-msvc" to cache dir failed
+EPERM: Operation not permitted (NtSetInformationFile())
+  From: .989f75ff6ddfabeb-00000001.cli-win32-x64-msvc
+    To: @ast-grep/cli-win32-x64-msvc@0.40.5@@@1
+error: moving "oh-my-opencode-windows-x64" to cache dir failed
+EPERM: Operation not permitted (NtSetInformationFile())
+  From: .bf9ff9f7bad78d7d-00000002.oh-my-opencode-windows-x64
+    To: oh-my-opencode-windows-x64@3.0.1@@@1
+Resolved, downloaded and extracted [101]
+error: InstallFailed extracting tarball from @ast-grep/cli-win32-x64-msvc
+
+error: InstallFailed extracting tarball from oh-my-opencode-windows-x64
+ done
+ERROR 2026-01-26T05:48:10 +1ms service=server error=BunInstallFailedError Caused by: Command failed with exit code 1 failed
+ERROR 2026-01-26T05:48:10 +0ms service=server error=BunInstallFailedError Caused by: Command failed with exit code 1 failed
+ERROR 2026-01-26T05:48:10 +0ms service=server error=BunInstallFailedError Caused by: Command failed with exit code 1 failed
+ERROR 2026-01-26T05:48:10 +0ms service=server error=BunInstallFailedError Caused by: Command failed with exit code 1 failed
+ERROR 2026-01-26T05:48:10 +0ms service=server error=BunInstallFailedError Caused by: Command failed with exit code 1 failed
+INFO  2026-01-26T05:48:10 +0ms service=server status=completed duration=4305 method=GET path=/path request
+INFO  2026-01-26T05:48:10 +0ms service=server status=completed duration=4303 method=GET path=/config request
+INFO  2026-01-26T05:48:10 +0ms service=server status=completed duration=4303 method=GET path=/project request
+INFO  2026-01-26T05:48:10 +0ms service=server status=completed duration=4303 method=GET path=/provider request
+INFO  2026-01-26T05:48:10 +0ms service=server status=completed duration=4303 method=GET path=/provider/auth request
+INFO  2026-01-26T05:48:15 +5686ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:48:15 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:48:15 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:48:25 +10009ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:48:25 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:48:25 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:48:35 +9994ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:48:35 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:48:35 +1ms service=server status=completed duration=1 method=GET path=/global/health request
+INFO  2026-01-26T05:48:45 +9998ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:48:45 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:48:45 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:48:55 +10013ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:48:55 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:48:55 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:49:05 +9985ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:49:05 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:49:05 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:49:15 +9999ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:49:15 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:49:15 +1ms service=server status=completed duration=1 method=GET path=/global/health request
+INFO  2026-01-26T05:49:25 +9999ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:49:25 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:49:25 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:49:35 +10002ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:49:35 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:49:35 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:49:45 +10000ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:49:45 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:49:45 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:49:55 +10009ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:49:55 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:49:55 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:50:05 +9993ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:50:05 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:50:05 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:50:15 +9998ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:50:15 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:50:15 +1ms service=server status=completed duration=1 method=GET path=/global/health request
+INFO  2026-01-26T05:50:25 +9998ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:50:25 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:50:25 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:50:35 +10000ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:50:35 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:50:35 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:50:45 +9999ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:50:45 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:50:45 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:50:55 +10001ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:50:55 +2ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:50:55 +0ms service=server status=completed duration=2 method=GET path=/global/health request
+INFO  2026-01-26T05:51:05 +9998ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:51:05 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:51:05 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:51:15 +10001ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:51:15 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:51:15 +0ms service=server status=completed duration=0 method=GET path=/global/health request
+INFO  2026-01-26T05:51:25 +9999ms service=server method=GET path=/global/health request
+INFO  2026-01-26T05:51:25 +0ms service=server status=started method=GET path=/global/health request
+INFO  2026-01-26T05:51:25 +0ms service=server status=completed duration=0 method=GET path=/global/health request

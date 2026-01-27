@@ -28,9 +28,6 @@ namespace WindowsFormsApp3.Forms.Panels
         private int _currentColumnIndex = -1;
         private int _currentRowIndex = -1;
 
-        // 事件定义（仅保留可能被使用的事件）
-        public event EventHandler<string> RegexPatternChanged;
-
         public override string PanelKey => "rename";
         public override string DisplayName => "首页";
         public override string IconName => "HomeOutlined";
@@ -70,15 +67,6 @@ namespace WindowsFormsApp3.Forms.Panels
 
                 // 订阅数据变化事件
                 SubscribeToDataChanges();
-
-                // 订阅正则表达式变化事件
-                RegexPatternChanged += async (s, pattern) =>
-                {
-                    if (_presenter != null)
-                    {
-                        await _presenter.HandleRegexPatternChangedAsync(pattern);
-                    }
-                };
             }
             catch (Exception ex)
             {
@@ -105,8 +93,8 @@ namespace WindowsFormsApp3.Forms.Panels
                     AppSettings.LastSelectedRegex = pattern;
                     AppSettings.Save();
 
-                    // 触发正则表达式变化事件，可用于重新处理文件列表
-                    RegexPatternChanged?.Invoke(this, pattern);
+                    // 禁用自动触发更新，仅更新设置
+                    // RegexPatternChanged?.Invoke(this, pattern);
                 }
             };
 
@@ -1429,7 +1417,9 @@ namespace WindowsFormsApp3.Forms.Panels
                             LayoutQuantity = dialog.GetLayoutQuantity(),
                             // ✅ 修复:从对话框读取标识页信息
                             AddIdentifierPage = dialog.AddIdentifierPage,
-                            IdentifierPageContent = dialog.AddIdentifierPage ? dialog.GenerateIdentifierPageContent() : ""
+                            IdentifierPageContent = dialog.AddIdentifierPage ? dialog.GenerateIdentifierPageContent() : "",
+                            // ✅ 修复:从对话框读取排版材料类型
+                            ImpositionMaterialType = dialog.ImpositionMaterialType
                         };
                         return DialogResult.OK;
                     }

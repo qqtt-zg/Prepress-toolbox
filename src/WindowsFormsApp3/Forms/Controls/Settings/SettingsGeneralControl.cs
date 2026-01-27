@@ -16,6 +16,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private const string OpacityKey = "Opacity";
         private const string HideRadiusKey = "HideRadiusValue";
         private const string HotkeyKey = "ToggleMinimizeHotkey";
+        private const string RenameNotificationKey = "ShowRenameCompleteNotification";
         
         public SettingsGeneralControl()
         {
@@ -52,6 +53,9 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             // Hotkey
             object hotkey = AppSettings.Get(HotkeyKey);
             txtHotkey.Text = hotkey != null ? hotkey.ToString() : "";
+
+            // Rename Notification
+            chkRenameNotification.Checked = AppSettings.ShowRenameCompleteNotification;
         }
 
         public void SaveSettings()
@@ -64,6 +68,8 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             {
                 AppSettings.Set(HotkeyKey, txtHotkey.Text.Trim());
             }
+
+            AppSettings.ShowRenameCompleteNotification = chkRenameNotification.Checked;
             
             AppSettings.Save();
             

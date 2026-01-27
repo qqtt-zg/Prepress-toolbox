@@ -49,7 +49,7 @@ namespace WindowsFormsApp3.Tests.Services
                 // Fallback for CI/CD or if file moved, create a dummy empty file to at least test file existence check
                 // But Poppler needs a valid PDF. 
                 // We'll skip if not found, but we expect it to be there based on glob result.
-                Assert.True(false, $"Test PDF file not found at: {_testPdfPath}");
+                Assert.Fail($"Test PDF file not found at: {_testPdfPath}");
             }
 
             // Act

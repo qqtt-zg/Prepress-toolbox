@@ -151,7 +151,8 @@ namespace WindowsFormsApp3.Models
             new EventGroup { Id = "customer", DisplayName = "客户组", Prefix = "&CU-", SortOrder = 5 },
             new EventGroup { Id = "remark", DisplayName = "备注组", Prefix = "&MK-", SortOrder = 6 },
             new EventGroup { Id = "row", DisplayName = "行数组", Prefix = "&Row-", SortOrder = 7 },
-            new EventGroup { Id = "column", DisplayName = "列数组", Prefix = "&Col-", SortOrder = 8 }
+            new EventGroup { Id = "column", DisplayName = "列数组", Prefix = "&Col-", SortOrder = 8 },
+            new EventGroup { Id = "", DisplayName = "未分组", Prefix = "", SortOrder = 9 } // ✅ 修复：添加默认的未分组，对应 GroupId="" 的项目
         };
 
         public static readonly List<EventItem> BuiltInItems = new List<EventItem>
@@ -164,6 +165,7 @@ namespace WindowsFormsApp3.Models
             new EventItem { Name = "尺寸", GroupId = "", SortOrder = 2 },
             new EventItem { Name = "序号", GroupId = "", SortOrder = 3 },
             new EventItem { Name = "列组合", GroupId = "", SortOrder = 4 },
+            new EventItem { Name = "材料类型", GroupId = "", SortOrder = 5 },
             new EventItem { Name = "行数", GroupId = "row", SortOrder = 1 },
             new EventItem { Name = "列数", GroupId = "column", SortOrder = 1 }
         };

@@ -19,6 +19,18 @@ namespace WindowsFormsApp3.Forms.Main
     {
         private Dictionary<string, UserControl> panelCache;
         private Dictionary<AntdUI.Button, string> navButtons = new Dictionary<AntdUI.Button, string>();
+        // ✅ 新增：保存按钮的原始显示文本（中文）
+        private Dictionary<AntdUI.Button, string> _originalButtonTexts = new Dictionary<AntdUI.Button, string>();
+        
+        // 导航面板折叠相关常量
+        private const int ExpandedWidth = 170;
+        private const int CollapsedWidth = 70;
+        private const int AnimationStep = 20;
+        
+        // 导航面板折叠状态
+        private bool isCollapsed = false;
+        private Timer collapseTimer;
+        private bool isAnimating = false;
         
         // 系统托盘
         private System.Windows.Forms.NotifyIcon trayIcon;
@@ -113,29 +125,118 @@ namespace WindowsFormsApp3.Forms.Main
             this.Close();
         }
 
-        private void BtnCollapse_Click(object sender, EventArgs e)
+private void BtnCollapse_Click(object sender, EventArgs e)
         {
-            // If current distance is wide (170), we collapse (to 92).
-            // If current distance is narrow (92), we expand (to 170).
+            // 使用新的动画系统替代硬编码的折叠逻辑
+            StartCollapseAnimation(isCollapsed);
+        }
+
+        /// <summary>
+        /// 折叠动画Timer事件处理
+        /// </summary>
+        private void CollapseTimer_Tick(object sender, EventArgs e)
+        {
+            int targetWidth = isCollapsed ? ExpandedWidth : CollapsedWidth;
+            int currentWidth = mainContainer.SplitterDistance;
             
-             if (mainContainer.SplitterDistance > 100)
+            if (Math.Abs(currentWidth - targetWidth) <= AnimationStep)
             {
-                // Collapse
-                mainContainer.SplitterDistance = 92;
-                titleLabel.Visible = false;
-                versionLabel.Visible = false;
-                btnCollapse.IconSvg = "MenuUnfoldOutlined";
+                // 动画完成
+                mainContainer.SplitterDistance = targetWidth;
+                collapseTimer.Stop();
+                isAnimating = false;
+                
+                // 更新UI状态
+                if (isCollapsed)
+                {
+                    // 切换到展开状态
+                    titleLabel.Visible = true;
+                    versionLabel.Visible = true;
+                    btnCollapse.IconSvg = "MenuFoldOutlined";
+                    RestoreButtonTexts();
+                }
+                else
+                {
+                    // 切换到折叠状态
+                    titleLabel.Visible = false;
+                    versionLabel.Visible = false;
+                    btnCollapse.IconSvg = "MenuUnfoldOutlined";
+                    HideButtonTexts();
+                }
+                
+                isCollapsed = !isCollapsed;
             }
             else
             {
-                // Expand
-                mainContainer.SplitterDistance = 170;
-                titleLabel.Visible = true;
-                versionLabel.Visible = true;
-                btnCollapse.IconSvg = "MenuFoldOutlined";
+                // 继续动画
+                if (currentWidth < targetWidth)
+                {
+                    mainContainer.SplitterDistance = currentWidth + AnimationStep;
+                }
+                else
+                {
+                    mainContainer.SplitterDistance = currentWidth - AnimationStep;
+                }
             }
         }
 
+        /// <summary>
+        /// 开始折叠/展开动画
+        /// </summary>
+        private void StartCollapseAnimation(bool collapse)
+        {
+            if (isAnimating) return; // 防止重复触发
+            
+            isCollapsed = collapse;
+            isAnimating = true;
+            collapseTimer.Start();
+        }
+
+        /// <summary>
+        /// 隐藏按钮文字
+        /// </summary>
+        private void HideButtonTexts()
+        {
+            // 仅清空文字，不修改Tag
+            foreach (var btn in navButtons.Keys)
+            {
+                // 如果字典中没有保存，尝试保存当前非空文本
+                if (!_originalButtonTexts.ContainsKey(btn) && !string.IsNullOrEmpty(btn.Text))
+                {
+                    _originalButtonTexts[btn] = btn.Text;
+                }
+                
+                btn.Text = ""; // 隐藏文字，仅显示图标
+                btn.Size = new Size(CollapsedWidth - 20, CollapsedWidth - 20); // 调整为紧凑尺寸 (50x50)
+                btn.IconSize = new Size(24, 24); // 调整图标大小 (更小一点以适配)
+                
+                // 重新计算折叠后的边距
+                // PanelWidth=70, PadLeft=5, BtnWidth=50. Space=15. MarginLeft=(15)/2 approx 7.
+                int collapsedMargin = 7; 
+                btn.Margin = new Padding(collapsedMargin, 0, collapsedMargin, 8);
+            }
+        }
+
+        /// <summary>
+        /// 恢复按钮文字
+        /// </summary>
+        private void RestoreButtonTexts()
+        {
+            // 从 _originalButtonTexts 恢复原始文字
+            foreach (var btn in navButtons.Keys)
+            {
+                if (_originalButtonTexts.TryGetValue(btn, out string originalText))
+                {
+                    btn.Text = originalText; // 恢复中文文字
+                }
+                btn.Size = new Size(100, 100); // 恢复原始尺寸
+                btn.IconSize = new Size(40, 40); // 恢复图标大小
+                
+                // 恢复展开后的边距 (17px)
+                int expandedMargin = 17;
+                btn.Margin = new Padding(expandedMargin, 0, expandedMargin, 8);
+            }
+        }
 
         #endregion
         
@@ -145,6 +246,11 @@ namespace WindowsFormsApp3.Forms.Main
         public MainShellForm()
         {
             InitializeComponent();
+             
+            // 初始化折叠动画Timer
+            collapseTimer = new Timer();
+            collapseTimer.Tick += CollapseTimer_Tick;
+            collapseTimer.Interval = 16; // 60fps
             
             // 显示版本号
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
@@ -401,9 +507,9 @@ namespace WindowsFormsApp3.Forms.Main
 
         private void AddNavButton(string text, string iconSvg, string tag, bool isMenu = false)
         {
-            // 侧边栏固定宽度170，减去PaddingLeft(5)，按钮宽90
-            // 居中计算：(170 - 5 - 90) / 2 ≈ 37
-            int marginLeft = 37;
+            // 侧边栏固定宽度140，减去PaddingLeft(5)，按钮宽100
+            // 居中计算：(140 - 5 - 100) / 2 ≈ 17
+            int marginLeft = 17;
 
             // 获取当前主题以设置正确的初始颜色
             var theme = Services.ServiceLocator.Instance.GetThemeManager().GetCurrentTheme();
@@ -432,6 +538,7 @@ namespace WindowsFormsApp3.Forms.Main
             btn.Click += NavButton_Click;
             navPanel.Controls.Add(btn);
             navButtons.Add(btn, tag);
+            _originalButtonTexts[btn] = text; // ✅ 保存初始中文文本
         }
 
         /// <summary>

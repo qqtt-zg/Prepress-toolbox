@@ -79,7 +79,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.mainContainer.RowCount = 2;
 			this.mainContainer.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
 			this.mainContainer.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 30F));
-			this.mainContainer.Size = new System.Drawing.Size(940, 526);
+			this.mainContainer.Size = new System.Drawing.Size(940, 501);
 			this.mainContainer.TabIndex = 0;
 			// 
 			// previewContainer
@@ -95,7 +95,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.previewContainer.RowCount = 2;
 			this.previewContainer.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 50F));
 			this.previewContainer.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-			this.previewContainer.Size = new System.Drawing.Size(940, 496);
+			this.previewContainer.Size = new System.Drawing.Size(940, 471);
 			this.previewContainer.TabIndex = 0;
 			// 
 			// toolbarPanel
@@ -259,7 +259,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.previewPanel.Location = new System.Drawing.Point(0, 50);
 			this.previewPanel.Margin = new System.Windows.Forms.Padding(0);
 			this.previewPanel.Name = "previewPanel";
-			this.previewPanel.Size = new System.Drawing.Size(940, 446);
+			this.previewPanel.Size = new System.Drawing.Size(940, 421);
 			this.previewPanel.TabIndex = 1;
 			// 
 			// _pdfPreview
@@ -268,7 +268,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this._pdfPreview.Dock = System.Windows.Forms.DockStyle.Fill;
 			this._pdfPreview.Location = new System.Drawing.Point(0, 0);
 			this._pdfPreview.Name = "_pdfPreview";
-			this._pdfPreview.Size = new System.Drawing.Size(940, 446);
+			this._pdfPreview.Size = new System.Drawing.Size(940, 421);
 			this._pdfPreview.TabIndex = 0;
 			this._pdfPreview.PdfLoaded += new System.EventHandler<WindowsFormsApp3.Controls.PdfLoadedEventArgs>(this.PdfPreview_PdfLoaded);
 			this._pdfPreview.PageChanged += new System.EventHandler<WindowsFormsApp3.Controls.PageChangedEventArgs>(this.PdfPreview_PageChanged);
@@ -280,7 +280,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.statusPanel.Controls.Add(this._progressOverlay);
 			this.statusPanel.Controls.Add(this._lblStatus);
 			this.statusPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.statusPanel.Location = new System.Drawing.Point(0, 496);
+			this.statusPanel.Location = new System.Drawing.Point(0, 471);
 			this.statusPanel.Margin = new System.Windows.Forms.Padding(0);
 			this.statusPanel.Name = "statusPanel";
 			this.statusPanel.Padding = new System.Windows.Forms.Padding(10, 0, 10, 0);
@@ -320,7 +320,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.Controls.Add(this.mainContainer);
 			this.Name = "PdfOperationsPanel";
-			this.Size = new System.Drawing.Size(940, 526);
+			this.Size = new System.Drawing.Size(940, 501);
 			this.Load += new System.EventHandler(this.PdfOperationsPanel_Load);
 			this.mainContainer.ResumeLayout(false);
 			this.previewContainer.ResumeLayout(false);

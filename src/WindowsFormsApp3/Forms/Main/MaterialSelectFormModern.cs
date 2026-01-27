@@ -83,6 +83,9 @@ namespace WindowsFormsApp3
         // 标识页功能
         public bool AddIdentifierPage { get; private set; } = false;
 
+        // 排版材料类型
+        public string ImpositionMaterialType { get; private set; }
+
         // Excel数据相关字段
         private DataTable _excelData;
         private int _searchColumnIndex;
@@ -2458,6 +2461,23 @@ namespace WindowsFormsApp3
 
             // 保存排版控件状态
             SaveImpositionControlStates();
+
+            // 保存排版材料类型
+            // 默认情况下如果排版复选框未选中，不需要更新 ImpositionMaterialType
+            // 但如果选中了，必须从RadioButton更新
+            if (enableImpositionCheckbox != null && enableImpositionCheckbox.Checked)
+            {
+                if (flatSheetRadioButton != null)
+                {
+                    ImpositionMaterialType = flatSheetRadioButton.Checked ? "FlatSheet" : "RollMaterial";
+                }
+            }
+            else
+            {
+                // 如果没有启用排版，可以清空或者保持上次的值，取决于业务需求
+                // 这里我们保持空，或者设为默认值
+                ImpositionMaterialType = "";
+            }
         }
 
         private System.Windows.Forms.FolderBrowserDialog FolderBrowserDialog()

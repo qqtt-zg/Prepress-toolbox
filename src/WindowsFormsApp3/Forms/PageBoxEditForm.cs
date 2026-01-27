@@ -12,14 +12,14 @@ namespace WindowsFormsApp3.Forms
         private PageBoxInfo _originalInfo;
         private MeasurementUnit _unit;
         
-        // Return values
+        // 返回值
         public PageBoxInfo ResultInfo { get; private set; }
         public bool ApplyToAllPages { get; private set; }
 
         private System.Windows.Forms.Panel _mainPanel;
         private AntdUI.Checkbox _applyToAllCheckbox;
         
-        // Input controls for each box type
+        // 每种框类型的输入控件
         private BoxInputGroup _mediaBoxInput;
         private BoxInputGroup _cropBoxInput;
         private BoxInputGroup _bleedBoxInput;
@@ -41,7 +41,7 @@ namespace WindowsFormsApp3.Forms
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             
-            // Bottom Panel (Buttons)
+            // 底部面板 (按钮)
             var bottomPanel = new System.Windows.Forms.Panel
             {
                 Dock = DockStyle.Bottom,
@@ -65,17 +65,12 @@ namespace WindowsFormsApp3.Forms
                 Width = 80,
                 Type = TTypeMini.Primary,
             };
-            // Initializing location manually isn't needed if we use simple docking with spacers or margins, 
-            // but for simplicity let's stick to absolute positioning or adding spacer.
-            // Let's use specific location hack for now to match previous style or just separate them.
-            // Actually, Dock=Right stacks them right-to-left. 
-            // We need Cancel (Rightmost), then OK (Left of Cancel).
-            // So Add Cancel first (Dock Right), then Add OK (Dock Right)? 
-            // No, first added is right-most.
-            // Wait, Dock=Right: First added goes to the right edge. Second added goes to the left of the First.
-            // So: Add Cancel, then Add OK.
+            // 简单起见，我们使用特定的位置或添加间隔。
+            // Dock=Right 会从右向左堆叠。
+            // 我们需要取消按钮（最右），然后是确定按钮（取消按钮的左侧）。
+            // 所以：先添加取消按钮，再添加确定按钮。
             
-            // Add a spacer between buttons
+            // 在按钮之间添加间隔
             var spacer = new System.Windows.Forms.Panel { Dock = DockStyle.Right, Width = 10 };
 
             _applyToAllCheckbox = new AntdUI.Checkbox
@@ -86,13 +81,13 @@ namespace WindowsFormsApp3.Forms
             };
 
             bottomPanel.Controls.Add(_applyToAllCheckbox);
-            bottomPanel.Controls.Add(btnOk);   // Inner Right
+            bottomPanel.Controls.Add(btnOk);   // 内侧右边
             bottomPanel.Controls.Add(spacer); 
-            bottomPanel.Controls.Add(btnCancel); // Outermost Right
+            bottomPanel.Controls.Add(btnCancel); // 最外侧右边
             
             btnOk.Click += BtnOk_Click;
 
-            // Main Content
+            // 主要内容
             _mainPanel = new System.Windows.Forms.Panel
             {
                 Dock = DockStyle.Fill,
@@ -105,10 +100,10 @@ namespace WindowsFormsApp3.Forms
             _bleedBoxInput = new BoxInputGroup("BleedBox (出血区域)", _unit) { Dock = DockStyle.Top };
             _trimBoxInput = new BoxInputGroup("TrimBox (成品尺寸)", _unit) { Dock = DockStyle.Top };
 
-            // Add in reverse order for Dock=Top to stack correctly (Bottom to Top in code -> Top to Bottom in UI)
-            // Or just use BringToFront if added in normal order.
-            // Let's add them in Reverse order: Trim, Bleed, Crop, Media.
-            // Then Media will be at the top.
+            // 以相反的顺序添加，以便 Dock=Top 能够正确堆叠（代码中从下到上 -> UI中从上到下）
+            // 或者如果按正常顺序添加，使用 BringToFront。
+            // 让我们按相反顺序添加：Trim, Bleed, Crop, Media。
+            // 这样 Media 就会在顶部。
             _mainPanel.Controls.Add(_trimBoxInput);
             _mainPanel.Controls.Add(_bleedBoxInput);
             _mainPanel.Controls.Add(_cropBoxInput);
@@ -136,7 +131,7 @@ namespace WindowsFormsApp3.Forms
                 CropBox = _cropBoxInput.GetValue(),
                 BleedBox = _bleedBoxInput.GetValue(),
                 TrimBox = _trimBoxInput.GetValue()
-                // ArtBox ignored for now
+                // 目前忽略 ArtBox
             };
             
             ApplyToAllPages = _applyToAllCheckbox.Checked;
@@ -145,7 +140,7 @@ namespace WindowsFormsApp3.Forms
         }
     }
 
-    // Helper control for editing a BoxDimension
+    // 用于编辑 BoxDimension 的辅助控件
     public class BoxInputGroup : System.Windows.Forms.Panel
     {
         private MeasurementUnit _unit;
@@ -161,7 +156,7 @@ namespace WindowsFormsApp3.Forms
         private void Initialize(string title)
         {
             this.Padding = new Padding(10);
-            this.Height = 160; // Fixed height for consistency
+            this.Height = 160; // 固定高度以保持一致性
             
             var lblTitle = new AntdUI.Label
             {
@@ -180,40 +175,40 @@ namespace WindowsFormsApp3.Forms
                 Padding = new Padding(0, 5, 0, 0)
             };
             
-            // Define columns: Label(15%), Input(35%), Label(15%), Input(35%)
+            // 定义列：标签(15%)，输入(35%)，标签(15%)，输入(35%)
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 15F));
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35F));
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 15F));
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35F));
             
-            // Row styles
+            // 行样式
             grid.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             grid.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             grid.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
 
-            // Row 0: Left, Bottom (Note: PDF coord system usually Left/Bottom is origin)
-            // Left (X)
+            // 第0行：左，下（注意：PDF坐标系通常以左下角为原点）
+            // 左 (X)
             AddLabel(grid, "左 (X):", 0, 0);
             _inputLeft = CreateInput();
             grid.Controls.Add(_inputLeft, 1, 0);
 
-            // Bottom (Y)
+            // 下 (Y)
             AddLabel(grid, "下 (Y):", 2, 0);
             _inputBottom = CreateInput();
             grid.Controls.Add(_inputBottom, 3, 0);
             
-            // Row 1: Right, Top
-            // Right
+            // 第1行：右，上
+            // 右
             AddLabel(grid, "右:", 0, 1);
             _inputRight = CreateInput();
             grid.Controls.Add(_inputRight, 1, 1);
 
-            // Top
+            // 上
             AddLabel(grid, "上:", 2, 1);
             _inputTop = CreateInput();
             grid.Controls.Add(_inputTop, 3, 1);
             
-            // Row 2: Width, Height
+            // 第2行：宽度，高度
             AddLabel(grid, "宽度:", 0, 2, Color.Gray);
             _inputWidth = CreateInput();
             grid.Controls.Add(_inputWidth, 1, 2);
@@ -222,7 +217,7 @@ namespace WindowsFormsApp3.Forms
             _inputHeight = CreateInput();
             grid.Controls.Add(_inputHeight, 3, 2);
             
-            // Events
+            // 事件
             _inputLeft.ValueChanged += (s, v) => RecalculateSize();
             _inputRight.ValueChanged += (s, v) => RecalculateSize();
             _inputBottom.ValueChanged += (s, v) => RecalculateSize();
@@ -241,11 +236,11 @@ namespace WindowsFormsApp3.Forms
             { 
                 Text = text, 
                 AutoSize = true,
-                Anchor = AnchorStyles.Right | AnchorStyles.Left | AnchorStyles.Top, // Vertically center? Top is fine
-                Location = new Point(0, 8), // Offset for alignment
+                Anchor = AnchorStyles.Right | AnchorStyles.Left | AnchorStyles.Top, // 垂直居中？顶部也可以
+                Location = new Point(0, 8), // 偏移以对齐
                 ForeColor = color ?? Color.Black
             };
-             // Center vertically in cell
+             // 在单元格中垂直居中
             label.TextAlign = ContentAlignment.MiddleLeft;
             label.Dock = DockStyle.Fill;
             

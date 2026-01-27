@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -65,6 +65,11 @@ namespace WindowsFormsApp3.Models
         /// 布局列数
         /// </summary>
         public string LayoutColumns { get; set; }
+
+        /// <summary>
+        /// 材料类型 (平张/卷装)
+        /// </summary>
+        public string ImpositionMode { get; set; }
 
         /// <summary>
         /// 文件扩展名
@@ -224,6 +229,9 @@ namespace WindowsFormsApp3.Models
                                 case "列组合":
                                     componentValue = GetValueWithPreserveSupport("列组合", CompositeColumn);
                                     break;
+                                case "材料类型":
+                                    componentValue = GetValueWithPreserveSupport("材料类型", ImpositionMode);
+                                    break;
                             }
 
                             if (!string.IsNullOrEmpty(componentValue))
@@ -237,7 +245,7 @@ namespace WindowsFormsApp3.Models
                     {
                         // 如果没有自定义顺序，按标准顺序处理所有组件
                         LogHelper.Debug($"[BuildFileName] 使用标准顺序处理返单文件");
-                        var standardOrder = new[] { "正则结果", "订单号", "材料", "数量", "工艺", "尺寸", "行数", "列数", "序号" };
+                        var standardOrder = new[] { "正则结果", "订单号", "材料", "数量", "工艺", "尺寸", "行数", "列数", "序号", "材料类型" };
 
                         foreach (string componentType in standardOrder)
                         {
@@ -261,6 +269,21 @@ namespace WindowsFormsApp3.Models
                     {
                         switch (componentType)
                         {
+                            case "材料类型":
+                                if (EnabledComponents?.ImpositionModeEnabled == true && !string.IsNullOrEmpty(ImpositionMode))
+                                {
+                                    string prefix = GetPrefixForComponent("材料类型");
+                                    string value = GetValueWithPreserveSupport("材料类型", ImpositionMode);
+                                    newNameParts.Add(prefix + value);
+                                    LogHelper.Debug($"[BuildFileName] 添加材料类型 = '{prefix}{value}'");
+                                    System.Console.WriteLine($"BuildFileName: 添加材料类型 = '{prefix}{value}'");
+                                }
+                                else
+                                {
+                                    LogHelper.Debug($"[BuildFileName] 跳过材料类型 - 启用:{EnabledComponents?.ImpositionModeEnabled}, 值:'{ImpositionMode}'");
+                                    System.Console.WriteLine($"BuildFileName: 跳过材料类型 - 启用:{EnabledComponents?.ImpositionModeEnabled}, 值:'{ImpositionMode}'");
+                                }
+                                break;
                             case "正则结果":
                                 if (EnabledComponents?.RegexResultEnabled == true && !string.IsNullOrEmpty(RegexResult))
                                 {
@@ -433,7 +456,7 @@ namespace WindowsFormsApp3.Models
                         System.Console.WriteLine($"BuildFileName: 默认顺序：检测到保留分组数据，使用保留分组逻辑构建文件名");
 
                         // 按保留分组前缀的标准顺序构建文件名
-                        var preserveOrder = new[] { "正则结果", "订单号", "材料", "数量", "工艺", "尺寸", "行数", "列数", "序号" };
+                        var preserveOrder = new[] { "正则结果", "订单号", "材料", "数量", "工艺", "尺寸", "行数", "列数", "序号", "材料类型" };
 
                         foreach (string componentType in preserveOrder)
                         {
@@ -450,6 +473,15 @@ namespace WindowsFormsApp3.Models
                     else
                     {
                         // 如果没有提供组件顺序列表，也没有保留数据，则使用默认顺序
+                        if (EnabledComponents?.ImpositionModeEnabled == true && !string.IsNullOrEmpty(ImpositionMode))
+                        {
+                            string prefix = GetPrefixForComponent("材料类型");
+                            string value = GetValueWithPreserveSupport("材料类型", ImpositionMode);
+                            newNameParts.Add(prefix + value);
+                            LogHelper.Debug($"[BuildFileName] 添加材料类型 = '{prefix}{value}'");
+                            System.Console.WriteLine($"BuildFileName: 添加材料类型 = '{prefix}{value}'");
+                        }
+
                         if (EnabledComponents?.RegexResultEnabled == true && !string.IsNullOrEmpty(RegexResult))
                         {
                             string prefix = GetPrefixForComponent("正则结果");
@@ -586,10 +618,14 @@ namespace WindowsFormsApp3.Models
                         // 使用自定义组件顺序
                         foreach (string componentType in ComponentOrder)
                         {
-                            string value = null;
-                            switch (componentType)
-                            {
-                                case "正则结果":
+            string value = null;
+            switch (componentType)
+            {
+                case "材料类型":
+                    if (EnabledComponents?.ImpositionModeEnabled == true)
+                        value = GetValueWithPreserveSupport("材料类型", ImpositionMode);
+                    break;
+                case "正则结果":
                                     if (EnabledComponents?.RegexResultEnabled == true && !string.IsNullOrEmpty(RegexResult))
                                         value = GetValueWithPreserveSupport("正则结果", RegexResult);
                                     break;
@@ -640,7 +676,7 @@ namespace WindowsFormsApp3.Models
                     else
                     {
                         // 使用默认顺序
-                        var defaultOrder = new[] { "正则结果", "订单号", "材料", "数量", "工艺", "尺寸", "序号", "列组合", "行数", "列数" };
+                        var defaultOrder = new[] { "正则结果", "订单号", "材料", "数量", "工艺", "尺寸", "序号", "列组合", "行数", "列数", "材料类型" };
                         foreach (string componentType in defaultOrder)
                         {
                             string value = GetComponentValue(componentType);
@@ -744,10 +780,10 @@ namespace WindowsFormsApp3.Models
                 var groupedPrefixes = new List<string>(); // 按出现顺序记录前缀
                 var ungroupedComponents = new List<string>(); // 未分组的组件
 
-                // 确定要处理的组件顺序
+                        // 确定要处理的组件顺序
                 var componentsToProcess = ComponentOrder != null && ComponentOrder.Count > 0 
                     ? (IEnumerable<string>)ComponentOrder 
-                    : (IEnumerable<string>)new[] { "正则结果", "订单号", "材料", "数量", "工艺", "尺寸", "行数", "列数", "序号", "列组合" };
+                    : (IEnumerable<string>)new[] { "正则结果", "订单号", "材料", "数量", "工艺", "尺寸", "行数", "列数", "序号", "列组合", "材料类型" };
 
                 // 按分组聚合组件
                 foreach (string componentType in componentsToProcess)
@@ -758,36 +794,37 @@ namespace WindowsFormsApp3.Models
 
                     if (componentToGroupPrefix.TryGetValue(componentType, out var groupPrefix))
                     {
-                        if (string.IsNullOrEmpty(groupPrefix))
+                        // ✅ Fix: Treat empty prefix as a normal group to maintain order.
+                        // Ensure groupPrefix is not null
+                        groupPrefix = groupPrefix ?? string.Empty;
+
+                        if (!groupedComponents.ContainsKey(groupPrefix))
                         {
-                            // 未分组的组件
-                            string prefix = GetPrefixForComponent(componentType);
-                            ungroupedComponents.Add(prefix + componentValue);
-                            LogHelper.Debug($"[BuildFileNameByGroupFormat] 添加未分组组件: {componentType} = '{componentValue}' (前缀: {prefix})");
+                            groupedComponents[groupPrefix] = new List<string>();
+                            groupedPrefixes.Add(groupPrefix); // Record order of appearance
                         }
-                        else
-                        {
-                            // 分组内的组件
-                            if (!groupedComponents.ContainsKey(groupPrefix))
-                            {
-                                groupedComponents[groupPrefix] = new List<string>();
-                                groupedPrefixes.Add(groupPrefix); // 记录前缀出现顺序
-                            }
-                            groupedComponents[groupPrefix].Add(componentValue);
-                            LogHelper.Debug($"[BuildFileNameByGroupFormat] 添加到分组 {groupPrefix}: {componentType} = '{componentValue}'");
-                        }
+                        groupedComponents[groupPrefix].Add(componentValue);
+                        LogHelper.Debug($"[BuildFileNameByGroupFormat] 添加到分组 '{groupPrefix}': {componentType} = '{componentValue}'");
                     }
                     else
                     {
-                        // 未知的组件类型，作为未分组处理
-                        string prefix = GetPrefixForComponent(componentType);
-                        ungroupedComponents.Add(prefix + componentValue);
-                        LogHelper.Debug($"[BuildFileNameByGroupFormat] 添加未知组件: {componentType} = '{componentValue}' (前缀: {prefix})");
+                        // Unknown component type, treat as ungrouped (empty prefix)
+                        string prefix = GetPrefixForComponent(componentType); // Should be empty usually
+                        string groupKey = ""; // Group key for unknown/ungrouped is empty string
+                        
+                        if (!groupedComponents.ContainsKey(groupKey))
+                        {
+                            groupedComponents[groupKey] = new List<string>();
+                            groupedPrefixes.Add(groupKey);
+                        }
+                        
+                        // Try to prepend prefix if it exists (though usually it won't if not in map)
+                        groupedComponents[groupKey].Add(prefix + componentValue);
+                        LogHelper.Debug($"[BuildFileNameByGroupFormat] 添加未知组件到默认分组: {componentType} = '{componentValue}'");
                     }
                 }
 
-                // 构建分组部分（按出现顺序，每个分组一个前缀，分组内多个项目用分隔符连接）
-                // ✅ 修改：只在分组内有多个项目时才使用分隔符，分组间不使用分隔符
+                // 构建分组部分（按出现顺序）
                 foreach (var prefix in groupedPrefixes)
                 {
                     if (groupedComponents.TryGetValue(prefix, out var items) && items.Count > 0)
@@ -797,27 +834,12 @@ namespace WindowsFormsApp3.Models
                             ? string.Join(Separator ?? "", items)
                             : items[0]; // 单个项目不使用分隔符
                         newNameParts.Add(prefix + groupValue);
-                        LogHelper.Debug($"[BuildFileNameByGroupFormat] 分组 {prefix}: 项目数={items.Count}, 分隔符使用={items.Count > 1}, 结果='{prefix}{groupValue}'");
+                        LogHelper.Debug($"[BuildFileNameByGroupFormat] 分组 '{prefix}': 项目数={items.Count}, 结果='{prefix}{groupValue}'");
                     }
                 }
 
-                // 添加未分组的组件（多个项目之间使用分隔符）
-                if (ungroupedComponents.Count > 0)
-                {
-                    if (ungroupedComponents.Count == 1)
-                    {
-                        // 单个未分组项目，直接添加
-                        newNameParts.Add(ungroupedComponents[0]);
-                        LogHelper.Debug($"[BuildFileNameByGroupFormat] 添加单个未分组项: '{ungroupedComponents[0]}'");
-                    }
-                    else
-                    {
-                        // 多个未分组项目，使用分隔符连接
-                        string ungroupedPart = string.Join(Separator ?? "", ungroupedComponents);
-                        newNameParts.Add(ungroupedPart);
-                        LogHelper.Debug($"[BuildFileNameByGroupFormat] 添加多个未分组项（使用分隔符 '{Separator}'）: '{ungroupedPart}'");
-                    }
-                }
+                // Remove legacy ungrouped logic
+                // if (ungroupedComponents.Count > 0) ...
 
                 LogHelper.Debug($"[BuildFileNameByGroupFormat] 完成，共生成 {newNameParts.Count} 个部分");
             }
@@ -918,6 +940,10 @@ namespace WindowsFormsApp3.Models
                 case "列组合":
                     if (EnabledComponents?.CompositeColumnEnabled == true)
                         value = GetValueWithPreserveSupport("列组合", CompositeColumn);
+                    break;
+                case "材料类型":
+                    if (EnabledComponents?.ImpositionModeEnabled == true)
+                        value = GetValueWithPreserveSupport("材料类型", ImpositionMode);
                     break;
             }
             return value;
@@ -1327,5 +1353,10 @@ private (string groupName, string itemName) ExtractGroupAndItem(string groupItem
         /// 是否启用列数
         /// </summary>
         public bool LayoutColumnsEnabled { get; set; } = false;
+
+        /// <summary>
+        /// 是否启用材料类型
+        /// </summary>
+        public bool ImpositionModeEnabled { get; set; } = false;
     }
 }

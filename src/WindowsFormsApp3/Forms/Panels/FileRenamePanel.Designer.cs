@@ -105,7 +105,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this._topControlPanel.Location = new System.Drawing.Point(0, 0);
 			this._topControlPanel.Name = "_topControlPanel";
 			this._topControlPanel.Padding = new System.Windows.Forms.Padding(10, 1, 10, 5);
-			this._topControlPanel.Size = new System.Drawing.Size(998, 110);
+			this._topControlPanel.Size = new System.Drawing.Size(940, 110);
 			this._topControlPanel.TabIndex = 1;
 			// 
 			// _layoutPanel
@@ -125,7 +125,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this._layoutPanel.RowCount = 2;
 			this._layoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
 			this._layoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-			this._layoutPanel.Size = new System.Drawing.Size(978, 104);
+			this._layoutPanel.Size = new System.Drawing.Size(920, 104);
 			this._layoutPanel.TabIndex = 0;
 			// 
 			// _inputPanel
@@ -136,7 +136,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this._inputPanel.Margin = new System.Windows.Forms.Padding(0);
 			this._inputPanel.Name = "_inputPanel";
 			this._inputPanel.Padding = new System.Windows.Forms.Padding(0, 5, 5, 5);
-			this._inputPanel.Size = new System.Drawing.Size(470, 52);
+			this._inputPanel.Size = new System.Drawing.Size(412, 52);
 			this._inputPanel.TabIndex = 0;
 			// 
 			// _cmbInputDir
@@ -145,14 +145,14 @@ namespace WindowsFormsApp3.Forms.Panels
 			this._cmbInputDir.Location = new System.Drawing.Point(0, 5);
 			this._cmbInputDir.Name = "_cmbInputDir";
 			this._cmbInputDir.PlaceholderText = "请选择文件夹路径...";
-			this._cmbInputDir.Size = new System.Drawing.Size(465, 42);
+			this._cmbInputDir.Size = new System.Drawing.Size(407, 42);
 			this._cmbInputDir.TabIndex = 0;
 			// 
 			// _regexPanel
 			// 
 			this._regexPanel.Controls.Add(this._cmbRegex);
 			this._regexPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-			this._regexPanel.Location = new System.Drawing.Point(470, 0);
+			this._regexPanel.Location = new System.Drawing.Point(412, 0);
 			this._regexPanel.Margin = new System.Windows.Forms.Padding(0);
 			this._regexPanel.Name = "_regexPanel";
 			this._regexPanel.Padding = new System.Windows.Forms.Padding(5);
@@ -175,7 +175,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this._topBtnFlow.Controls.Add(this._btnSelectDir);
 			this._topBtnFlow.Controls.Add(this._btnMonitor);
 			this._topBtnFlow.Dock = System.Windows.Forms.DockStyle.Fill;
-			this._topBtnFlow.Location = new System.Drawing.Point(630, 0);
+			this._topBtnFlow.Location = new System.Drawing.Point(572, 0);
 			this._topBtnFlow.Margin = new System.Windows.Forms.Padding(0);
 			this._topBtnFlow.Name = "_topBtnFlow";
 			this._topBtnFlow.Size = new System.Drawing.Size(348, 52);
@@ -217,7 +217,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this._bottomActionFlow.Location = new System.Drawing.Point(0, 52);
 			this._bottomActionFlow.Margin = new System.Windows.Forms.Padding(0);
 			this._bottomActionFlow.Name = "_bottomActionFlow";
-			this._bottomActionFlow.Size = new System.Drawing.Size(630, 52);
+			this._bottomActionFlow.Size = new System.Drawing.Size(572, 52);
 			this._bottomActionFlow.TabIndex = 3;
 			this._bottomActionFlow.WrapContents = false;
 			// 
@@ -284,7 +284,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this._renameActionFlow.Controls.Add(this._btnBatchMode);
 			this._renameActionFlow.Controls.Add(this._btnRename);
 			this._renameActionFlow.Dock = System.Windows.Forms.DockStyle.Fill;
-			this._renameActionFlow.Location = new System.Drawing.Point(630, 52);
+			this._renameActionFlow.Location = new System.Drawing.Point(572, 52);
 			this._renameActionFlow.Margin = new System.Windows.Forms.Padding(0);
 			this._renameActionFlow.Name = "_renameActionFlow";
 			this._renameActionFlow.Size = new System.Drawing.Size(348, 52);
@@ -370,7 +370,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this._fileTable.RowHeadersWidth = 30;
 			this._fileTable.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing;
 			this._fileTable.RowTemplate.Height = 36;
-			this._fileTable.Size = new System.Drawing.Size(998, 501);
+			this._fileTable.Size = new System.Drawing.Size(940, 361);
 			this._fileTable.StateCommon.Background.Color1 = System.Drawing.Color.White;
 			this._fileTable.StateCommon.BackStyle = Krypton.Toolkit.PaletteBackStyle.GridBackgroundList;
 			this._fileTable.StateCommon.DataCell.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
@@ -523,10 +523,10 @@ namespace WindowsFormsApp3.Forms.Panels
 			// 
 			this._statusPanel.Controls.Add(this._statusFlowPanel);
 			this._statusPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
-			this._statusPanel.Location = new System.Drawing.Point(0, 611);
+			this._statusPanel.Location = new System.Drawing.Point(0, 471);
 			this._statusPanel.Name = "_statusPanel";
 			this._statusPanel.Padding = new System.Windows.Forms.Padding(10, 5, 10, 5);
-			this._statusPanel.Size = new System.Drawing.Size(998, 30);
+			this._statusPanel.Size = new System.Drawing.Size(940, 30);
 			this._statusPanel.TabIndex = 2;
 			// 
 			// _statusFlowPanel
@@ -538,7 +538,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this._statusFlowPanel.Location = new System.Drawing.Point(10, 5);
 			this._statusFlowPanel.Margin = new System.Windows.Forms.Padding(0);
 			this._statusFlowPanel.Name = "_statusFlowPanel";
-			this._statusFlowPanel.Size = new System.Drawing.Size(978, 20);
+			this._statusFlowPanel.Size = new System.Drawing.Size(920, 20);
 			this._statusFlowPanel.TabIndex = 0;
 			this._statusFlowPanel.WrapContents = false;
 			// 
@@ -581,7 +581,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this.Controls.Add(this._statusPanel);
 			this.Controls.Add(this._topControlPanel);
 			this.Name = "FileRenamePanel";
-			this.Size = new System.Drawing.Size(998, 641);
+			this.Size = new System.Drawing.Size(940, 501);
 			this._topControlPanel.ResumeLayout(false);
 			this._layoutPanel.ResumeLayout(false);
 			this._layoutPanel.PerformLayout();

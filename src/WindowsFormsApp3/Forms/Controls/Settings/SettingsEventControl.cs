@@ -50,15 +50,16 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
                 // 1. 先加载预设列表
                 LoadEventPresetsList();
 
-                // 2. 获取要使用的预设配置
-                var presetConfig = GetPresetConfigurationToLoad();
-
-                // 3. 加载分组配置（用于非预设情况）
+                // 2. 加载分组配置（基础配置，包含上次会话的排序和状态）
                 LoadEventGroupConfigs();
 
-                // 4. 构建 TreeView（使用预设配置）
+                // 3. 获取要使用的预设配置（用于加载项目结构）
+                var presetConfig = GetPresetConfigurationToLoad();
+
+                // 4. 构建 TreeView
                 LoadEventGroups();
-                LoadEventItemsWithPreset(presetConfig);
+                // 关键修正：启动时不从预设覆盖分组属性（保留上次会话的状态），只加载项目结构
+                LoadEventItemsWithPreset(presetConfig, applyGroupProperties: false);
             }
         }
         
@@ -165,7 +166,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private void LoadEventItems()
         {
             _eventItems = new List<WindowsFormsApp3.Forms.Dialogs.EventItem>();
-            string[] allItems = { "正则结果", "订单号", "材料", "数量", "工艺", "尺寸", "序号", "列组合", "行数", "列数" };
+            string[] allItems = { "正则结果", "订单号", "材料", "数量", "工艺", "尺寸", "序号", "列组合", "排版模式", "行数", "列数" };
             
             // Load saved items
             string savedItems = AppSettings.EventItems;
@@ -218,6 +219,45 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             eventGroupsTreeView.TreeView.ExpandAll();
         }
         
+        /// <summary>
+        /// 从预设配置同步分组顺序和状态到全局配置
+        /// </summary>
+        private void SyncGlobalConfigFromPreset(Models.EventGroupConfiguration presetConfig)
+        {
+            if (presetConfig?.Groups == null || _eventGroupConfigs == null) return;
+
+            LogHelper.Debug($"[SyncGlobalConfigFromPreset] 开始从预设同步 {presetConfig.Groups.Count} 个分组的配置");
+
+            foreach (var presetGroup in presetConfig.Groups)
+            {
+                // 将预设中的字符串ID转换为枚举
+                var groupEnum = ConvertGroupIdToEnum(presetGroup.Id);
+                if (groupEnum.HasValue)
+                {
+                    // 在全局配置中找到对应分组
+                    var globalGroup = _eventGroupConfigs.FirstOrDefault(g => g.Group == groupEnum.Value);
+                    if (globalGroup != null)
+                    {
+                        // 同步关键属性：排序、启用状态、保留状态
+                        globalGroup.SortOrder = presetGroup.SortOrder;
+                        globalGroup.IsEnabled = presetGroup.IsEnabled;
+                        globalGroup.IsPreserved = presetGroup.IsPreserved;
+                        
+                        // 甚至可以同步显示名称（如果允许预设修改名称）
+                        if (!string.IsNullOrEmpty(presetGroup.DisplayName))
+                        {
+                            globalGroup.DisplayName = presetGroup.DisplayName;
+                        }
+                    }
+                }
+            }
+            
+            // 重新排序 _eventGroupConfigs，确保后续 LoadEventGroups 使用正确顺序
+            _eventGroupConfigs = _eventGroupConfigs.OrderBy(g => g.SortOrder).ToList();
+            
+            LogHelper.Debug("[SyncGlobalConfigFromPreset] 同步完成");
+        }
+
         /// <summary>
         /// 仅加载预设列表到下拉框（不触发加载配置）
         /// </summary>
@@ -275,10 +315,12 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         /// <summary>
         /// 使用预设配置加载事件项目到 TreeView
         /// </summary>
-        private void LoadEventItemsWithPreset(Models.EventGroupConfiguration presetConfig)
+        /// <param name="presetConfig">预设配置</param>
+        /// <param name="applyGroupProperties">是否应用分组属性（如启用状态、保留状态）。在软件启动加载时应设为 false 以保留上次会话的状态；在切换预设时应设为 true。</param>
+        private void LoadEventItemsWithPreset(Models.EventGroupConfiguration presetConfig, bool applyGroupProperties = true)
         {
             _eventItems = new List<WindowsFormsApp3.Forms.Dialogs.EventItem>();
-            string[] allItems = { "正则结果", "订单号", "材料", "数量", "工艺", "尺寸", "序号", "列组合", "行数", "列数" };
+            string[] allItems = { "正则结果", "订单号", "材料", "数量", "工艺", "尺寸", "序号", "列组合", "材料类型", "行数", "列数" };
             
             int sortOrder = 1;
             foreach (string itemName in allItems)
@@ -289,13 +331,31 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
                 
                 if (presetConfig?.Items != null)
                 {
-                    var presetItem = presetConfig.Items.FirstOrDefault(i => i.Name == itemName);
+                    // ✅ 自动迁移：检查预设中是否存在 "排版模式"，如果存在且当前查找的是 "材料类型"，则使用之
+                    var searchName = itemName;
+                    if (itemName == "材料类型")
+                    {
+                        var legacyItem = presetConfig.Items.FirstOrDefault(i => i.Name == "排版模式");
+                        if (legacyItem != null)
+                        {
+                            // 找到了旧名称的配置，使用它作为当前项目配置
+                            isEnabled = legacyItem.IsEnabled;
+                            itemGroup = ConvertGroupIdToEnum(legacyItem.GroupId) ?? GetDefaultGroupForItem(itemName);
+                            LogHelper.Debug("[LoadEventItemsWithPreset] 自动迁移：将预设中的 '排版模式' 应用于 '材料类型'");
+                            // 我们不直接修改 presetConfig，因为它是传入的只读引用（或是服务层管理的），只在 UI 加载时适配
+                            goto ItemFound; // 跳过常规查找
+                        }
+                    }
+
+                    var presetItem = presetConfig.Items.FirstOrDefault(i => i.Name == searchName);
                     if (presetItem != null)
                     {
                         isEnabled = presetItem.IsEnabled;
                         // 将 GroupId 转换为 EventGroup 枚举
                         itemGroup = ConvertGroupIdToEnum(presetItem.GroupId) ?? GetDefaultGroupForItem(itemName);
                     }
+                    
+                    ItemFound:;
                 }
                 
                 var eventItem = new WindowsFormsApp3.Forms.Dialogs.EventItem
@@ -324,8 +384,8 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
                 }
             }
             
-            // 应用分组状态
-            if (presetConfig?.Groups != null)
+            // 应用分组状态（仅当请求时）
+            if (applyGroupProperties && presetConfig?.Groups != null)
             {
                 foreach (TreeNode groupNode in eventGroupsTreeView.TreeView.Nodes)
                 {
@@ -353,7 +413,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             
             eventGroupsTreeView.TreeView.ExpandAll();
             eventGroupsTreeView.RefreshPreserveVisuals();
-            LogHelper.Debug("[LoadEventItemsWithPreset] TreeView 构建完成");
+            LogHelper.Debug($"[LoadEventItemsWithPreset] TreeView 构建完成 (ApplyGroupProperties={applyGroupProperties})");
         }
         
         /// <summary>
@@ -407,15 +467,19 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         {
              try
              {
+                 // 从 UI 同步排序顺序
+                 SyncGroupSortOrdersFromUI();
+
                  // 保存分组配置
                  var json = JsonConvert.SerializeObject(_eventGroupConfigs, Formatting.None);
                  AppSettings.Set("EventGroupConfigs", json);
                  
-                 // 保存当前预设
+                 // 保存当前预设（关键修复：确保拖拽后的顺序也被保存到预设中）
                  var selectedPreset = eventGroupsTreeView.GetPresetsComboBox().SelectedValue?.ToString();
-                 if (!string.IsNullOrEmpty(selectedPreset))
+                 if (!string.IsNullOrEmpty(selectedPreset) && selectedPreset != "全功能配置")
                  {
                      SavePresetConfiguration(selectedPreset);
+                     LogHelper.Debug($"[SaveSettings] 同步保存预设 '{selectedPreset}'");
                  }
                  
                  AppSettings.Save();
@@ -433,13 +497,45 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         {
              try
              {
+                 // 从 UI 同步排序顺序
+                 SyncGroupSortOrdersFromUI();
+
                  var json = JsonConvert.SerializeObject(_eventGroupConfigs, Formatting.None);
                  AppSettings.Set("EventGroupConfigs", json);
+
+                 // 如果当前正在使用某个预设，也应该更新该预设的排序信息
+                 // 否则下次加载预设时，旧的排序会覆盖新的排序
+                 var selectedPreset = eventGroupsTreeView.GetPresetsComboBox().SelectedValue?.ToString();
+                 if (!string.IsNullOrEmpty(selectedPreset) && selectedPreset != "全功能配置")
+                 {
+                     SavePresetConfiguration(selectedPreset);
+                     LogHelper.Debug($"[SaveGroupConfigsInternal] 自动更新预设 '{selectedPreset}' 以保存排序更改");
+                 }
              }
              catch (Exception ex)
              {
                  LogHelper.Error("SaveGroupConfigsInternal error", ex);
              }
+        }
+
+        /// <summary>
+        /// 从 TreeView 同步分组排序顺序到配置对象
+        /// </summary>
+        private void SyncGroupSortOrdersFromUI()
+        {
+            if (eventGroupsTreeView?.TreeView?.Nodes == null) return;
+
+            foreach (TreeNode node in eventGroupsTreeView.TreeView.Nodes)
+            {
+                if (node.Tag is TreeNodeData nodeData && nodeData.NodeType == TreeNodeType.Group)
+                {
+                    var config = _eventGroupConfigs.FirstOrDefault(g => g.Group == nodeData.Group);
+                    if (config != null)
+                    {
+                        config.SortOrder = node.Index;
+                    }
+                }
+            }
         }
         
         // --- Preset Logic (Simplified for brevity, logic mostly same as SettingsForm) ---
@@ -566,6 +662,10 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
                 LogHelper.Debug($"[RebuildTreeViewWithPreset] 预设 {presetName} 配置为空，使用默认配置");
                 presetConfig = Models.DefaultEventGroups.GetDefaultConfiguration();
             }
+
+            // 关键修复：在重建 TreeView 之前，先将预设中的分组顺序同步到内存配置中
+            // 这样 LoadEventGroups() 才能使用正确的顺序
+            SyncGlobalConfigFromPreset(presetConfig);
             
             // 清除现有 TreeView 内容
             eventGroupsTreeView.TreeView.Nodes.Clear();
@@ -574,7 +674,8 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             LoadEventGroups();
             
             // 使用预设配置构建项目
-            LoadEventItemsWithPreset(presetConfig);
+            // 关键修正：切换预设时，需要完全应用预设中的所有属性（包括分组启用状态等）
+            LoadEventItemsWithPreset(presetConfig, applyGroupProperties: true);
             
             LogHelper.Debug($"[RebuildTreeViewWithPreset] TreeView 重建完成, 预设: {presetName}");
         }

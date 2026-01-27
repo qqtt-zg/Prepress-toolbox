@@ -13,10 +13,6 @@ namespace WindowsFormsApp3.Forms.Panels
     {
         #region 事件
 
-        /// <summary>
-        /// 正则表达式选择变化事件
-        /// </summary>
-        event EventHandler<string> RegexPatternChanged;
 
         #endregion
 

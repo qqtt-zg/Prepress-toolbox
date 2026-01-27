@@ -13,6 +13,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private AntdUI.Slider sliderOpacity;
         private AntdUI.Label lblHotkey;
         private AntdUI.Input txtHotkey;
+        private AntdUI.Checkbox chkRenameNotification;
 
         protected override void Dispose(bool disposing)
         {
@@ -33,6 +34,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.sliderOpacity = new AntdUI.Slider();
             this.lblHotkey = new AntdUI.Label();
             this.txtHotkey = new AntdUI.Input();
+            this.chkRenameNotification = new AntdUI.Checkbox();
             this.SuspendLayout();
             // 
             // txtSeparator
@@ -100,8 +102,17 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.txtHotkey.Size = new System.Drawing.Size(100, 32);
             this.txtHotkey.TabIndex = 7;
             // 
+            // chkRenameNotification
+            // 
+            this.chkRenameNotification.Location = new System.Drawing.Point(20, 180);
+            this.chkRenameNotification.Name = "chkRenameNotification";
+            this.chkRenameNotification.Size = new System.Drawing.Size(200, 32);
+            this.chkRenameNotification.TabIndex = 8;
+            this.chkRenameNotification.Text = "重命名完成后显示通知";
+            // 
             // SettingsGeneralControl
             // 
+            this.Controls.Add(this.chkRenameNotification);
             this.Controls.Add(this.lblSeparator);
             this.Controls.Add(this.txtSeparator);
             this.Controls.Add(this.lblUnit);

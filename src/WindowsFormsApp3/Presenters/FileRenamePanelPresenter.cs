@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -50,6 +50,7 @@ namespace WindowsFormsApp3.Presenters
         // ✅ 添加标识页相关字段
         private bool _currentAddIdentifierPage = false;
         private string _currentIdentifierPageContent = "";
+        private string _currentImpositionMaterialType = "";
 
         /// <summary>
         /// 构造函数
@@ -92,6 +93,41 @@ namespace WindowsFormsApp3.Presenters
         }
 
         #region 初始化与生命周期
+
+        /// <summary>
+        /// 获取材料类型字符串
+        /// </summary>
+        private string GetImpositionModeString()
+        {
+            // 只要有排版材料类型，就返回对应的中文描述，不再强校验 _currentEnableImposition
+            // 因为有时用户可能没有勾选"启用排版"（那个复选框可能只控制是否进行PDF拼版），
+            // 但仍然希望在文件名中体现是"平张"还是"卷装"
+            if (!string.IsNullOrEmpty(_currentImpositionMaterialType))
+            {
+                if (_currentImpositionMaterialType == "FlatSheet")
+                {
+                    return "平张";
+                }
+                else if (_currentImpositionMaterialType == "RollMaterial")
+                {
+                    return "卷装";
+                }
+            }
+            
+            // 兼容旧逻辑
+            if (_currentEnableImposition)
+            {
+                if (_currentImpositionMaterialType == "FlatSheet")
+                {
+                    return "平张";
+                }
+                else if (_currentImpositionMaterialType == "RollMaterial")
+                {
+                    return "卷装";
+                }
+            }
+            return "";
+        }
 
         /// <summary>
         /// 初始化Presenter
@@ -483,12 +519,16 @@ namespace WindowsFormsApp3.Presenters
                         _currentEnableImposition = selectionResult.EnableImposition;
                         _currentLayoutMode = selectionResult.LayoutMode;
                         _currentLayoutQuantity = selectionResult.LayoutQuantity;
-                        _logger?.LogInformation($"[ProcessNewFileAsync] 排版信息: EnableImposition={_currentEnableImposition}, LayoutMode={_currentLayoutMode}, LayoutQuantity={_currentLayoutQuantity}");
+                        // ✅ 保存排版材料类型（平张/卷装）
+                        _currentImpositionMaterialType = selectionResult.ImpositionMaterialType; 
+                        
+                        _logger?.LogInformation($"[ProcessNewFileAsync] 排版信息: EnableImposition={_currentEnableImposition}, LayoutMode={_currentLayoutMode}, LayoutQuantity={_currentLayoutQuantity}, MaterialType={_currentImpositionMaterialType}");
                         
                         // ✅ 保存标识页信息
                         _currentAddIdentifierPage = selectionResult.AddIdentifierPage;
                         _currentIdentifierPageContent = selectionResult.IdentifierPageContent ?? "";
-                        _logger?.LogInformation($"[ProcessNewFileAsync] 标识页信息: AddIdentifierPage={_currentAddIdentifierPage}, Content='{_currentIdentifierPageContent}'");
+                        _currentImpositionMaterialType = selectionResult.ImpositionMaterialType ?? "";
+                        _logger?.LogInformation($"[ProcessNewFileAsync] 标识页信息: AddIdentifierPage={_currentAddIdentifierPage}, Content='{_currentIdentifierPageContent}', MaterialType={_currentImpositionMaterialType}");
                         
                         // ✅ 获取导出路径
                         string exportPath = selectionResult.ExportPath;
@@ -522,6 +562,8 @@ namespace WindowsFormsApp3.Presenters
                             currentFileInfo.Process = selectionResult.Process ?? "";
                             currentFileInfo.LayoutRows = selectionResult.LayoutRows ?? "";
                             currentFileInfo.LayoutColumns = selectionResult.LayoutColumns ?? "";
+                            // ✅ 设置排版模式
+                            currentFileInfo.ImpositionMode = GetImpositionModeString();
                             
                             // 应用当前索引对应的数量和序号
                             currentFileInfo.Quantity = i < quantities.Length ? quantities[i] : quantities[quantities.Length - 1];
@@ -577,7 +619,7 @@ namespace WindowsFormsApp3.Presenters
                             if (success) successCount++;
                         }
                         
-                        if (successCount > 0)
+                        if (successCount > 0 && AppSettings.ShowRenameCompleteNotification)
                         {
                             _view.ShowSuccess($"{fileInfo.OriginalName} → 已生成 {successCount}/{fileCount} 个文件");
                         }
@@ -625,6 +667,9 @@ namespace WindowsFormsApp3.Presenters
                         // 自动生成序号
                         fileInfo.SerialNumber = GetNextSerialNumber().ToString();
                     }
+
+                    // ✅ 设置排版模式
+                    fileInfo.ImpositionMode = GetImpositionModeString();
 
                     // 生成新文件名
                     fileInfo.NewName = GenerateNewFileName(fileInfo);
@@ -744,7 +789,8 @@ namespace WindowsFormsApp3.Presenters
                 _view.HideProgress();
                 _view.UpdateStatus($"重命名完成: 成功 {successCount}, 失败 {failCount}");
 
-                if (successCount > 0)
+                // 检查是否显示通知
+                if (successCount > 0 && AppSettings.ShowRenameCompleteNotification)
                 {
                     // 获取第一个成功文件的原文件名作为通知的一部分
                     var firstFile = fileList.FirstOrDefault(f => !string.IsNullOrEmpty(f.NewName));
@@ -2493,6 +2539,10 @@ namespace WindowsFormsApp3.Presenters
                             case "列组合":
                                 config.CompositeColumnEnabled = true;
                                 break;
+                            case "排版模式":
+                            case "材料类型":
+                                config.ImpositionModeEnabled = true;
+                                break;
                         }
 
                         _logger?.LogInformation($"[CreateFileNameComponentsConfigFromEventGroup] 启用组件: {componentType}");
@@ -2540,10 +2590,35 @@ namespace WindowsFormsApp3.Presenters
                         .OrderBy(g => g.SortOrder)
                         .ToList();
 
+                    // ✅ 修复：检查是否存在"未分组"组（Id="" 或 "ungrouped"），如果不存在且有未分组项目，则虚拟添加一个
+                    // 这防止了旧的预设配置（缺少未分组定义）导致未分组项目被忽略
+                    var hasUngroupedDefinition = sortedGroups.Any(g => string.IsNullOrEmpty(g.Id) || g.Id == "ungrouped");
+                    if (!hasUngroupedDefinition)
+                    {
+                        var ungroupedItemsExist = eventGroupConfig.Items.Any(i => (string.IsNullOrEmpty(i.GroupId) || i.GroupId == "ungrouped") && i.IsEnabled);
+                        if (ungroupedItemsExist)
+                        {
+                            _logger?.LogInformation("GetComponentOrderFromSettings: 检测到未分组项目但缺少分组定义，虚拟添加未分组");
+                            // 添加到最后
+                            sortedGroups.Add(new EventGroup { Id = "", DisplayName = "未分组", IsEnabled = true, SortOrder = 999 });
+                        }
+                    }
+
                     foreach (var group in sortedGroups)
                     {
+                        // ✅ 修复：处理 GroupId 为 "" 或 "ungrouped" 的兼容性
                         var groupItems = eventGroupConfig.Items
-                            .Where(item => item.GroupId == group.Id && item.IsEnabled)
+                            .Where(item => 
+                            {
+                                if (!item.IsEnabled) return false;
+                                // 精确匹配
+                                if (item.GroupId == group.Id) return true;
+                                // 兼容性匹配：空字符串和"ungrouped"视为等同
+                                if ((string.IsNullOrEmpty(group.Id) || group.Id == "ungrouped") && 
+                                    (string.IsNullOrEmpty(item.GroupId) || item.GroupId == "ungrouped"))
+                                    return true;
+                                return false;
+                            })
                             .OrderBy(item => item.SortOrder)
                             .ToList();
 
@@ -2561,18 +2636,18 @@ namespace WindowsFormsApp3.Presenters
                 else
                 {
                     _logger?.LogWarning("GetComponentOrderFromSettings: EventGroup配置为空，使用默认顺序");
-                    componentOrder.AddRange(new[] { "正则结果", "序号", "订单号", "材料", "数量", "工艺", "尺寸" });
+                    componentOrder.AddRange(new[] { "正则结果", "序号", "订单号", "材料", "数量", "工艺", "尺寸", "列组合", "行数", "列数", "材料类型" });
                 }
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "GetComponentOrderFromSettings: 获取组件顺序时发生异常");
-                componentOrder.AddRange(new[] { "正则结果", "序号", "订单号", "材料", "数量", "工艺", "尺寸" });
+                componentOrder.AddRange(new[] { "正则结果", "序号", "订单号", "材料", "数量", "工艺", "尺寸", "列组合", "行数", "列数", "材料类型" });
             }
 
             if (componentOrder.Count == 0)
             {
-                componentOrder.AddRange(new[] { "正则结果", "序号", "订单号", "材料", "数量", "工艺", "尺寸" });
+                componentOrder.AddRange(new[] { "正则结果", "序号", "订单号", "材料", "数量", "工艺", "尺寸", "列组合", "行数", "列数", "材料类型" });
             }
 
             _logger?.LogInformation($"GetComponentOrderFromSettings: 最终组件顺序 = [{string.Join(", ", componentOrder)}]");
@@ -2601,13 +2676,15 @@ namespace WindowsFormsApp3.Presenters
 
                     foreach (var item in groupItems)
                     {
-                        if (string.IsNullOrEmpty(group.Prefix))
-                            continue;
+                        // ✅ Fix: Do not skip groups with empty prefixes. We need to track them to maintain order.
+                        // if (string.IsNullOrEmpty(group.Prefix))
+                        //    continue;
+                        var prefix = group.Prefix ?? string.Empty;
 
                         if (!prefixes.ContainsKey(item.Name))
                         {
-                            prefixes[item.Name] = group.Prefix;
-                            _logger?.LogInformation($"[GetPrefixesFromEventGroupConfig] 已添加映射: '{item.Name}' -> '{group.Prefix}'");
+                            prefixes[item.Name] = prefix;
+                            _logger?.LogInformation($"[GetPrefixesFromEventGroupConfig] 已添加映射: '{item.Name}' -> '{prefix}'");
                         }
                     }
                 }
@@ -2838,6 +2915,9 @@ namespace WindowsFormsApp3.Presenters
                     return "列数";
                 case "列组合":
                     return "列组合";
+                case "排版模式": // 兼容旧配置
+                case "材料类型":
+                    return "材料类型";
                 case "正则结果":
                     return "正则结果";
                 default:
@@ -2873,6 +2953,16 @@ namespace WindowsFormsApp3.Presenters
                 _logger?.LogInformation($"[GenerateNewFileName] 数量: {quantity}");
                 _logger?.LogInformation($"[GenerateNewFileName] 列组合: {fileInfo.CompositeColumn ?? "(空)"}");
 
+                // 确定排版模式文本
+                string impositionModeValue = fileInfo.ImpositionMode ?? "";
+                // 如果 fileInfo 中没有，尝试使用当前状态计算（兼容旧逻辑）
+                if (string.IsNullOrEmpty(impositionModeValue))
+                {
+                    impositionModeValue = GetImpositionModeString();
+                }
+
+                _logger?.LogInformation($"[GenerateNewFileName] 排版模式值: '{impositionModeValue}' (启用: {_currentEnableImposition}, 模式: {_currentImpositionMaterialType})");
+
                 // ✅ 调试：如果没有Excel数据但启用了列组合功能，提供测试数据
                 if (string.IsNullOrEmpty(fileInfo.CompositeColumn) && AppSettings.EnableColumnCombine)
                 {
@@ -2902,6 +2992,8 @@ namespace WindowsFormsApp3.Presenters
                     LayoutColumns = fileInfo.LayoutColumns ?? "",
                     // ✅ 修复：添加列组合数据
                     CompositeColumn = fileInfo.CompositeColumn ?? "",
+                    // ✅ 修复：添加排版模式数据
+                    ImpositionMode = impositionModeValue,
                     EnabledComponents = enabledConfig,
                     ComponentOrder = componentOrder,
                     Prefixes = prefixes,

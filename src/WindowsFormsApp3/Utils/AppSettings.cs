@@ -351,6 +351,16 @@ namespace WindowsFormsApp3.Utils
             set => SetValue("PreviewExpanded", value);
         }
 
+        /// <summary>
+        /// 重命名完成后显示通知
+        /// </summary>
+        public static bool ShowRenameCompleteNotification
+        {
+            get => GetValue<bool>("ShowRenameCompleteNotification", true);
+            set => SetValue("ShowRenameCompleteNotification", value);
+        }
+
+        /// <summary>
         /// 通用设置访问器，兼容Properties.Settings["key"]的访问方式
         /// </summary>
         public static object Get(string key)

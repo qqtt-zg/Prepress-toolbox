@@ -95,7 +95,7 @@ namespace WindowsFormsApp3.Forms.Panels
             
             var btnLoad = new AntdUI.Button();
             btnLoad.Text = "加载 PDF 文件";
-            btnLoad.Type = AntdUI.TTypeMini.Primary; // Approximate: TTypePrimary vs Type
+            btnLoad.Type = AntdUI.TTypeMini.Primary; // 近似对应：TTypePrimary 与 Type
             btnLoad.IconSvg = "FolderOpenOutlined";
             btnLoad.Dock = DockStyle.Fill;
             btnLoad.Click += BtnLoad_Click;
@@ -142,8 +142,8 @@ namespace WindowsFormsApp3.Forms.Panels
             
             btn.Click += (s, e) => {
                 selectedFunction = tag;
-                // Update button styles...
-                CreateParameterPanelContent(); // Refresh parameters
+                // 更新按钮样式...
+                CreateParameterPanelContent(); // 刷新参数
             };
             
             functionSelectPanel.Controls.Add(btn);

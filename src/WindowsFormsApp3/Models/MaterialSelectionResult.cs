@@ -122,6 +122,11 @@ namespace WindowsFormsApp3.Models
         /// </summary>
         public string IdentifierPageContent { get; set; } = "";
 
+        /// <summary>
+        /// 排版材料类型 (FlatSheet/RollMaterial)
+        /// </summary>
+        public string ImpositionMaterialType { get; set; }
+
         public MaterialSelectionResult()
         {
             ColumnValues = new Dictionary<string, string>();

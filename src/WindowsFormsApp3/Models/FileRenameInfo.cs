@@ -31,6 +31,7 @@ namespace WindowsFormsApp3
         private string _height;     // PDF 高度
         private string _tetBleed;   // 出血值
         private string _fileExtension; // 文件扩展名
+        private string _impositionMode; // 排版模式（"平张"或"卷装"）
 
         // 保留模式相关属性
         private Dictionary<string, string> _backupData = new Dictionary<string, string>();
@@ -180,6 +181,15 @@ namespace WindowsFormsApp3
         {
             get { return _fileExtension; }
             set { _fileExtension = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// 排版模式（"平张"或"卷装"）
+        /// </summary>
+        public string ImpositionMode
+        {
+            get { return _impositionMode; }
+            set { _impositionMode = value; OnPropertyChanged(); }
         }
 
         /// <summary>

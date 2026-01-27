@@ -1162,6 +1162,9 @@ namespace WindowsFormsApp3.Services
                     // 暂时返回空字符串，因为FileRenameInfo没有ColumnCount属性
                     return string.Empty;
 
+                case "排版模式":
+                    return !string.IsNullOrEmpty(fileInfo.ImpositionMode) ? fileInfo.ImpositionMode : string.Empty;
+
                 default:
                     return string.Empty;
             }
@@ -1293,6 +1296,9 @@ namespace WindowsFormsApp3.Services
                 case "列数":
                     // 暂时返回空字符串，因为FileRenameInfo没有ColumnCount属性
                     return string.Empty;
+
+                case "排版模式":
+                    return !string.IsNullOrEmpty(fileInfo.ImpositionMode) ? fileInfo.ImpositionMode : string.Empty;
 
                 default:
                     return string.Empty;

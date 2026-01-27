@@ -141,23 +141,23 @@ namespace WindowsFormsApp3.Forms.Controls
             editPanel.Controls.Add(editButton);
             
             _currentPagePanel.Controls.Add(editPanel);
-            // Reverse order because Dock=Top. Added last appears at top? No, Dock=Top stacks. 
-            // _boxesTable is added first (Top). editPanel added second (Top). editPanel will be below _boxesTable.
-            // Wait, Dock=Top: First added is at the top. Subsequent Dock=Top goes *under* previous Dock=Top.
-            // So if I want Edit Button at Top, I must add it *before* _boxesTable.
+            // 顺序相反，因为 Dock=Top。最后添加的显示在顶部？不，Dock=Top 会堆叠。
+            // _boxesTable 是第一个添加的（Top）。editPanel 是第二个添加的（Top）。editPanel 会在 _boxesTable 下面。
+            // 等等，Dock=Top：第一个添加的在顶部。随后的 Dock=Top 会 *在* 之前的 Dock=Top 之下。
+            // 所以如果我希望 编辑按钮 在顶部，我必须在 _boxesTable *之前* 添加它。
             
-            // Correction: WinForms Dock=Top logic:
-            // Controls[0] is at the bottom of the Dock stack? No.
-            // The last control added with Dock.Top appears at the very top of the Z-order, and thus physically at the top.
-            // Let's verify: Control A (Top), Control B (Top). Visual: B, A.
-            // So if I want Edit Panel at the very top, I should add it LAST.
-            // Currently _boxesTable is added. If I add editPanel now, editPanel will be ABOVE _boxesTable.
-            // That is what I want.
+            // 更正：WinForms Dock=Top 逻辑：
+            // Controls[0] 在 Dock 堆栈的底部？不。
+            // 使用 Dock.Top 添加的最后一个控件显示在 Z 顺序的最顶层，因此在物理上位于顶部。
+            // 让我们验证一下：控件 A (Top)，控件 B (Top)。视觉效果：B, A。
+            // 所以如果我希望 编辑面板 在最顶部，我应该最后添加它。
+            // 目前 _boxesTable 已添加。如果我现在添加 editPanel，editPanel 将在 _boxesTable 之上。
+            // 这就是我想要的。
             
-            // Wait, standard practice:
-            // panel.Controls.Add(A); A.Dock = Top; -> A is Top.
-            // panel.Controls.Add(B); B.Dock = Top; -> B is above A.
-            // So YES, adding editPanel NOW (after _boxesTable) will put it at the very top.
+            // 等等，标准做法：
+            // panel.Controls.Add(A); A.Dock = Top; -> A 是 Top。
+            // panel.Controls.Add(B); B.Dock = Top; -> B 在 A 上面。
+            // 所以是的，现在添加 editPanel（在 _boxesTable 之后）会把它放在最顶部。
 
 
             _currentPageTabPage = new AntdUI.TabPage
@@ -181,14 +181,14 @@ namespace WindowsFormsApp3.Forms.Controls
             {
                 if (form.ResultInfo != null)
                 {
-                    // Save changes
+                    // 保存更改
                     bool success = _inspectorService.SavePageBox(_currentInfo.FilePath, form.ResultInfo, form.ApplyToAllPages);
                     if (success)
                     {
                         AntdUI.Notification.success(this.FindForm(), "保存成功", "页面几何框已更新");
-                        // Reload
+                        // 重新加载
                         LoadPdf(_currentInfo.FilePath, _currentInfo.CurrentPage);
-                        // Trigger external update event if needed
+                        // 如果需要，触发外部更新事件
                         // OnPdfModified(new PdfModifiedEventArgs(_currentInfo.FilePath)); 
                     }
                     else

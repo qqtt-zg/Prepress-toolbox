@@ -7,6 +7,8 @@ using WindowsFormsApp3.Forms.Dialogs;
 using WindowsFormsApp3.EventArguments;
 
 
+using WindowsFormsApp3.Utils;
+
 namespace WindowsFormsApp3.Controls
 {
     /// <summary>
@@ -90,33 +92,33 @@ namespace WindowsFormsApp3.Controls
         // 调试方法：检查拖拽状态
         public void LogDragDropStatus()
         {
-            System.Diagnostics.Debug.WriteLine($"[LogDragDropStatus] TreeView状态检查:");
-            System.Diagnostics.Debug.WriteLine($"  - TreeView: {(treeView != null ? "存在" : "null")}");
-            System.Diagnostics.Debug.WriteLine($"  - Name: {treeView?.Name}");
-            System.Diagnostics.Debug.WriteLine($"  - AllowDrop: {treeView?.AllowDrop}");
-            System.Diagnostics.Debug.WriteLine($"  - 节点数量: {treeView?.Nodes?.Count ?? 0}");
+            LogHelper.Debug($"[LogDragDropStatus] TreeView状态检查:");
+            LogHelper.Debug($"  - TreeView: {(treeView != null ? "存在" : "null")}");
+            LogHelper.Debug($"  - Name: {treeView?.Name}");
+            LogHelper.Debug($"  - AllowDrop: {treeView?.AllowDrop}");
+            LogHelper.Debug($"  - 节点数量: {treeView?.Nodes?.Count ?? 0}");
 
             if (treeView?.Nodes != null)
             {
                 for (int i = 0; i < treeView.Nodes.Count; i++)
                 {
-                    System.Diagnostics.Debug.WriteLine($"  - 节点[{i}]: {treeView.Nodes[i].Text} (子节点: {treeView.Nodes[i].Nodes.Count})");
+                    LogHelper.Debug($"  - 节点[{i}]: {treeView.Nodes[i].Text} (子节点: {treeView.Nodes[i].Nodes.Count})");
                 }
             }
 
             // 测试触发一个简单的拖拽事件检查
-            System.Diagnostics.Debug.WriteLine("  - 尝试手动触发拖拽测试...");
+            LogHelper.Debug("  - 尝试手动触发拖拽测试...");
             try
             {
                 if (treeView?.Nodes?.Count > 0)
                 {
                     var testNode = treeView.Nodes[0];
-                    System.Diagnostics.Debug.WriteLine($"  - 测试节点: {testNode?.Text}, Tag类型: {testNode?.Tag?.GetType().Name}");
+                    LogHelper.Debug($"  - 测试节点: {testNode?.Text}, Tag类型: {testNode?.Tag?.GetType().Name}");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"  - 测试异常: {ex.Message}");
+                LogHelper.Debug($"  - 测试异常: {ex.Message}");
             }
         }
 
@@ -283,16 +285,17 @@ namespace WindowsFormsApp3.Controls
             // 启用拖拽功能
             treeView.AllowDrop = true;
 
-            System.Diagnostics.Debug.WriteLine($"[SetupTreeView] 开始绑定拖拽事件，TreeView={treeView?.Name}, AllowDrop={treeView?.AllowDrop}");
+            LogHelper.Debug($"[SetupTreeView] 开始绑定拖拽事件，TreeView={treeView?.Name}, AllowDrop={treeView?.AllowDrop}");
 
             treeView.ItemDrag += TreeView_ItemDrag;
             treeView.DragEnter += TreeView_DragEnter;
+            treeView.DragOver += TreeView_DragOver; // ✅ 绑定 DragOver 事件
             treeView.DragDrop += TreeView_DragDrop;
             
             // 添加节点勾选事件处理
             treeView.AfterCheck += TreeView_AfterCheck;
 
-            System.Diagnostics.Debug.WriteLine("[SetupTreeView] 拖拽事件和勾选事件绑定完成");
+            LogHelper.Debug("[SetupTreeView] 拖拽事件和勾选事件绑定完成");
         }
 
         /// <summary>
@@ -340,7 +343,7 @@ namespace WindowsFormsApp3.Controls
                     }
                 }
                 
-                System.Diagnostics.Debug.WriteLine($"[分组勾选] 分组 '{groupData.Group}' 取消勾选，已同时取消所有子项目");
+                LogHelper.Debug($"[分组勾选] 分组 '{groupData.Group}' 取消勾选，已同时取消所有子项目");
             }
             else
             {
@@ -350,7 +353,7 @@ namespace WindowsFormsApp3.Controls
                 // 策略3：询问用户是否同时勾选子项目（可选）
                 
                 // 这里采用策略1：保持子项目原有状态，让用户自己决定
-                System.Diagnostics.Debug.WriteLine($"[分组勾选] 分组 '{groupData.Group}' 已勾选，子项目保持原有状态");
+                LogHelper.Debug($"[分组勾选] 分组 '{groupData.Group}' 已勾选，子项目保持原有状态");
                 
                 // 如果需要同时勾选所有子项目，可以取消注释下面的代码：
                 /*
@@ -383,11 +386,11 @@ namespace WindowsFormsApp3.Controls
                 if (isChecked && !parentNode.Checked)
                 {
                     // 这里采用策略1：允许子项目独立状态
-                    System.Diagnostics.Debug.WriteLine($"[项目勾选] 项目 '{itemData.ItemName}' 已勾选，但父分组 '{parentData.Group}' 未勾选");
+                    LogHelper.Debug($"[项目勾选] 项目 '{itemData.ItemName}' 已勾选，但父分组 '{parentData.Group}' 未勾选");
                 }
                 else if (!isChecked)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[项目勾选] 项目 '{itemData.ItemName}' 已取消勾选");
+                    LogHelper.Debug($"[项目勾选] 项目 '{itemData.ItemName}' 已取消勾选");
                 }
             }
         }
@@ -1249,7 +1252,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
         /// </summary>
         private void TreeView_ItemDrag(object sender, ItemDragEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[ItemDrag] 拖拽事件触发: 拖拽节点={e.Item?.GetType().Name}");
+            LogHelper.Debug($"[ItemDrag] 拖拽事件触发: 拖拽节点={e.Item?.GetType().Name}");
 
             var node = e.Item as TreeNode;
             if (node?.Tag is TreeNodeData nodeData)
@@ -1257,37 +1260,47 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                 // 支持拖拽项目节点和分组节点
                 if (nodeData.NodeType == TreeNodeType.Item)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[ItemDrag] 开始拖拽项目: {node.Text} (分组: {nodeData.Group})");
+                    LogHelper.Debug($"[ItemDrag] 开始拖拽项目: {node.Text} (分组: {nodeData.Group})");
 
                     // 只允许拖拽项目节点
                     _draggedNode = node;
                     _originalParentNode = node.Parent; // 记录原始父分组
 
-                    System.Diagnostics.Debug.WriteLine($"[ItemDrag] 调用 DoDragDrop 开始拖拽操作...");
+                    LogHelper.Debug($"[ItemDrag] 调用 DoDragDrop 开始拖拽操作...");
                     treeView.DoDragDrop(node, DragDropEffects.Move);
-                    System.Diagnostics.Debug.WriteLine($"[ItemDrag] DoDragDrop 调用完成");
+                    LogHelper.Debug($"[ItemDrag] DoDragDrop 调用完成");
                 }
                 else if (nodeData.NodeType == TreeNodeType.Group)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[ItemDrag] 开始拖拽分组: {node.Text} (分组: {nodeData.Group})");
+                    LogHelper.Debug($"[ItemDrag] 开始拖拽分组: {node.Text} (分组: {nodeData.Group})");
 
                     // 允许拖拽分组节点进行排序
                     _draggedNode = node;
                     _originalParentNode = node.Parent; // 记录原始位置
 
-                    System.Diagnostics.Debug.WriteLine($"[ItemDrag] 调用 DoDragDrop 开始分组排序拖拽操作...");
+                    LogHelper.Debug($"[ItemDrag] 调用 DoDragDrop 开始分组排序拖拽操作...");
                     treeView.DoDragDrop(node, DragDropEffects.Move);
-                    System.Diagnostics.Debug.WriteLine($"[ItemDrag] 分组排序 DoDragDrop 调用完成");
+                    LogHelper.Debug($"[ItemDrag] 分组排序 DoDragDrop 调用完成");
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[ItemDrag] 不支持的节点类型拖拽: {nodeData.NodeType}");
+                    LogHelper.Debug($"[ItemDrag] 不支持的节点类型拖拽: {nodeData.NodeType}");
                 }
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[ItemDrag] 拖拽被忽略: 节点类型={node?.Tag?.GetType().Name}, 节点文本={node?.Text}");
+                LogHelper.Debug($"[ItemDrag] 拖拽被忽略: 节点类型={node?.Tag?.GetType().Name}, 节点文本={node?.Text}");
             }
+        }
+
+        /// <summary>
+        /// 拖拽经过事件（关键：持续更新状态，否则会变禁止符号）
+        /// </summary>
+        private void TreeView_DragOver(object sender, DragEventArgs e)
+        {
+            // 复用 DragEnter 的逻辑来设置 Effect
+            // 注意：DragOver 会频繁触发，保持逻辑轻量
+            TreeView_DragEnter(sender, e);
         }
 
         /// <summary>
@@ -1295,7 +1308,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
         /// </summary>
         private void TreeView_DragEnter(object sender, DragEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[DragEnter] 拖拽进入事件触发: e.Data.GetDataPresent={e.Data.GetDataPresent(typeof(TreeNode))}, e.Effect={e.Effect}");
+            LogHelper.Debug($"[DragEnter] 拖拽进入事件触发: e.Data.GetDataPresent={e.Data.GetDataPresent(typeof(TreeNode))}, e.Effect={e.Effect}");
 
             if (e.Data.GetDataPresent(typeof(TreeNode)))
             {
@@ -1303,17 +1316,24 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                 var targetPoint = treeView.PointToClient(new Point(e.X, e.Y));
                 var targetNode = treeView.GetNodeAt(targetPoint);
 
-                System.Diagnostics.Debug.WriteLine($"[DragEnter] 拖拽数据解析: 拖拽节点={draggedNode?.Text}, 目标节点={targetNode?.Text}");
+                LogHelper.Debug($"[DragEnter] 拖拽数据解析: 拖拽节点={draggedNode?.Text}, 目标节点={targetNode?.Text}");
 
                 // 处理分组节点排序
                 if (draggedNode?.Tag is TreeNodeData draggedData &&
                     draggedData.NodeType == TreeNodeType.Group)
                 {
-                    // 分组排序：不允许拖拽到自己身上
-                    if (draggedNode == targetNode)
+                    // 分组排序：允许拖拽到自己身上（为了更流畅的体验）
+                    // if (draggedNode == targetNode)
+                    // {
+                    //    e.Effect = DragDropEffects.None;
+                    //    return;
+                    // }
+
+                    // 检查目标是否为项目节点（此时视为其父分组）
+                    if (targetNode?.Tag is TreeNodeData itemData && itemData.NodeType == TreeNodeType.Item)
                     {
-                        e.Effect = DragDropEffects.None;
-                        System.Diagnostics.Debug.WriteLine($"[DragEnter] 分组排序：不允许拖拽到自己");
+                        e.Effect = DragDropEffects.Move;
+                        LogHelper.Debug($"[DragEnter] 分组排序有效：拖拽到项目节点 '{itemData.ItemName}'，视为拖拽到分组");
                         return;
                     }
 
@@ -1321,7 +1341,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                     if (targetNode?.Tag is TreeNodeData targetData && targetData.NodeType == TreeNodeType.Group)
                     {
                         e.Effect = DragDropEffects.Move;
-                        System.Diagnostics.Debug.WriteLine($"[DragEnter] 分组排序有效：将 '{draggedData.Group.Value}' 排序到 '{targetData.Group.Value}' 附近");
+                        LogHelper.Debug($"[DragEnter] 分组排序有效：将 '{draggedData.Group.Value}' 排序到 '{targetData.Group.Value}' 附近");
                         return;
                     }
 
@@ -1329,7 +1349,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                     if (targetNode == null)
                     {
                         e.Effect = DragDropEffects.Move;
-                        System.Diagnostics.Debug.WriteLine($"[DragEnter] 分组排序有效：拖拽到空白区域");
+                        LogHelper.Debug($"[DragEnter] 分组排序有效：拖拽到空白区域");
                         return;
                     }
                 }
@@ -1341,7 +1361,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                     // 情况1：拖拽到分组节点（跨分组移动）
                     if (targetNode?.Tag is TreeNodeData itemTargetData && itemTargetData.NodeType == TreeNodeType.Group)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[DragEnter] 跨分组拖拽验证: 拖拽项目={draggedItemData.ItemName}, 目标分组={itemTargetData.Group}, 是否保留={itemTargetData.IsPreserved}");
+                        LogHelper.Debug($"[DragEnter] 跨分组拖拽验证: 拖拽项目={draggedItemData.ItemName}, 目标分组={itemTargetData.Group}, 是否保留={itemTargetData.IsPreserved}");
 
                         // 检查目标是否为保留分组
                         if (itemTargetData.IsPreserved)
@@ -1364,13 +1384,13 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                             {
                                 // 允许拖拽继续，但标记为冲突状态
                                 e.Effect = DragDropEffects.Move;
-                                System.Diagnostics.Debug.WriteLine($"[DragEnter] 检测到保留分组 '{itemTargetData.Group.Value}' 已有项目 '{existingItemName}'，标记为冲突状态");
+                                LogHelper.Debug($"[DragEnter] 检测到保留分组 '{itemTargetData.Group.Value}' 已有项目 '{existingItemName}'，标记为冲突状态");
                                 return;
                             }
                         }
 
                         e.Effect = DragDropEffects.Move;
-                        System.Diagnostics.Debug.WriteLine($"[DragEnter] 跨分组拖拽有效");
+                        LogHelper.Debug($"[DragEnter] 跨分组拖拽有效");
                         return;
                     }
 
@@ -1381,21 +1401,21 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                         if (draggedNode.Parent == targetNode.Parent)
                         {
                             e.Effect = DragDropEffects.Move;
-                            System.Diagnostics.Debug.WriteLine($"[DragEnter] 分组内排序有效: 拖拽项目={draggedItemData.ItemName}, 目标项目={targetItemData.ItemName}");
+                            LogHelper.Debug($"[DragEnter] 分组内排序有效: 拖拽项目={draggedItemData.ItemName}, 目标项目={targetItemData.ItemName}");
                             return;
                         }
                         else
                         {
                             // 不同分组间的项目拖拽，不允许
                             e.Effect = DragDropEffects.None;
-                            System.Diagnostics.Debug.WriteLine($"[DragEnter] 不同分组间项目拖拽，不允许");
+                            LogHelper.Debug($"[DragEnter] 不同分组间项目拖拽，不允许");
                             return;
                         }
                     }
 
                     // 情况3：拖拽到空白区域或其他情况
                     e.Effect = DragDropEffects.Move;
-                    System.Diagnostics.Debug.WriteLine($"[DragEnter] 项目拖拽到空白区域或其他情况");
+                    LogHelper.Debug($"[DragEnter] 项目拖拽到空白区域或其他情况");
                     return;
                 }
 
@@ -1412,7 +1432,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
         /// </summary>
         private void TreeView_DragDrop(object sender, DragEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[拖拽开始] TreeView_DragDrop 事件触发");
+            LogHelper.Debug($"[拖拽开始] TreeView_DragDrop 事件触发");
 
             if (e.Data.GetDataPresent(typeof(TreeNode)))
             {
@@ -1420,13 +1440,13 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                 var targetPoint = treeView.PointToClient(new Point(e.X, e.Y));
                 var targetNode = treeView.GetNodeAt(targetPoint);
 
-                System.Diagnostics.Debug.WriteLine($"[拖拽信息] 拖拽节点: {draggedNode?.Text}, 目标节点: {targetNode?.Text}");
+                LogHelper.Debug($"[拖拽信息] 拖拽节点: {draggedNode?.Text}, 目标节点: {targetNode?.Text}");
 
                 // 处理分组节点排序
                 if (draggedNode?.Tag is TreeNodeData draggedData &&
                     draggedData.NodeType == TreeNodeType.Group)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[分组排序] 开始处理分组排序: '{draggedData.Group.Value}'");
+                    LogHelper.Debug($"[分组排序] 开始处理分组排序: '{draggedData.Group.Value}'");
 
                     // 执行分组排序
                     bool sortSuccess = ReorderGroups(draggedNode, targetNode, targetPoint);
@@ -1435,11 +1455,11 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                     {
                         // 触发配置保存事件以保存排序后的配置
                         ConfigurationSaveRequested?.Invoke(this, EventArgs.Empty);
-                        System.Diagnostics.Debug.WriteLine($"[分组排序] 排序完成并触发保存事件");
+                        LogHelper.Debug($"[分组排序] 排序完成并触发保存事件");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[分组排序] 排序失败或被取消");
+                        LogHelper.Debug($"[分组排序] 排序失败或被取消");
                     }
 
                     return;
@@ -1452,7 +1472,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                     // 情况1：拖拽到分组节点（跨分组移动）
                     if (targetNode?.Tag is TreeNodeData targetData && targetData.NodeType == TreeNodeType.Group)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[跨分组拖拽] 拖拽数据有效: 拖拽项目='{draggedItemData.ItemName}', 目标分组={targetData.Group}, 是否保留分组={targetData.IsPreserved}");
+                        LogHelper.Debug($"[跨分组拖拽] 拖拽数据有效: 拖拽项目='{draggedItemData.ItemName}', 目标分组={targetData.Group}, 是否保留分组={targetData.IsPreserved}");
 
                         // 检查目标分组内是否已有项目
                         bool hasExistingItem = false;
@@ -1471,7 +1491,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                         // 如果是保留分组且已有项目，将冲突项目移至未分组
                         if (targetData.IsPreserved && hasExistingItem)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[拖拽冲突] 检测到保留分组 '{targetData.Group.Value}' 已有项目: '{existingItemName}'，正在移动拖拽项目 '{draggedItemData.ItemName}' 到未分组");
+                            LogHelper.Debug($"[拖拽冲突] 检测到保留分组 '{targetData.Group.Value}' 已有项目: '{existingItemName}'，正在移动拖拽项目 '{draggedItemData.ItemName}' 到未分组");
 
                             // 将拖拽的项目移动到"未分组"
                             MoveItemToUngrouped(draggedNode, draggedItemData);
@@ -1484,7 +1504,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                                          $"项目已移动到'未分组'。";
 
                             MessageBox.Show(message, "拖拽冲突", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            System.Diagnostics.Debug.WriteLine($"[拖拽冲突] 已显示冲突提示信息，操作完成");
+                            LogHelper.Debug($"[拖拽冲突] 已显示冲突提示信息，操作完成");
                             return;
                         }
 
@@ -1500,13 +1520,13 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                         {
                             draggedItemData.IsPreserved = true;
                             UpdateItemNodeVisual(draggedNode, true);
-                            System.Diagnostics.Debug.WriteLine($"[跨分组拖拽成功] 项目 '{draggedItemData.ItemName}' 已加入保留分组 '{targetData.Group.Value}' 并设置为保留状态");
+                            LogHelper.Debug($"[跨分组拖拽成功] 项目 '{draggedItemData.ItemName}' 已加入保留分组 '{targetData.Group.Value}' 并设置为保留状态");
                         }
                         else
                         {
                             draggedItemData.IsPreserved = false;
                             UpdateItemNodeVisual(draggedNode, false);
-                            System.Diagnostics.Debug.WriteLine($"[跨分组拖拽成功] 项目 '{draggedItemData.ItemName}' 已加入普通分组 '{targetData.Group.Value}'");
+                            LogHelper.Debug($"[跨分组拖拽成功] 项目 '{draggedItemData.ItemName}' 已加入普通分组 '{targetData.Group.Value}'");
                         }
 
                         // 更新分组节点显示
@@ -1523,7 +1543,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                         // 检查是否在同一个分组内
                         if (draggedNode.Parent == targetNode.Parent && draggedNode.Parent != null)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[分组内排序] 开始处理分组内项目排序: 拖拽项目='{draggedItemData.ItemName}', 目标项目='{targetItemData.ItemName}'");
+                            LogHelper.Debug($"[分组内排序] 开始处理分组内项目排序: 拖拽项目='{draggedItemData.ItemName}', 目标项目='{targetItemData.ItemName}'");
 
                             // 执行分组内项目排序
                             bool sortSuccess = ReorderItemsWithinGroup(draggedNode, targetNode, targetPoint);
@@ -1532,18 +1552,18 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                             {
                                 // 触发配置保存事件
                                 ConfigurationSaveRequested?.Invoke(this, EventArgs.Empty);
-                                System.Diagnostics.Debug.WriteLine($"[分组内排序] 排序完成并触发保存事件");
+                                LogHelper.Debug($"[分组内排序] 排序完成并触发保存事件");
                             }
                             else
                             {
-                                System.Diagnostics.Debug.WriteLine($"[分组内排序] 排序失败或被取消");
+                                LogHelper.Debug($"[分组内排序] 排序失败或被取消");
                             }
                             return;
                         }
                     }
 
                     // 情况3：其他情况的处理
-                    System.Diagnostics.Debug.WriteLine($"[拖拽] 未匹配到具体的拖拽情况，使用默认处理");
+                    LogHelper.Debug($"[拖拽] 未匹配到具体的拖拽情况，使用默认处理");
                 }
             }
         }
@@ -1562,7 +1582,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                 var parentGroup = draggedNode.Parent;
                 if (parentGroup == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[分组内排序] 拖拽节点没有父分组");
+                    LogHelper.Debug($"[分组内排序] 拖拽节点没有父分组");
                     return false;
                 }
 
@@ -1578,7 +1598,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
 
                 if (itemNodes.Count < 2)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[分组内排序] 分组内项目数量不足，无需排序");
+                    LogHelper.Debug($"[分组内排序] 分组内项目数量不足，无需排序");
                     return false;
                 }
 
@@ -1588,14 +1608,14 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
 
                 if (draggedIndex == -1 || targetIndex == -1)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[分组内排序] 无法找到拖拽节点或目标节点的索引");
+                    LogHelper.Debug($"[分组内排序] 无法找到拖拽节点或目标节点的索引");
                     return false;
                 }
 
                 // 如果位置没有变化，不需要排序
                 if (draggedIndex == targetIndex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[分组内排序] 位置未变化，无需排序");
+                    LogHelper.Debug($"[分组内排序] 位置未变化，无需排序");
                     return false;
                 }
 
@@ -1607,7 +1627,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[分组内排序] 排序过程中发生异常: {ex.Message}");
+                LogHelper.Debug($"[分组内排序] 排序过程中发生异常: {ex.Message}");
                 return false;
             }
         }
@@ -1626,7 +1646,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                 var targetBounds = targetNode.Bounds;
                 var midPoint = targetBounds.Top + targetBounds.Height / 2;
 
-                System.Diagnostics.Debug.WriteLine($"[分组内排序] 计算插入位置: 拖拽索引={draggedIndex}, 目标索引={targetIndex}, 鼠标Y={targetPoint.Y}, 目标中点Y={midPoint}");
+                LogHelper.Debug($"[分组内排序] 计算插入位置: 拖拽索引={draggedIndex}, 目标索引={targetIndex}, 鼠标Y={targetPoint.Y}, 目标中点Y={midPoint}");
 
                 if (draggedIndex < targetIndex)
                 {
@@ -1701,9 +1721,9 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                 }
                 var newOrder = newItemNodes.Select(n => n.Text).ToList();
 
-                System.Diagnostics.Debug.WriteLine($"[分组内排序] 排序完成: '{draggedNode.Text}' 从位置 {originalIndex} 移动到 {actualInsertIndex}");
-                System.Diagnostics.Debug.WriteLine($"[分组内排序] 原顺序: {string.Join(" -> ", oldOrder)}");
-                System.Diagnostics.Debug.WriteLine($"[分组内排序] 新顺序: {string.Join(" -> ", newOrder)}");
+                LogHelper.Debug($"[分组内排序] 排序完成: '{draggedNode.Text}' 从位置 {originalIndex} 移动到 {actualInsertIndex}");
+                LogHelper.Debug($"[分组内排序] 原顺序: {string.Join(" -> ", oldOrder)}");
+                LogHelper.Debug($"[分组内排序] 新顺序: {string.Join(" -> ", newOrder)}");
 
                 // 触发项目排序事件（如果需要）
                 OnItemsReordered(parentGroup, draggedNode.Text, originalIndex, actualInsertIndex, oldOrder, newOrder);
@@ -1712,7 +1732,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[分组内排序] 执行排序失败: {ex.Message}");
+                LogHelper.Debug($"[分组内排序] 执行排序失败: {ex.Message}");
                 return false;
             }
         }
@@ -1801,7 +1821,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
             ungroupedNode.Expand();
 
             // 记录日志
-            System.Diagnostics.Debug.WriteLine($"项目 '{itemNode.Text}' 已从 '{originalGroupName}' 移动到 '未分组'");
+            LogHelper.Debug($"项目 '{itemNode.Text}' 已从 '{originalGroupName}' 移动到 '未分组'");
         }
 
         /// <summary>
@@ -1843,9 +1863,10 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
             try
             {
                 // 确保被拖拽的是根级分组节点
-                if (draggedNode?.Parent == null || !(draggedNode.Tag is TreeNodeData draggedData))
+                // 注意：根节点的 Parent 属性为 null
+                if (draggedNode?.Parent != null || !(draggedNode.Tag is TreeNodeData draggedData))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[分组排序] 被拖拽节点不是根级分组节点");
+                    LogHelper.Debug($"[分组排序] 被拖拽节点不是根级分组节点 (Parent={draggedNode?.Parent?.Text ?? "null"})");
                     return false;
                 }
 
@@ -1861,7 +1882,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
 
                 if (rootGroups.Count < 2)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[分组排序] 根级分组数量不足，无需排序");
+                    LogHelper.Debug($"[分组排序] 根级分组数量不足，无需排序");
                     return false;
                 }
 
@@ -1871,14 +1892,14 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
 
                 if (currentIndex == -1)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[分组排序] 被拖拽分组不在根级分组列表中");
+                    LogHelper.Debug($"[分组排序] 被拖拽分组不在根级分组列表中");
                     return false;
                 }
 
                 // 如果位置没有变化，不需要排序
                 if (currentIndex == insertIndex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[分组排序] 位置未变化，无需排序");
+                    LogHelper.Debug($"[分组排序] 位置未变化，无需排序");
                     return false;
                 }
 
@@ -1887,75 +1908,57 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[分组排序] 排序过程中发生异常: {ex.Message}");
+                LogHelper.Debug($"[分组排序] 排序过程中发生异常: {ex.Message}");
                 MessageBox.Show($"分组排序失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
         }
 
         /// <summary>
-        /// 计算插入位置（真正的插入式排序：从上往下往后插入，从下往前往前插入）
+        /// 计算插入位置（基于几何位置的通用算法）
         /// </summary>
         private int CalculateInsertIndex(TreeNode draggedNode, TreeNode targetNode, Point targetPoint, List<TreeNode> rootGroups)
         {
-            int draggedIndex = rootGroups.IndexOf(draggedNode);
-
-            // 如果目标节点为null（拖拽到空白区域），计算基于鼠标位置
-            if (targetNode?.Tag is TreeNodeData targetData && targetData.NodeType == TreeNodeType.Group)
+            // 完全基于几何位置的通用算法，忽略 targetNode 的具体类型
+            // 这样可以统一处理拖拽到标题、子项、空白区域等各种情况
+            // 规则：遍历所有分组，找到第一个"中心线在鼠标下方"的分组，插在该分组前面
+            
+            for (int i = 0; i < rootGroups.Count; i++)
             {
-                int targetIndex = rootGroups.IndexOf(targetNode);
-                if (targetIndex == -1) return rootGroups.Count - 1;
-
-                System.Diagnostics.Debug.WriteLine($"[分组排序] 插入式逻辑: 拖拽='{draggedNode.Text}'(索引:{draggedIndex}) -> 目标='{targetNode.Text}'(索引:{targetIndex})");
-
-                // 真正的插入式逻辑：从上往下调整 = 往后插入，从下往上调整 = 往前插入
-                if (draggedIndex < targetIndex)
+                var node = rootGroups[i];
+                try
                 {
-                    // 从上往下拖拽：draggedNode会从原位置移除，targetIndex会减1
-                    // 所以要插入到目标位置+1
-                    int finalIndex = targetIndex; // 删除原节点后，targetIndex会自动减1
-                    System.Diagnostics.Debug.WriteLine($"[分组排序] 从上往下拖拽，插入到目标节点后面，计算插入索引: {finalIndex}");
-                    return finalIndex;
+                    // 获取节点的中心线
+                    // 注意：TreeNode.Bounds 仅返回文本区域（标题栏），这正是我们需要的
+                    // 即使分组展开显示了子节点，我们依然以标题栏为基准
+                    // 如果鼠标在标题栏下半部分或子节点区域，应该被视为"在这个分组之后"
+                    
+                    Rectangle bounds = node.Bounds;
+                    
+                    // 如果节点不可见或高度异常，跳过
+                    if (bounds.Height <= 0) continue;
+                    
+                    int midPoint = bounds.Top + (bounds.Height / 2);
+                    
+                    // 如果鼠标在中心线之上，说明想插在该节点前面
+                    if (targetPoint.Y < midPoint)
+                    {
+                        LogHelper.Debug($"[分组排序] 几何计算: 鼠标Y={targetPoint.Y} < 节点'{node.Text}'中点{midPoint} -> 插在索引 {i} 前面");
+                        return i;
+                    }
+                    
+                    // 特殊情况：如果这是最后一个节点，且鼠标在它的势力范围内（比如展开的子节点区域）
+                    // 我们需要判断鼠标是否真的超过了它的标题栏
+                    // 此时循环会继续，如果没有下一个节点，就会返回 Count（插在最后），这是正确的
                 }
-                else if (draggedIndex > targetIndex)
+                catch
                 {
-                    // 从下往上拖拽：直接插入到目标位置
-                    int finalIndex = targetIndex;
-                    System.Diagnostics.Debug.WriteLine($"[分组排序] 从下往上拖拽，插入到目标节点前面，计算插入索引: {finalIndex}");
-                    return finalIndex;
-                }
-                else
-                {
-                    // 位置相同，无需移动
-                    System.Diagnostics.Debug.WriteLine($"[分组排序] 位置相同，无需移动");
-                    return draggedIndex;
+                    continue;
                 }
             }
-            else
-            {
-                // 拖拽到空白区域，根据鼠标Y坐标计算位置
-                for (int i = 0; i < rootGroups.Count; i++)
-                {
-                    var nodeItem = rootGroups[i];
-                    try
-                    {
-                        var nodeBounds = nodeItem.Bounds;
-                        if (nodeBounds.Height > 0 && targetPoint.Y < nodeBounds.Top + nodeBounds.Height / 2)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[分组排序] 拖拽到空白区域，插入到索引 {i} 前面");
-                            return i;
-                        }
-                    }
-                    catch
-                    {
-                        // 如果无法获取边界信息，继续下一个节点
-                        continue;
-                    }
-                }
-                // 如果没有找到合适的位置，放在最后
-                System.Diagnostics.Debug.WriteLine($"[分组排序] 拖拽到空白区域底部，插入到最后");
-                return rootGroups.Count;
-            }
+
+            LogHelper.Debug($"[分组排序] 几何计算: 鼠标Y={targetPoint.Y} 在所有节点中心线之下 -> 插在最后");
+            return rootGroups.Count;
         }
 
         /// <summary>
@@ -1968,7 +1971,7 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                 var draggedData = draggedNode.Tag as TreeNodeData;
                 var originalIndex = currentIndex;
 
-                System.Diagnostics.Debug.WriteLine($"[分组排序] 开始执行真正的插入式排序: '{draggedData?.Group.Value}' 从位置 {originalIndex} 移动到位置 {insertIndex}");
+                LogHelper.Debug($"[分组排序] 开始执行真正的插入式排序: '{draggedData?.Group.Value}' 从位置 {originalIndex} 移动到位置 {insertIndex}");
 
                 // 保存原始状态用于事件
                 var oldOrder = rootGroups.Select(n => (n.Tag as TreeNodeData)?.Group.ToString() ?? "").ToList();
@@ -1976,22 +1979,32 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                 // 如果插入位置就是当前位置，无需操作
                 if (originalIndex == insertIndex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[分组排序] 位置未变化，无需排序");
+                    LogHelper.Debug($"[分组排序] 位置未变化，无需排序");
                     return false;
                 }
 
+                // 计算实际插入索引
+                // 注意：insertIndex 是 based on the list *before* removal
+                // 但 TreeView.Nodes.Insert 操作是基于 *after* removal 的索引
+                int actualInsertIndex = insertIndex;
+                if (originalIndex < insertIndex)
+                {
+                    // 如果从上往下移，目标索引需要减1（因为移除了自身）
+                    actualInsertIndex = insertIndex - 1;
+                }
+                
                 // 执行实际的节点移动：先移除，再插入
                 draggedNode.Remove();
 
-                // 直接使用计算好的插入索引，无需额外调整
-                // 因为CalculateInsertIndex已经考虑了删除节点后的索引变化
-                int actualInsertIndex = insertIndex;
-                System.Diagnostics.Debug.WriteLine($"[分组排序] 使用计算好的插入索引: {actualInsertIndex}");
-
                 // 确保插入索引在有效范围内
                 actualInsertIndex = Math.Max(0, Math.Min(actualInsertIndex, treeView.Nodes.Count));
+                
+                LogHelper.Debug($"[分组排序] 调整后的插入索引: {actualInsertIndex}");
 
                 treeView.Nodes.Insert(actualInsertIndex, draggedNode);
+                
+                // 选中移动后的节点
+                treeView.SelectedNode = draggedNode;
 
                 // 保存新的排序顺序
                 var newOrder = new List<string>();
@@ -2014,15 +2027,15 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                     Timestamp = DateTime.Now
                 });
 
-                System.Diagnostics.Debug.WriteLine($"[分组排序] 插入式排序完成: '{draggedData?.Group.Value}' 从 {originalIndex} 移动到 {actualInsertIndex}");
-                System.Diagnostics.Debug.WriteLine($"[分组排序] 原顺序: {string.Join(" -> ", oldOrder)}");
-                System.Diagnostics.Debug.WriteLine($"[分组排序] 新顺序: {string.Join(" -> ", newOrder)}");
+                LogHelper.Debug($"[分组排序] 插入式排序完成: '{draggedData?.Group.Value}' 从 {originalIndex} 移动到 {actualInsertIndex}");
+                LogHelper.Debug($"[分组排序] 原顺序: {string.Join(" -> ", oldOrder)}");
+                LogHelper.Debug($"[分组排序] 新顺序: {string.Join(" -> ", newOrder)}");
 
                 return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[分组排序] 执行插入式排序失败: {ex.Message}");
+                LogHelper.Debug($"[分组排序] 执行插入式排序失败: {ex.Message}");
                 return false;
             }
         }
@@ -2080,11 +2093,11 @@ private void BtnSaveAsPreset_Click(object sender, EventArgs e)
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[分组排序] 应用配置完成，新顺序: {string.Join(" -> ", groupOrder)}");
+                LogHelper.Debug($"[分组排序] 应用配置完成，新顺序: {string.Join(" -> ", groupOrder)}");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[分组排序] 应用排序配置失败: {ex.Message}");
+                LogHelper.Debug($"[分组排序] 应用排序配置失败: {ex.Message}");
             }
         }
     }
