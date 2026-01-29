@@ -137,6 +137,18 @@
 | 裁切标记  | Crop Marks           | 指示裁切位置的标记            | ⏳ 待开发 |
 | 套准标记  | Registration Marks   | 多色印刷对齐标记              | ⏳ 待开发 |
 
+## 🚀 待开发特性 (Roadmap)
+
+### 📄 PDF 处理批量化 (Phase 2)
+
+> **状态**: ⏳ 计划中
+> **目标**: 将 PDF 处理面板升级为支持多文件处理的工作区。
+
+- **多文件列表**: 在 ImpositionWorkspacePanel 中引入 DataGridView，支持拖拽加载多个文件。
+- **批量执行**: 一键对列表中的所有文件应用当前的拼版设置（尺寸、爬移等）。
+- **逻辑抽离**: 将 `SaddleStitchProcessor` 独立为核心服务，实现 UI 与 逻辑 分离。
+- **预览联动**: 点击文件列表行时自动切换左侧预览内容。
+
 ### 🎨 现代化 UI 设计
 
 - Material Design 风格界面

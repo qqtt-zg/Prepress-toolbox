@@ -22,15 +22,15 @@ namespace WindowsFormsApp3.Forms.Main
         // ✅ 新增：保存按钮的原始显示文本（中文）
         private Dictionary<AntdUI.Button, string> _originalButtonTexts = new Dictionary<AntdUI.Button, string>();
         
-        // 导航面板折叠相关常量
-        private const int ExpandedWidth = 170;
-        private const int CollapsedWidth = 70;
-        private const int AnimationStep = 20;
+        // 导航面板折叠相关常量 - 由下方定义覆盖，这里清空以避免冲突
+        // private const int ExpandedWidth = 170; 
+        // private const int CollapsedWidth = 70;
+        // private const int AnimationStep = 20; // 不再使用
         
-        // 导航面板折叠状态
-        private bool isCollapsed = false;
-        private Timer collapseTimer;
-        private bool isAnimating = false;
+        // 导航面板折叠状态 - 由下方定义覆盖
+        // private bool isCollapsed = false;
+        // private Timer collapseTimer;
+        // private bool isAnimating = false;
         
         // 系统托盘
         private System.Windows.Forms.NotifyIcon trayIcon;
@@ -125,72 +125,70 @@ namespace WindowsFormsApp3.Forms.Main
             this.Close();
         }
 
-private void BtnCollapse_Click(object sender, EventArgs e)
+        // 导航面板折叠相关常量
+        private const int ExpandedWidth = 140; 
+        private const int CollapsedWidth = 70;
+        // private const int AnimationDuration = 100; // 已移除动画
+        
+        // 导航面板折叠状态
+        private bool isCollapsed = false;
+        // private Timer collapseTimer; // 已移除动画
+        // private bool isAnimating = false; // 已移除动画
+        
+        // 动画状态变量 - 已移除
+        // private DateTime _animationStartTime;
+        // private int _animInitialWidth;
+        // private int _animTargetWidth;
+
+        // ... existing fields ...
+
+        // ... existing methods ...
+
+        private void BtnCollapse_Click(object sender, EventArgs e)
         {
-            // 使用新的动画系统替代硬编码的折叠逻辑
-            StartCollapseAnimation(isCollapsed);
+            ToggleSidebarInstant(!isCollapsed);
         }
 
         /// <summary>
-        /// 折叠动画Timer事件处理
+        /// 瞬间切换侧边栏状态（无动画）
         /// </summary>
-        private void CollapseTimer_Tick(object sender, EventArgs e)
+        private void ToggleSidebarInstant(bool collapse)
         {
-            int targetWidth = isCollapsed ? ExpandedWidth : CollapsedWidth;
-            int currentWidth = mainContainer.SplitterDistance;
+            // 1. 设置目标状态
+            isCollapsed = collapse;
+            int targetWidth = isCollapsed ? CollapsedWidth : ExpandedWidth;
             
-            if (Math.Abs(currentWidth - targetWidth) <= AnimationStep)
+            // 2. 暂停布局逻辑以提升性能 (可选，对于瞬间切换通常不需要，但为了保险)
+            mainContainer.SuspendLayout();
+            
+            // 3. 直接应用宽度
+            mainContainer.SplitterDistance = targetWidth;
+            
+            // 4. 更新UI元素可见性
+            if (isCollapsed)
             {
-                // 动画完成
-                mainContainer.SplitterDistance = targetWidth;
-                collapseTimer.Stop();
-                isAnimating = false;
-                
-                // 更新UI状态
-                if (isCollapsed)
-                {
-                    // 切换到展开状态
-                    titleLabel.Visible = true;
-                    versionLabel.Visible = true;
-                    btnCollapse.IconSvg = "MenuFoldOutlined";
-                    RestoreButtonTexts();
-                }
-                else
-                {
-                    // 切换到折叠状态
-                    titleLabel.Visible = false;
-                    versionLabel.Visible = false;
-                    btnCollapse.IconSvg = "MenuUnfoldOutlined";
-                    HideButtonTexts();
-                }
-                
-                isCollapsed = !isCollapsed;
+                // 切换到折叠状态
+                titleLabel.Visible = false;
+                versionLabel.Visible = false;
+                btnCollapse.IconSvg = "MenuUnfoldOutlined";
+                HideButtonTexts();
             }
             else
             {
-                // 继续动画
-                if (currentWidth < targetWidth)
-                {
-                    mainContainer.SplitterDistance = currentWidth + AnimationStep;
-                }
-                else
-                {
-                    mainContainer.SplitterDistance = currentWidth - AnimationStep;
-                }
+                // 切换到展开状态
+                titleLabel.Visible = true;
+                versionLabel.Visible = true;
+                btnCollapse.IconSvg = "MenuFoldOutlined";
+                RestoreButtonTexts();
             }
-        }
-
-        /// <summary>
-        /// 开始折叠/展开动画
-        /// </summary>
-        private void StartCollapseAnimation(bool collapse)
-        {
-            if (isAnimating) return; // 防止重复触发
             
-            isCollapsed = collapse;
-            isAnimating = true;
-            collapseTimer.Start();
+            // 5. 恢复布局
+            mainContainer.ResumeLayout(true);
         }
+        
+        // 移除旧的动画相关方法
+        // private void CollapseTimer_Tick...
+        // private void StartCollapseAnimation...
 
         /// <summary>
         /// 隐藏按钮文字
@@ -247,10 +245,15 @@ private void BtnCollapse_Click(object sender, EventArgs e)
         {
             InitializeComponent();
              
-            // 初始化折叠动画Timer
-            collapseTimer = new Timer();
-            collapseTimer.Tick += CollapseTimer_Tick;
-            collapseTimer.Interval = 16; // 60fps
+            // 开启双缓冲，减少重绘闪烁，提升动画流畅度
+            this.DoubleBuffered = true;
+            this.SetStyle(ControlStyles.ResizeRedraw, true);
+            this.SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
+
+            // 初始化折叠动画Timer - 已移除
+            // collapseTimer = new Timer();
+            // collapseTimer.Tick += CollapseTimer_Tick;
+            // collapseTimer.Interval = 20;
             
             // 显示版本号
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
@@ -471,7 +474,7 @@ private void BtnCollapse_Click(object sender, EventArgs e)
         {
             // 获取程序集版本
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            string versionStr = version != null ? $"V{version.Major}.{version.Minor}.{version.Build}" : "V2.3.9";
+            string versionStr = version != null ? $"V{version.Major}.{version.Minor}.{version.Build}" : "V2.4.1";
             
             MessageBox.Show($"大诚工具箱 (Prepress Toolbox)\n版本: {versionStr}\n\n一个专业的印前处理辅助工具。", 
                 "关于", MessageBoxButtons.OK, MessageBoxIcon.Information);

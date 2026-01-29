@@ -432,5 +432,51 @@ namespace WindowsFormsApp3
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+
+        /// <summary>
+        /// 创建当前对象的副本
+        /// </summary>
+        public FileRenameInfo Clone()
+        {
+            var clone = new FileRenameInfo
+            {
+                SerialNumber = this.SerialNumber,
+                OriginalName = this.OriginalName,
+                NewName = this.NewName,
+                FullPath = this.FullPath,
+                RegexResult = this.RegexResult,
+                OrderNumber = this.OrderNumber,
+                Material = this.Material,
+                Quantity = this.Quantity,
+                Dimensions = this.Dimensions,
+                Process = this.Process,
+                LayoutRows = this.LayoutRows,
+                LayoutColumns = this.LayoutColumns,
+                Time = this.Time,
+                Status = this.Status,
+                ErrorMessage = this.ErrorMessage,
+                PageCount = this.PageCount,
+                CompositeColumn = this.CompositeColumn,
+                Width = this.Width,
+                Height = this.Height,
+                TetBleed = this.TetBleed,
+                FileExtension = this.FileExtension,
+                ImpositionMode = this.ImpositionMode,
+                IsPreserveMode = this.IsPreserveMode
+            };
+
+            // 深拷贝字典
+            if (this.BackupData != null)
+            {
+                clone.BackupData = new Dictionary<string, string>(this.BackupData);
+            }
+
+            if (this.FieldPrefixMapping != null)
+            {
+                clone.FieldPrefixMapping = new Dictionary<string, string>(this.FieldPrefixMapping);
+            }
+
+            return clone;
+        }
     }
 }

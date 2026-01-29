@@ -540,6 +540,15 @@ namespace WindowsFormsApp3.Presenters
                         
                         int successCount = 0;
                         
+                        // ✅ 预先匹配Excel数据（移出循环以支持多对多匹配）
+                        List<ExcelMatchData> matchDataList = null;
+                        if (_view.ExcelData != null)
+                        {
+                            // 使用第一个文件的信息进行匹配（假设所有分裂文件基于同一个原始正则结果）
+                            string regexForMatching = GetRegexResultForMatching(fileInfo);
+                            matchDataList = MatchExcelData(regexForMatching);
+                        }
+
                         // ✅ 为每个值组合生成独立文件
                         for (int i = 0; i < fileCount; i++)
                         {
@@ -570,12 +579,13 @@ namespace WindowsFormsApp3.Presenters
                             currentFileInfo.SerialNumber = i < serialNumbers.Length ? serialNumbers[i] : serialNumbers[serialNumbers.Length - 1];
                             
                             // ✅ 从Excel匹配列组合数据（与批量模式保持一致）
-                            if (_view.ExcelData != null && !string.IsNullOrEmpty(currentFileInfo.RegexResult))
+                            if (matchDataList != null && matchDataList.Count > 0)
                             {
-                                // 使用辅助方法获取用于匹配的正则结果（支持保留分组）
-                                string regexForMatching = GetRegexResultForMatching(currentFileInfo);
-                                var matchData = MatchExcelData(regexForMatching);
-                                if (matchData != null && matchData.HasMatch)
+                                // 使用当前索引对应的匹配数据，如果不够则复用最后一个
+                                // 这确保了当手动输入多个数量/序号时，能够对应匹配到Excel中的多行数据
+                                var matchData = matchDataList[Math.Min(i, matchDataList.Count - 1)];
+
+                                if (matchData != null)
                                 {
                                     // 应用材料匹配结果（如果用户没有手动选择）
                                     if (string.IsNullOrEmpty(currentFileInfo.Material) && !string.IsNullOrEmpty(matchData.Material))
@@ -587,7 +597,7 @@ namespace WindowsFormsApp3.Presenters
                                     if (!string.IsNullOrEmpty(matchData.CompositeColumn))
                                     {
                                         currentFileInfo.CompositeColumn = matchData.CompositeColumn;
-                                        _logger?.LogDebug($"✅ 手动模式设置列组合数据: 文件='{currentFileInfo.OriginalName}', 列组合='{matchData.CompositeColumn}'");
+                                        _logger?.LogDebug($"✅ 手动模式设置列组合数据({i+1}): 文件='{currentFileInfo.OriginalName}', 列组合='{matchData.CompositeColumn}'");
                                     }
                                 }
                             }
@@ -635,51 +645,89 @@ namespace WindowsFormsApp3.Presenters
                     
                     // 匹配 Excel 数据（使用辅助方法支持保留分组）
                     string regexForMatching = GetRegexResultForMatching(fileInfo);
-                    var excelData = MatchExcelData(regexForMatching);
-                    
-                    // ✅ 调试：记录匹配结果
-                    _logger?.LogDebug($"[批量模式] Excel匹配结果 - HasMatch: {excelData.HasMatch}, Quantity: '{excelData.Quantity}', SerialNumber: '{excelData.SerialNumber}', Material: '{excelData.Material}', CompositeColumn: '{excelData.CompositeColumn}'");
+                    var excelDataList = MatchExcelData(regexForMatching);
 
-                    // 应用 Excel 匹配结果
-                    if (excelData.HasMatch)
+                    if (excelDataList != null && excelDataList.Count > 0)
                     {
-                        fileInfo.Quantity = excelData.Quantity;
-                        fileInfo.SerialNumber = excelData.SerialNumber;
-                        // 应用材料匹配结果
-                        if (!string.IsNullOrEmpty(excelData.Material))
+                        // ✅ 支持多重匹配（文件分裂）
+                        for (int i = 0; i < excelDataList.Count; i++)
                         {
-                            fileInfo.Material = excelData.Material;
+                            var excelData = excelDataList[i];
+                            FileRenameInfo currentFileInfo;
+
+                            if (i == 0)
+                            {
+                                // 第一个匹配项：使用原对象
+                                currentFileInfo = fileInfo;
+                            }
+                            else
+                            {
+                                // 后续匹配项：克隆新对象（分裂）
+                                currentFileInfo = fileInfo.Clone();
+                            }
+
+                            _logger?.LogDebug($"[批量模式] Excel匹配结果({i + 1}/{excelDataList.Count}) - Quantity: '{excelData.Quantity}', SerialNumber: '{excelData.SerialNumber}', Material: '{excelData.Material}', CompositeColumn: '{excelData.CompositeColumn}'");
+
+                            // 应用 Excel 匹配结果
+                            currentFileInfo.Quantity = excelData.Quantity;
+                            currentFileInfo.SerialNumber = excelData.SerialNumber;
+                            
+                            // 应用材料匹配结果
+                            if (!string.IsNullOrEmpty(excelData.Material))
+                            {
+                                currentFileInfo.Material = excelData.Material;
+                            }
+                            
+                            // 应用列组合匹配结果
+                            if (!string.IsNullOrEmpty(excelData.CompositeColumn))
+                            {
+                                currentFileInfo.CompositeColumn = excelData.CompositeColumn;
+                                _logger?.LogDebug($"✅ 批量模式设置列组合数据: 文件='{currentFileInfo.OriginalName}', 列组合='{excelData.CompositeColumn}'");
+                            }
+                            else
+                            {
+                                _logger?.LogWarning($"⚠️ 批量模式：Excel匹配成功但列组合数据为空，文件='{currentFileInfo.OriginalName}'");
+                            }
+
+                            // 标记为已匹配
+                            currentFileInfo.Status = "已匹配";
+
+                            // ✅ 设置排版模式
+                            currentFileInfo.ImpositionMode = GetImpositionModeString();
+
+                            // 生成新文件名
+                            currentFileInfo.NewName = GenerateNewFileName(currentFileInfo);
+
+                            // 在UI线程上添加到列表（使用 AddFileToTable 优先填入空行）
+                            System.Windows.Forms.Application.OpenForms[0].Invoke((Action)(() =>
+                            {
+                                AddFileToTable(currentFileInfo);
+                            }));
                         }
-                        // 应用列组合匹配结果
-                        if (!string.IsNullOrEmpty(excelData.CompositeColumn))
-                        {
-                            fileInfo.CompositeColumn = excelData.CompositeColumn;
-                            _logger?.LogDebug($"✅ 批量模式设置列组合数据: 文件='{fileInfo.OriginalName}', 列组合='{excelData.CompositeColumn}'");
-                        }
-                        else
-                        {
-                            _logger?.LogWarning($"⚠️ 批量模式：Excel匹配成功但列组合数据为空，文件='{fileInfo.OriginalName}'");
-                        }
-                        _view.UpdateStatus($"已匹配 Excel 数据: 行{excelData.RowIndex + 1}");
+                        
+                        _view.UpdateStatus($"已匹配 {excelDataList.Count} 条 Excel 数据");
                     }
                     else
                     {
+                        // 无匹配，按默认逻辑处理
+                        _logger?.LogInformation($"[ProcessNewFileAsync] 无匹配结果，使用默认逻辑");
+                        
                         // 自动生成序号
                         fileInfo.SerialNumber = GetNextSerialNumber().ToString();
+                        
+                        // ✅ 设置排版模式
+                        fileInfo.ImpositionMode = GetImpositionModeString();
+
+                        // 生成新文件名
+                        fileInfo.NewName = GenerateNewFileName(fileInfo);
+
+                        // 在UI线程上添加到列表
+                        System.Windows.Forms.Application.OpenForms[0].Invoke((Action)(() =>
+                        {
+                            AddFileToTable(fileInfo);
+                            _view.UpdateStatus($"已添加文件: {fileInfo.OriginalName}");
+                        }));
                     }
-
-                    // ✅ 设置排版模式
-                    fileInfo.ImpositionMode = GetImpositionModeString();
-
-                    // 生成新文件名
-                    fileInfo.NewName = GenerateNewFileName(fileInfo);
-
-                    // 在UI线程上添加到列表（使用 AddFileToTable 优先填入空行）
-                    System.Windows.Forms.Application.OpenForms[0].Invoke((Action)(() =>
-                    {
-                        AddFileToTable(fileInfo);
-                        _view.UpdateStatus($"已添加文件: {fileInfo.OriginalName}");
-                    }));
                 }
             }
             catch (Exception ex)
@@ -1118,7 +1166,11 @@ namespace WindowsFormsApp3.Presenters
                     _view.ExcelSerialColumnIndex = _excelImportService.SerialColumnIndex;
                     _logger?.LogDebug($"同步列索引: Search={_excelImportService.SearchColumnIndex}, Return={_excelImportService.ReturnColumnIndex}, Serial={_excelImportService.SerialColumnIndex}");
                     _view.UpdateStatus($"成功导入 {_excelImportService.ImportedData.Rows.Count} 行 Excel 数据");
-                    _view.ShowSuccess($"已导入 {_excelImportService.ImportedData.Rows.Count} 行数据");
+                    
+                    // ✅ 自动触发匹配逻辑
+                    MatchExcelData();
+                    
+                    _view.ShowSuccess($"已导入 {_excelImportService.ImportedData.Rows.Count} 行数据并自动匹配");
                 }
                 else
                 {
@@ -1288,13 +1340,22 @@ namespace WindowsFormsApp3.Presenters
                 _logger?.LogDebug($"MatchExcelData: 开始匹配 - 搜索列:{searchColumnIndex}, 返回列:{returnColumnIndex}, 序号列:{serialColumnIndex}");
 
                 int matchedCount = 0;
+                var newFileList = new BindingList<FileRenameInfo>();
 
                 foreach (var fileInfo in fileList)
                 {
+                    // 如果文件名为空（可能是占位行），直接保留
+                    if (string.IsNullOrEmpty(fileInfo.OriginalName))
+                    {
+                        newFileList.Add(fileInfo);
+                        continue;
+                    }
+
                     string regexResultForMatching = null;
                     
                     // ✅ 修复：先检查是否为保留分组文件
                     bool hasPreserveGroupPrefix = false;
+                    // ... (保留现有逻辑: regexResultForMatching 提取部分) ...
                     if (!string.IsNullOrEmpty(fileInfo.OriginalName))
                     {
                         string originalNameWithoutExt = Path.GetFileNameWithoutExtension(fileInfo.OriginalName);
@@ -1304,91 +1365,93 @@ namespace WindowsFormsApp3.Presenters
                         
                         if (hasPreserveGroupPrefix)
                         {
-                            _logger?.LogDebug($"检测到保留分组前缀，尝试提取保留的正则结果: '{originalNameWithoutExt}'");
-                            
-                            // 获取保留分组配置
+                            // ... (保留现有逻辑) ...
                             var preserveGroupConfig = GetPreserveGroupConfig();
-                            
                             if (preserveGroupConfig != null && preserveGroupConfig.Count > 0)
                             {
-                                // 获取当前的前缀配置
                                 var currentPrefixes = GetCurrentPrefixes();
-                                
-                                // 创建临时的 FileNameComponents 对象用于提取保留数据
                                 var tempComponents = new Models.FileNameComponents
                                 {
                                     OriginalFileName = originalNameWithoutExt,
                                     PreserveGroupConfig = preserveGroupConfig,
                                     Prefixes = currentPrefixes
                                 };
-                                
-                                // 提取保留的分组数据
                                 var preserveData = tempComponents.ExtractPreserveGroupData(originalNameWithoutExt);
-                                
-                                // 如果保留数据中包含正则结果，则使用保留的值
                                 if (preserveData != null && preserveData.ContainsKey("正则结果"))
                                 {
                                     string preservedRegexResult = preserveData["正则结果"];
                                     if (!string.IsNullOrEmpty(preservedRegexResult))
                                     {
                                         regexResultForMatching = preservedRegexResult;
-                                        _logger?.LogInformation($"✅ 使用保留的正则结果进行匹配: '{regexResultForMatching}' (文件: '{fileInfo.OriginalName}')");
+                                        _logger?.LogInformation($"✅ 使用保留的正则结果: '{regexResultForMatching}'");
                                     }
                                 }
-                                else
-                                {
-                                    _logger?.LogDebug($"保留数据中未找到正则结果，将使用 ExcelImportService 的正则表达式");
-                                    hasPreserveGroupPrefix = false; // 标记为非保留分组文件
-                                }
+                                else hasPreserveGroupPrefix = false;
                             }
-                            else
-                            {
-                                _logger?.LogDebug($"保留分组配置为空，将使用 ExcelImportService 的正则表达式");
-                                hasPreserveGroupPrefix = false; // 标记为非保留分组文件
-                            }
+                            else hasPreserveGroupPrefix = false;
                         }
                     }
                     
-                    // ✅ 如果不是保留分组文件或保留数据中没有正则结果，使用 ExcelImportService 的正则表达式
                     if (!hasPreserveGroupPrefix || string.IsNullOrEmpty(regexResultForMatching))
                     {
                         regexResultForMatching = ExtractRegexResultForMatching(fileInfo.OriginalName ?? "");
-                        
                         if (string.IsNullOrEmpty(regexResultForMatching))
                         {
-                            _logger?.LogDebug($"跳过文件（无正则结果）: {fileInfo.OriginalName}");
+                            // 无正则结果，保持原样加入
+                            newFileList.Add(fileInfo);
                             continue;
                         }
-                        
-                        _logger?.LogInformation($"✅ 使用 ExcelImportService 的正则表达式提取结果: '{regexResultForMatching}' (文件: '{fileInfo.OriginalName}')");
                     }
 
-                    var matchData = MatchExcelData(regexResultForMatching);
+                    // 获取所有匹配结果
+                    var matches = MatchExcelData(regexResultForMatching);
+                    
+                    _logger?.LogDebug($"文件 '{fileInfo.OriginalName}' (正则: '{regexResultForMatching}') 在Excel中找到 {matches?.Count ?? 0} 个匹配项");
 
-                    if (matchData != null && matchData.HasMatch)
+                    if (matches != null && matches.Count > 0)
                     {
-                        // 更新文件信息
-                        fileInfo.Quantity = matchData.Quantity;
-                        fileInfo.SerialNumber = matchData.SerialNumber;
-                        // 应用材料匹配结果
-                        if (!string.IsNullOrEmpty(matchData.Material))
+                        // ✅ 支持多重匹配（文件分裂）
+                        for (int i = 0; i < matches.Count; i++)
                         {
-                            fileInfo.Material = matchData.Material;
-                        }
-                        // 应用列组合匹配结果
-                        if (!string.IsNullOrEmpty(matchData.CompositeColumn))
-                        {
-                            fileInfo.CompositeColumn = matchData.CompositeColumn;
-                            _logger?.LogDebug($"设置列组合数据: 文件='{fileInfo.OriginalName}', 列组合='{matchData.CompositeColumn}'");
-                        }
-                        matchedCount++;
+                            var matchData = matches[i];
+                            FileRenameInfo currentFile;
 
-                        _logger?.LogDebug($"匹配成功: RegexResult='{regexResultForMatching}' -> 数量='{matchData.Quantity}', 序号='{matchData.SerialNumber}', 材料='{matchData.Material}', 列组合='{matchData.CompositeColumn}'");
+                            if (i == 0)
+                            {
+                                // 第一个匹配项：使用原对象（更新）
+                                currentFile = fileInfo;
+                            }
+                            else
+                            {
+                                // 后续匹配项：克隆新对象（分裂）
+                                currentFile = fileInfo.Clone();
+                            }
+
+                            // 更新文件信息
+                            currentFile.Quantity = matchData.Quantity;
+                            currentFile.SerialNumber = matchData.SerialNumber;
+                            if (!string.IsNullOrEmpty(matchData.Material)) currentFile.Material = matchData.Material;
+                            if (!string.IsNullOrEmpty(matchData.CompositeColumn)) currentFile.CompositeColumn = matchData.CompositeColumn;
+
+                            // 标记为已匹配
+                            currentFile.Status = "已匹配";
+                            
+                            newFileList.Add(currentFile);
+                            matchedCount++;
+                            _logger?.LogDebug($"匹配成功({i + 1}/{matches.Count}): '{regexResultForMatching}' -> 序号='{matchData.SerialNumber}'");
+                        }
+                    }
+                    else
+                    {
+                        // 无匹配，保持原样加入
+                        newFileList.Add(fileInfo);
                     }
                 }
 
+                // ✅ 更新视图的文件列表
+                _view.FileList = newFileList;
                 _view.RefreshFileTable();
-                _view.UpdateStatus($"匹配完成，成功匹配 {matchedCount} 个文件");
+                _view.UpdateStatus($"匹配完成，成功匹配 {matchedCount} 条数据");
             }
             catch (Exception ex)
             {
@@ -1402,15 +1465,17 @@ namespace WindowsFormsApp3.Presenters
         /// 返回匹配的数量、序号和材料
         /// </summary>
         /// <param name="regexResult">正则表达式匹配结果</param>
-        /// <returns>匹配的 Excel 数据（数量、序号、材料），如果没有匹配则返回空对象</returns>
-        public Models.ExcelMatchData MatchExcelData(string regexResult)
+        /// <returns>匹配的 Excel 数据列表，如果没有匹配则返回空列表</returns>
+        public List<Models.ExcelMatchData> MatchExcelData(string regexResult)
         {
+            var results = new List<Models.ExcelMatchData>();
+            
             try
             {
                 var excelData = _excelImportService.ImportedData;
                 if (excelData == null || string.IsNullOrEmpty(regexResult))
                 {
-                    return new Models.ExcelMatchData(); // 返回空对象
+                    return results;
                 }
 
                 int searchColumnIndex = _excelImportService.SearchColumnIndex;
@@ -1423,17 +1488,17 @@ namespace WindowsFormsApp3.Presenters
                     searchColumnIndex >= excelData.Columns.Count ||
                     returnColumnIndex >= excelData.Columns.Count)
                 {
-                    return new Models.ExcelMatchData(); // 返回空对象
+                    return results;
                 }
 
-                // 在 Excel 中精确匹配
+                // 在 Excel 中查找所有精确匹配
                 foreach (DataRow row in excelData.Rows)
                 {
                     if (row[searchColumnIndex] != null)
                     {
-                        string tableValue = row[searchColumnIndex].ToString();
+                        string tableValue = row[searchColumnIndex].ToString().Trim();
 
-                        // 百分百精确匹配
+                        // 百分百精确匹配 (Trim后)
                         bool isExactMatch = string.Equals(tableValue, regexResult, StringComparison.Ordinal);
 
                         if (isExactMatch)
@@ -1453,39 +1518,30 @@ namespace WindowsFormsApp3.Presenters
                             // 提取列组合字段
                             string compositeColumn = string.Empty;
                             
-                            // ✅ 调试：记录Excel列信息
-                            _logger?.LogDebug($"Excel列数: {excelData.Columns.Count}");
-                            _logger?.LogDebug($"Excel列名: {string.Join(", ", excelData.Columns.Cast<DataColumn>().Select(c => c.ColumnName))}");
-                            
                             if (excelData.Columns.Contains("列组合"))
                             {
                                 int compositeColumnIndex = excelData.Columns.IndexOf("列组合");
                                 compositeColumn = row[compositeColumnIndex]?.ToString() ?? string.Empty;
-                                _logger?.LogDebug($"✅ 找到列组合列，索引: {compositeColumnIndex}, 值: '{compositeColumn}' (行索引: {excelData.Rows.IndexOf(row)})");
-                            }
-                            else
-                            {
-                                _logger?.LogWarning($"⚠️ Excel数据中没有找到'列组合'列！可用列: {string.Join(", ", excelData.Columns.Cast<DataColumn>().Select(c => c.ColumnName))}");
                             }
 
-                            return new Models.ExcelMatchData
+                            results.Add(new Models.ExcelMatchData
                             {
                                 RowIndex = excelData.Rows.IndexOf(row),
                                 Quantity = quantity,
                                 SerialNumber = serialNumber,
                                 Material = material,
                                 CompositeColumn = compositeColumn
-                            };
+                            });
                         }
                     }
                 }
 
-                return new Models.ExcelMatchData(); // 没有匹配返回空对象
+                return results;
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, $"匹配 Excel 数据失败: regexResult='{regexResult}'");
-                return new Models.ExcelMatchData(); // 返回空对象
+                return results;
             }
         }
 
@@ -2201,10 +2257,12 @@ namespace WindowsFormsApp3.Presenters
                     if (AppSettings.AutoRefreshFileNameOnRegexChange)
                     {
                         // 重新匹配 Excel 数据（使用辅助方法支持保留分组）
+                        // 重新匹配 Excel 数据（使用辅助方法支持保留分组）
                         string regexForMatching = GetRegexResultForMatching(file);
-                        var excelData = MatchExcelData(regexForMatching);
-                        if (excelData.HasMatch)
+                        var excelDataList = MatchExcelData(regexForMatching);
+                        if (excelDataList != null && excelDataList.Count > 0)
                         {
+                            var excelData = excelDataList[0];
                             file.Quantity = excelData.Quantity;
                             file.SerialNumber = excelData.SerialNumber;
                         }
@@ -2355,6 +2413,8 @@ namespace WindowsFormsApp3.Presenters
                         // 转换为整数字符串（毫米）
                         fileInfo.Width = Math.Round(width).ToString();
                         fileInfo.Height = Math.Round(height).ToString();
+                        // ✅ 自动填充 Dimensions 属性，确保表格“尺寸”列显示数据
+                        fileInfo.Dimensions = $"{fileInfo.Width}x{fileInfo.Height}";
                         _logger?.LogInformation($"[CreateFileRenameInfo] PDF尺寸解析成功: {fileInfo.Width}x{fileInfo.Height}mm");
                         
                         // 设置默认出血位（从 AppSettings 获取）

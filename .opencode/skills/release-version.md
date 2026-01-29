@@ -18,6 +18,7 @@ Update the version number in `src/WindowsFormsApp3/Forms/Main/MainShellForm.cs`.
 Look for the version string definition (usually inside `ShowAboutDialog` or `InitializeComponent`):
 
 **Pattern:**
+
 ```csharp
 string versionStr = version != null ? $"V{version.Major}.{version.Minor}.{version.Build}" : "V2.3.8";
 ```
@@ -31,10 +32,12 @@ Update the `AssemblyVersion` and `AssemblyFileVersion` in `src/WindowsFormsApp3/
 
 **Action:**
 Replace:
+
 ```csharp
 [assembly: AssemblyVersion("2.3.8.0")]
 [assembly: AssemblyFileVersion("2.3.8.0")]
 ```
+
 With the new version (e.g., "2.3.9.0").
 
 ### 3. Update Inno Setup Script
@@ -43,11 +46,13 @@ Update the version definitions in `installers/Setup.iss`.
 
 **Action:**
 Update the following keys in the `[Setup]` section:
+
 - `AppVersion`
 - `AppVerName`
 - `OutputBaseFilename`
 
 **Example:**
+
 ```ini
 AppVersion=2.3.9
 AppVerName=大诚重命名工具 v2.3.9
@@ -68,7 +73,7 @@ Compile the Inno Setup script using ISCC.
 **Note:** Use the Bash-style path for robustness in this environment.
 
 ```bash
-"/c/Program Files (x86)/Inno Setup 6/ISCC.exe" installers/Setup.iss
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installers/Setup.iss
 ```
 
 ## Verification

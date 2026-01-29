@@ -59,6 +59,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this._cmbJsonFiles = new AntdUI.Select();
 			this._btnSaveJson = new AntdUI.Button();
 			this._btnImportExcel = new AntdUI.Button();
+			this._btnMatchExcel = new AntdUI.Button();
 			this._btnClearExcel = new AntdUI.Button();
 			this._btnExportExcel = new AntdUI.Button();
 			this._renameActionFlow = new System.Windows.Forms.FlowLayoutPanel();
@@ -211,6 +212,7 @@ namespace WindowsFormsApp3.Forms.Panels
 			this._bottomActionFlow.Controls.Add(this._cmbJsonFiles);
 			this._bottomActionFlow.Controls.Add(this._btnSaveJson);
 			this._bottomActionFlow.Controls.Add(this._btnImportExcel);
+			this._bottomActionFlow.Controls.Add(this._btnMatchExcel);
 			this._bottomActionFlow.Controls.Add(this._btnClearExcel);
 			this._bottomActionFlow.Controls.Add(this._btnExportExcel);
 			this._bottomActionFlow.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -254,11 +256,23 @@ namespace WindowsFormsApp3.Forms.Panels
 			this._btnImportExcel.Text = "导入表格";
 			this._btnImportExcel.Type = AntdUI.TTypeMini.Success;
 			// 
+			// _btnMatchExcel
+			// 
+			this._btnMatchExcel.AutoSizeMode = AntdUI.TAutoSize.Auto;
+			this._btnMatchExcel.IconSvg = "NodeExpandOutlined";
+			this._btnMatchExcel.Location = new System.Drawing.Point(280, 0);
+			this._btnMatchExcel.Margin = new System.Windows.Forms.Padding(0, 0, 5, 0);
+			this._btnMatchExcel.Name = "_btnMatchExcel";
+			this._btnMatchExcel.Size = new System.Drawing.Size(82, 32);
+			this._btnMatchExcel.TabIndex = 3;
+			this._btnMatchExcel.Text = "应用数据";
+			this._btnMatchExcel.Type = AntdUI.TTypeMini.Primary;
+			// 
 			// _btnClearExcel
 			// 
 			this._btnClearExcel.AutoSizeMode = AntdUI.TAutoSize.Auto;
 			this._btnClearExcel.IconSvg = "DeleteOutlined";
-			this._btnClearExcel.Location = new System.Drawing.Point(280, 0);
+			this._btnClearExcel.Location = new System.Drawing.Point(367, 0);
 			this._btnClearExcel.Margin = new System.Windows.Forms.Padding(0, 0, 5, 0);
 			this._btnClearExcel.Name = "_btnClearExcel";
 			this._btnClearExcel.Size = new System.Drawing.Size(82, 32);
@@ -615,5 +629,6 @@ namespace WindowsFormsApp3.Forms.Panels
         private System.Windows.Forms.DataGridViewTextBoxColumn Process;
         private System.Windows.Forms.DataGridViewTextBoxColumn PageCount;
         private System.Windows.Forms.DataGridViewTextBoxColumn Time;
+        private AntdUI.Button _btnMatchExcel;
     }
 }

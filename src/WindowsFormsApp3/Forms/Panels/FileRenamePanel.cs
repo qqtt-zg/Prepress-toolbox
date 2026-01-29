@@ -12,6 +12,7 @@ using WindowsFormsApp3.Presenters;
 using WindowsFormsApp3.Models;
 using WindowsFormsApp3.Interfaces;
 using WindowsFormsApp3.Services;
+using System.Text.RegularExpressions;
 
 namespace WindowsFormsApp3.Forms.Panels
 {
@@ -129,6 +130,7 @@ namespace WindowsFormsApp3.Forms.Panels
 
             // Excel操作按钮（阶段5：迁移到Presenter）
             _btnImportExcel.Click += async (s, e) => await _presenter.HandleImportExcelAsync();
+            _btnMatchExcel.Click += (s, e) => _presenter.MatchExcelData();
             _btnClearExcel.Click += (s, e) => _presenter.HandleClearExcel();
             _btnExportExcel.Click += (s, e) => _presenter.HandleExportExcel();
 
@@ -282,6 +284,9 @@ namespace WindowsFormsApp3.Forms.Panels
             
             // 绑定行头序号绘制事件
             _fileTable.RowPostPaint += FileTable_RowPostPaint;
+            
+            // ✅ 绑定行预绘制事件，用于高亮“已匹配”的行
+            _fileTable.RowPrePaint += FileTable_RowPrePaint;
 
             // 初始化列头右键菜单
             InitializeColumnHeaderContextMenu();
@@ -309,6 +314,22 @@ namespace WindowsFormsApp3.Forms.Panels
                 var y = bounds.Top + (bounds.Height - size.Height) / 2;
                 
                 e.Graphics.DrawString(rowNumber, _fileTable.Font, brush, x, y);
+            }
+        }
+
+        /// <summary>
+        /// 行预绘制 - 用于高亮状态
+        /// </summary>
+        private void FileTable_RowPrePaint(object sender, DataGridViewRowPrePaintEventArgs e)
+        {
+            if (e.RowIndex >= 0 && _fileTable.Rows[e.RowIndex].DataBoundItem is FileRenameInfo info)
+            {
+                // 如果状态为"已匹配"，则背景色设为浅绿色
+                if (info.Status == "已匹配")
+                {
+                    _fileTable.Rows[e.RowIndex].DefaultCellStyle.BackColor = Color.FromArgb(240, 255, 240); // Honeydew
+                    _fileTable.Rows[e.RowIndex].DefaultCellStyle.SelectionBackColor = Color.FromArgb(200, 240, 200);
+                }
             }
         }
 
@@ -495,6 +516,9 @@ namespace WindowsFormsApp3.Forms.Panels
 
             string columnName = _fileTable.Columns[_currentColumnIndex].Name;
             
+            // ✅ DEBUG: 输出当前点击的列名，帮助调试菜单不显示的问题
+            LogHelper.Debug($"[UpdateContextMenuForColumn] Index={_currentColumnIndex}, Name='{columnName}', Header='{_fileTable.Columns[_currentColumnIndex].HeaderText}'");
+
             switch (columnName)
             {
                 case "Material":
@@ -506,6 +530,12 @@ namespace WindowsFormsApp3.Forms.Panels
                 case "Dimensions":
                     CreateDimensionsContextMenu();
                     break;
+                case "OrderNumber":
+                    CreateOrderNumberContextMenu();
+                    break;
+                case "OriginalName":
+                    CreateOriginalNameContextMenu();
+                    break;
                 default:
                     CreateDefaultContextMenu();
                     break;
@@ -514,7 +544,8 @@ namespace WindowsFormsApp3.Forms.Panels
 
         private void CreateDefaultContextMenu()
         {
-            _contextMenu.Items.Clear();
+            // ❌ 移除 Clear，防止覆盖前面添加的自定义菜单项
+            // _contextMenu.Items.Clear();
             
             var copyItem = new ToolStripMenuItem("复制");
             copyItem.Click += (s, e) => CopySelectedCell();
@@ -531,33 +562,230 @@ namespace WindowsFormsApp3.Forms.Panels
             _contextMenu.Items.Add(refreshItem);
         }
 
-        private void CreateMaterialContextMenu()
+        private void CreateOriginalNameContextMenu()
         {
-            _contextMenu.Items.Clear();
-            
-            // 获取材料列表
-            var materials = MaterialManager.Instance.GetMaterials();
-            if (materials != null && materials.Count > 0)
-            {
-                foreach (var material in materials)
-                {
-                    var item = new ToolStripMenuItem(material);
-                    item.Click += (s, e) => SetCellValue("Material", material);
-                    _contextMenu.Items.Add(item);
-                }
-                _contextMenu.Items.Add(new ToolStripSeparator());
-            }
-            
+            // ❌ 移除 redundant Clear
+            // _contextMenu.Items.Clear();
+
+            var extractItem = new ToolStripMenuItem("提取数量（从文件名）");
+            extractItem.Click += (s, e) => ShowExtractQuantityInputDialog();
+            _contextMenu.Items.Add(extractItem);
+
+            _contextMenu.Items.Add(new ToolStripSeparator());
             CreateDefaultContextMenu();
         }
 
+        private void ShowExtractQuantityInputDialog()
+        {
+            using (var inputForm = new Form())
+            {
+                inputForm.Text = "从文件名提取数量";
+                inputForm.Width = 350;
+                inputForm.Height = 180;
+                inputForm.StartPosition = FormStartPosition.CenterParent;
+                inputForm.FormBorderStyle = FormBorderStyle.FixedDialog;
+                inputForm.MaximizeBox = false;
+                inputForm.MinimizeBox = false;
+
+                var label = new Label { Text = "请输入单位字符 (如 '张', '个', 'F'):\n程序将提取该字符前的一组数字。", Left = 15, Top = 15, Width = 300, Height = 40 };
+                var textBox = new TextBox { Left = 15, Top = 60, Width = 300, Text = "张" }; // 默认值
+                var okButton = new Button { Text = "确定", Left = 60, Top = 95, Width = 100, DialogResult = DialogResult.OK };
+                var cancelButton = new Button { Text = "取消", Left = 180, Top = 95, Width = 100, DialogResult = DialogResult.Cancel };
+
+                inputForm.Controls.AddRange(new Control[] { label, textBox, okButton, cancelButton });
+                inputForm.AcceptButton = okButton;
+                inputForm.CancelButton = cancelButton;
+
+                if (inputForm.ShowDialog() == DialogResult.OK)
+                {
+                    string unit = textBox.Text.Trim();
+                    if (!string.IsNullOrEmpty(unit))
+                    {
+                        BatchExtractQuantityFromOriginalName(unit);
+                    }
+                    else
+                    {
+                        MessageBox.Show("单位字符不能为空", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                }
+            }
+        }
+
+        private void BatchExtractQuantityFromOriginalName(string unit)
+        {
+            var rowIndices = GetSelectedRowIndices();
+            if (rowIndices.Count == 0) return;
+
+            // 构建正则：寻找单位前的数字
+            // pattern explanation: (\d+)\s*unit  -> 捕获数字，允许中间有些许空格
+            string pattern = $@"(\d+)\s*{Regex.Escape(unit)}";
+            var regex = new Regex(pattern, RegexOptions.IgnoreCase);
+
+            if (_fileTable.DataSource is BindingList<FileRenameInfo> bindingList)
+            {
+                int successCount = 0;
+                foreach (int rowIndex in rowIndices)
+                {
+                    if (rowIndex >= 0 && rowIndex < bindingList.Count)
+                    {
+                        var item = bindingList[rowIndex];
+                        if (!string.IsNullOrEmpty(item.OriginalName))
+                        {
+                            var match = regex.Match(item.OriginalName);
+                            if (match.Success)
+                            {
+                                item.Quantity = match.Groups[1].Value;
+                                successCount++;
+                            }
+                        }
+                    }
+                }
+
+                if (successCount > 0)
+                {
+                    _fileTable.Invalidate();
+                    LogHelper.Info($"从 {successCount} 个文件中提取了数量 (单位: {unit})");
+                }
+                else
+                {
+                    MessageBox.Show($"未在选中的文件中找到匹配单位 '{unit}' 的数字。", "提取结果", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
+
+        private void CreateOrderNumberContextMenu()
+        {
+            // ❌ 移除 redundant Clear
+            // _contextMenu.Items.Clear();
+
+            var generateItem = new ToolStripMenuItem("批量生产订单号");
+            generateItem.Click += (s, e) => ShowOrderNumberInputDialog();
+            _contextMenu.Items.Add(generateItem);
+
+            _contextMenu.Items.Add(new ToolStripSeparator());
+            CreateDefaultContextMenu();
+        }
+
+        private void ShowOrderNumberInputDialog()
+        {
+            using (var inputForm = new Form())
+            {
+                inputForm.Text = "批量生成订单号";
+                inputForm.Width = 350;
+                inputForm.Height = 280;
+                inputForm.StartPosition = FormStartPosition.CenterParent;
+                inputForm.FormBorderStyle = FormBorderStyle.FixedDialog;
+                inputForm.MaximizeBox = false;
+                inputForm.MinimizeBox = false;
+
+                int top = 15;
+                int labelWidth = 60;
+                int inputWidth = 240;
+                int spacing = 35;
+
+                // 前缀
+                var lblPrefix = new Label { Text = "前缀:", Left = 15, Top = top + 3, Width = labelWidth };
+                var txtPrefix = new TextBox { Left = 80, Top = top, Width = inputWidth };
+                
+                // 起始号
+                top += spacing;
+                var lblStart = new Label { Text = "起始号:", Left = 15, Top = top + 3, Width = labelWidth };
+                var numStart = new NumericUpDown { Left = 80, Top = top, Width = inputWidth, Minimum = 0, Maximum = 99999999, Value = 1 };
+
+                // 增量
+                top += spacing;
+                var lblStep = new Label { Text = "增量:", Left = 15, Top = top + 3, Width = labelWidth };
+                var numStep = new NumericUpDown { Left = 80, Top = top, Width = inputWidth, Minimum = 1, Maximum = 1000, Value = 1 };
+
+                // 位数
+                top += spacing;
+                var lblDigits = new Label { Text = "位数:", Left = 15, Top = top + 3, Width = labelWidth };
+                var numDigits = new NumericUpDown { Left = 80, Top = top, Width = inputWidth, Minimum = 1, Maximum = 10, Value = 3 };
+
+                // 后缀
+                top += spacing;
+                var lblSuffix = new Label { Text = "后缀:", Left = 15, Top = top + 3, Width = labelWidth };
+                var txtSuffix = new TextBox { Left = 80, Top = top, Width = inputWidth };
+
+                // 按钮
+                top += spacing + 10;
+                var okButton = new Button { Text = "确定", Left = 80, Top = top, Width = 100, DialogResult = DialogResult.OK };
+                var cancelButton = new Button { Text = "取消", Left = 200, Top = top, Width = 100, DialogResult = DialogResult.Cancel };
+
+                inputForm.Controls.AddRange(new Control[] { 
+                    lblPrefix, txtPrefix, 
+                    lblStart, numStart, 
+                    lblStep, numStep, 
+                    lblDigits, numDigits,
+                    lblSuffix, txtSuffix, 
+                    okButton, cancelButton 
+                });
+                inputForm.AcceptButton = okButton;
+                inputForm.CancelButton = cancelButton;
+
+                if (inputForm.ShowDialog() == DialogResult.OK)
+                {
+                    BatchGenerateOrderNumbers(
+                        txtPrefix.Text, 
+                        (int)numStart.Value, 
+                        (int)numStep.Value, 
+                        (int)numDigits.Value, 
+                        txtSuffix.Text
+                    );
+                }
+            }
+        }
+
+        private void BatchGenerateOrderNumbers(string prefix, int start, int step, int digits, string suffix)
+        {
+            var rowIndices = GetSelectedRowIndices();
+            if (rowIndices.Count == 0) return;
+
+            // 确保按行号排序，以便序号递增
+            var sortedIndices = rowIndices.OrderBy(i => i).ToList();
+
+            if (_fileTable.DataSource is BindingList<FileRenameInfo> bindingList)
+            {
+                int count = 0;
+                for (int i = 0; i < sortedIndices.Count; i++)
+                {
+                    int rowIndex = sortedIndices[i];
+                    if (rowIndex >= 0 && rowIndex < bindingList.Count)
+                    {
+                        var item = bindingList[rowIndex];
+                        // 计算当前序号: 起始值 + (索引 * 步长)
+                        int currentNum = start + (i * step);
+                        string numberPart = currentNum.ToString("D" + digits);
+                        
+                        item.OrderNumber = $"{prefix}{numberPart}{suffix}";
+                        count++;
+                    }
+                }
+
+                if (count > 0)
+                {
+                    _fileTable.Invalidate();
+                    LogHelper.Info($"批量生成了 {count} 个订单号 (前缀:{prefix}, 起始:{start}, 增量:{step})");
+                }
+            }
+        }
+
+
+
         private void CreateQuantityContextMenu()
         {
-            _contextMenu.Items.Clear();
+            // ❌ 移除 redundant Clear
+            // _contextMenu.Items.Clear();
             
-            var inputItem = new ToolStripMenuItem("手动输入");
-            inputItem.Click += (s, e) => ShowQuantityInputDialog();
-            _contextMenu.Items.Add(inputItem);
+            // ✅ 新增：批量设置数量（覆盖）
+            var setItem = new ToolStripMenuItem("批量设置数量");
+            setItem.Click += (s, e) => ShowQuantityInputDialog(isIncremental: false);
+            _contextMenu.Items.Add(setItem);
+
+            // ✅ 原有：批量增减数量（计算）
+            var adjustItem = new ToolStripMenuItem("批量增减数量");
+            adjustItem.Click += (s, e) => ShowQuantityInputDialog(isIncremental: true);
+            _contextMenu.Items.Add(adjustItem);
             
             _contextMenu.Items.Add(new ToolStripSeparator());
             CreateDefaultContextMenu();
@@ -575,26 +803,80 @@ namespace WindowsFormsApp3.Forms.Panels
             CreateDefaultContextMenu();
         }
 
-        private void SetCellValue(string propertyName, string value)
+        // ✅ 新增：获取所有涉及的行索引（合并 SelectedRows 和 SelectedCells）
+        private HashSet<int> GetSelectedRowIndices()
         {
-            if (_currentRowIndex < 0) return;
-            
+            var rowIndices = new HashSet<int>();
+
+            // 1. 添加选中行的索引
+            foreach (DataGridViewRow row in _fileTable.SelectedRows)
+            {
+                if (row.Index >= 0) rowIndices.Add(row.Index);
+            }
+
+            // 2. 添加选中单元格所在的行索引
+            foreach (DataGridViewCell cell in _fileTable.SelectedCells)
+            {
+                if (cell.RowIndex >= 0) rowIndices.Add(cell.RowIndex);
+            }
+
+            // 3. 如果没有选中任何行或单元格，但有当前行（光标所在行），则作为 fallback
+            if (rowIndices.Count == 0 && _currentRowIndex >= 0)
+            {
+                rowIndices.Add(_currentRowIndex);
+            }
+
+            return rowIndices;
+        }
+
+        // ✅ 新增：批量设置单元格值
+        private void BatchSetCellValue(string propertyName, string value)
+        {
+            var rowIndices = GetSelectedRowIndices();
+            if (rowIndices.Count == 0) return;
+
             try
             {
-                if (_fileTable.DataSource is BindingList<FileRenameInfo> bindingList && 
-                    _currentRowIndex < bindingList.Count)
+                if (_fileTable.DataSource is BindingList<FileRenameInfo> bindingList)
                 {
-                    var item = bindingList[_currentRowIndex];
-                    var prop = typeof(FileRenameInfo).GetProperty(propertyName);
-                    prop?.SetValue(item, value);
-                    _fileTable.Invalidate();
+                    int successCount = 0;
+                    foreach (int rowIndex in rowIndices)
+                    {
+                        if (rowIndex >= 0 && rowIndex < bindingList.Count)
+                        {
+                            var item = bindingList[rowIndex];
+                            var prop = typeof(FileRenameInfo).GetProperty(propertyName);
+                            if (prop != null)
+                            {
+                                prop.SetValue(item, value);
+                                successCount++;
+                            }
+                        }
+                    }
+                    
+                    if (successCount > 0)
+                    {
+                        _fileTable.Invalidate(); // 刷新表格显示
+                        LogHelper.Info($"批量更新了 {successCount} 行的 {propertyName} 为 '{value}'");
+                    }
                 }
             }
             catch (Exception ex)
             {
-                LogHelper.Error($"设置单元格值失败: {ex.Message}");
+                LogHelper.Error($"批量设置单元格值失败: {ex.Message}");
             }
         }
+
+        // 旧的单行设置方法（保留作为备用）
+        private void SetCellValueSingleRow(string propertyName, string value)
+        {
+             // 逻辑已合并到 BatchSetCellValue，保留此为空方法或直接删除调用
+             // 为了保持签名兼容暂时保留，但重定向到 BatchSetCellValue
+             BatchSetCellValue(propertyName, value);
+        }
+        
+        // 旧的 SetCellValue 方法已重命名并被 BatchSetCellValue 替代
+        private void SetCellValue(string propertyName, string value) => BatchSetCellValue(propertyName, value);
 
         private void CopySelectedCell()
         {
@@ -619,66 +901,137 @@ namespace WindowsFormsApp3.Forms.Panels
 
         private void DeleteSelectedRow()
         {
-            if (_currentRowIndex < 0) return;
-            
-            try
+            var rowIndices = GetSelectedRowIndices().OrderByDescending(i => i).ToList();
+            if (rowIndices.Count == 0) return;
+
+            // 批量删除
+            if (_fileTable.DataSource is BindingList<FileRenameInfo> bindingList)
             {
-                if (_fileTable.DataSource is BindingList<FileRenameInfo> bindingList &&
-                    _currentRowIndex < bindingList.Count)
+                foreach (int index in rowIndices)
                 {
-                    bindingList.RemoveAt(_currentRowIndex);
-                    _fileTable.Invalidate();
+                    if (index >= 0 && index < bindingList.Count)
+                    {
+                        bindingList.RemoveAt(index);
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                LogHelper.Error($"删除行失败: {ex.Message}");
             }
         }
 
-        private void ShowQuantityInputDialog()
+        // ✅ 修改：支持两种模式（增量/覆盖）
+        private void ShowQuantityInputDialog(bool isIncremental = false)
         {
             using (var inputForm = new Form())
             {
-                inputForm.Text = "手动输入增量值";
+                inputForm.Text = isIncremental ? "批量增减数量" : "批量设置数量";
                 inputForm.Width = 300;
                 inputForm.Height = 150;
                 inputForm.StartPosition = FormStartPosition.CenterParent;
                 inputForm.FormBorderStyle = FormBorderStyle.FixedDialog;
 
-                var label = new Label { Text = "请输入增量值:", Left = 10, Top = 10, Width = 260 };
-                var textBox = new TextBox { Left = 10, Top = 35, Width = 260, Text = "1" };
+                var labelText = isIncremental ? "请输入增量值 (例如 1 或 -1):" : "请输入新的数量值:";
+                var defaultText = isIncremental ? "1" : "500";
+
+                var label = new Label { Text = labelText, Left = 10, Top = 10, Width = 260 };
+                var textBox = new TextBox { Left = 10, Top = 35, Width = 260, Text = defaultText };
                 var okButton = new Button { Text = "确定", Left = 100, Top = 70, DialogResult = DialogResult.OK };
                 
                 inputForm.Controls.AddRange(new Control[] { label, textBox, okButton });
                 inputForm.AcceptButton = okButton;
 
-                if (inputForm.ShowDialog() == DialogResult.OK && int.TryParse(textBox.Text, out int delta))
+                if (inputForm.ShowDialog() == DialogResult.OK && int.TryParse(textBox.Text, out int value))
                 {
-                    BatchUpdateQuantity(delta);
+                    if (isIncremental)
+                    {
+                        BatchUpdateQuantity(value); // 增量模式
+                    }
+                    else
+                    {
+                        BatchSetQuantity(value); // 覆盖模式
+                    }
                 }
             }
         }
 
+        // 保持兼容旧签名（默认为增量模式，供其他潜在调用者使用）
+        private void ShowQuantityInputDialog() => ShowQuantityInputDialog(true);
+
+        // ✅ 原有：批量增减（逻辑升级为支持多选）
+        private void CreateMaterialContextMenu()
+        {
+            // ❌ 移除 redundant Clear
+            // _contextMenu.Items.Clear();
+            
+            // 获取材料列表
+            var materials = MaterialManager.Instance.GetMaterials();
+            
+            // ✅ 修复：如果列表为空，尝试从 AppSettings 加载
+            if ((materials == null || materials.Count == 0) && !string.IsNullOrEmpty(AppSettings.Material))
+            {
+                var list = AppSettings.Material.Split(new[] { ',', '，' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                MaterialManager.Instance.SetMaterials(list);
+                materials = MaterialManager.Instance.GetMaterials();
+            }
+
+            if (materials != null && materials.Count > 0)
+            {
+                foreach (var material in materials)
+                {
+                    var item = new ToolStripMenuItem(material);
+                    // ✅ 改为调用批量设置方法
+                    item.Click += (s, e) => BatchSetCellValue("Material", material);
+                    _contextMenu.Items.Add(item);
+                }
+                _contextMenu.Items.Add(new ToolStripSeparator());
+            }
+            
+            CreateDefaultContextMenu();
+        }
+
+        // ✅ 原有：批量增减（逻辑升级为支持多选）
         private void BatchUpdateQuantity(int delta)
         {
-            if (_currentRowIndex < 0) return;
+            var rowIndices = GetSelectedRowIndices();
+            if (rowIndices.Count == 0) return;
             
-            try
-            {
-                if (_fileTable.DataSource is BindingList<FileRenameInfo> bindingList &&
-                    _currentRowIndex < bindingList.Count)
-                {
-                    var item = bindingList[_currentRowIndex];
-                    int.TryParse(item.Quantity ?? "0", out int current);
-                    item.Quantity = (current + delta).ToString();
-                    _fileTable.Invalidate();
-                }
-            }
-            catch (Exception ex)
-            {
-                LogHelper.Error($"更新数量失败: {ex.Message}");
-            }
+            // 批量处理
+             if (_fileTable.DataSource is BindingList<FileRenameInfo> bindingList)
+             {
+                 foreach (int index in rowIndices)
+                 {
+                     UpdateQuantitySingleRow(index, delta);
+                 }
+                 _fileTable.Invalidate();
+             }
+        }
+        
+        // 辅助方法：单行更新数量
+        private void UpdateQuantitySingleRow(int rowIndex, int delta)
+        {
+             if (_fileTable.DataSource is BindingList<FileRenameInfo> bindingList && rowIndex >= 0 && rowIndex < bindingList.Count)
+             {
+                 var item = bindingList[rowIndex];
+                 int.TryParse(item.Quantity ?? "0", out int current);
+                 item.Quantity = (current + delta).ToString();
+             }
+        }
+
+        // ✅ 新增：批量设置数量（覆盖）
+        private void BatchSetQuantity(int newValue)
+        {
+            var rowIndices = GetSelectedRowIndices();
+            if (rowIndices.Count == 0) return;
+
+             if (_fileTable.DataSource is BindingList<FileRenameInfo> bindingList)
+             {
+                 foreach (int index in rowIndices)
+                 {
+                     if (index >= 0 && index < bindingList.Count)
+                     {
+                         bindingList[index].Quantity = newValue.ToString();
+                     }
+                 }
+                 _fileTable.Invalidate();
+             }
         }
 
         private void ShowBleedInputDialog()
@@ -700,10 +1053,42 @@ namespace WindowsFormsApp3.Forms.Panels
 
                 if (inputForm.ShowDialog() == DialogResult.OK && double.TryParse(textBox.Text, out double bleed))
                 {
+                    // 1. 保存全局设置
                     AppSettings.Set("TetBleedValues", bleed.ToString());
                     AppSettings.Save();
-                    LogHelper.Info($"设置出血值为: {bleed}mm");
+                    LogHelper.Info($"设置全局出血值为: {bleed}mm");
+                    
+                    // 2. ✅ 更新当前选中的文件对象
+                    BatchUpdateBleed(bleed);
                 }
+            }
+        }
+        
+        // ✅ 辅助方法：批量更新出血值
+        private void BatchUpdateBleed(double bleed)
+        {
+            var rowIndices = GetSelectedRowIndices();
+            if (rowIndices.Count == 0) return;
+
+            string bleedStr = bleed.ToString();
+            
+            // 批量处理
+            if (_fileTable.DataSource is BindingList<FileRenameInfo> bindingList)
+            {
+                 int count = 0;
+                 foreach (int index in rowIndices)
+                 {
+                     if (index >= 0 && index < bindingList.Count)
+                     {
+                         bindingList[index].TetBleed = bleedStr;
+                         count++;
+                     }
+                 }
+                 if (count > 0)
+                 {
+                     _fileTable.Invalidate();
+                     LogHelper.Info($"批量更新了 {count} 行的出血值为 {bleedStr}");
+                 }
             }
         }
 

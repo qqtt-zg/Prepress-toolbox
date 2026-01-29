@@ -1,110 +1,118 @@
 # Prepress-toolbox Development Guide
 
-## 1. Build and Test Commands
+> **Context**: Windows Forms application (.NET Framework 4.8) for print shop automation.
+> **Key Libraries**: AntdUI (UI), iText 9/Spire (PDF), EPPlus (Excel), Poppler (Analysis).
 
-This project is a Windows Forms application targeting .NET Framework 4.8. Use the `dotnet` CLI or Visual Studio 2019/2022.
+## 1. Build & Test Commands
 
 ### Build
+**Environment**: .NET SDK (supporting .NET 4.8) or Visual Studio 2022.
 ```bash
-# Restore NuGet packages
+# Restore dependencies
 dotnet restore WindowsFormsApp3.sln
 
-# Build Debug configuration
-dotnet build WindowsFormsApp3.sln --configuration Debug
-
-# Build Release configuration
-dotnet build WindowsFormsApp3.sln --configuration Release
+# Build (Debug/Release) - Safe to run frequently
+dotnet build WindowsFormsApp3.sln -c Debug
+dotnet build WindowsFormsApp3.sln -c Release
 ```
 
 ### Test
-**Frameworks**: xUnit, MSTest, Moq, FlaUI.
+**Frameworks**: `xUnit` (Primary), `MSTest` (Legacy/Specific), `FlaUI` (UI Automation), `Moq`.
+**Location**: `src/WindowsFormsApp3.Tests/`
 
 ```bash
-# Run all tests
+# Run ALL tests (Essential before PR)
 dotnet test src/WindowsFormsApp3.Tests/WindowsFormsApp3.Tests.csproj
 
-# Run a specific test class
+# Run a SPECIFIC test file (Fast feedback loop)
 dotnet test src/WindowsFormsApp3.Tests/WindowsFormsApp3.Tests.csproj --filter "FullyQualifiedName~FileRenameServiceTests"
 
-# Run a single test method
+# Run a SINGLE test method
 dotnet test src/WindowsFormsApp3.Tests/WindowsFormsApp3.Tests.csproj --filter "FullyQualifiedName~TestSpecificMethodName"
 
-# Run with detailed output
-dotnet test src/WindowsFormsApp3.Tests/WindowsFormsApp3.Tests.csproj --logger "console;verbosity=detailed"
-```
-
-### Run
-```bash
-# Execute the built binary
-src/WindowsFormsApp3/bin/Debug/net48/大诚重命名工具.exe
+# Run with detailed output (for debugging failures)
+dotnet test src/WindowsFormsApp3.Tests/WindowsFormsApp3.Tests.csproj -v n
 ```
 
 ## 2. Code Style & Conventions
 
-### General
-- **Language Version**: C# 7.3 (default for .NET Framework 4.8).
-- **Indentation**: 4 spaces.
-- **Braces**: Allman style (new line for opening brace).
-- **Encoding**: UTF-8.
+### C# Standards
+- **Version**: C# 9.0 (Main App), C# 10.0 (Tests).
+- **Naming**:
+  - `PascalCase`: Classes, Methods, Properties, Events, Constants.
+  - `_camelCase`: Private fields (e.g., `_pdfService`).
+  - `camelCase`: Local variables, parameters.
+  - `IInterface`: Interface prefix.
+- **Formatting**:
+  - **Indentation**: 4 spaces.
+  - **Braces**: Allman style (New line).
+  - **Usings**: System first, then alphabetical. Inside namespace? No, **outside**.
 
-### Naming Conventions
-- **Classes/Methods/Properties**: `PascalCase`.
-- **Private Fields**: `_camelCase` (e.g., `_eventBus`).
-- **Local Variables/Parameters**: `camelCase`.
-- **Interfaces**: Prefix with `I` (e.g., `IFileRenameService`).
-- **Events**: `PascalCase` usually ending in `Changed`, `Completed`, etc. (e.g., `FileRenamed`).
-- **Constants**: `PascalCase` or `UPPER_CASE` (prefer PascalCase for public consts).
+### Language Rules
+- **Code Identifiers**: English (Classes, Methods, Variables).
+- **Comments & Documentation**: **Simplified Chinese (简体中文)**. Mandatory for explaining complex logic.
+- **Todo Lists**: Simplified Chinese (e.g., `1. 完成PDF拆分功能`).
+- **Git Commit Messages**: Chinese (e.g., `fix: 修复打印预览崩溃问题`).
 
-### Imports (Usings)
-- Place `using` directives at the very top of the file, outside the `namespace`.
-- Sort system directives first, then alphabetical.
+### Architecture: MVP (Model-View-Presenter)
+- **Views (`Forms/`)**: Dumb UI. Inherit `Form` or `BasePanelControl`. Implement interfaces (e.g., `IMainView`).
+  - *Rule*: NO business logic in Views. Only UI event forwarding.
+- **Presenters (`Presenters/`)**: Orchestrators. Bind View to Services.
+  - *Rule*: Handle exceptions here, not in Views.
+- **Services (`Services/`)**: Business logic. Stateless where possible.
+  - *Rule*: Use `LogHelper` for logging, not `Console.WriteLine`.
+- **Models (`Models/`)**: Data structures (Anemic domain model).
 
-### Documentation
-- Use XML documentation (`///`) for all public classes, methods, and properties.
-- Explain *why* complex logic exists, not just *what* it does.
-- Language: Chinese (Simplified) is preferred for comments in this codebase.
+### Critical: The "PDF Library Chaos"
+This project uses multiple PDF libraries. **Use the right one for the job**:
+1.  **iText 9.3.0** (`itext.*`): **PRIMARY** for PDF manipulation (Merge, Split, Watermark).
+2.  **PdfiumViewer**: **PRIMARY** for PDF **Viewing/Rendering** in UI only.
+3.  **Poppler**: **PRIMARY** for deep analysis (Font inspection, ink coverage). Use `PdfFontInspectorService_Poppler`.
+4.  **Spire.Pdf**: Legacy/Fallback. Avoid new usage unless iText fails.
+5.  **PDFsharp**: Secondary tool. Avoid mixing with iText logic.
 
-### Error Handling
-- Use `try-catch` blocks in Service methods where I/O or external calls occur.
-- **Do NOT** use `MessageBox.Show` in Services or Models. Raise events or throw exceptions.
-- Use `LogHelper` for logging errors.
+### UI Development (AntdUI)
+- We use **AntdUI** for modern components (Buttons, Inputs, Tables).
+- **Do NOT** use standard WinForms controls if an AntdUI equivalent exists.
+- **SVGs**: Use `Svg` library for icons. Store in `Resources/Icons`.
 
-## 3. Architecture & Patterns
+## 3. Operational Rules for Agents
 
-### UI Architecture
-- **Pattern**: MVP (Model-View-Presenter).
-- **Views**: Inherit from `Form` or `BasePanelControl`. Implement an Interface (e.g., `IFileRenamePanelView`).
-- **Presenters**: Handle UI logic. Coordinate between View and Services.
-- **Forms**: Main shell is `MainShellForm`. Functionality is split into Panels (e.g., `FileRenamePanel`).
+1.  **No Blind Commits**: Always run `dotnet build` before confirming a task is done.
+2.  **Atomic Changes**: Don't mix refactoring with bug fixes.
+3.  **Error Handling**:
+    - **UI Layer**: Show user-friendly messages (via `MessageBox` or Toast).
+    - **Service Layer**: Throw exceptions or return `Result<T>` pattern. Log errors via `LogHelper`.
+4.  **Async/Await**:
+    - UI runs on Main Thread. Use `async/await` for ALL I/O (File, DB, PDF processing).
+    - **Never** use `.Result` or `.Wait()` (Deadlock risk). Use `await`.
+5.  **Path Handling**:
+    - Windows paths are messy. Always use `Path.Combine()`.
+    - Assume paths can contain spaces and Chinese characters.
+6.  **Dependency Injection**:
+    - Prefer Constructor Injection.
+    - If impossible (Legacy Forms), use `ServiceLocator.Instance.GetService<T>()`.
+    - Register new services in `Program.cs`.
 
-### Dependency Injection
-- **Container**: Microsoft.Extensions.DependencyInjection.
-- **Access**: Use `ServiceLocator.Instance` to resolve services when constructor injection is not possible (legacy code).
-- **Registration**: Register new services in `Program.cs` or `ServiceLocator.cs`.
+## 4. Git Workflow
+- **Commit Messages**: `type: subject`
+  - `feat: add PDF split function`
+  - `fix: resolve crash on large files`
+  - `refactor: optimize import logic`
+  - `docs: update README`
+- **Scope**: Keep changes focused. If you see unrelated messy code, note it but don't fix it unless asked (or use a separate PR).
 
-### Event System
-- Use `IEventBus` for cross-component communication.
-- Define strong-typed event args in `Services/Events` or `Models`.
+## 5. Directory Map
+- `src/WindowsFormsApp3/`
+  - `Forms/` -> UI Windows & Panels
+  - `Presenters/` -> Logic connecting UI & Data
+  - `Services/` -> Core Business Logic (The "Brains")
+  - `Models/` -> Data Objects
+  - `Resources/` -> Assets (Icons, Fonts, PDF.js)
+- `src/WindowsFormsApp3.Tests/` -> Unit & Integration Tests
+- `packages/` -> Local Nuget cache (Legacy style)
 
-### PDF Processing
-- **Engines**: `PdfiumViewer` (rendering/viewing) and `iText`/`Spire.Pdf` (manipulation).
-- Use `IPdfPreviewControl` abstraction for UI elements displaying PDFs.
-
-## 4. Agent Operational Rules
-
-1.  **Safety First**: Never commit code that breaks the build. Run `dotnet build` before finishing a task.
-2.  **Testing**: When modifying logic in Services, run the relevant unit tests. If no test exists, consider adding one in `WindowsFormsApp3.Tests`.
-3.  **Refactoring**: Prefer modifying existing files over creating new ones unless the class is growing too large (> 500 lines).
-4.  **UI Changes**:
-    - When modifying UI, check `MainShellForm.Designer.cs` carefully.
-    - Prefer editing logic in Presenters over code-behind (`.cs` files of Forms).
-5.  **Dependencies**: Do not add new NuGet packages without explicit user permission.
-6.  **Path Handling**: Always use `Path.Combine` and absolute paths. Be aware of Windows file system limitations.
-
-## 5. Directory Structure Overview
-- `src/WindowsFormsApp3/Forms`: UI Forms and Panels.
-- `src/WindowsFormsApp3/Presenters`: Logic for UI.
-- `src/WindowsFormsApp3/Services`: Business logic (Rename, PDF, Excel).
-- `src/WindowsFormsApp3/Models`: Data objects.
-- `src/WindowsFormsApp3/Commands`: Undo/Redo command implementations.
-- `src/WindowsFormsApp3/Utils`: Helper classes and extensions.
+## 6. Troubleshooting
+- **"Ghostscript missing"**: Check `docs/Ghostscript_下载安装指南.md`.
+- **"Font not found"**: Ensure fonts are in `Resources/Fonts` and build action is "Embedded Resource".
+- **"PDF Preview Jitter"**: Known issue in `PdfiumViewer`. See `README.md` for status.

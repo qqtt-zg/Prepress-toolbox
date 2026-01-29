@@ -327,8 +327,8 @@ namespace WindowsFormsApp3.Presenters
         /// 匹配 Excel 数据与正则结果
         /// </summary>
         /// <param name="regexResult">正则匹配结果</param>
-        /// <returns>匹配的 Excel 数据</returns>
-        Models.ExcelMatchData MatchExcelData(string regexResult);
+        /// <returns>匹配的 Excel 数据列表</returns>
+        List<Models.ExcelMatchData> MatchExcelData(string regexResult);
 
         /// <summary>
         /// 处理正则表达式变化事件
