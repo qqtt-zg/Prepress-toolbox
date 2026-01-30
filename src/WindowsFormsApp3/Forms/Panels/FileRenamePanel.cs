@@ -1080,7 +1080,13 @@ namespace WindowsFormsApp3.Forms.Panels
                  {
                      if (index >= 0 && index < bindingList.Count)
                      {
-                         bindingList[index].TetBleed = bleedStr;
+                         var item = bindingList[index];
+                         item.TetBleed = bleedStr;
+                         
+                         // ✅ 关键修复：更新出血值后，重新计算尺寸字符串用于显示
+                         // 假设 Dimensions 格式为 "宽x高+出血"
+                         RecalculateDimensionsString(item);
+                         
                          count++;
                      }
                  }
@@ -1089,6 +1095,40 @@ namespace WindowsFormsApp3.Forms.Panels
                      _fileTable.Invalidate();
                      LogHelper.Info($"批量更新了 {count} 行的出血值为 {bleedStr}");
                  }
+            }
+        }
+
+        /// <summary>
+        /// 根据W/H和出血值重新格式化Dimensions字符串
+        /// </summary>
+        private void RecalculateDimensionsString(FileRenameInfo item)
+        {
+            string w = item.Width;
+            string h = item.Height;
+
+            // Fallback: 如果 Width/Height 属性为空，尝试从现有的 Dimensions 字符串解析
+            if (string.IsNullOrEmpty(w) || string.IsNullOrEmpty(h))
+            {
+                var match = Regex.Match(item.Dimensions ?? "", @"^(\d+\.?\d*)x(\d+\.?\d*)");
+                if (match.Success)
+                {
+                    w = match.Groups[1].Value;
+                    h = match.Groups[2].Value;
+                    // 回填属性以便下次使用
+                    item.Width = w;
+                    item.Height = h;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(w) && !string.IsNullOrEmpty(h))
+            {
+                 string dim = $"{w}x{h}";
+                 if (double.TryParse(item.TetBleed, out double b) && b > 0)
+                 {
+                     // 如果有出血值，追加 "+N"
+                     dim += $"+{item.TetBleed}";
+                 }
+                 item.Dimensions = dim;
             }
         }
 
