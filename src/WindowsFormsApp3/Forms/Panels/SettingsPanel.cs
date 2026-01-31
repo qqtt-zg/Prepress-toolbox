@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using WindowsFormsApp3.Forms.Controls.Settings;
 using WindowsFormsApp3.Utils;
+using WindowsFormsApp3.Services.Events;
 
 namespace WindowsFormsApp3.Forms.Panels
 {
@@ -140,6 +141,22 @@ namespace WindowsFormsApp3.Forms.Panels
                 
                 // 最后统一保存到文件
                 AppSettings.Save();
+
+                // 发布配置保存事件，通知各模块立即应用新设置
+                try
+                {
+                    var eventBus = Services.ServiceLocator.Instance.GetEventBus();
+                    eventBus?.Publish(new ConfigSavedEvent
+                    {
+                        ConfigKey = "AppSettings",
+                        SavedItemsCount = 0,
+                        ConfigFilePath = AppDataPathManager.ConfigFilePath
+                    });
+                }
+                catch (Exception ex)
+                {
+                    LogHelper.Warn($"发布配置保存事件失败: {ex.Message}");
+                }
                 
                 // 触发快捷键更新
                 if (this.ParentForm is WindowsFormsApp3.Forms.Main.MainShellForm mainForm)

@@ -91,8 +91,8 @@ namespace WindowsFormsApp3.Services
             double finalWidth = CustomRound(width - tetBleed * 2);
             double finalHeight = CustomRound(height - tetBleed * 2);
 
-            // 基础尺寸格式
-            string dimensions = $"{finalWidth}x{finalHeight}";
+            // 基础尺寸格式 (整数不显示小数，非整数显示一位小数)
+            string dimensions = $"{finalWidth:0.#}x{finalHeight:0.#}";
 
             // 当启用形状处理时，根据 cornerRadius 添加形状信息
             if (addPdfLayers && !string.IsNullOrEmpty(cornerRadius))

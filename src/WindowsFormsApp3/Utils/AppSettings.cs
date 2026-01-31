@@ -361,6 +361,60 @@ namespace WindowsFormsApp3.Utils
         }
 
         /// <summary>
+        /// 自动保存频率（秒）
+        /// </summary>
+        public static int AutoSaveIntervalSeconds
+        {
+            get => GetValue<int>("AutoSaveIntervalSeconds", 60);
+            set => SetValue("AutoSaveIntervalSeconds", value);
+        }
+
+        /// <summary>
+        /// 启用每日JSON自动加载/创建功能
+        /// </summary>
+        public static bool EnableDailyJson
+        {
+            get => GetValue<bool>("EnableDailyJson", true);
+            set => SetValue("EnableDailyJson", value);
+        }
+
+        public static bool EnableDynamicFileReadyTimeout
+        {
+            get => GetValue<bool>("EnableDynamicFileReadyTimeout", true);
+            set => SetValue("EnableDynamicFileReadyTimeout", value);
+        }
+
+        public static int FileReadyTimeoutSmallSeconds
+        {
+            get => GetValue<int>("FileReadyTimeoutSmallSeconds", 45);
+            set => SetValue("FileReadyTimeoutSmallSeconds", value);
+        }
+
+        public static int FileReadyTimeoutMediumSeconds
+        {
+            get => GetValue<int>("FileReadyTimeoutMediumSeconds", 90);
+            set => SetValue("FileReadyTimeoutMediumSeconds", value);
+        }
+
+        public static int FileReadyTimeoutLargeSeconds
+        {
+            get => GetValue<int>("FileReadyTimeoutLargeSeconds", 150);
+            set => SetValue("FileReadyTimeoutLargeSeconds", value);
+        }
+
+        public static int FileReadyTimeoutSmallThresholdMb
+        {
+            get => GetValue<int>("FileReadyTimeoutSmallThresholdMb", 50);
+            set => SetValue("FileReadyTimeoutSmallThresholdMb", value);
+        }
+
+        public static int FileReadyTimeoutLargeThresholdMb
+        {
+            get => GetValue<int>("FileReadyTimeoutLargeThresholdMb", 300);
+            set => SetValue("FileReadyTimeoutLargeThresholdMb", value);
+        }
+
+        /// <summary>
         /// 通用设置访问器，兼容Properties.Settings["key"]的访问方式
         /// </summary>
         public static object Get(string key)

@@ -14,6 +14,9 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private AntdUI.Label lblHotkey;
         private AntdUI.Input txtHotkey;
         private AntdUI.Checkbox chkRenameNotification;
+        private AntdUI.Label lblAutoSaveSeconds;
+        private System.Windows.Forms.NumericUpDown numAutoSaveSeconds;
+        private AntdUI.Checkbox chkEnableDailyJson;
 
         protected override void Dispose(bool disposing)
         {
@@ -35,6 +38,10 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.lblHotkey = new AntdUI.Label();
             this.txtHotkey = new AntdUI.Input();
             this.chkRenameNotification = new AntdUI.Checkbox();
+            this.lblAutoSaveSeconds = new AntdUI.Label();
+            this.numAutoSaveSeconds = new System.Windows.Forms.NumericUpDown();
+            this.chkEnableDailyJson = new AntdUI.Checkbox();
+            ((System.ComponentModel.ISupportInitialize)(this.numAutoSaveSeconds)).BeginInit();
             this.SuspendLayout();
             // 
             // txtSeparator
@@ -110,8 +117,49 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.chkRenameNotification.TabIndex = 8;
             this.chkRenameNotification.Text = "重命名完成后显示通知";
             // 
+            // lblAutoSaveSeconds
+            // 
+            this.lblAutoSaveSeconds.Location = new System.Drawing.Point(20, 220);
+            this.lblAutoSaveSeconds.Name = "lblAutoSaveSeconds";
+            this.lblAutoSaveSeconds.Size = new System.Drawing.Size(90, 32);
+            this.lblAutoSaveSeconds.TabIndex = 9;
+            this.lblAutoSaveSeconds.Text = "自动保存(秒):";
+            // 
+            // numAutoSaveSeconds
+            // 
+            this.numAutoSaveSeconds.Location = new System.Drawing.Point(120, 224);
+            this.numAutoSaveSeconds.Maximum = new decimal(new int[] {
+            3600,
+            0,
+            0,
+            0});
+            this.numAutoSaveSeconds.Minimum = new decimal(new int[] {
+            10,
+            0,
+            0,
+            0});
+            this.numAutoSaveSeconds.Name = "numAutoSaveSeconds";
+            this.numAutoSaveSeconds.Size = new System.Drawing.Size(100, 23);
+            this.numAutoSaveSeconds.TabIndex = 10;
+            this.numAutoSaveSeconds.Value = new decimal(new int[] {
+            60,
+            0,
+            0,
+            0});
+            // 
+            // chkEnableDailyJson
+            // 
+            this.chkEnableDailyJson.Location = new System.Drawing.Point(20, 260);
+            this.chkEnableDailyJson.Name = "chkEnableDailyJson";
+            this.chkEnableDailyJson.Size = new System.Drawing.Size(260, 32);
+            this.chkEnableDailyJson.TabIndex = 11;
+            this.chkEnableDailyJson.Text = "启用当日JSON自动创建/加载";
+            // 
             // SettingsGeneralControl
             // 
+            this.Controls.Add(this.chkEnableDailyJson);
+            this.Controls.Add(this.numAutoSaveSeconds);
+            this.Controls.Add(this.lblAutoSaveSeconds);
             this.Controls.Add(this.chkRenameNotification);
             this.Controls.Add(this.lblSeparator);
             this.Controls.Add(this.txtSeparator);
@@ -123,6 +171,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.Controls.Add(this.txtHotkey);
             this.Name = "SettingsGeneralControl";
             this.Size = new System.Drawing.Size(800, 600);
+            ((System.ComponentModel.ISupportInitialize)(this.numAutoSaveSeconds)).EndInit();
             this.ResumeLayout(false);
 
         }

@@ -17,6 +17,8 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private const string HideRadiusKey = "HideRadiusValue";
         private const string HotkeyKey = "ToggleMinimizeHotkey";
         private const string RenameNotificationKey = "ShowRenameCompleteNotification";
+        private const string AutoSaveIntervalSecondsKey = "AutoSaveIntervalSeconds";
+        private const string EnableDailyJsonKey = "EnableDailyJson";
         
         public SettingsGeneralControl()
         {
@@ -56,6 +58,26 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 
             // Rename Notification
             chkRenameNotification.Checked = AppSettings.ShowRenameCompleteNotification;
+
+            // 自动保存频率（秒）
+            object autoSaveSeconds = AppSettings.Get(AutoSaveIntervalSecondsKey);
+            if (autoSaveSeconds is int seconds)
+            {
+                numAutoSaveSeconds.Value = Math.Max(numAutoSaveSeconds.Minimum, Math.Min(numAutoSaveSeconds.Maximum, seconds));
+            }
+            else
+            {
+                numAutoSaveSeconds.Value = 60;
+            }
+
+            // 当日JSON自动创建/加载开关
+            object enableDailyJson = AppSettings.Get(EnableDailyJsonKey);
+            chkEnableDailyJson.Checked = enableDailyJson is bool b ? b : true;
+
+            // 开关变化时实时启用/禁用自动保存相关控件
+            chkEnableDailyJson.CheckedChanged += (s, e) => UpdateAutoSaveControlsEnabledState();
+
+            UpdateAutoSaveControlsEnabledState();
         }
 
         public void SaveSettings()
@@ -64,16 +86,33 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             AppSettings.Set(UnitKey, txtUnit.Text);
             AppSettings.Set(OpacityKey, sliderOpacity.Value / 100.0);
             
-            if(!string.IsNullOrEmpty(txtHotkey.Text))
+            if (!string.IsNullOrEmpty(txtHotkey.Text))
             {
                 AppSettings.Set(HotkeyKey, txtHotkey.Text.Trim());
             }
 
             AppSettings.ShowRenameCompleteNotification = chkRenameNotification.Checked;
+
+            // 当关闭“当日JSON自动创建/加载”时，定时自动保存也应当禁用
+            if (chkEnableDailyJson.Checked)
+            {
+                // 自动保存频率（秒）
+                AppSettings.Set(AutoSaveIntervalSecondsKey, (int)numAutoSaveSeconds.Value);
+            }
+
+            // 当日JSON自动创建/加载开关
+            AppSettings.Set(EnableDailyJsonKey, chkEnableDailyJson.Checked);
             
             AppSettings.Save();
             
             SettingsSaved?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void UpdateAutoSaveControlsEnabledState()
+        {
+            bool enabled = chkEnableDailyJson.Checked;
+            numAutoSaveSeconds.Enabled = enabled;
+            lblAutoSaveSeconds.Enabled = enabled;
         }
     }
 }

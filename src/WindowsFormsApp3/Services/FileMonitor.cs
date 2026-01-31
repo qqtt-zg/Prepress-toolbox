@@ -130,15 +130,13 @@ namespace WindowsFormsApp3.Services
         {
             try
             {
-                // 确保文件完全创建完成
-            System.Threading.Thread.Sleep(500);
-            var args = new WindowsFormsApp3.Interfaces.FileChangedEventArgs
-            {
-                FilePath = e.FullPath,
-                ChangeType = WindowsFormsApp3.Interfaces.WatcherChangeTypes.Created
-            };
-            FileChanged?.Invoke(this, args);
-            FileCreated?.Invoke(this, e);
+                var args = new WindowsFormsApp3.Interfaces.FileChangedEventArgs
+                {
+                    FilePath = e.FullPath,
+                    ChangeType = WindowsFormsApp3.Interfaces.WatcherChangeTypes.Created
+                };
+                FileChanged?.Invoke(this, args);
+                FileCreated?.Invoke(this, e);
             }
             catch (Exception ex)
             {
@@ -156,15 +154,13 @@ namespace WindowsFormsApp3.Services
         {
             try
             {
-                // 确保文件重命名操作完成
-            System.Threading.Thread.Sleep(500);
-            var args = new WindowsFormsApp3.Interfaces.FileChangedEventArgs
-            {
-                FilePath = e.FullPath,
-                ChangeType = WindowsFormsApp3.Interfaces.WatcherChangeTypes.Renamed
-            };
-            FileChanged?.Invoke(this, args);
-            FileRenamed?.Invoke(this, e);
+                var args = new WindowsFormsApp3.Interfaces.FileChangedEventArgs
+                {
+                    FilePath = e.FullPath,
+                    ChangeType = WindowsFormsApp3.Interfaces.WatcherChangeTypes.Renamed
+                };
+                FileChanged?.Invoke(this, args);
+                FileRenamed?.Invoke(this, e);
             }
             catch (Exception ex)
             {

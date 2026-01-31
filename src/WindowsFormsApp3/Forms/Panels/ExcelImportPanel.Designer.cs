@@ -15,16 +15,16 @@ namespace WindowsFormsApp3.Forms.Panels
         /// </summary>
         private void InitializeComponent()
         {
-			this.SuspendLayout();
-			// 
-			// ExcelImportPanel
-			// 
-			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
-			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.Margin = new System.Windows.Forms.Padding(2);
-			this.Name = "ExcelImportPanel";
-			this.Size = new System.Drawing.Size(940, 501);
-			this.ResumeLayout(false);
+            this.SuspendLayout();
+            // 
+            // ExcelImportPanel
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Margin = new System.Windows.Forms.Padding(2);
+            this.Name = "ExcelImportPanel";
+            this.Size = new System.Drawing.Size(941, 583);
+            this.ResumeLayout(false);
 
         }
 

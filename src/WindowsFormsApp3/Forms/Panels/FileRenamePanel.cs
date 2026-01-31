@@ -40,6 +40,9 @@ namespace WindowsFormsApp3.Forms.Panels
             // 在构造函数中初始化列，确保设计器可见
             // InitializeFileTable() 会判断列是否已存在，避免重复添加 (需添加相应逻辑)
             InitializeFileTable();
+
+            // 设置下拉框列表宽度自适应内容
+            _cmbJsonFiles.ListAutoWidth = true;
         }
 
         protected override void InitializePanel()
@@ -171,14 +174,11 @@ namespace WindowsFormsApp3.Forms.Panels
         {
             try
             {
-                var jsonDir = System.IO.Path.Combine(System.Windows.Forms.Application.StartupPath, "SavedGrids");
-                if (!System.IO.Directory.Exists(jsonDir))
-                {
-                    System.IO.Directory.CreateDirectory(jsonDir);
-                }
+                var jsonDir = AppDataPathManager.SavedGridsDirectory;
 
                 var jsonFiles = System.IO.Directory.GetFiles(jsonDir, "*.json")
                     .Select(f => System.IO.Path.GetFileNameWithoutExtension(f))
+                    .OrderByDescending(f => f)
                     .ToArray();
 
                 _cmbJsonFiles.Items.Clear();
@@ -202,8 +202,11 @@ namespace WindowsFormsApp3.Forms.Panels
             {
                 try
                 {
-                    var jsonDir = System.IO.Path.Combine(System.Windows.Forms.Application.StartupPath, "SavedGrids");
+                    var jsonDir = AppDataPathManager.SavedGridsDirectory;
                     var filePath = System.IO.Path.Combine(jsonDir, fileName + ".json");
+
+                    // 同步当前配置名称，用于退出时自动保存到当前选中项
+                    CurrentConfigName = fileName;
 
                     // 使用 Presenter 加载
                     _presenter.LoadFromJsonFile(filePath);
@@ -225,22 +228,64 @@ namespace WindowsFormsApp3.Forms.Panels
         {
             try
             {
-                var jsonDir = System.IO.Path.Combine(System.Windows.Forms.Application.StartupPath, "SavedGrids");
-                if (!System.IO.Directory.Exists(jsonDir))
+                var jsonDir = AppDataPathManager.SavedGridsDirectory;
+
+                string fileName = null;
+
+                // 1. 如果下拉框有选中项，使用选中项作为文件名
+                if (_cmbJsonFiles.SelectedIndex >= 0)
                 {
-                    System.IO.Directory.CreateDirectory(jsonDir);
+                    fileName = _cmbJsonFiles.SelectedValue?.ToString();
+                    if (string.IsNullOrEmpty(fileName))
+                    {
+                        fileName = _cmbJsonFiles.Text;
+                    }
+                }
+                
+                // 2. 如果没有选中项，提示用户输入
+                if (string.IsNullOrEmpty(fileName))
+                {
+                   string defaultName = $"Grid_{DateTime.Now:yyyyMMdd_HHmmss}";
+                   if (InputBox("保存配置", "请输入配置名称:", ref defaultName) == DialogResult.OK)
+                   {
+                       fileName = defaultName;
+                   }
+                   else
+                   {
+                       return; // 用户取消
+                   }
+                }
+                
+                if (string.IsNullOrEmpty(fileName)) return;
+
+                // 自动添加 .json 后缀
+                if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                {
+                    fileName += ".json";
                 }
 
-                // 生成带时间戳的文件名
-                var fileName = $"Grid_{DateTime.Now:yyyyMMdd_HHmmss}";
-                var filePath = System.IO.Path.Combine(jsonDir, fileName + ".json");
+                var filePath = System.IO.Path.Combine(jsonDir, fileName);
 
                 // 使用 Presenter 保存
                 _presenter.SaveToJsonFile(filePath);
 
                 // 刷新下拉列表
                 PopulateJsonFilesDropdown();
-                UpdateStatusLabel($"已保存: {fileName}");
+                
+                // 尝试选中刚保存的文件
+                var nameWithoutExt = System.IO.Path.GetFileNameWithoutExtension(fileName);
+                if (string.IsNullOrEmpty(InputDirectory)) // 只有在没有设置 InputDir 触发 setter 逻辑干扰时才手动选
+                {
+                     // 简单设置 Text 或遍历选中
+                     for(int i=0; i<_cmbJsonFiles.Items.Count; i++) {
+                         if (_cmbJsonFiles.Items[i]?.ToString() == nameWithoutExt) {
+                             _cmbJsonFiles.SelectedIndex = i;
+                             break;
+                         }
+                     }
+                }
+                
+                UpdateStatusLabel($"已保存: {nameWithoutExt}");
             }
             catch (Exception ex)
             {
@@ -1471,6 +1516,8 @@ namespace WindowsFormsApp3.Forms.Panels
             }
             set
             {
+                if (string.IsNullOrEmpty(value)) return;
+
                 // 查找匹配的项并设置选中
                 for (int i = 0; i < _cmbInputDir.Items.Count; i++)
                 {
@@ -1480,11 +1527,10 @@ namespace WindowsFormsApp3.Forms.Panels
                         return;
                     }
                 }
-                // 如果找不到，设置为第一项
-                if (_cmbInputDir.Items.Count > 0)
-                {
-                    _cmbInputDir.SelectedIndex = 0;
-                }
+                
+                // 如果没有找到，添加到第一项并选中
+                _cmbInputDir.Items.Insert(0, value);
+                _cmbInputDir.SelectedIndex = 0;
             }
         }
 
@@ -1634,6 +1680,19 @@ namespace WindowsFormsApp3.Forms.Panels
             {
                 _cmbJsonFiles.Items.Add(file);
             }
+
+            // 如果Presenter已设置CurrentConfigName，则自动选中对应项（用于当日JSON自动创建/加载后同步下拉框）
+            if (!string.IsNullOrEmpty(CurrentConfigName))
+            {
+                for (int i = 0; i < _cmbJsonFiles.Items.Count; i++)
+                {
+                    if (_cmbJsonFiles.Items[i]?.ToString() == CurrentConfigName)
+                    {
+                        _cmbJsonFiles.SelectedIndex = i;
+                        break;
+                    }
+                }
+            }
         }
 
         public void UpdateMaterialsContextMenu(List<string> materials)
@@ -1735,6 +1794,57 @@ namespace WindowsFormsApp3.Forms.Panels
                 }
             }
             return null;
+        }
+
+        /// <summary>
+        /// 通用输入对话框
+        /// </summary>
+        /// <param name="title">标题</param>
+        /// <param name="prompt">提示语</param>
+        /// <param name="value">默认值/返回值</param>
+        /// <returns>DialogResult</returns>
+        private DialogResult InputBox(string title, string prompt, ref string value)
+        {
+            using (var form = new Form())
+            {
+                var label = new Label();
+                var textBox = new TextBox();
+                var buttonOk = new Button();
+                var buttonCancel = new Button();
+
+                form.Text = title;
+                label.Text = prompt;
+                textBox.Text = value;
+
+                buttonOk.Text = "确定";
+                buttonCancel.Text = "取消";
+                buttonOk.DialogResult = DialogResult.OK;
+                buttonCancel.DialogResult = DialogResult.Cancel;
+
+                label.SetBounds(9, 20, 372, 13);
+                textBox.SetBounds(12, 36, 372, 20);
+                buttonOk.SetBounds(228, 72, 75, 23);
+                buttonCancel.SetBounds(309, 72, 75, 23);
+
+                label.AutoSize = true;
+                textBox.Anchor = textBox.Anchor | AnchorStyles.Right;
+                buttonOk.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+                buttonCancel.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+
+                form.ClientSize = new Size(396, 107);
+                form.Controls.AddRange(new Control[] { label, textBox, buttonOk, buttonCancel });
+                form.ClientSize = new Size(Math.Max(300, label.Right + 10), form.ClientSize.Height);
+                form.FormBorderStyle = FormBorderStyle.FixedDialog;
+                form.StartPosition = FormStartPosition.CenterScreen;
+                form.MinimizeBox = false;
+                form.MaximizeBox = false;
+                form.AcceptButton = buttonOk;
+                form.CancelButton = buttonCancel;
+
+                DialogResult result = form.ShowDialog();
+                value = textBox.Text;
+                return result;
+            }
         }
 
         public string ShowSaveFileDialog(string filter = "JSON文件 (*.json)|*.json|所有文件 (*.*)|*.*", string defaultFileName = "")

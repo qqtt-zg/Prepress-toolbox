@@ -13,6 +13,7 @@ using WindowsFormsApp3.Models;
 using WindowsFormsApp3.Services;
 using WindowsFormsApp3.Utils;
 using Newtonsoft.Json;
+using WindowsFormsApp3.Services.Events;
 
 namespace WindowsFormsApp3.Presenters
 {
@@ -30,6 +31,15 @@ namespace WindowsFormsApp3.Presenters
         private readonly Services.IPdfProcessingService _pdfProcessingService;
         private readonly Interfaces.ILogger _logger;
         private readonly string _savedGridsPath;
+
+        private System.Windows.Forms.Timer _autoSaveTimer;
+        private bool _isShutdownInProgress;
+
+        private readonly object _fileQueueLock = new object();
+        private readonly Queue<string> _pendingFiles = new Queue<string>();
+        private readonly HashSet<string> _enqueuedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, DateTime> _recentEnqueueTimes = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+        private bool _isFileQueueWorkerRunning;
 
         // 数据存储
         private Dictionary<string, string> _regexPatterns;
@@ -90,9 +100,159 @@ namespace WindowsFormsApp3.Presenters
 
             // 订阅文件监控事件
             SubscribeToFileMonitorEvents();
+
+            // 订阅配置保存事件，以便立即应用新设置
+            var eventBus = ServiceLocator.Instance.GetEventBus();
+            eventBus.Subscribe<ConfigSavedEvent>(e => ReloadSettings());
+
+            // 初始化并启动自动保存定时器
+            InitializeAutoSaveTimer();
+
+            // 订阅程序退出事件，用于正常关闭时保存
+            Application.ApplicationExit += OnApplicationExit;
         }
 
         #region 初始化与生命周期
+
+        private string GetRecoveryJsonFilePath()
+        {
+            return Path.Combine(_savedGridsPath, $"{DateTime.Now:yyyy-MM-dd}.recovery.json");
+        }
+
+        private void InitializeAutoSaveTimer()
+        {
+            try
+            {
+                if (_autoSaveTimer != null)
+                {
+                    _autoSaveTimer.Stop();
+                    _autoSaveTimer.Dispose();
+                    _autoSaveTimer = null;
+                }
+
+                // 当关闭“当日JSON自动创建/加载”功能时，同时禁用定时自动保存
+                if (!AppSettings.EnableDailyJson)
+                {
+                    return;
+                }
+
+                var intervalSeconds = AppSettings.AutoSaveIntervalSeconds;
+                if (intervalSeconds < 10)
+                {
+                    intervalSeconds = 10;
+                }
+
+                _autoSaveTimer = new System.Windows.Forms.Timer();
+                _autoSaveTimer.Interval = intervalSeconds * 1000;
+                _autoSaveTimer.Tick += (s, e) =>
+                {
+                    if (_isShutdownInProgress)
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        // 再次确认开关，避免运行时关闭后仍写入恢复文件
+                        if (!AppSettings.EnableDailyJson)
+                        {
+                            _autoSaveTimer?.Stop();
+                            return;
+                        }
+
+                        var recoveryPath = GetRecoveryJsonFilePath();
+                        SaveToJsonFile(recoveryPath);
+                        _logger?.LogInformation($"自动保存完成: {Path.GetFileName(recoveryPath)}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogError(ex, "自动保存失败");
+                    }
+                };
+
+                _autoSaveTimer.Start();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "初始化自动保存定时器失败");
+            }
+        }
+
+        public void ReloadSettings()
+        {
+            try
+            {
+                // 重新初始化自动保存定时器以应用最新频率
+                InitializeAutoSaveTimer();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "重新加载设置失败");
+            }
+        }
+
+        private void TryRecoverFromAutoSave()
+        {
+            try
+            {
+                var recoveryPath = GetRecoveryJsonFilePath();
+                if (!File.Exists(recoveryPath))
+                {
+                    return;
+                }
+
+                if (!_view.ShowConfirm("检测到上次异常退出的自动保存数据，是否恢复？", "异常恢复"))
+                {
+                    return;
+                }
+
+                var dataList = LoadFromJsonFile(recoveryPath);
+                if (dataList != null)
+                {
+                    _view.FileList = new BindingList<FileRenameInfo>(dataList);
+                    _view.RefreshFileTable();
+                    _view.ShowSuccess("已恢复上次未保存的数据");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "异常恢复失败");
+            }
+        }
+
+        private void OnApplicationExit(object sender, EventArgs e)
+        {
+            try
+            {
+                _isShutdownInProgress = true;
+                _autoSaveTimer?.Stop();
+
+                // 正常退出时，优先保存到当前选中的配置；如果没有则保存到当日JSON
+                var configName = _view.CurrentConfigName;
+                string targetPath;
+                if (!string.IsNullOrEmpty(configName))
+                {
+                    targetPath = Path.Combine(_savedGridsPath, configName + ".json");
+                }
+                else
+                {
+                    targetPath = GetTodayJsonFilePath();
+                }
+
+                SaveToJsonFile(targetPath);
+
+                // 正常退出后删除恢复文件
+                var recoveryPath = GetRecoveryJsonFilePath();
+                if (File.Exists(recoveryPath))
+                {
+                    File.Delete(recoveryPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "程序退出保存失败");
+            }
+        }
 
         /// <summary>
         /// 获取材料类型字符串
@@ -138,10 +298,19 @@ namespace WindowsFormsApp3.Presenters
             LoadRegexPatterns();
             LoadMaterials();
 
+            // 启动时先尝试异常恢复（优先级最高）
+            TryRecoverFromAutoSave();
+
             // 更新视图
             _view.UpdateRegexComboBox(_regexPatterns.Keys.ToList());
             _view.UpdateMaterialsContextMenu(_materials);
             UpdateJsonFilesList();
+
+            // 异常恢复提示完成后，再执行当日配置自动加载/创建（可通过设置关闭）
+            if (AppSettings.EnableDailyJson)
+            {
+                EnsureDailyJsonLoaded();
+            }
         }
 
         /// <summary>
@@ -370,17 +539,273 @@ namespace WindowsFormsApp3.Presenters
         /// <summary>
         /// 文件创建事件处理
         /// </summary>
-        private async void OnFileCreated(object sender, FileSystemEventArgs e)
+        private void OnFileCreated(object sender, FileSystemEventArgs e)
         {
-            await ProcessNewFileAsync(e.FullPath);
+            EnqueueMonitoredFile(e.FullPath);
         }
 
         /// <summary>
         /// 文件重命名事件处理
         /// </summary>
-        private async void OnFileRenamed(object sender, RenamedEventArgs e)
+        private void OnFileRenamed(object sender, RenamedEventArgs e)
         {
-            await ProcessNewFileAsync(e.FullPath);
+            EnqueueMonitoredFile(e.FullPath);
+        }
+
+        private void EnqueueMonitoredFile(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath)) return;
+
+            try
+            {
+                var now = DateTime.UtcNow;
+
+                lock (_fileQueueLock)
+                {
+                    if (_recentEnqueueTimes.TryGetValue(filePath, out var lastTime))
+                    {
+                        if ((now - lastTime).TotalSeconds < 2)
+                        {
+                            return;
+                        }
+                    }
+
+                    _recentEnqueueTimes[filePath] = now;
+
+                    if (_enqueuedFiles.Contains(filePath))
+                    {
+                        return;
+                    }
+
+                    _pendingFiles.Enqueue(filePath);
+                    _enqueuedFiles.Add(filePath);
+
+                    if (!_isFileQueueWorkerRunning)
+                    {
+                        _isFileQueueWorkerRunning = true;
+                        _ = Task.Run(ProcessFileQueueWorkerAsync);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, $"[监控入队] 失败: {filePath}");
+            }
+        }
+
+        private async Task ProcessFileQueueWorkerAsync()
+        {
+            while (true)
+            {
+                string filePath;
+
+                lock (_fileQueueLock)
+                {
+                    if (_pendingFiles.Count == 0)
+                    {
+                        _isFileQueueWorkerRunning = false;
+                        return;
+                    }
+
+                    filePath = _pendingFiles.Dequeue();
+                }
+
+                try
+                {
+                    await WaitForFileReadyAsync(filePath);
+                    await ProcessNewFileAsync(filePath);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError(ex, $"[监控处理] 处理失败: {filePath}");
+                }
+                finally
+                {
+                    lock (_fileQueueLock)
+                    {
+                        _enqueuedFiles.Remove(filePath);
+                    }
+                }
+            }
+        }
+
+        private async Task WaitForFileReadyAsync(string filePath)
+        {
+            var timeout = GetFileReadyTimeout(filePath);
+            var deadline = DateTime.UtcNow + timeout;
+
+            // Adobe 另存大文件时会出现“短暂停顿/结构未完整但可读”的阶段
+            // 仅靠大小/mtime 稳定仍可能误判，因此这里增加 iText 可解析性探针
+            const int pollDelayMs = 500;
+            const int stabilityThresholdMs = 2000; // 文件大小/mtime 稳定窗口
+            const int minWaitMs = 1200; // 最小等待，避免刚创建就立刻放行
+            const int maxProbeFailuresBeforeLog = 3;
+
+            var startTime = DateTime.UtcNow;
+
+            long lastSize = -1;
+            DateTime lastWriteTime = DateTime.MinValue;
+            DateTime stableSince = DateTime.MinValue;
+            int probeFailures = 0;
+
+            _logger?.LogInformation($"[文件监控] 开始等待文件就绪: {Path.GetFileName(filePath)}, 超时: {timeout.TotalSeconds}s");
+
+            while (DateTime.UtcNow < deadline)
+            {
+                try
+                {
+                    if (!File.Exists(filePath))
+                    {
+                        stableSince = DateTime.MinValue;
+                        await Task.Delay(pollDelayMs);
+                        continue;
+                    }
+
+                    // 先做最基础的可访问性检查（不要求独占）
+                    try
+                    {
+                        using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        {
+                            if (!stream.CanRead)
+                            {
+                                throw new IOException("文件流不可读");
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        stableSince = DateTime.MinValue;
+                        await Task.Delay(pollDelayMs);
+                        continue;
+                    }
+
+                    var fi = new FileInfo(filePath);
+                    var currentSize = fi.Length;
+                    var currentWriteTime = fi.LastWriteTimeUtc;
+
+                    // 跳过极端情况：大小为0的临时文件阶段
+                    if (currentSize <= 0)
+                    {
+                        stableSince = DateTime.MinValue;
+                        await Task.Delay(pollDelayMs);
+                        continue;
+                    }
+
+                    // 如果大小/mtime 有变化，重置稳定计时器
+                    if (currentSize != lastSize || currentWriteTime != lastWriteTime)
+                    {
+                        lastSize = currentSize;
+                        lastWriteTime = currentWriteTime;
+                        stableSince = DateTime.MinValue;
+                        await Task.Delay(pollDelayMs);
+                        continue;
+                    }
+
+                    // 第一次进入稳定状态时记录时间
+                    if (stableSince == DateTime.MinValue)
+                    {
+                        stableSince = DateTime.UtcNow;
+                    }
+
+                    // 最小等待：避免刚创建就误放行
+                    if ((DateTime.UtcNow - startTime).TotalMilliseconds < minWaitMs)
+                    {
+                        await Task.Delay(pollDelayMs);
+                        continue;
+                    }
+
+                    // 稳定窗口不够，继续等
+                    if ((DateTime.UtcNow - stableSince).TotalMilliseconds < stabilityThresholdMs)
+                    {
+                        await Task.Delay(pollDelayMs);
+                        continue;
+                    }
+
+                    // ✅ 关键：iText 可解析性探针
+                    // 只有当 iText 能读到“页数>0 且第一页尺寸>0”才认为 PDF 结构完成
+                    if (_pdfDimensionService != null &&
+                        (filePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        var pageCount = _pdfDimensionService.GetPageCount(filePath);
+                        if (!pageCount.HasValue || pageCount.Value <= 0)
+                        {
+                            probeFailures++;
+                            stableSince = DateTime.MinValue;
+
+                            if (probeFailures == maxProbeFailuresBeforeLog)
+                            {
+                                _logger?.LogInformation($"[文件监控] iText探针：页数不可用，继续等待: {Path.GetFileName(filePath)}");
+                            }
+
+                            await Task.Delay(pollDelayMs);
+                            continue;
+                        }
+
+                        if (!_pdfDimensionService.GetFirstPageSize(filePath, out double w, out double h) || w <= 0 || h <= 0)
+                        {
+                            probeFailures++;
+                            stableSince = DateTime.MinValue;
+
+                            if (probeFailures == maxProbeFailuresBeforeLog)
+                            {
+                                _logger?.LogInformation($"[文件监控] iText探针：尺寸不可用，继续等待: {Path.GetFileName(filePath)}");
+                            }
+
+                            await Task.Delay(pollDelayMs);
+                            continue;
+                        }
+                    }
+
+                    _logger?.LogInformation($"[文件监控] 文件已稳定且通过iText探针，确认就绪: {Path.GetFileName(filePath)}");
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    // 任何异常都重置稳定计时器，继续等待
+                    stableSince = DateTime.MinValue;
+                    _logger?.LogDebug($"[文件监控] 等待文件就绪异常，继续等待: {Path.GetFileName(filePath)} ({ex.Message})");
+                    await Task.Delay(pollDelayMs);
+                }
+            }
+
+            throw new TimeoutException($"等待文件写入完成超时: {filePath}, Timeout={timeout.TotalSeconds}s");
+        }
+
+        private TimeSpan GetFileReadyTimeout(string filePath)
+        {
+            var fallback = TimeSpan.FromSeconds(90);
+
+            try
+            {
+                if (!AppSettings.EnableDynamicFileReadyTimeout)
+                {
+                    return fallback;
+                }
+
+                if (!File.Exists(filePath))
+                {
+                    return fallback;
+                }
+
+                var fi = new FileInfo(filePath);
+                var sizeMb = fi.Length / 1024d / 1024d;
+
+                if (sizeMb <= AppSettings.FileReadyTimeoutSmallThresholdMb)
+                {
+                    return TimeSpan.FromSeconds(AppSettings.FileReadyTimeoutSmallSeconds);
+                }
+
+                if (sizeMb >= AppSettings.FileReadyTimeoutLargeThresholdMb)
+                {
+                    return TimeSpan.FromSeconds(AppSettings.FileReadyTimeoutLargeSeconds);
+                }
+
+                return TimeSpan.FromSeconds(AppSettings.FileReadyTimeoutMediumSeconds);
+            }
+            catch
+            {
+                return fallback;
+            }
         }
 
         /// <summary>
@@ -567,7 +992,10 @@ namespace WindowsFormsApp3.Presenters
                             // 应用用户选择（共用参数）
                             currentFileInfo.Material = selectionResult.SelectedMaterial;
                             currentFileInfo.OrderNumber = selectionResult.OrderNumber ?? "";
-                            currentFileInfo.Dimensions = selectionResult.Dimensions ?? "";
+                            // 解析尺寸和形状
+                            var (dim, shape) = ParseDimensionsAndShape(selectionResult.Dimensions ?? "");
+                            currentFileInfo.Dimensions = dim;
+                            currentFileInfo.Shape = shape;
                             currentFileInfo.Process = selectionResult.Process ?? "";
                             currentFileInfo.LayoutRows = selectionResult.LayoutRows ?? "";
                             currentFileInfo.LayoutColumns = selectionResult.LayoutColumns ?? "";
@@ -666,6 +1094,11 @@ namespace WindowsFormsApp3.Presenters
                                 currentFileInfo = fileInfo.Clone();
                             }
 
+                            // 重新解析尺寸和形状（因为Clone或原对象可能包含未分离的尺寸字符串）
+                            var (dim, shape) = ParseDimensionsAndShape(currentFileInfo.Dimensions ?? "");
+                            currentFileInfo.Dimensions = dim;
+                            currentFileInfo.Shape = shape;
+                            
                             _logger?.LogDebug($"[批量模式] Excel匹配结果({i + 1}/{excelDataList.Count}) - Quantity: '{excelData.Quantity}', SerialNumber: '{excelData.SerialNumber}', Material: '{excelData.Material}', CompositeColumn: '{excelData.CompositeColumn}'");
 
                             // 应用 Excel 匹配结果
@@ -714,6 +1147,11 @@ namespace WindowsFormsApp3.Presenters
                         
                         // 自动生成序号
                         fileInfo.SerialNumber = GetNextSerialNumber().ToString();
+
+                        // 解析尺寸和形状
+                        var (dim, shape) = ParseDimensionsAndShape(fileInfo.Dimensions ?? "");
+                        fileInfo.Dimensions = dim;
+                        fileInfo.Shape = shape;
                         
                         // ✅ 设置排版模式
                         fileInfo.ImpositionMode = GetImpositionModeString();
@@ -1238,7 +1676,7 @@ namespace WindowsFormsApp3.Presenters
                     var headers = new string[]
                     {
                         "序号", "原文件名", "新文件名", "完整路径", "正则结果",
-                        "工单号", "材料", "数量", "尺寸", "工艺", "行数", "列数",
+                        "工单号", "材料", "数量", "尺寸", "形状", "工艺", "行数", "列数",
                         "时间", "状态", "错误信息", "页数", "列组合", "宽度", "高度", "出血值", "扩展名"
                     };
 
@@ -1260,18 +1698,19 @@ namespace WindowsFormsApp3.Presenters
                         worksheet.Cells[row, 7].Value = item.Material ?? "";
                         worksheet.Cells[row, 8].Value = item.Quantity ?? "";
                         worksheet.Cells[row, 9].Value = item.Dimensions ?? "";
-                        worksheet.Cells[row, 10].Value = item.Process ?? "";
-                        worksheet.Cells[row, 11].Value = item.LayoutRows ?? "";
-                        worksheet.Cells[row, 12].Value = item.LayoutColumns ?? "";
-                        worksheet.Cells[row, 13].Value = item.Time ?? "";
-                        worksheet.Cells[row, 14].Value = item.Status ?? "";
-                        worksheet.Cells[row, 15].Value = item.ErrorMessage ?? "";
-                        worksheet.Cells[row, 16].Value = item.PageCount?.ToString() ?? "";
-                        worksheet.Cells[row, 17].Value = item.CompositeColumn ?? "";
-                        worksheet.Cells[row, 18].Value = item.Width ?? "";
-                        worksheet.Cells[row, 19].Value = item.Height ?? "";
-                        worksheet.Cells[row, 20].Value = item.TetBleed ?? "";
-                        worksheet.Cells[row, 21].Value = item.FileExtension ?? "";
+                        worksheet.Cells[row, 10].Value = item.Shape ?? "";
+                        worksheet.Cells[row, 11].Value = item.Process ?? "";
+                        worksheet.Cells[row, 12].Value = item.LayoutRows ?? "";
+                        worksheet.Cells[row, 13].Value = item.LayoutColumns ?? "";
+                        worksheet.Cells[row, 14].Value = item.Time ?? "";
+                        worksheet.Cells[row, 15].Value = item.Status ?? "";
+                        worksheet.Cells[row, 16].Value = item.ErrorMessage ?? "";
+                        worksheet.Cells[row, 17].Value = item.PageCount?.ToString() ?? "";
+                        worksheet.Cells[row, 18].Value = item.CompositeColumn ?? "";
+                        worksheet.Cells[row, 19].Value = item.Width ?? "";
+                        worksheet.Cells[row, 20].Value = item.Height ?? "";
+                        worksheet.Cells[row, 21].Value = item.TetBleed ?? "";
+                        worksheet.Cells[row, 22].Value = item.FileExtension ?? "";
                         row++;
                     }
 
@@ -1427,6 +1866,11 @@ namespace WindowsFormsApp3.Presenters
                                 currentFile = fileInfo.Clone();
                             }
 
+                            // 解析尺寸和形状
+                            var (dim, shape) = ParseDimensionsAndShape(currentFile.Dimensions ?? "");
+                            currentFile.Dimensions = dim;
+                            currentFile.Shape = shape;
+
                             // 更新文件信息
                             currentFile.Quantity = matchData.Quantity;
                             currentFile.SerialNumber = matchData.SerialNumber;
@@ -1550,6 +1994,49 @@ namespace WindowsFormsApp3.Presenters
         #region JSON数据管理
 
         /// <summary>
+        /// 获取当日JSON文件路径
+        /// </summary>
+        private string GetTodayJsonFilePath()
+        {
+            return Path.Combine(_savedGridsPath, $"{DateTime.Now:yyyy-MM-dd}.json");
+        }
+
+        /// <summary>
+        /// 启动时确保当日JSON文件存在并自动加载
+        /// </summary>
+        private void EnsureDailyJsonLoaded()
+        {
+            try
+            {
+                if (!Directory.Exists(_savedGridsPath))
+                {
+                    Directory.CreateDirectory(_savedGridsPath);
+                }
+
+                var todayFilePath = GetTodayJsonFilePath();
+                var todayConfigName = Path.GetFileNameWithoutExtension(todayFilePath);
+
+                // 优先级最高：当日文件存在则加载，否则创建并保存当前表格数据（即使为空也创建文件）
+                if (!File.Exists(todayFilePath))
+                {
+                    SaveToJsonFile(todayFilePath);
+                    _logger?.LogInformation($"已自动创建当日配置: {todayConfigName}");
+                }
+
+                // 更新下拉列表并选中当日文件
+                _view.CurrentConfigName = todayConfigName;
+                UpdateJsonFilesList();
+
+                // 加载到表格
+                HandleLoadJson(todayConfigName);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "当日JSON自动加载失败");
+            }
+        }
+
+        /// <summary>
         /// 处理保存JSON
         /// </summary>
         public void HandleSaveJson()
@@ -1598,8 +2085,14 @@ namespace WindowsFormsApp3.Presenters
 
                 var dataList = LoadFromJsonFile(filePath);
 
-                if (dataList != null && dataList.Count > 0)
+                if (dataList != null)
                 {
+                    // 补齐到999行，保持Excel表格效果
+                    while (dataList.Count < 999)
+                    {
+                        dataList.Add(new FileRenameInfo());
+                    }
+
                     _view.FileList = new BindingList<FileRenameInfo>(dataList);
                     _view.RefreshFileTable();
                     _view.UpdateStatus($"加载成功，共 {dataList.Count} 条记录");
@@ -1650,14 +2143,24 @@ namespace WindowsFormsApp3.Presenters
         {
             try
             {
-                var dataList = _view.FileList?
-                    .Where(f => !string.IsNullOrEmpty(f.OriginalName))
-                    .ToList();
-
-                if (dataList == null || dataList.Count == 0)
+                if (string.IsNullOrEmpty(filePath))
                 {
-                    _view.ShowWarning("没有可保存的数据");
+                    _view.ShowError("保存失败: 文件路径为空");
                     return;
+                }
+
+                // 确保目录存在
+                var dir = Path.GetDirectoryName(filePath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+
+                var dataList = _view.FileList?.ToList();
+
+                if (dataList == null)
+                {
+                    dataList = new List<FileRenameInfo>();
                 }
 
                 var json = JsonConvert.SerializeObject(dataList, Formatting.Indented);
@@ -1996,6 +2499,8 @@ namespace WindowsFormsApp3.Presenters
             target.CompositeColumn = source.CompositeColumn;
             target.FileExtension = source.FileExtension;
             target.SerialNumber = source.SerialNumber;
+            target.Shape = source.Shape;
+            target.ImpositionMode = source.ImpositionMode; // Also verify this one while I am at it
         }
 
         /// <summary>
@@ -2410,9 +2915,9 @@ namespace WindowsFormsApp3.Presenters
                     // 使用 GetFirstPageSize 方法获取PDF尺寸
                     if (_pdfDimensionService.GetFirstPageSize(filePath, out double width, out double height))
                     {
-                        // 转换为整数字符串（毫米）
-                        fileInfo.Width = Math.Round(width).ToString();
-                        fileInfo.Height = Math.Round(height).ToString();
+                        // 转换为字符串（保持1位小数，如果是整数则不显示）
+                        fileInfo.Width = width.ToString("0.#");
+                        fileInfo.Height = height.ToString("0.#");
                         // ✅ 自动填充 Dimensions 属性，确保表格“尺寸”列显示数据
                         fileInfo.Dimensions = $"{fileInfo.Width}x{fileInfo.Height}";
                         _logger?.LogInformation($"[CreateFileRenameInfo] PDF尺寸解析成功: {fileInfo.Width}x{fileInfo.Height}mm");
@@ -3004,6 +3509,11 @@ namespace WindowsFormsApp3.Presenters
                 var quantity = fileInfo.Quantity ?? "";
                 var orderNumber = fileInfo.OrderNumber ?? "";
                 var dimensions = fileInfo.Dimensions ?? "";
+                // 如果存在形状代号，将其追加回尺寸字符串，以便生成文件名时保持原有格式 (例如 50x50R5)
+                if (!string.IsNullOrEmpty(fileInfo.Shape))
+                {
+                    dimensions += fileInfo.Shape;
+                }
                 var process = fileInfo.Process ?? "";
 
                 _logger?.LogInformation($"[GenerateNewFileName] 原文件名: {fileName}");
@@ -3084,6 +3594,26 @@ namespace WindowsFormsApp3.Presenters
                 _logger?.LogError(ex, "生成新文件名失败");
                 return fileInfo.OriginalName ?? "";
             }
+        }
+
+        /// <summary>
+        /// 解析尺寸字符串，分离尺寸和形状代号
+        /// </summary>
+        /// <param name="fullDimensions">完整尺寸字符串 (例如 50x50R5)</param>
+        /// <returns>分离后的元组 (Dimensions, Shape)</returns>
+        private (string Dimension, string Shape) ParseDimensionsAndShape(string fullDimensions)
+        {
+            if (string.IsNullOrEmpty(fullDimensions)) return (fullDimensions, "");
+
+            // 匹配标准格式: WxH[ShapeCode]
+            // 例如: 54x85, 54x85R5, 54x85Z, 54x85C
+            // 正则: ^(\d+(\.\d+)?)x(\d+(\.\d+)?)(.*)$
+            var match = System.Text.RegularExpressions.Regex.Match(fullDimensions, @"^([\d\.]+[xX][\d\.]+)(.*)$");
+            if (match.Success)
+            {
+                return (match.Groups[1].Value, match.Groups[2].Value);
+            }
+            return (fullDimensions, "");
         }
 
         #endregion

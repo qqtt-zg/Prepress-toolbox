@@ -19,6 +19,7 @@ namespace WindowsFormsApp3
         private string _material;
         private string _quantity;
         private string _dimensions;
+        private string _shape;
         private string _process;
         private string _layoutRows;
         private string _layoutColumns;
@@ -71,6 +72,7 @@ namespace WindowsFormsApp3
         }
 
         // 添加 Badge 属性用于 UI 显示
+        [Newtonsoft.Json.JsonIgnore]
         public AntdUI.CellBadge StatusBadge
         {
             get
@@ -102,6 +104,11 @@ namespace WindowsFormsApp3
             get { return _dimensions; }
             set { _dimensions = value; OnPropertyChanged(); }
         }
+        public string Shape
+        {
+            get { return _shape; }
+            set { _shape = value; OnPropertyChanged(); }
+        }
         public string Process
         {
             get { return _process; }
@@ -110,12 +117,33 @@ namespace WindowsFormsApp3
         public string LayoutRows
         {
             get { return _layoutRows; }
-            set { _layoutRows = value; OnPropertyChanged(); }
+            set 
+            { 
+                _layoutRows = value; 
+                OnPropertyChanged(); 
+                OnPropertyChanged(nameof(LayoutCount)); 
+            }
         }
         public string LayoutColumns
         {
             get { return _layoutColumns; }
-            set { _layoutColumns = value; OnPropertyChanged(); }
+            set 
+            { 
+                _layoutColumns = value; 
+                OnPropertyChanged(); 
+                OnPropertyChanged(nameof(LayoutCount)); 
+            }
+        }
+        public string LayoutCount
+        {
+            get
+            {
+                if (int.TryParse(LayoutRows, out int rows) && int.TryParse(LayoutColumns, out int cols))
+                {
+                    return (rows * cols).ToString();
+                }
+                return "";
+            }
         }
         public string Time
         {
@@ -462,7 +490,8 @@ namespace WindowsFormsApp3
                 TetBleed = this.TetBleed,
                 FileExtension = this.FileExtension,
                 ImpositionMode = this.ImpositionMode,
-                IsPreserveMode = this.IsPreserveMode
+                IsPreserveMode = this.IsPreserveMode,
+                Shape = this.Shape
             };
 
             // 深拷贝字典
