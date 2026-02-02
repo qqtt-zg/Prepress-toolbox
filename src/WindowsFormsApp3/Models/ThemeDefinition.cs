@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Windows.Forms;
 using Newtonsoft.Json;
 
 namespace WindowsFormsApp3.Models
@@ -150,6 +151,42 @@ namespace WindowsFormsApp3.Models
 
         #endregion
 
+        #region 悬浮拖拽窗口
+
+        /// <summary>
+        /// 悬浮拖拽窗口默认宽度
+        /// </summary>
+        public int FloatingDropZoneDefaultWidth { get; set; } = 180;
+
+        /// <summary>
+        /// 悬浮拖拽窗口默认高度
+        /// </summary>
+        public int FloatingDropZoneDefaultHeight { get; set; } = 80;
+
+        /// <summary>
+        /// 悬浮拖拽窗口默认背景色
+        /// </summary>
+        [JsonConverter(typeof(ColorConverter))]
+        public Color FloatingDropZoneBackColor { get; set; } = Color.FromArgb(70, 130, 180);
+
+        /// <summary>
+        /// 悬浮拖拽窗口拖拽时背景色
+        /// </summary>
+        [JsonConverter(typeof(ColorConverter))]
+        public Color FloatingDropZoneBackColorDrag { get; set; } = Color.FromArgb(50, 100, 150);
+
+        /// <summary>
+        /// 悬浮拖拽窗口透明度（0.0-1.0）
+        /// </summary>
+        public double FloatingDropZoneOpacity { get; set; } = 0.92;
+
+        /// <summary>
+        /// 是否启用图标切换功能（原Popcat功能，保持属性名以兼容旧配置）
+        /// </summary>
+        public bool FloatingDropZonePopcatEnabled { get; set; } = false;
+
+        #endregion
+
         /// <summary>
         /// 克隆主题定义
         /// </summary>
@@ -176,7 +213,13 @@ namespace WindowsFormsApp3.Models
                 AccentColor1 = this.AccentColor1,
                 AccentColor2 = this.AccentColor2,
                 AccentColor3 = this.AccentColor3,
-                AccentColor4 = this.AccentColor4
+                AccentColor4 = this.AccentColor4,
+                FloatingDropZoneDefaultWidth = this.FloatingDropZoneDefaultWidth,
+                FloatingDropZoneDefaultHeight = this.FloatingDropZoneDefaultHeight,
+                FloatingDropZoneBackColor = this.FloatingDropZoneBackColor,
+                FloatingDropZoneBackColorDrag = this.FloatingDropZoneBackColorDrag,
+                FloatingDropZoneOpacity = this.FloatingDropZoneOpacity,
+                FloatingDropZonePopcatEnabled = this.FloatingDropZonePopcatEnabled
             };
         }
     }

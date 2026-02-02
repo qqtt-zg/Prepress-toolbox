@@ -1,9 +1,13 @@
 using System;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using WindowsFormsApp3.Models;
 using WindowsFormsApp3.Services;
+using WindowsFormsApp3.Services.Events;
 using WindowsFormsApp3.Utils;
+using WindowsFormsApp3.Forms.Main;
+using WindowsFormsApp3.Forms.Panels;
 
 namespace WindowsFormsApp3.Forms.Controls.Settings
 {
@@ -44,6 +48,21 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             {
                 if (!_isLoading && _themeManager != null)
                 {
+                    // 检查悬浮拖拽窗口是否显示
+                    if (IsFloatingDropZoneVisible())
+                    {
+                        MessageBox.Show("悬浮拖拽窗口正在显示，请先关闭窗口后再进行主题操作，以避免UI显示异常。", 
+                            "操作被阻止", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        // 恢复之前的选择
+                        _isLoading = true;
+                        if (_editingTheme != null)
+                        {
+                            cmbThemes.Text = _editingTheme.Name;
+                        }
+                        _isLoading = false;
+                        return;
+                    }
+
                     var themeName = cmbThemes.Text;
                     var theme = _themeManager.GetThemeByName(themeName);
                     if (theme != null)
@@ -107,6 +126,41 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         }
 
         /// <summary>
+        /// 检查悬浮拖拽窗口是否正在显示
+        /// </summary>
+        private bool IsFloatingDropZoneVisible()
+        {
+            try
+            {
+                // 通过主窗口获取 FileRenamePanel
+                var mainForm = this.FindForm() as MainShellForm;
+                if (mainForm == null) return false;
+
+                // 通过 MainShellForm 的 panelCache 查找 FileRenamePanel
+                // 使用反射访问私有字段 panelCache
+                var panelCacheField = typeof(MainShellForm).GetField("panelCache", 
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (panelCacheField == null) return false;
+
+                var panelCache = panelCacheField.GetValue(mainForm) as System.Collections.Generic.Dictionary<string, UserControl>;
+                if (panelCache == null) return false;
+
+                // 直接通过 "rename" 键获取 FileRenamePanel
+                if (panelCache.TryGetValue("rename", out var control) && control is FileRenamePanel renamePanel)
+                {
+                    return renamePanel.IsFloatingDropZoneVisible();
+                }
+
+                return false;
+            }
+            catch
+            {
+                // 出错时允许操作，避免阻塞用户
+                return false;
+            }
+        }
+
+        /// <summary>
         /// 加载主题颜色到颜色选择器
         /// </summary>
         private void LoadThemeColors()
@@ -145,6 +199,30 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 
             // 滚动条色组
             swScrollBarMode.Checked = _editingTheme.UseScrollBarDarkMode;
+
+            // 悬浮拖拽窗口组
+            numFloatingDropZoneWidth.Value = Math.Max(numFloatingDropZoneWidth.Minimum, Math.Min(numFloatingDropZoneWidth.Maximum, _editingTheme.FloatingDropZoneDefaultWidth));
+            numFloatingDropZoneHeight.Value = Math.Max(numFloatingDropZoneHeight.Minimum, Math.Min(numFloatingDropZoneHeight.Maximum, _editingTheme.FloatingDropZoneDefaultHeight));
+            cpFloatingDropZoneBackColor.Value = _editingTheme.FloatingDropZoneBackColor;
+            cpFloatingDropZoneBackColorDrag.Value = _editingTheme.FloatingDropZoneBackColorDrag;
+            sliderFloatingDropZoneOpacity.Value = (int)(_editingTheme.FloatingDropZoneOpacity * 100);
+            if (lblFloatingDropZoneOpacityValue != null)
+            {
+                lblFloatingDropZoneOpacityValue.Text = $"{(int)(_editingTheme.FloatingDropZoneOpacity * 100)}%";
+            }
+            swFloatingDropZonePopcatEnabled.Checked = _editingTheme.FloatingDropZonePopcatEnabled;
+            swFloatingDropZonePopcatEnabled.CheckedChanged += (s, e) =>
+            {
+                if (!_isLoading)
+                {
+                    UpdateIconToggleControlsEnabled();
+                    _editingTheme.FloatingDropZonePopcatEnabled = swFloatingDropZonePopcatEnabled.Checked;
+                    UpdateIconThumbnailsVisibility();
+                    UpdatePreview();
+                }
+            };
+            
+            UpdateIconToggleControlsEnabled();
 
             _isLoading = false;
         }
@@ -427,51 +505,62 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         }
 
         /// <summary>
-        /// 更新控件可编辑状态（内置主题不可编辑此颜色）
+        /// 更新控件可编辑状态（现在内置主题也可以编辑）
         /// </summary>
         private void UpdateEditability()
         {
             bool isBuiltIn = _editingTheme?.IsBuiltIn ?? true;
-            bool canEdit = !isBuiltIn;
 
-            // 如果是内置主题，可以基于它创建新主题，但不能直接修改颜色
-            EnableColorPickers(canEdit);
+            // 现在所有主题都可以编辑
+            EnableColorPickers(true);
             
             // 设置按钮启用状态
-            btnSave.Enabled = canEdit;
-            btnDelete.Enabled = canEdit;
+            btnSave.Enabled = true; // 内置主题也可以保存
+            btnDelete.Enabled = !isBuiltIn; // 内置主题不能删除
+            btnReset.Enabled = isBuiltIn; // 重置按钮仅在内置主题时启用
             
-            // 为禁用按钮设置更明显的样式（解决深色模式下不清晰的问题）
-            if (!canEdit)
+            // 设置按钮样式
+            var currentAppTheme = _themeManager?.GetCurrentTheme();
+            if (currentAppTheme != null)
             {
-                // 禁用状态：使用更亮的文字颜色确保在深色背景下清晰可见
-                btnSave.BackColor = Color.FromArgb(100, 100, 100);
-                btnSave.ForeColor = Color.FromArgb(240, 240, 240);
-                btnDelete.BackColor = Color.FromArgb(100, 100, 100);
-                btnDelete.ForeColor = Color.FromArgb(240, 240, 240);
-            }
-            else
-            {
-                // 启用状态：恢复原本的 Type 颜色 (使用当前应用的主题色)
-                var currentAppTheme = _themeManager?.GetCurrentTheme();
-                if (currentAppTheme != null)
+                // 保存按钮始终启用
+                btnSave.BackColor = currentAppTheme.Success;
+                btnSave.ForeColor = Color.White;
+                
+                // 删除按钮：仅非内置主题时启用
+                if (btnDelete.Enabled)
                 {
-                    btnSave.BackColor = currentAppTheme.Success;
-                    btnSave.ForeColor = Color.White;
-                    
                     btnDelete.BackColor = currentAppTheme.Error;
                     btnDelete.ForeColor = Color.White;
-                    
-                    // Apply, Import, Export 按钮颜色也确保正确 (可选)
-                    btnApply.BackColor = currentAppTheme.Primary;
-                    btnApply.ForeColor = Color.White;
                 }
                 else
                 {
-                     // Fallback mechanism if theme manager is somehow null
-                    btnSave.BackColor = Color.Empty;
-                    btnDelete.BackColor = Color.Empty;
+                    btnDelete.BackColor = Color.FromArgb(100, 100, 100);
+                    btnDelete.ForeColor = Color.FromArgb(240, 240, 240);
                 }
+                
+                // 重置按钮：仅内置主题时启用
+                if (btnReset.Enabled)
+                {
+                    btnReset.BackColor = currentAppTheme.Warning;
+                    btnReset.ForeColor = Color.White;
+                }
+                else
+                {
+                    btnReset.BackColor = Color.FromArgb(100, 100, 100);
+                    btnReset.ForeColor = Color.FromArgb(240, 240, 240);
+                }
+                
+                // Apply 按钮颜色
+                btnApply.BackColor = currentAppTheme.Primary;
+                btnApply.ForeColor = Color.White;
+            }
+            else
+            {
+                // Fallback mechanism if theme manager is somehow null
+                btnSave.BackColor = Color.Empty;
+                btnDelete.BackColor = Color.Empty;
+                btnReset.BackColor = Color.Empty;
             }
         }
 
@@ -497,12 +586,126 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             cpBackActive.Enabled = enabled;
             cpBackHover.Enabled = enabled;
             swScrollBarMode.Enabled = enabled;
+            numFloatingDropZoneWidth.Enabled = enabled;
+            numFloatingDropZoneHeight.Enabled = enabled;
+            cpFloatingDropZoneBackColor.Enabled = enabled;
+            cpFloatingDropZoneBackColorDrag.Enabled = enabled;
+            lblFloatingDropZoneWidth.Enabled = enabled;
+            lblFloatingDropZoneHeight.Enabled = enabled;
+            lblFloatingDropZoneBackColor.Enabled = enabled;
+            lblFloatingDropZoneBackColorDrag.Enabled = enabled;
+            sliderFloatingDropZoneOpacity.Enabled = enabled;
+            lblFloatingDropZoneOpacity.Enabled = enabled;
+            if (lblFloatingDropZoneOpacityValue != null)
+                lblFloatingDropZoneOpacityValue.Enabled = enabled;
+            swFloatingDropZonePopcatEnabled.Enabled = enabled;
+            lblFloatingDropZonePopcatEnabled.Enabled = enabled;
+            UpdateIconToggleControlsEnabled();
+            
             
             // 同时禁用/启用滚动条模式的左右标签
             if (_scrollBarLeftLabel != null)
                 _scrollBarLeftLabel.Enabled = enabled;
             if (_scrollBarRightLabel != null)
                 _scrollBarRightLabel.Enabled = enabled;
+        }
+
+        /// <summary>
+        /// 数值输入框值改变事件
+        /// </summary>
+        private void NumericValueChanged()
+        {
+            if (_isLoading || _editingTheme == null) return;
+
+            _editingTheme.FloatingDropZoneDefaultWidth = (int)numFloatingDropZoneWidth.Value;
+            _editingTheme.FloatingDropZoneDefaultHeight = (int)numFloatingDropZoneHeight.Value;
+
+            // 更新预览
+            UpdatePreview();
+        }
+
+        /// <summary>
+        /// 滑块值改变事件
+        /// </summary>
+        private void SliderValueChanged()
+        {
+            if (_isLoading || _editingTheme == null) return;
+
+            _editingTheme.FloatingDropZoneOpacity = sliderFloatingDropZoneOpacity.Value / 100.0;
+
+            // 更新预览
+            UpdatePreview();
+        }
+
+
+        /// <summary>
+        /// 选择图片文件
+        /// </summary>
+        private void SelectImageFile(TextBox textBox)
+        {
+            using (var dialog = new OpenFileDialog())
+            {
+                dialog.Filter = "图片文件|*.jpg;*.jpeg;*.png;*.bmp;*.gif|所有文件|*.*";
+                dialog.Title = "选择背景图片";
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    textBox.Text = dialog.FileName;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取 ImageLayout 的索引
+        /// </summary>
+        private int GetImageLayoutIndex(ImageLayout layout)
+        {
+            switch (layout)
+            {
+                case ImageLayout.None: return 0;
+                case ImageLayout.Tile: return 1;
+                case ImageLayout.Center: return 2;
+                case ImageLayout.Stretch: return 3;
+                case ImageLayout.Zoom: return 4;
+                default: return 3; // 默认 Stretch
+            }
+        }
+
+        /// <summary>
+        /// 从索引获取 ImageLayout
+        /// </summary>
+        private ImageLayout GetImageLayoutFromIndex(int index)
+        {
+            switch (index)
+            {
+                case 0: return ImageLayout.None;
+                case 1: return ImageLayout.Tile;
+                case 2: return ImageLayout.Center;
+                case 3: return ImageLayout.Stretch;
+                case 4: return ImageLayout.Zoom;
+                default: return ImageLayout.Stretch;
+            }
+        }
+
+        /// <summary>
+        /// 更新图标切换功能相关控件的启用状态
+        /// 当图标切换功能开启时，禁用背景色、拖拽背景色配置，但保持透明度设置可用
+        /// </summary>
+        private void UpdateIconToggleControlsEnabled()
+        {
+            bool iconToggleEnabled = swFloatingDropZonePopcatEnabled.Checked;
+            
+            // 当图标切换开启时，禁用背景色配置（因为使用透明背景）
+            bool backgroundControlsEnabled = !iconToggleEnabled;
+            
+            cpFloatingDropZoneBackColor.Enabled = backgroundControlsEnabled;
+            lblFloatingDropZoneBackColor.Enabled = backgroundControlsEnabled;
+            cpFloatingDropZoneBackColorDrag.Enabled = backgroundControlsEnabled;
+            lblFloatingDropZoneBackColorDrag.Enabled = backgroundControlsEnabled;
+            
+            
+            // 透明度设置在图标切换启用时仍然可用（因为现在支持透明度设置）
+            // 透明度设置始终启用，不受图标切换功能影响
+            // sliderFloatingDropZoneOpacity.Enabled 由 EnableColorPickers() 控制，这里不需要修改
         }
 
         /// <summary>
@@ -530,6 +733,12 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             _editingTheme.BackActive = cpBackActive.Value;
             _editingTheme.BackHover = cpBackHover.Value;
             _editingTheme.UseScrollBarDarkMode = swScrollBarMode.Checked;
+            _editingTheme.FloatingDropZoneDefaultWidth = (int)numFloatingDropZoneWidth.Value;
+            _editingTheme.FloatingDropZoneDefaultHeight = (int)numFloatingDropZoneHeight.Value;
+            _editingTheme.FloatingDropZoneBackColor = cpFloatingDropZoneBackColor.Value;
+            _editingTheme.FloatingDropZoneBackColorDrag = cpFloatingDropZoneBackColorDrag.Value;
+            _editingTheme.FloatingDropZoneOpacity = sliderFloatingDropZoneOpacity.Value / 100.0;
+            _editingTheme.FloatingDropZonePopcatEnabled = swFloatingDropZonePopcatEnabled.Checked;
 
             // 更新预览
             UpdatePreview();
@@ -568,8 +777,40 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         {
             if (_editingTheme == null || _themeManager == null) return;
 
+            // 检查悬浮拖拽窗口是否显示
+            if (IsFloatingDropZoneVisible())
+            {
+                MessageBox.Show("悬浮拖拽窗口正在显示，请先关闭窗口后再进行主题操作，以避免UI显示异常。", 
+                    "操作被阻止", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             if (_themeManager.SaveCustomTheme(_editingTheme))
             {
+                // 如果保存的主题是当前应用的主题，确保 _currentTheme 引用已更新
+                var currentTheme = _themeManager.GetCurrentTheme();
+                if (currentTheme != null && currentTheme.Name == _editingTheme.Name)
+                {
+                    // 重新设置当前主题，确保引用更新到最新保存的版本
+                    _themeManager.SetCurrentTheme(_editingTheme.Name);
+                    
+                    // 发布配置保存事件以更新窗口
+                    try
+                    {
+                        var eventBus = Services.ServiceLocator.Instance.GetEventBus();
+                        eventBus?.Publish(new ConfigSavedEvent
+                        {
+                            ConfigKey = "Theme",
+                            SavedItemsCount = 0,
+                            ConfigFilePath = ""
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        LogHelper.Warn($"发布配置保存事件失败: {ex.Message}");
+                    }
+                }
+
                 MessageBox.Show($"主题 \"{_editingTheme.Name}\" 已保存成功！", "保存成功",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
 
@@ -590,9 +831,33 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         {
             if (_editingTheme == null || _themeManager == null) return;
 
+            // 检查悬浮拖拽窗口是否显示
+            if (IsFloatingDropZoneVisible())
+            {
+                MessageBox.Show("悬浮拖拽窗口正在显示，请先关闭窗口后再进行主题操作，以避免UI显示异常。", 
+                    "操作被阻止", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             _themeManager.SetCurrentTheme(_editingTheme.Name);
             AppSettings.CurrentThemeName = _editingTheme.Name;
             AppSettings.Save();
+
+            // 发布配置保存事件，通知悬浮拖拽窗口更新
+            try
+            {
+                var eventBus = Services.ServiceLocator.Instance.GetEventBus();
+                eventBus?.Publish(new ConfigSavedEvent
+                {
+                    ConfigKey = "Theme",
+                    SavedItemsCount = 0,
+                    ConfigFilePath = ""
+                });
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Warn($"发布配置保存事件失败: {ex.Message}");
+            }
 
             ThemeChanged?.Invoke(this, EventArgs.Empty);
 
@@ -630,6 +895,71 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
                 else
                 {
                     MessageBox.Show("删除主题失败！", "删除失败",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 重置内置主题到默认设置
+        /// </summary>
+        private void btnReset_Click(object sender, EventArgs e)
+        {
+            if (_editingTheme == null || _themeManager == null) return;
+
+            if (!_editingTheme.IsBuiltIn)
+            {
+                MessageBox.Show("只能重置内置主题！", "操作失败",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var result = MessageBox.Show($"确定要将主题 \"{_editingTheme.Name}\" 重置为默认设置吗？",
+                "确认重置", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (result == DialogResult.Yes)
+            {
+                // 从 ThemeManager 获取原始内置主题定义
+                var originalTheme = _themeManager.GetOriginalBuiltInTheme(_editingTheme.Name);
+                
+                if (originalTheme != null)
+                {
+                    // 复制所有属性（除了 Name 和 IsBuiltIn）
+                    _editingTheme.Background = originalTheme.Background;
+                    _editingTheme.Surface = originalTheme.Surface;
+                    _editingTheme.SurfaceLight = originalTheme.SurfaceLight;
+                    _editingTheme.InputBackground = originalTheme.InputBackground;
+                    _editingTheme.TextPrimary = originalTheme.TextPrimary;
+                    _editingTheme.TextSecondary = originalTheme.TextSecondary;
+                    _editingTheme.Border = originalTheme.Border;
+                    _editingTheme.Primary = originalTheme.Primary;
+                    _editingTheme.Success = originalTheme.Success;
+                    _editingTheme.Warning = originalTheme.Warning;
+                    _editingTheme.Error = originalTheme.Error;
+                    _editingTheme.AccentColor1 = originalTheme.AccentColor1;
+                    _editingTheme.AccentColor2 = originalTheme.AccentColor2;
+                    _editingTheme.AccentColor3 = originalTheme.AccentColor3;
+                    _editingTheme.AccentColor4 = originalTheme.AccentColor4;
+                    _editingTheme.BackActive = originalTheme.BackActive;
+                    _editingTheme.BackHover = originalTheme.BackHover;
+                    _editingTheme.UseScrollBarDarkMode = originalTheme.UseScrollBarDarkMode;
+                    _editingTheme.FloatingDropZoneDefaultWidth = originalTheme.FloatingDropZoneDefaultWidth;
+                    _editingTheme.FloatingDropZoneDefaultHeight = originalTheme.FloatingDropZoneDefaultHeight;
+                    _editingTheme.FloatingDropZoneBackColor = originalTheme.FloatingDropZoneBackColor;
+                    _editingTheme.FloatingDropZoneBackColorDrag = originalTheme.FloatingDropZoneBackColorDrag;
+                    _editingTheme.FloatingDropZoneOpacity = originalTheme.FloatingDropZoneOpacity;
+                    _editingTheme.FloatingDropZonePopcatEnabled = originalTheme.FloatingDropZonePopcatEnabled;
+
+                    // 重新加载颜色到UI
+                    LoadThemeColors();
+                    UpdatePreview();
+
+                    MessageBox.Show($"主题 \"{_editingTheme.Name}\" 已重置为默认设置！", "重置成功",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("无法找到原始主题定义！", "重置失败",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -810,6 +1140,18 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             // 滚动条色组
             AddGroupLabel(lblScrollBarGroup, "滚动条模式", "BarsOutlined", ref y);
             AddScrollBarModeRow(lblScrollBarMode, swScrollBarMode, "模式:", ref y, labelWidth, rowHeight);
+
+            y += 10;
+
+            // 悬浮拖拽窗口组
+            AddGroupLabel(lblFloatingDropZoneGroup, "悬浮拖拽窗口", "AppstoreOutlined", ref y);
+            AddNumericRow(lblFloatingDropZoneWidth, numFloatingDropZoneWidth, "默认宽度:", ref y, labelWidth, pickerWidth, rowHeight, 1, 600);
+            AddNumericRow(lblFloatingDropZoneHeight, numFloatingDropZoneHeight, "默认高度:", ref y, labelWidth, pickerWidth, rowHeight, 1, 300);
+            AddColorRow(lblFloatingDropZoneBackColor, cpFloatingDropZoneBackColor, "默认背景色:", ref y, labelWidth, pickerWidth, rowHeight);
+            AddColorRow(lblFloatingDropZoneBackColorDrag, cpFloatingDropZoneBackColorDrag, "拖拽时背景色:", ref y, labelWidth, pickerWidth, rowHeight);
+            AddSliderRow(lblFloatingDropZoneOpacity, sliderFloatingDropZoneOpacity, lblFloatingDropZoneOpacityValue, "透明度:", ref y, labelWidth, pickerWidth, rowHeight, 0, 100);
+            AddSimpleSwitchRow(lblFloatingDropZonePopcatEnabled, swFloatingDropZonePopcatEnabled, "启用图标切换:", ref y, labelWidth, rowHeight);
+            AddIconThumbnailsRow(ref y, labelWidth, rowHeight);
         }
 
         private void AddGroupLabel(AntdUI.Label label, string text, string iconSvg, ref int y)
@@ -846,7 +1188,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 
             picker.Location = new System.Drawing.Point(labelWidth + 30, y);
             picker.Size = new System.Drawing.Size(pickerWidth, 40);
-            picker.ValueChanged += new AntdUI.ColorEventHandler(this.ColorPicker_ValueChanged);
+            picker.ValueChanged += ColorPicker_ValueChanged;
             this.pnlColorConfig.Controls.Add(picker);
 
             y += rowHeight;
@@ -894,6 +1236,268 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 
             y += rowHeight;
         }
+
+        private void AddSimpleSwitchRow(AntdUI.Label label, AntdUI.Switch switchControl, string text, ref int y, int labelWidth, int rowHeight)
+        {
+            label.Location = new System.Drawing.Point(20, y);
+            label.Size = new System.Drawing.Size(labelWidth, 40);
+            label.Text = text;
+            this.pnlColorConfig.Controls.Add(label);
+
+            // 配置 Switch 控件
+            switchControl.Location = new System.Drawing.Point(labelWidth + 30, y + 8);
+            switchControl.Size = new System.Drawing.Size(50, 24);
+            
+            // 注意：此方法用于通用开关，具体的事件处理在调用处设置
+            this.pnlColorConfig.Controls.Add(switchControl);
+
+            y += rowHeight;
+        }
+
+        /// <summary>
+        /// 添加图标缩略图显示行
+        /// </summary>
+        private void AddIconThumbnailsRow(ref int y, int labelWidth, int rowHeight)
+        {
+            // 创建容器Panel
+            pnlIconThumbnails = new Panel
+            {
+                Location = new Point(labelWidth + 30, y),
+                Size = new Size(200, 80),
+                BackColor = Color.Transparent
+            };
+
+            // 创建第一个图标缩略图（cat_full.ico）
+            picIconFull = new PictureBox
+            {
+                Location = new Point(0, 0),
+                Size = new Size(64, 64),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.White
+            };
+
+            // 创建第二个图标缩略图（cat_empty.ico）
+            picIconEmpty = new PictureBox
+            {
+                Location = new Point(80, 0),
+                Size = new Size(64, 64),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.White
+            };
+
+            // 加载图标
+            LoadIconThumbnails();
+
+            // 添加到容器
+            pnlIconThumbnails.Controls.Add(picIconFull);
+            pnlIconThumbnails.Controls.Add(picIconEmpty);
+
+            // 添加到配置面板
+            this.pnlColorConfig.Controls.Add(pnlIconThumbnails);
+
+            // 更新Y坐标
+            y += 90; // 80像素高度 + 10像素间距
+        }
+
+        /// <summary>
+        /// 加载图标缩略图
+        /// </summary>
+        private void LoadIconThumbnails()
+        {
+            try
+            {
+                var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+                
+                // 加载 cat_full.ico
+                LoadIconToPictureBox(picIconFull, "cat_full.ico", assembly);
+                
+                // 加载 cat_empty.ico
+                LoadIconToPictureBox(picIconEmpty, "cat_empty.ico", assembly);
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"加载图标缩略图失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 将图标加载到PictureBox
+        /// </summary>
+        private void LoadIconToPictureBox(PictureBox pictureBox, string iconFileName, System.Reflection.Assembly assembly)
+        {
+            try
+            {
+                var resourcePaths = new[]
+                {
+                    $"WindowsFormsApp3.Resources.PopcatIcons.{iconFileName}",
+                    $"Resources.PopcatIcons.{iconFileName}",
+                    $"PopcatIcons.{iconFileName}",
+                    $"WindowsFormsApp3.Resources.{iconFileName}",
+                    $"Resources.{iconFileName}",
+                    iconFileName
+                };
+
+                string resourcePath = null;
+                foreach (var path in resourcePaths)
+                {
+                    var stream = assembly.GetManifestResourceStream(path);
+                    if (stream != null)
+                    {
+                        resourcePath = path;
+                        stream.Dispose();
+                        break;
+                    }
+                }
+
+                if (resourcePath != null)
+                {
+                    using (var stream = assembly.GetManifestResourceStream(resourcePath))
+                    {
+                        if (stream != null)
+                        {
+                            // 尝试作为图像加载
+                            try
+                            {
+                                stream.Position = 0;
+                                Image loadedImage = Image.FromStream(stream);
+                                pictureBox.Image = new Bitmap(loadedImage);
+                                loadedImage.Dispose();
+                            }
+                            catch
+                            {
+                                // 如果直接加载失败，尝试作为图标加载
+                                stream.Position = 0;
+                                using (Icon icon = new Icon(stream, 64, 64))
+                                {
+                                    pictureBox.Image = icon.ToBitmap();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Warn($"加载图标 {iconFileName} 失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 更新图标缩略图显示/隐藏状态
+        /// </summary>
+        private void UpdateIconThumbnailsVisibility()
+        {
+            if (pnlIconThumbnails != null)
+            {
+                // 根据图标切换功能是否启用来显示/隐藏缩略图
+                // 当前设计：始终显示缩略图用于预览
+                pnlIconThumbnails.Visible = true;
+            }
+        }
+
+        private void AddNumericRow(AntdUI.Label label, NumericUpDown numericControl, string text, ref int y, int labelWidth, int pickerWidth, int rowHeight, int minValue, int maxValue)
+        {
+            label.Location = new System.Drawing.Point(20, y + 5);
+            label.Size = new System.Drawing.Size(labelWidth, 30);
+            label.Text = text;
+            this.pnlColorConfig.Controls.Add(label);
+
+            numericControl.Location = new System.Drawing.Point(labelWidth + 30, y);
+            numericControl.Size = new System.Drawing.Size(120, 40);
+            numericControl.Minimum = minValue;
+            numericControl.Maximum = maxValue;
+            numericControl.ValueChanged += (s, e) =>
+            {
+                if (!_isLoading)
+                {
+                    NumericValueChanged();
+                }
+            };
+            this.pnlColorConfig.Controls.Add(numericControl);
+
+            y += rowHeight;
+        }
+
+        private void AddSliderRow(AntdUI.Label label, AntdUI.Slider slider, AntdUI.Label valueLabel, string text, ref int y, int labelWidth, int pickerWidth, int rowHeight, int minValue, int maxValue)
+        {
+            label.Location = new System.Drawing.Point(20, y);
+            label.Size = new System.Drawing.Size(labelWidth, 40);
+            label.Text = text;
+            this.pnlColorConfig.Controls.Add(label);
+
+            slider.Location = new System.Drawing.Point(labelWidth + 30, y + 8);
+            slider.Size = new System.Drawing.Size(pickerWidth - 80, 24);
+            slider.Value = Math.Max(minValue, Math.Min(maxValue, slider.Value));
+            slider.ValueChanged += (s, e) =>
+            {
+                if (!_isLoading)
+                {
+                    if (valueLabel != null)
+                    {
+                        valueLabel.Text = $"{slider.Value}%";
+                    }
+                    SliderValueChanged();
+                }
+            };
+            this.pnlColorConfig.Controls.Add(slider);
+
+            if (valueLabel != null)
+            {
+                valueLabel.Location = new System.Drawing.Point(labelWidth + pickerWidth - 50, y);
+                valueLabel.Size = new System.Drawing.Size(50, 40);
+                valueLabel.Text = $"{slider.Value}%";
+                valueLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+                this.pnlColorConfig.Controls.Add(valueLabel);
+            }
+
+            y += rowHeight;
+        }
+
+        private void AddFilePickerRow(AntdUI.Label label, TextBox textBox, AntdUI.Button button, string text, ref int y, int labelWidth, int pickerWidth, int rowHeight)
+        {
+            label.Location = new System.Drawing.Point(20, y + 5);
+            label.Size = new System.Drawing.Size(labelWidth, 30);
+            label.Text = text;
+            this.pnlColorConfig.Controls.Add(label);
+
+            textBox.Location = new System.Drawing.Point(labelWidth + 30, y + 5);
+            textBox.Size = new System.Drawing.Size(pickerWidth - 100, 30);
+            textBox.ReadOnly = true;
+            // 文件路径改变事件在调用处处理
+            this.pnlColorConfig.Controls.Add(textBox);
+
+            button.Location = new System.Drawing.Point(labelWidth + pickerWidth - 60, y + 5);
+            button.Size = new System.Drawing.Size(60, 30);
+            button.Text = "选择";
+            button.Type = AntdUI.TTypeMini.Default;
+            button.Click += (s, e) => SelectImageFile(textBox);
+            this.pnlColorConfig.Controls.Add(button);
+
+            y += rowHeight;
+        }
+
+        private void AddComboBoxRow(AntdUI.Label label, AntdUI.Select comboBox, string text, ref int y, int labelWidth, int pickerWidth, int rowHeight, string[] items)
+        {
+            label.Location = new System.Drawing.Point(20, y + 5);
+            label.Size = new System.Drawing.Size(labelWidth, 30);
+            label.Text = text;
+            this.pnlColorConfig.Controls.Add(label);
+
+            comboBox.Location = new System.Drawing.Point(labelWidth + 30, y);
+            comboBox.Size = new System.Drawing.Size(pickerWidth, 40);
+            comboBox.Items.Clear();
+            foreach (var item in items)
+            {
+                comboBox.Items.Add(item);
+            }
+            // 下拉框值改变事件在调用处处理
+            this.pnlColorConfig.Controls.Add(comboBox);
+
+            y += rowHeight;
+        }
+
 
         // 移除旧的 UpdateScrollBarModeText 方法（不再需要）
         

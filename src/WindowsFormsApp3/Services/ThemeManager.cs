@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Windows.Forms;
 using Newtonsoft.Json;
 using WindowsFormsApp3.Interfaces;
 using WindowsFormsApp3.Models;
@@ -18,6 +19,7 @@ namespace WindowsFormsApp3.Services
         private readonly string _customThemesPath;
         private List<ThemeDefinition> _allThemes;
         private ThemeDefinition _currentTheme;
+        private List<ThemeDefinition> _originalBuiltInThemes; // 保存原始内置主题定义
 
         public ThemeManager(ILogger logger)
         {
@@ -37,12 +39,25 @@ namespace WindowsFormsApp3.Services
         private void InitializeThemes()
         {
             _allThemes = new List<ThemeDefinition>();
+            _originalBuiltInThemes = new List<ThemeDefinition>();
 
-            // 添加内置预设主题
-            _allThemes.Add(CreateLightTheme());
-            _allThemes.Add(CreateDarkTheme());
-            _allThemes.Add(CreateGreenTheme());
-            _allThemes.Add(CreateClassicBlueTheme());
+            // 创建并保存原始内置主题定义
+            var lightTheme = CreateLightTheme();
+            var darkTheme = CreateDarkTheme();
+            var greenTheme = CreateGreenTheme();
+            var classicBlueTheme = CreateClassicBlueTheme();
+
+            // 保存原始定义（克隆）
+            _originalBuiltInThemes.Add(lightTheme.Clone());
+            _originalBuiltInThemes.Add(darkTheme.Clone());
+            _originalBuiltInThemes.Add(greenTheme.Clone());
+            _originalBuiltInThemes.Add(classicBlueTheme.Clone());
+
+            // 添加到主题列表
+            _allThemes.Add(lightTheme);
+            _allThemes.Add(darkTheme);
+            _allThemes.Add(greenTheme);
+            _allThemes.Add(classicBlueTheme);
 
             // 加载用户自定义主题
             LoadCustomThemes();
@@ -79,7 +94,13 @@ namespace WindowsFormsApp3.Services
                 AccentColor1 = Color.DodgerBlue,     // 行数
                 AccentColor2 = Color.ForestGreen,    // 列数
                 AccentColor3 = Color.Orange,         // 数量
-                AccentColor4 = Color.MediumPurple    // 旋转
+                AccentColor4 = Color.MediumPurple,   // 旋转
+                FloatingDropZoneDefaultWidth = 180,
+                FloatingDropZoneDefaultHeight = 80,
+                FloatingDropZoneBackColor = Color.FromArgb(70, 130, 180),
+                FloatingDropZoneBackColorDrag = Color.FromArgb(50, 100, 150),
+                FloatingDropZoneOpacity = 0.92,
+                FloatingDropZonePopcatEnabled = false
             };
         }
 
@@ -109,7 +130,13 @@ namespace WindowsFormsApp3.Services
                 AccentColor1 = Color.DodgerBlue,
                 AccentColor2 = Color.ForestGreen,
                 AccentColor3 = Color.Orange,
-                AccentColor4 = Color.MediumPurple
+                AccentColor4 = Color.MediumPurple,
+                FloatingDropZoneDefaultWidth = 180,
+                FloatingDropZoneDefaultHeight = 80,
+                FloatingDropZoneBackColor = Color.FromArgb(70, 130, 180),
+                FloatingDropZoneBackColorDrag = Color.FromArgb(50, 100, 150),
+                FloatingDropZoneOpacity = 0.92,
+                FloatingDropZonePopcatEnabled = false
             };
         }
 
@@ -139,7 +166,13 @@ namespace WindowsFormsApp3.Services
                 AccentColor1 = Color.DodgerBlue,
                 AccentColor2 = Color.ForestGreen,
                 AccentColor3 = Color.Orange,
-                AccentColor4 = Color.MediumPurple
+                AccentColor4 = Color.MediumPurple,
+                FloatingDropZoneDefaultWidth = 180,
+                FloatingDropZoneDefaultHeight = 80,
+                FloatingDropZoneBackColor = Color.FromArgb(70, 130, 180),
+                FloatingDropZoneBackColorDrag = Color.FromArgb(50, 100, 150),
+                FloatingDropZoneOpacity = 0.92,
+                FloatingDropZonePopcatEnabled = false
             };
         }
 
@@ -169,7 +202,13 @@ namespace WindowsFormsApp3.Services
                 AccentColor1 = Color.DodgerBlue,
                 AccentColor2 = Color.ForestGreen,
                 AccentColor3 = Color.Orange,
-                AccentColor4 = Color.MediumPurple
+                AccentColor4 = Color.MediumPurple,
+                FloatingDropZoneDefaultWidth = 180,
+                FloatingDropZoneDefaultHeight = 80,
+                FloatingDropZoneBackColor = Color.FromArgb(70, 130, 180),
+                FloatingDropZoneBackColorDrag = Color.FromArgb(50, 100, 150),
+                FloatingDropZoneOpacity = 0.92,
+                FloatingDropZonePopcatEnabled = false
             };
         }
 
@@ -202,6 +241,14 @@ namespace WindowsFormsApp3.Services
         }
 
         /// <summary>
+        /// 获取原始内置主题定义（用于重置）
+        /// </summary>
+        public ThemeDefinition GetOriginalBuiltInTheme(string name)
+        {
+            return _originalBuiltInThemes?.FirstOrDefault(t => t.Name == name)?.Clone();
+        }
+
+        /// <summary>
         /// 设置当前主题
         /// </summary>
         public void SetCurrentTheme(string themeName)
@@ -219,18 +266,12 @@ namespace WindowsFormsApp3.Services
         }
 
         /// <summary>
-        /// 保存自定义主题
+        /// 保存自定义主题（现在也支持保存内置主题的修改）
         /// </summary>
         public bool SaveCustomTheme(ThemeDefinition theme)
         {
             try
             {
-                if (theme.IsBuiltIn)
-                {
-                    _logger?.LogWarning("不能修改内置主题");
-                    return false;
-                }
-
                 // 检查是否已存在
                 var existing = _allThemes.FirstOrDefault(t => t.Name == theme.Name);
                 if (existing != null)
@@ -240,14 +281,29 @@ namespace WindowsFormsApp3.Services
                 }
 
                 _allThemes.Add(theme);
+                
+                // 只保存自定义主题到文件（内置主题的修改保存在内存中）
                 SaveCustomThemesToFile();
 
-                _logger?.LogInformation($"自定义主题已保存: {theme.Name}");
+                // 如果保存的主题是当前应用的主题，更新当前主题引用
+                if (_currentTheme != null && _currentTheme.Name == theme.Name)
+                {
+                    _currentTheme = theme;
+                }
+
+                if (theme.IsBuiltIn)
+                {
+                    _logger?.LogInformation($"内置主题已更新: {theme.Name}");
+                }
+                else
+                {
+                    _logger?.LogInformation($"自定义主题已保存: {theme.Name}");
+                }
                 return true;
             }
             catch (Exception ex)
             {
-                _logger?.LogError($"保存自定义主题失败: {ex.Message}");
+                _logger?.LogError($"保存主题失败: {ex.Message}");
                 return false;
             }
         }

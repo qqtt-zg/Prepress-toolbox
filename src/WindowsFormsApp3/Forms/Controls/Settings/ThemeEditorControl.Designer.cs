@@ -64,6 +64,25 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private AntdUI.Switch swScrollBarMode;
         private System.Windows.Forms.FlowLayoutPanel flowColors;
 
+        // 颜色组 - 悬浮拖拽窗口
+        private AntdUI.Label lblFloatingDropZoneGroup;
+        private AntdUI.Label lblFloatingDropZoneWidth;
+        private System.Windows.Forms.NumericUpDown numFloatingDropZoneWidth;
+        private AntdUI.Label lblFloatingDropZoneHeight;
+        private System.Windows.Forms.NumericUpDown numFloatingDropZoneHeight;
+        private AntdUI.Label lblFloatingDropZoneBackColor;
+        private AntdUI.ColorPicker cpFloatingDropZoneBackColor;
+        private AntdUI.Label lblFloatingDropZoneBackColorDrag;
+        private AntdUI.ColorPicker cpFloatingDropZoneBackColorDrag;
+        private AntdUI.Label lblFloatingDropZoneOpacity;
+        private AntdUI.Slider sliderFloatingDropZoneOpacity;
+        private AntdUI.Label lblFloatingDropZoneOpacityValue;
+        private AntdUI.Label lblFloatingDropZonePopcatEnabled;
+        private AntdUI.Switch swFloatingDropZonePopcatEnabled;
+        private System.Windows.Forms.Panel pnlIconThumbnails;
+        private System.Windows.Forms.PictureBox picIconFull;
+        private System.Windows.Forms.PictureBox picIconEmpty;
+
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -84,7 +103,6 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 			this.lblSurface = new AntdUI.Label();
 			this.cpSurface = new AntdUI.ColorPicker();
 			this.lblSurfaceLight = new AntdUI.Label();
-			this.lblSurfaceLight = new AntdUI.Label();
 			this.cpSurfaceLight = new AntdUI.ColorPicker();
             this.lblInputBackground = new AntdUI.Label();
             this.cpInputBackground = new AntdUI.ColorPicker();
@@ -104,7 +122,6 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 			this.lblWarning = new AntdUI.Label();
 			this.cpWarning = new AntdUI.ColorPicker();
 			this.lblError = new AntdUI.Label();
-			this.lblError = new AntdUI.Label();
 			this.cpError = new AntdUI.ColorPicker();
             this.lblAccentColor1 = new AntdUI.Label();
             this.cpAccentColor1 = new AntdUI.ColorPicker();
@@ -123,6 +140,25 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.lblScrollBarMode = new AntdUI.Label();
             this.swScrollBarMode = new AntdUI.Switch();
 			this.flowColors = new System.Windows.Forms.FlowLayoutPanel();
+            this.lblFloatingDropZoneGroup = new AntdUI.Label();
+            this.lblFloatingDropZoneWidth = new AntdUI.Label();
+            this.numFloatingDropZoneWidth = new System.Windows.Forms.NumericUpDown();
+            this.lblFloatingDropZoneHeight = new AntdUI.Label();
+            this.numFloatingDropZoneHeight = new System.Windows.Forms.NumericUpDown();
+            this.lblFloatingDropZoneBackColor = new AntdUI.Label();
+            this.cpFloatingDropZoneBackColor = new AntdUI.ColorPicker();
+            this.lblFloatingDropZoneBackColorDrag = new AntdUI.Label();
+            this.cpFloatingDropZoneBackColorDrag = new AntdUI.ColorPicker();
+            this.lblFloatingDropZoneOpacity = new AntdUI.Label();
+            this.sliderFloatingDropZoneOpacity = new AntdUI.Slider();
+            this.lblFloatingDropZoneOpacityValue = new AntdUI.Label();
+            this.lblFloatingDropZonePopcatEnabled = new AntdUI.Label();
+            this.swFloatingDropZonePopcatEnabled = new AntdUI.Switch();
+            this.pnlIconThumbnails = new System.Windows.Forms.Panel();
+            this.picIconFull = new System.Windows.Forms.PictureBox();
+            this.picIconEmpty = new System.Windows.Forms.PictureBox();
+            ((System.ComponentModel.ISupportInitialize)(this.picIconFull)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.picIconEmpty)).BeginInit();
 			this.btnPreview = new AntdUI.Button();
 			this.lblPreviewText = new AntdUI.Label();
 			this.pnlPreviewSurface = new System.Windows.Forms.Panel();
@@ -133,6 +169,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 			this.btnApply = new AntdUI.Button();
 			this.btnImport = new AntdUI.Button();
 			this.btnDelete = new AntdUI.Button();
+			this.btnReset = new AntdUI.Button();
 			this.btnExport = new AntdUI.Button();
 			this.pnlPreview.SuspendLayout();
 			this.SuspendLayout();
@@ -473,6 +510,107 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.swScrollBarMode.Name = "swScrollBarMode";
             this.swScrollBarMode.Size = new System.Drawing.Size(0, 0);
             this.swScrollBarMode.TabIndex = 0;
+            // 
+            // lblFloatingDropZoneGroup
+            // 
+            this.lblFloatingDropZoneGroup.Location = new System.Drawing.Point(0, 0);
+            this.lblFloatingDropZoneGroup.Name = "lblFloatingDropZoneGroup";
+            this.lblFloatingDropZoneGroup.Size = new System.Drawing.Size(0, 0);
+            this.lblFloatingDropZoneGroup.TabIndex = 0;
+            // 
+            // lblFloatingDropZoneWidth
+            // 
+            this.lblFloatingDropZoneWidth.Location = new System.Drawing.Point(0, 0);
+            this.lblFloatingDropZoneWidth.Name = "lblFloatingDropZoneWidth";
+            this.lblFloatingDropZoneWidth.Size = new System.Drawing.Size(0, 0);
+            this.lblFloatingDropZoneWidth.TabIndex = 0;
+            // 
+            // numFloatingDropZoneWidth
+            // 
+            this.numFloatingDropZoneWidth.Location = new System.Drawing.Point(0, 0);
+            this.numFloatingDropZoneWidth.Name = "numFloatingDropZoneWidth";
+            this.numFloatingDropZoneWidth.Size = new System.Drawing.Size(0, 0);
+            this.numFloatingDropZoneWidth.TabIndex = 0;
+            // 
+            // lblFloatingDropZoneHeight
+            // 
+            this.lblFloatingDropZoneHeight.Location = new System.Drawing.Point(0, 0);
+            this.lblFloatingDropZoneHeight.Name = "lblFloatingDropZoneHeight";
+            this.lblFloatingDropZoneHeight.Size = new System.Drawing.Size(0, 0);
+            this.lblFloatingDropZoneHeight.TabIndex = 0;
+            // 
+            // numFloatingDropZoneHeight
+            // 
+            this.numFloatingDropZoneHeight.Location = new System.Drawing.Point(0, 0);
+            this.numFloatingDropZoneHeight.Name = "numFloatingDropZoneHeight";
+            this.numFloatingDropZoneHeight.Size = new System.Drawing.Size(0, 0);
+            this.numFloatingDropZoneHeight.TabIndex = 0;
+            // 
+            // lblFloatingDropZoneBackColor
+            // 
+            this.lblFloatingDropZoneBackColor.Location = new System.Drawing.Point(0, 0);
+            this.lblFloatingDropZoneBackColor.Name = "lblFloatingDropZoneBackColor";
+            this.lblFloatingDropZoneBackColor.Size = new System.Drawing.Size(0, 0);
+            this.lblFloatingDropZoneBackColor.TabIndex = 0;
+            // 
+            // cpFloatingDropZoneBackColor
+            // 
+            this.cpFloatingDropZoneBackColor.Location = new System.Drawing.Point(0, 0);
+            this.cpFloatingDropZoneBackColor.Name = "cpFloatingDropZoneBackColor";
+            this.cpFloatingDropZoneBackColor.Size = new System.Drawing.Size(0, 0);
+            this.cpFloatingDropZoneBackColor.TabIndex = 0;
+            this.cpFloatingDropZoneBackColor.Value = System.Drawing.Color.FromArgb(((int)(((byte)(70)))), ((int)(((byte)(130)))), ((int)(((byte)(180)))));
+            // 
+            // lblFloatingDropZoneBackColorDrag
+            // 
+            this.lblFloatingDropZoneBackColorDrag.Location = new System.Drawing.Point(0, 0);
+            this.lblFloatingDropZoneBackColorDrag.Name = "lblFloatingDropZoneBackColorDrag";
+            this.lblFloatingDropZoneBackColorDrag.Size = new System.Drawing.Size(0, 0);
+            this.lblFloatingDropZoneBackColorDrag.TabIndex = 0;
+            // 
+            // cpFloatingDropZoneBackColorDrag
+            // 
+            this.cpFloatingDropZoneBackColorDrag.Location = new System.Drawing.Point(0, 0);
+            this.cpFloatingDropZoneBackColorDrag.Name = "cpFloatingDropZoneBackColorDrag";
+            this.cpFloatingDropZoneBackColorDrag.Size = new System.Drawing.Size(0, 0);
+            this.cpFloatingDropZoneBackColorDrag.TabIndex = 0;
+            this.cpFloatingDropZoneBackColorDrag.Value = System.Drawing.Color.FromArgb(((int)(((byte)(50)))), ((int)(((byte)(100)))), ((int)(((byte)(150)))));
+            // 
+            // lblFloatingDropZoneOpacity
+            // 
+            this.lblFloatingDropZoneOpacity.Location = new System.Drawing.Point(0, 0);
+            this.lblFloatingDropZoneOpacity.Name = "lblFloatingDropZoneOpacity";
+            this.lblFloatingDropZoneOpacity.Size = new System.Drawing.Size(0, 0);
+            this.lblFloatingDropZoneOpacity.TabIndex = 0;
+            // 
+            // sliderFloatingDropZoneOpacity
+            // 
+            this.sliderFloatingDropZoneOpacity.Location = new System.Drawing.Point(0, 0);
+            this.sliderFloatingDropZoneOpacity.Name = "sliderFloatingDropZoneOpacity";
+            this.sliderFloatingDropZoneOpacity.Size = new System.Drawing.Size(0, 0);
+            this.sliderFloatingDropZoneOpacity.TabIndex = 0;
+            // 
+            // lblFloatingDropZoneOpacityValue
+            // 
+            this.lblFloatingDropZoneOpacityValue.Location = new System.Drawing.Point(0, 0);
+            this.lblFloatingDropZoneOpacityValue.Name = "lblFloatingDropZoneOpacityValue";
+            this.lblFloatingDropZoneOpacityValue.Size = new System.Drawing.Size(0, 0);
+            this.lblFloatingDropZoneOpacityValue.TabIndex = 0;
+            // 
+            // lblFloatingDropZonePopcatEnabled
+            // 
+            this.lblFloatingDropZonePopcatEnabled.Location = new System.Drawing.Point(0, 0);
+            this.lblFloatingDropZonePopcatEnabled.Name = "lblFloatingDropZonePopcatEnabled";
+            this.lblFloatingDropZonePopcatEnabled.Size = new System.Drawing.Size(0, 0);
+            this.lblFloatingDropZonePopcatEnabled.TabIndex = 0;
+            // 
+            // swFloatingDropZonePopcatEnabled
+            // 
+            this.swFloatingDropZonePopcatEnabled.Location = new System.Drawing.Point(0, 0);
+            this.swFloatingDropZonePopcatEnabled.Name = "swFloatingDropZonePopcatEnabled";
+            this.swFloatingDropZonePopcatEnabled.Size = new System.Drawing.Size(0, 0);
+            this.swFloatingDropZonePopcatEnabled.TabIndex = 0;
+            // 
 			// 
 			// flowColors
 			// 
@@ -565,7 +703,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 			// btnImport
 			// 
 			this.btnImport.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.btnImport.Location = new System.Drawing.Point(400, 590);
+			this.btnImport.Location = new System.Drawing.Point(490, 590);
 			this.btnImport.Name = "btnImport";
 			this.btnImport.Size = new System.Drawing.Size(84, 40);
 			this.btnImport.TabIndex = 19;
@@ -583,10 +721,21 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 			this.btnDelete.Type = AntdUI.TTypeMini.Error;
 			this.btnDelete.Click += new System.EventHandler(this.btnDelete_Click);
 			// 
+			// btnReset
+			// 
+			this.btnReset.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+			this.btnReset.Location = new System.Drawing.Point(310, 590);
+			this.btnReset.Name = "btnReset";
+			this.btnReset.Size = new System.Drawing.Size(84, 40);
+			this.btnReset.TabIndex = 20;
+			this.btnReset.Text = "重置";
+			this.btnReset.Type = AntdUI.TTypeMini.Default;
+			this.btnReset.Click += new System.EventHandler(this.btnReset_Click);
+			// 
 			// btnExport
 			// 
 			this.btnExport.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.btnExport.Location = new System.Drawing.Point(310, 590);
+			this.btnExport.Location = new System.Drawing.Point(400, 590);
 			this.btnExport.Name = "btnExport";
 			this.btnExport.Size = new System.Drawing.Size(84, 40);
 			this.btnExport.TabIndex = 18;
@@ -602,14 +751,17 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 			this.Controls.Add(this.cmbThemes);
 			this.Controls.Add(this.btnImport);
 			this.Controls.Add(this.btnDelete);
+			this.Controls.Add(this.btnReset);
 			this.Controls.Add(this.btnNewTheme);
 			this.Controls.Add(this.btnExport);
 			this.Controls.Add(this.pnlColorConfig);
 			this.Controls.Add(this.pnlPreview);
 			this.Name = "ThemeEditorControl";
 			this.Size = new System.Drawing.Size(920, 650);
-			this.pnlPreview.ResumeLayout(false);
-			this.ResumeLayout(false);
+            this.pnlPreview.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.picIconFull)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.picIconEmpty)).EndInit();
+            this.ResumeLayout(false);
 
         }
 
@@ -619,10 +771,11 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private AntdUI.Label lblPreviewTitle;
         private System.Windows.Forms.Panel pnlPreview;
         private System.Windows.Forms.Panel pnlColorConfig;
-        private AntdUI.Button btnSave;
-        private AntdUI.Button btnApply;
-        private AntdUI.Button btnImport;
-        private AntdUI.Button btnDelete;
-        private AntdUI.Button btnExport;
+		private AntdUI.Button btnSave;
+		private AntdUI.Button btnApply;
+		private AntdUI.Button btnImport;
+		private AntdUI.Button btnDelete;
+		private AntdUI.Button btnReset;
+		private AntdUI.Button btnExport;
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -739,17 +739,17 @@ namespace WindowsFormsApp3.Presenters
 
                             await Task.Delay(pollDelayMs);
                             continue;
-                        }
+                    }
 
                         if (!_pdfDimensionService.GetFirstPageSize(filePath, out double w, out double h) || w <= 0 || h <= 0)
-                        {
+                    {
                             probeFailures++;
                             stableSince = DateTime.MinValue;
 
                             if (probeFailures == maxProbeFailuresBeforeLog)
                             {
                                 _logger?.LogInformation($"[文件监控] iText探针：尺寸不可用，继续等待: {Path.GetFileName(filePath)}");
-                            }
+                    }
 
                             await Task.Delay(pollDelayMs);
                             continue;

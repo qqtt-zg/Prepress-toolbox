@@ -13,9 +13,20 @@ using WindowsFormsApp3.Models;
 using WindowsFormsApp3.Interfaces;
 using WindowsFormsApp3.Services;
 using System.Text.RegularExpressions;
+using WindowsFormsApp3.Forms.Utils;
 
 namespace WindowsFormsApp3.Forms.Panels
 {
+    /// <summary>
+    /// 拖拽操作模式
+    /// </summary>
+    public enum DropOperationMode
+    {
+        Default,      // 默认：智能判断（同分区→移动，跨分区→复制）
+        ForceCopy,   // 强制复制
+        ForceMove    // 强制移动
+    }
+
     /// <summary>
     /// 文件重命名面板 - 使用AntdUI Table，采用MVP模式
     /// 阶段5：完全移除Form1依赖，使用Presenter处理业务逻辑
@@ -28,6 +39,12 @@ namespace WindowsFormsApp3.Forms.Panels
         private ContextMenuStrip _contextMenu;
         private int _currentColumnIndex = -1;
         private int _currentRowIndex = -1;
+
+        // 悬浮拖拽区
+        private FloatingDropZoneForm _floatingDropZone;
+        
+        // 拖拽操作模式
+        private DropOperationMode _dropOperationMode = DropOperationMode.Default;
 
         public override string PanelKey => "rename";
         public override string DisplayName => "首页";
@@ -131,6 +148,12 @@ namespace WindowsFormsApp3.Forms.Panels
                 UpdateMonitorButtonState();
             };
 
+            // 悬浮拖拽按钮：显示/隐藏悬浮拖拽区
+            if (_btnDropZone != null)
+            {
+                _btnDropZone.Click += (s, e) => ToggleFloatingDropZone();
+            }
+
             // Excel操作按钮（阶段5：迁移到Presenter）
             _btnImportExcel.Click += async (s, e) => await _presenter.HandleImportExcelAsync();
             _btnMatchExcel.Click += (s, e) => _presenter.MatchExcelData();
@@ -165,6 +188,44 @@ namespace WindowsFormsApp3.Forms.Panels
 
             // 初始化JSON文件列表
             PopulateJsonFilesDropdown();
+            
+            // 初始化拖拽操作模式下拉框
+            if (_cmbDropOperationMode != null)
+            {
+                _cmbDropOperationMode.Items.Clear();
+                _cmbDropOperationMode.Items.Add("默认");
+                _cmbDropOperationMode.Items.Add("强制复制");
+                _cmbDropOperationMode.Items.Add("强制移动");
+                _cmbDropOperationMode.SelectedIndex = 0; // 默认选择"默认"
+                
+                // 添加选择变化事件处理
+                _cmbDropOperationMode.SelectedValueChanged += (s, e) => UpdateDropOperationMode();
+            }
+            
+            // 初始化拖拽操作模式
+            UpdateDropOperationMode();
+        }
+        
+        /// <summary>
+        /// 更新拖拽操作模式
+        /// </summary>
+        private void UpdateDropOperationMode()
+        {
+            if (_cmbDropOperationMode == null) return;
+            
+            switch (_cmbDropOperationMode.Text)
+            {
+                case "强制复制":
+                    _dropOperationMode = DropOperationMode.ForceCopy;
+                    break;
+                case "强制移动":
+                    _dropOperationMode = DropOperationMode.ForceMove;
+                    break;
+                case "默认":
+                default:
+                    _dropOperationMode = DropOperationMode.Default;
+                    break;
+            }
         }
 
         /// <summary>
@@ -1405,6 +1466,27 @@ namespace WindowsFormsApp3.Forms.Panels
             // 暂时使用空实现，后续可通过事件机制同步数据
             // TODO: 实现从Form1获取数据源并绑定到_fileTable
             // 当前Table将在用户操作时通过Form1的事件更新
+
+            // 订阅配置保存事件，以便主题切换时更新悬浮拖拽窗口
+            try
+            {
+                var eventBus = Services.ServiceLocator.Instance.GetEventBus();
+                if (eventBus != null)
+                {
+                    eventBus.Subscribe<Services.Events.ConfigSavedEvent>(e =>
+                    {
+                        // 如果悬浮拖拽窗口已创建且未释放，更新其主题设置
+                        if (_floatingDropZone != null && !_floatingDropZone.IsDisposed)
+                        {
+                            _floatingDropZone.UpdateThemeSettings();
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Warn($"订阅配置保存事件失败: {ex.Message}");
+            }
         }
 
         protected override void OnRefresh()

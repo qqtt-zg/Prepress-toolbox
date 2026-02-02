@@ -41,6 +41,19 @@
     <EmbeddedResource Include="Resources\Fonts\NotoSansSC-Regular.ttf" />
   </ItemGroup>
 
+  <!-- Popcat 图标资源文件嵌入 -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\cat_empty.dll" />
+    <EmbeddedResource Include="Resources\cat_full.dll" />
+    <EmbeddedResource Include="Resources\cat_empty.ico" />
+    <EmbeddedResource Include="Resources\cat_full.ico" />
+  </ItemGroup>
+  
+  <!-- Popcat 多尺寸图标资源文件嵌入 -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\PopcatIcons\*.ico" />
+  </ItemGroup>
+
   <!-- 确保字体文件被复制到输出目录 -->
   <ItemGroup>
     <None Include="Resources\Fonts\**\*.*">
