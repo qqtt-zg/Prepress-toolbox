@@ -233,6 +233,22 @@ catch (Exception ex)
                     Console.WriteLine($"CefSharp初始化失败: {ex.Message}");
                 }
 
+                // 检查并恢复回收站图标为默认图标（如果之前被修改为猫猫图标）
+                try
+                {
+                    if (RecycleBinIconChanger.IsCurrentlyCatIcon())
+                    {
+                        LogHelper.Info("检测到回收站图标为猫猫图标，正在恢复为默认图标...");
+                        RecycleBinIconChanger.RestoreDefaultIcon();
+                        LogHelper.Info("回收站图标已恢复为默认图标");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogHelper.Error($"恢复回收站图标失败: {ex.Message}", ex);
+                    // 不阻止程序启动，只记录错误
+                }
+
                 Application.Run(new MainShellForm());
 
                 mutex.ReleaseMutex();

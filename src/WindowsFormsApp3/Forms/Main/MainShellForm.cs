@@ -474,7 +474,7 @@ namespace WindowsFormsApp3.Forms.Main
         {
             // 获取程序集版本
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            string versionStr = version != null ? $"V{version.Major}.{version.Minor}.{version.Build}" : "V2.4.1";
+            string versionStr = version != null ? $"V{version.Major}.{version.Minor}.{version.Build}" : "V2.4.5";
             
             MessageBox.Show($"大诚工具箱 (Prepress Toolbox)\n版本: {versionStr}\n\n一个专业的印前处理辅助工具。", 
                 "关于", MessageBoxButtons.OK, MessageBoxIcon.Information);

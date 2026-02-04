@@ -163,6 +163,9 @@ namespace WindowsFormsApp3.Services
                         key.SetValue("empty", CatEmptyIcon);
                         _isCatIcon = true;
                         LogHelper.Info($"已设置回收站图标为猫猫图标");
+                        
+                        // 刷新桌面使图标更改生效
+                        RefreshDesktop();
                     }
                     else
                     {
@@ -197,6 +200,9 @@ namespace WindowsFormsApp3.Services
                         key.SetValue("empty", DefaultEmptyIcon);
                         _isCatIcon = false;
                         LogHelper.Info($"已设置回收站图标为默认图标");
+                        
+                        // 刷新桌面使图标更改生效
+                        RefreshDesktop();
                     }
                     else
                     {
@@ -222,22 +228,124 @@ namespace WindowsFormsApp3.Services
         public bool IsCatIcon => _isCatIcon;
 
         /// <summary>
-        /// 刷新桌面使图标更改生效
+        /// 检查注册表中回收站图标是否设置为猫猫图标（静态方法，无需实例化）
         /// </summary>
-        private void RefreshDesktop()
+        public static bool IsCurrentlyCatIcon()
         {
             try
             {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(RegistryPath, false))
+                {
+                    if (key != null)
+                    {
+                        var fullValue = key.GetValue("full")?.ToString() ?? "";
+                        var emptyValue = key.GetValue("empty")?.ToString() ?? "";
+                        
+                        // 检查是否包含猫猫图标路径
+                        const string catIconPath = @"C:\小猫图标\";
+                        bool isCatIcon = fullValue.Contains(catIconPath) || emptyValue.Contains(catIconPath);
+                        return isCatIcon;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Warn($"检查回收站图标状态失败: {ex.Message}");
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 恢复回收站图标为默认图标（静态方法，无需实例化）
+        /// </summary>
+        public static void RestoreDefaultIcon()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(RegistryPath, true))
+                {
+                    if (key != null)
+                    {
+                        key.SetValue("full", DefaultFullIcon);
+                        key.SetValue("empty", DefaultEmptyIcon);
+                        LogHelper.Info("已恢复回收站图标为默认图标");
+                        
+                        // 刷新桌面使图标更改生效
+                        RefreshDesktopStatic();
+                    }
+                    else
+                    {
+                        LogHelper.Warn($"无法打开注册表路径: {RegistryPath}");
+                    }
+                }
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                LogHelper.Error($"恢复默认图标失败：权限不足。可能需要管理员权限。错误: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"恢复默认图标失败: {ex.Message}, 堆栈: {ex.StackTrace}");
+            }
+        }
+
+        /// <summary>
+        /// 刷新桌面使图标更改生效（静态方法）
+        /// </summary>
+        private static void RefreshDesktopStatic()
+        {
+            try
+            {
+                // 使用 SHChangeNotify 通知系统图标已更改（最可靠的方法）
+                SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
+                LogHelper.Info("已发送图标更改通知 (SHChangeNotify)");
+                
+                // 延迟后再次刷新，确保更改生效
+                System.Threading.Thread.Sleep(100);
+                
+                // 备用方法：刷新桌面窗口
                 IntPtr hWnd = FindWindow("Progman", "Program Manager");
                 if (hWnd != IntPtr.Zero)
                 {
                     PostMessage(hWnd, WM_COMMAND, (IntPtr)F5_REFRESH, IntPtr.Zero);
                     LogHelper.Info("已发送刷新桌面消息");
                 }
-                else
+                
+                // 再次通知系统，确保图标缓存更新
+                System.Threading.Thread.Sleep(200);
+                SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Warn($"刷新桌面失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 刷新桌面使图标更改生效
+        /// </summary>
+        private void RefreshDesktop()
+        {
+            try
+            {
+                // 使用 SHChangeNotify 通知系统图标已更改（最可靠的方法）
+                SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
+                LogHelper.Info("已发送图标更改通知 (SHChangeNotify)");
+                
+                // 延迟后再次刷新，确保更改生效
+                System.Threading.Thread.Sleep(100);
+                
+                // 备用方法：刷新桌面窗口
+                IntPtr hWnd = FindWindow("Progman", "Program Manager");
+                if (hWnd != IntPtr.Zero)
                 {
-                    LogHelper.Warn("未找到桌面窗口句柄");
+                    PostMessage(hWnd, WM_COMMAND, (IntPtr)F5_REFRESH, IntPtr.Zero);
+                    LogHelper.Info("已发送刷新桌面消息");
                 }
+                
+                // 再次通知系统，确保图标缓存更新
+                System.Threading.Thread.Sleep(200);
+                SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
             }
             catch (Exception ex)
             {
@@ -253,8 +361,13 @@ namespace WindowsFormsApp3.Services
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
+        [DllImport("shell32.dll", CharSet = CharSet.Auto)]
+        private static extern void SHChangeNotify(uint wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
+
         private const uint WM_COMMAND = 0x0111;
         private const uint F5_REFRESH = 0x0002; // F5 刷新
+        private const uint SHCNE_ASSOCCHANGED = 0x08000000; // 关联已更改
+        private const uint SHCNF_IDLIST = 0x0000; // LPITEMIDLIST
 
         #endregion
     }

@@ -17,6 +17,7 @@ namespace WindowsFormsApp3.Services
     {
         private readonly ILogger _logger;
         private readonly string _customThemesPath;
+        private readonly string _builtInThemesOverridesPath;
         private List<ThemeDefinition> _allThemes;
         private ThemeDefinition _currentTheme;
         private List<ThemeDefinition> _originalBuiltInThemes; // 保存原始内置主题定义
@@ -24,11 +25,12 @@ namespace WindowsFormsApp3.Services
         public ThemeManager(ILogger logger)
         {
             _logger = logger;
-            _customThemesPath = Path.Combine(
+            var appDataDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "Prepress-toolbox",
-                "themes.json"
+                "Prepress-toolbox"
             );
+            _customThemesPath = Path.Combine(appDataDir, "themes.json");
+            _builtInThemesOverridesPath = Path.Combine(appDataDir, "builtin-themes-overrides.json");
 
             InitializeThemes();
         }
@@ -58,6 +60,9 @@ namespace WindowsFormsApp3.Services
             _allThemes.Add(darkTheme);
             _allThemes.Add(greenTheme);
             _allThemes.Add(classicBlueTheme);
+
+            // 加载内置主题的覆盖值（必须在加载自定义主题之前，因为覆盖值会修改内置主题）
+            LoadBuiltInThemesOverrides();
 
             // 加载用户自定义主题
             LoadCustomThemes();
@@ -282,8 +287,15 @@ namespace WindowsFormsApp3.Services
 
                 _allThemes.Add(theme);
                 
-                // 只保存自定义主题到文件（内置主题的修改保存在内存中）
-                SaveCustomThemesToFile();
+                // 如果是内置主题，保存到覆盖文件；否则保存到自定义主题文件
+                if (theme.IsBuiltIn)
+                {
+                    SaveBuiltInThemesOverrides();
+                }
+                else
+                {
+                    SaveCustomThemesToFile();
+                }
 
                 // 如果保存的主题是当前应用的主题，更新当前主题引用
                 if (_currentTheme != null && _currentTheme.Name == theme.Name)
@@ -436,6 +448,139 @@ namespace WindowsFormsApp3.Services
             {
                 _logger?.LogError($"保存自定义主题文件失败: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// 加载内置主题的覆盖值
+        /// </summary>
+        private void LoadBuiltInThemesOverrides()
+        {
+            try
+            {
+                if (!File.Exists(_builtInThemesOverridesPath))
+                    return;
+
+                var json = File.ReadAllText(_builtInThemesOverridesPath);
+                var overrides = JsonConvert.DeserializeObject<Dictionary<string, ThemeDefinition>>(json);
+
+                if (overrides != null && overrides.Count > 0)
+                {
+                    foreach (var kvp in overrides)
+                    {
+                        var themeName = kvp.Key;
+                        var overrideTheme = kvp.Value;
+
+                        // 查找对应的内置主题
+                        var builtInTheme = _allThemes.FirstOrDefault(t => t.IsBuiltIn && t.Name == themeName);
+                        if (builtInTheme != null && overrideTheme != null)
+                        {
+                            // 应用覆盖值（复制所有属性，但保持 IsBuiltIn = true）
+                            builtInTheme.Background = overrideTheme.Background;
+                            builtInTheme.Surface = overrideTheme.Surface;
+                            builtInTheme.SurfaceLight = overrideTheme.SurfaceLight;
+                            builtInTheme.InputBackground = overrideTheme.InputBackground;
+                            builtInTheme.TextPrimary = overrideTheme.TextPrimary;
+                            builtInTheme.TextSecondary = overrideTheme.TextSecondary;
+                            builtInTheme.Border = overrideTheme.Border;
+                            builtInTheme.Primary = overrideTheme.Primary;
+                            builtInTheme.Success = overrideTheme.Success;
+                            builtInTheme.Warning = overrideTheme.Warning;
+                            builtInTheme.Error = overrideTheme.Error;
+                            builtInTheme.AccentColor1 = overrideTheme.AccentColor1;
+                            builtInTheme.AccentColor2 = overrideTheme.AccentColor2;
+                            builtInTheme.AccentColor3 = overrideTheme.AccentColor3;
+                            builtInTheme.AccentColor4 = overrideTheme.AccentColor4;
+                            builtInTheme.BackActive = overrideTheme.BackActive;
+                            builtInTheme.BackHover = overrideTheme.BackHover;
+                            builtInTheme.UseScrollBarDarkMode = overrideTheme.UseScrollBarDarkMode;
+                            builtInTheme.FloatingDropZoneDefaultWidth = overrideTheme.FloatingDropZoneDefaultWidth;
+                            builtInTheme.FloatingDropZoneDefaultHeight = overrideTheme.FloatingDropZoneDefaultHeight;
+                            builtInTheme.FloatingDropZoneBackColor = overrideTheme.FloatingDropZoneBackColor;
+                            builtInTheme.FloatingDropZoneBackColorDrag = overrideTheme.FloatingDropZoneBackColorDrag;
+                            builtInTheme.FloatingDropZoneOpacity = overrideTheme.FloatingDropZoneOpacity;
+                            builtInTheme.FloatingDropZonePopcatEnabled = overrideTheme.FloatingDropZonePopcatEnabled;
+
+                            _logger?.LogInformation($"已加载内置主题覆盖值: {themeName}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError($"加载内置主题覆盖值失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 保存内置主题的覆盖值
+        /// </summary>
+        private void SaveBuiltInThemesOverrides()
+        {
+            try
+            {
+                // 确保目录存在
+                var directory = Path.GetDirectoryName(_builtInThemesOverridesPath);
+                if (!Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                // 收集所有已修改的内置主题（与原始定义不同的）
+                var overrides = new Dictionary<string, ThemeDefinition>();
+                foreach (var builtInTheme in _allThemes.Where(t => t.IsBuiltIn))
+                {
+                    var originalTheme = _originalBuiltInThemes?.FirstOrDefault(t => t.Name == builtInTheme.Name);
+                    if (originalTheme != null && !AreThemesEqual(builtInTheme, originalTheme))
+                    {
+                        // 主题已被修改，保存覆盖值
+                        overrides[builtInTheme.Name] = builtInTheme.Clone();
+                    }
+                }
+
+                // 保存覆盖值到文件
+                var json = JsonConvert.SerializeObject(overrides, Formatting.Indented);
+                File.WriteAllText(_builtInThemesOverridesPath, json);
+                
+                _logger?.LogInformation($"已保存 {overrides.Count} 个内置主题覆盖值");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError($"保存内置主题覆盖值失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 比较两个主题是否相等
+        /// </summary>
+        private bool AreThemesEqual(ThemeDefinition theme1, ThemeDefinition theme2)
+        {
+            if (theme1 == null || theme2 == null)
+                return theme1 == theme2;
+
+            return theme1.Background == theme2.Background &&
+                   theme1.Surface == theme2.Surface &&
+                   theme1.SurfaceLight == theme2.SurfaceLight &&
+                   theme1.InputBackground == theme2.InputBackground &&
+                   theme1.TextPrimary == theme2.TextPrimary &&
+                   theme1.TextSecondary == theme2.TextSecondary &&
+                   theme1.Border == theme2.Border &&
+                   theme1.Primary == theme2.Primary &&
+                   theme1.Success == theme2.Success &&
+                   theme1.Warning == theme2.Warning &&
+                   theme1.Error == theme2.Error &&
+                   theme1.AccentColor1 == theme2.AccentColor1 &&
+                   theme1.AccentColor2 == theme2.AccentColor2 &&
+                   theme1.AccentColor3 == theme2.AccentColor3 &&
+                   theme1.AccentColor4 == theme2.AccentColor4 &&
+                   theme1.BackActive == theme2.BackActive &&
+                   theme1.BackHover == theme2.BackHover &&
+                   theme1.UseScrollBarDarkMode == theme2.UseScrollBarDarkMode &&
+                   theme1.FloatingDropZoneDefaultWidth == theme2.FloatingDropZoneDefaultWidth &&
+                   theme1.FloatingDropZoneDefaultHeight == theme2.FloatingDropZoneDefaultHeight &&
+                   theme1.FloatingDropZoneBackColor == theme2.FloatingDropZoneBackColor &&
+                   theme1.FloatingDropZoneBackColorDrag == theme2.FloatingDropZoneBackColorDrag &&
+                   Math.Abs(theme1.FloatingDropZoneOpacity - theme2.FloatingDropZoneOpacity) < 0.001 &&
+                   theme1.FloatingDropZonePopcatEnabled == theme2.FloatingDropZonePopcatEnabled;
         }
 
         #endregion

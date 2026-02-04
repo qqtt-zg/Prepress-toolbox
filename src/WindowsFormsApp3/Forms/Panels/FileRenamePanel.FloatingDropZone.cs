@@ -94,48 +94,85 @@ namespace WindowsFormsApp3.Forms.Panels
 
                 // 根据操作类型执行复制或移动
                 string operationText = "导入";
+
+                void DoMove()
+                {
+                    // 如果目标文件已存在（用户已确认覆盖），先删除目标文件
+                    if (File.Exists(destFile))
+                    {
+                        File.Delete(destFile);
+                        LogHelper.Info($"已删除目标文件: {destFile}");
+                    }
+                    File.Move(sourceFile, destFile);
+                    operationText = "移动";
+                    LogHelper.Info($"已移动文件: {sourceFile} -> {destFile}");
+                }
+
+                void DoCopy(string reason)
+                {
+                    File.Copy(sourceFile, destFile, overwrite: true);
+                    operationText = reason;
+                    LogHelper.Info($"已复制文件: {sourceFile} -> {destFile}");
+                }
+
                 try
                 {
                     if (operation == DragDropEffects.Move)
                     {
-                        // 如果目标文件已存在（用户已确认覆盖），先删除目标文件
-                        if (File.Exists(destFile))
+                        while (true)
                         {
-                            File.Delete(destFile);
-                            LogHelper.Info($"已删除目标文件: {destFile}");
+                            try
+                            {
+                                DoMove();
+                                break;
+                            }
+                            catch (Exception ex)
+                            {
+                                var fileName = Path.GetFileName(sourceFile);
+                                var result = MessageBox.Show(
+                                    $"文件 \"{fileName}\" 正在被占用或无法移动。\n\n" +
+                                    $"错误信息：{ex.Message}\n\n" +
+                                    "你想怎么处理？\n" +
+                                    "- 选【重试】：关闭占用后再次尝试移动\n" +
+                                    "- 选【忽略】：改为复制到监控目录（保留源文件）\n" +
+                                    "- 选【中止】：取消本次导入",
+                                    "移动失败",
+                                    MessageBoxButtons.AbortRetryIgnore,
+                                    MessageBoxIcon.Warning);
+
+                                if (result == DialogResult.Retry)
+                                {
+                                    LogHelper.Warn($"移动失败，用户选择重试: {ex.Message}");
+                                    continue;
+                                }
+
+                                if (result == DialogResult.Ignore)
+                                {
+                                    try
+                                    {
+                                        LogHelper.Warn($"移动失败，用户选择改为复制: {ex.Message}");
+                                        DoCopy("复制（移动失败）");
+                                        break;
+                                    }
+                                    catch (Exception copyEx)
+                                    {
+                                        throw new Exception($"移动失败且复制也失败: 移动错误={ex.Message}, 复制错误={copyEx.Message}", copyEx);
+                                    }
+                                }
+
+                                UpdateStatus("操作已取消：移动失败");
+                                return;
+                            }
                         }
-                        File.Move(sourceFile, destFile);
-                        operationText = "移动";
-                        LogHelper.Info($"已移动文件: {sourceFile} -> {destFile}");
                     }
                     else
                     {
-                        File.Copy(sourceFile, destFile, overwrite: true);
-                        operationText = "复制";
-                        LogHelper.Info($"已复制文件: {sourceFile} -> {destFile}");
+                        DoCopy("复制");
                     }
                 }
-                catch (Exception ex)
+                catch
                 {
-                    // 如果移动失败（如跨分区），回退到复制
-                    if (operation == DragDropEffects.Move)
-                    {
-                        try
-                        {
-                            LogHelper.Warn($"移动失败，尝试回退到复制: {ex.Message}");
-                            File.Copy(sourceFile, destFile, overwrite: true);
-                            operationText = "复制（移动失败）";
-                            LogHelper.Info($"已回退到复制文件: {sourceFile} -> {destFile}");
-                        }
-                        catch (Exception copyEx)
-                        {
-                            throw new Exception($"移动和复制都失败: 移动错误={ex.Message}, 复制错误={copyEx.Message}", copyEx);
-                        }
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    throw;
                 }
 
                 // 依赖现有 FileSystemWatcher 触发后续流程（弹材料选择框）

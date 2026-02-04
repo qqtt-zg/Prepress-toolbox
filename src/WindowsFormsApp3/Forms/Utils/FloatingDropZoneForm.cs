@@ -5,7 +5,6 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
-using System.Runtime.InteropServices;
 using WindowsFormsApp3.Utils;
 using WindowsFormsApp3.Services;
 using WindowsFormsApp3.Models;
@@ -13,118 +12,6 @@ using WindowsFormsApp3.Forms.Panels;
 
 namespace WindowsFormsApp3.Forms.Utils
 {
-    internal static class FloatingDropZoneNative
-    {
-        public const int WM_NCHITTEST = 0x0084;
-        public const int HTCLIENT = 1;
-        public const int HTLEFT = 10;
-        public const int HTRIGHT = 11;
-        public const int HTTOP = 12;
-        public const int HTTOPLEFT = 13;
-        public const int HTTOPRIGHT = 14;
-        public const int HTBOTTOM = 15;
-        public const int HTBOTTOMLEFT = 16;
-        public const int HTBOTTOMRIGHT = 17;
-
-        // 透明窗口相关常量
-        public const int GWL_EXSTYLE = -20;
-        public const int WS_EX_LAYERED = 0x80000;
-        public const int WS_EX_TRANSPARENT = 0x20;
-        public const uint LWA_ALPHA = 0x2;
-        public const uint LWA_COLORKEY = 0x1;
-        
-        [StructLayout(LayoutKind.Sequential)]
-        public struct POINT
-        {
-            public int x;
-            public int y;
-        }
-        
-        [StructLayout(LayoutKind.Sequential)]
-        public struct SIZE
-        {
-            public int cx;
-            public int cy;
-        }
-        
-        [StructLayout(LayoutKind.Sequential)]
-        public struct BLENDFUNCTION
-        {
-            public byte BlendOp;
-            public byte BlendFlags;
-            public byte SourceConstantAlpha;
-            public byte AlphaFormat;
-        }
-        
-        public const byte AC_SRC_OVER = 0x00;
-        public const byte AC_SRC_ALPHA = 0x01;
-        
-        [DllImport("user32.dll", SetLastError = true)]
-        public static extern bool UpdateLayeredWindow(IntPtr hwnd, IntPtr hdcDst, ref POINT pptDst, ref SIZE psize, IntPtr hdcSrc, ref POINT pptSrc, uint crKey, ref BLENDFUNCTION pblend, uint dwFlags);
-        
-        [DllImport("user32.dll", SetLastError = true)]
-        public static extern IntPtr GetDC(IntPtr hWnd);
-        
-        [DllImport("user32.dll", SetLastError = true)]
-        public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
-        
-        [DllImport("gdi32.dll", SetLastError = true)]
-        public static extern IntPtr CreateCompatibleDC(IntPtr hdc);
-        
-        [DllImport("gdi32.dll", SetLastError = true)]
-        public static extern IntPtr CreateCompatibleBitmap(IntPtr hdc, int nWidth, int nHeight);
-        
-        [DllImport("gdi32.dll", SetLastError = true)]
-        public static extern IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
-        
-        [DllImport("gdi32.dll", SetLastError = true)]
-        public static extern bool DeleteObject(IntPtr hObject);
-        
-        [DllImport("gdi32.dll", SetLastError = true)]
-        public static extern bool DeleteDC(IntPtr hdc);
-        
-        [StructLayout(LayoutKind.Sequential)]
-        public struct BITMAPINFOHEADER
-        {
-            public uint biSize;
-            public int biWidth;
-            public int biHeight;
-            public ushort biPlanes;
-            public ushort biBitCount;
-            public uint biCompression;
-            public uint biSizeImage;
-            public int biXPelsPerMeter;
-            public int biYPelsPerMeter;
-            public uint biClrUsed;
-            public uint biClrImportant;
-        }
-        
-        [StructLayout(LayoutKind.Sequential)]
-        public struct BITMAPINFO
-        {
-            public BITMAPINFOHEADER bmiHeader;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
-            public uint[] bmiColors;
-        }
-        
-        public const int BI_RGB = 0;
-        public const int DIB_RGB_COLORS = 0;
-        
-        [DllImport("gdi32.dll", SetLastError = true)]
-        public static extern IntPtr CreateDIBSection(IntPtr hdc, ref BITMAPINFO pbmi, uint iUsage, out IntPtr ppvBits, IntPtr hSection, uint dwOffset);
-        
-        public const uint ULW_ALPHA = 0x2;
-
-        [DllImport("user32.dll", SetLastError = true)]
-        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
-
-        [DllImport("user32.dll")]
-        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
-
-        [DllImport("user32.dll")]
-        public static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);
-    }
-
     /// <summary>
     /// 纯代码实现的悬浮拖拽窗：拖入PDF后回调交给调用方处理（复制到监控目录）。
     /// </summary>
@@ -389,7 +276,6 @@ namespace WindowsFormsApp3.Forms.Utils
         private PictureBox _popcatIcon;
         private Color _defaultBackColor;
         private Color _dragBackColor;
-        private RecycleBinIconChanger _iconChanger;
         private bool _popcatEnabled;
         private TransparencyMode _transparencyMode = TransparencyMode.None; // 当前使用的透明效果模式
         private bool _shownEventSubscribed; // 标志：Shown 事件是否已订阅
@@ -402,6 +288,14 @@ namespace WindowsFormsApp3.Forms.Utils
         private bool _showBorder = false; // 是否显示边框（默认不显示）
         private DropOperationMode _dropOperationMode = DropOperationMode.Default; // 当前操作模式
         private string _targetDirectory = string.Empty; // 目标目录（用于判断分区）
+
+        /// <summary>
+        /// 仅供 WinForms 设计器实例化使用：提供无参构造函数，避免设计器因无法创建实例而报错。
+        /// </summary>
+        public FloatingDropZoneForm()
+            : this((_, __) => { }, null, string.Empty)
+        {
+        }
 
         public FloatingDropZoneForm(Action<string, DragDropEffects> onPdfDropped, Func<DropOperationMode> getDropOperationMode = null, string targetDirectory = "")
         {
@@ -770,26 +664,7 @@ namespace WindowsFormsApp3.Forms.Utils
                 return;
             }
 
-            LogHelper.Info($"检测到 {files.Length} 个文件被拖入，Popcat 功能状态: {_popcatEnabled}, IconChanger: {(_iconChanger != null ? "已初始化" : "未初始化")}");
-
-            // 如果启用了 Popcat 功能，切换回收站图标（无论是否为 PDF 文件）
-            if (_popcatEnabled && _iconChanger != null)
-            {
-                try
-                {
-                    LogHelper.Info("开始切换回收站图标");
-                    _iconChanger.ToggleIcon();
-                    LogHelper.Info("已切换回收站图标");
-                }
-                catch (Exception ex)
-                {
-                    LogHelper.Error($"切换回收站图标失败: {ex.Message}, 堆栈: {ex.StackTrace}");
-                }
-            }
-            else
-            {
-                LogHelper.Info($"Popcat 功能未启用或 IconChanger 未初始化 - PopcatEnabled: {_popcatEnabled}, IconChanger: {(_iconChanger != null ? "已初始化" : "未初始化")}");
-            }
+            LogHelper.Info($"检测到 {files.Length} 个文件被拖入，Popcat 功能状态: {_popcatEnabled}");
 
             // 执行原有的 PDF 导入功能
             var firstPdf = files.FirstOrDefault(IsPdfFile);
@@ -836,25 +711,8 @@ namespace WindowsFormsApp3.Forms.Utils
                         // 应用背景色
                         BackColor = _defaultBackColor;
                         
-                        // 初始化 Popcat 功能
+                        // 初始化 Popcat 功能（仅用于悬浮窗口图标显示）
                         _popcatEnabled = theme.FloatingDropZonePopcatEnabled;
-                        if (_popcatEnabled)
-                        {
-                            try
-                            {
-                                _iconChanger = new RecycleBinIconChanger();
-                                LogHelper.Info("Popcat 回收站图标切换功能已启用");
-                            }
-                            catch (Exception ex)
-                            {
-                                LogHelper.Error($"初始化 Popcat 功能失败: {ex.Message}");
-                                _popcatEnabled = false;
-                            }
-                        }
-                        else
-                        {
-                            _iconChanger = null;
-                        }
 
                         // 更新 Popcat 图标显示
                         UpdatePopcatIconDisplay();
@@ -907,28 +765,10 @@ namespace WindowsFormsApp3.Forms.Utils
             
             ApplyThemeSettings();
             
-            // 如果 Popcat 功能状态改变，重新初始化
+            // Popcat 功能状态改变时，更新图标显示（仅用于悬浮窗口图标显示）
             if (oldPopcatEnabled != _popcatEnabled)
             {
-                if (_popcatEnabled)
-                {
-                    try
-                    {
-                        _iconChanger = new RecycleBinIconChanger();
-                        LogHelper.Info("Popcat 回收站图标切换功能已启用");
-                    }
-                    catch (Exception ex)
-                    {
-                        LogHelper.Error($"初始化 Popcat 功能失败: {ex.Message}");
-                        _popcatEnabled = false;
-                        _iconChanger = null;
-                    }
-                }
-                else
-                {
-                    _iconChanger = null;
-                    LogHelper.Info("Popcat 回收站图标切换功能已禁用");
-                }
+                LogHelper.Info($"Popcat 功能状态已改变: {oldPopcatEnabled} -> {_popcatEnabled}");
             }
             
             // 更新 Popcat 图标显示（会根据 Popcat 状态设置背景色）
