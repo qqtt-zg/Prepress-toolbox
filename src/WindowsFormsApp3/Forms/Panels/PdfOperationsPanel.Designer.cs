@@ -79,7 +79,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.mainContainer.RowCount = 2;
             this.mainContainer.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.mainContainer.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 30F));
-            this.mainContainer.Size = new System.Drawing.Size(941, 557);
+            this.mainContainer.Size = new System.Drawing.Size(945, 528);
             this.mainContainer.TabIndex = 0;
             // 
             // previewContainer
@@ -95,7 +95,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.previewContainer.RowCount = 2;
             this.previewContainer.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 50F));
             this.previewContainer.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.previewContainer.Size = new System.Drawing.Size(941, 527);
+            this.previewContainer.Size = new System.Drawing.Size(945, 498);
             this.previewContainer.TabIndex = 0;
             // 
             // toolbarPanel
@@ -107,7 +107,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.toolbarPanel.Margin = new System.Windows.Forms.Padding(0);
             this.toolbarPanel.Name = "toolbarPanel";
             this.toolbarPanel.Padding = new System.Windows.Forms.Padding(10, 8, 10, 8);
-            this.toolbarPanel.Size = new System.Drawing.Size(941, 50);
+            this.toolbarPanel.Size = new System.Drawing.Size(945, 50);
             this.toolbarPanel.TabIndex = 0;
             // 
             // toolbarFlowLayout
@@ -126,7 +126,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.toolbarFlowLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.toolbarFlowLayout.Location = new System.Drawing.Point(10, 8);
             this.toolbarFlowLayout.Name = "toolbarFlowLayout";
-            this.toolbarFlowLayout.Size = new System.Drawing.Size(921, 34);
+            this.toolbarFlowLayout.Size = new System.Drawing.Size(925, 34);
             this.toolbarFlowLayout.TabIndex = 0;
             this.toolbarFlowLayout.WrapContents = false;
             // 
@@ -259,7 +259,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.previewPanel.Location = new System.Drawing.Point(0, 50);
             this.previewPanel.Margin = new System.Windows.Forms.Padding(0);
             this.previewPanel.Name = "previewPanel";
-            this.previewPanel.Size = new System.Drawing.Size(941, 477);
+            this.previewPanel.Size = new System.Drawing.Size(945, 448);
             this.previewPanel.TabIndex = 1;
             // 
             // _pdfPreview
@@ -268,7 +268,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this._pdfPreview.Dock = System.Windows.Forms.DockStyle.Fill;
             this._pdfPreview.Location = new System.Drawing.Point(0, 0);
             this._pdfPreview.Name = "_pdfPreview";
-            this._pdfPreview.Size = new System.Drawing.Size(941, 477);
+            this._pdfPreview.Size = new System.Drawing.Size(945, 448);
             this._pdfPreview.TabIndex = 0;
             this._pdfPreview.PdfLoaded += new System.EventHandler<WindowsFormsApp3.Controls.PdfLoadedEventArgs>(this.PdfPreview_PdfLoaded);
             this._pdfPreview.PageChanged += new System.EventHandler<WindowsFormsApp3.Controls.PageChangedEventArgs>(this.PdfPreview_PageChanged);
@@ -280,11 +280,11 @@ namespace WindowsFormsApp3.Forms.Panels
             this.statusPanel.Controls.Add(this._progressOverlay);
             this.statusPanel.Controls.Add(this._lblStatus);
             this.statusPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.statusPanel.Location = new System.Drawing.Point(0, 527);
+            this.statusPanel.Location = new System.Drawing.Point(0, 498);
             this.statusPanel.Margin = new System.Windows.Forms.Padding(0);
             this.statusPanel.Name = "statusPanel";
             this.statusPanel.Padding = new System.Windows.Forms.Padding(10, 0, 10, 0);
-            this.statusPanel.Size = new System.Drawing.Size(941, 30);
+            this.statusPanel.Size = new System.Drawing.Size(945, 30);
             this.statusPanel.TabIndex = 1;
             // 
             // _progressOverlay
@@ -297,7 +297,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this._progressOverlay.Name = "_progressOverlay";
             this._progressOverlay.Progress = 0;
             this._progressOverlay.ProgressColor = System.Drawing.Color.FromArgb(((int)(((byte)(180)))), ((int)(((byte)(24)))), ((int)(((byte)(144)))), ((int)(((byte)(255)))));
-            this._progressOverlay.Size = new System.Drawing.Size(941, 4);
+            this._progressOverlay.Size = new System.Drawing.Size(945, 4);
             this._progressOverlay.TabIndex = 2;
             this._progressOverlay.Visible = false;
             // 
@@ -320,7 +320,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.mainContainer);
             this.Name = "PdfOperationsPanel";
-            this.Size = new System.Drawing.Size(941, 557);
+            this.Size = new System.Drawing.Size(945, 528);
             this.Load += new System.EventHandler(this.PdfOperationsPanel_Load);
             this.mainContainer.ResumeLayout(false);
             this.previewContainer.ResumeLayout(false);

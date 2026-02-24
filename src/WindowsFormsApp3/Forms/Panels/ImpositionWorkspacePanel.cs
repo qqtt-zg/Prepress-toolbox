@@ -3,6 +3,7 @@ using System.Drawing;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Linq;
 using WindowsFormsApp3.Controls;
 using WindowsFormsApp3.Controls.Printing;
 using WindowsFormsApp3.Services;
@@ -12,6 +13,14 @@ namespace WindowsFormsApp3.Forms.Panels
 {
     public partial class ImpositionWorkspacePanel : UserControl
     {
+        private class WorkspacePdfItem
+        {
+            public string FilePath { get; set; }
+            public string FileName { get; set; }
+            public int Pages { get; set; }
+            public string Status { get; set; }
+        }
+
         // 核心字段
         private TabbedPdfPreviewControl pdfPreview;
         private string currentPdfPath;
@@ -19,9 +28,16 @@ namespace WindowsFormsApp3.Forms.Panels
 
         // 左侧面板的容器
         private Panel fileLoadPanel;
+        private Panel fileListPanel;
+        private DataGridView dgvFiles;
+        private BindingSource bsFiles;
         private FlowLayoutPanel functionSelectPanel;
         private Panel parameterPanel;
         private Panel actionPanel;
+
+        private readonly System.Collections.Generic.List<WorkspacePdfItem> _workspaceItems = new System.Collections.Generic.List<WorkspacePdfItem>();
+        private WorkspacePdfItem _currentItem;
+        private bool _suppressSelectionChanged;
 
         // UI参数控件（骑马订）
         private ComboBox cmbPaperSize;
@@ -70,6 +86,9 @@ namespace WindowsFormsApp3.Forms.Panels
             
             // 顶部文件加载区 (Dock Top)
             CreateFileLoadPanel();
+
+            // 文件列表区 (Dock Top)
+            CreateFileListPanel();
         }
 
         private void CreatePdfPreview()
@@ -92,16 +111,74 @@ namespace WindowsFormsApp3.Forms.Panels
             fileLoadPanel.Height = 60;
             fileLoadPanel.Dock = DockStyle.Top;
             fileLoadPanel.Padding = new Padding(0, 0, 0, DesignTokens.SpacingBase);
-            
+
             var btnLoad = new AntdUI.Button();
             btnLoad.Text = "加载 PDF 文件";
             btnLoad.Type = AntdUI.TTypeMini.Primary; // 近似对应：TTypePrimary 与 Type
             btnLoad.IconSvg = "FolderOpenOutlined";
             btnLoad.Dock = DockStyle.Fill;
             btnLoad.Click += BtnLoad_Click;
-            
+
             fileLoadPanel.Controls.Add(btnLoad);
             mainContainer.Panel1.Controls.Add(fileLoadPanel);
+        }
+
+        private void CreateFileListPanel()
+        {
+            fileListPanel = new Panel();
+            fileListPanel.Dock = DockStyle.Top;
+            fileListPanel.Height = 220;
+            fileListPanel.Padding = new Padding(0, 0, 0, DesignTokens.SpacingBase);
+
+            bsFiles = new BindingSource();
+            bsFiles.DataSource = _workspaceItems;
+
+            dgvFiles = new DataGridView();
+            dgvFiles.Dock = DockStyle.Fill;
+            dgvFiles.AllowUserToAddRows = false;
+            dgvFiles.AllowUserToDeleteRows = false;
+            dgvFiles.AllowUserToResizeRows = false;
+            dgvFiles.ReadOnly = true;
+            dgvFiles.MultiSelect = false;
+            dgvFiles.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvFiles.RowHeadersVisible = false;
+            dgvFiles.AutoGenerateColumns = false;
+            dgvFiles.BackgroundColor = DesignTokens.BgTertiary;
+            dgvFiles.BorderStyle = BorderStyle.FixedSingle;
+            dgvFiles.DataSource = bsFiles;
+
+            dgvFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(WorkspacePdfItem.FileName),
+                HeaderText = "文件",
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+                MinimumWidth = 120
+            });
+
+            dgvFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(WorkspacePdfItem.Pages),
+                HeaderText = "页数",
+                Width = 60
+            });
+
+            dgvFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(WorkspacePdfItem.Status),
+                HeaderText = "状态",
+                Width = 80
+            });
+
+            dgvFiles.SelectionChanged += DgvFiles_SelectionChanged;
+            dgvFiles.KeyDown += DgvFiles_KeyDown;
+
+            // 拖拽导入
+            dgvFiles.AllowDrop = true;
+            dgvFiles.DragEnter += DgvFiles_DragEnter;
+            dgvFiles.DragDrop += DgvFiles_DragDrop;
+
+            fileListPanel.Controls.Add(dgvFiles);
+            mainContainer.Panel1.Controls.Add(fileListPanel);
         }
 
         private void CreateFunctionSelectPanel()
@@ -351,12 +428,43 @@ namespace WindowsFormsApp3.Forms.Panels
 
                 foreach (var path in paths)
                 {
+                    // 去重：检查是否已在工作区中
+                    if (_workspaceItems.Any(x => string.Equals(x.FilePath, path, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        LogHelper.Info($"[ImpositionWorkspacePanel] 文件已存在，跳过: {Path.GetFileName(path)}");
+                        continue;
+                    }
+
+                    // 添加到工作区列表（先占位，页数异步获取）
+                    var item = new WorkspacePdfItem
+                    {
+                        FilePath = path,
+                        FileName = Path.GetFileName(path),
+                        Pages = -1,
+                        Status = "加载中..."
+                    };
+                    _workspaceItems.Add(item);
+                    bsFiles?.ResetBindings(false);
+
+                    // 异步加载到预览控件并获取页数
                     var tabIndex = await pdfPreview.AddTabAsync(path);
                     if (tabIndex >= 0)
                     {
-                        // 设置当前PDF路径为最后加载的文件
-                        currentPdfPath = path;
+                        // 尝试获取页数（通过 TabbedPdfPreviewControl 的事件或直接读取 PDF）
+                        int pageCount = await GetPdfPageCountAsync(path);
+                        item.Pages = pageCount;
+                        item.Status = "就绪";
                     }
+                    else
+                    {
+                        item.Status = "加载失败";
+                    }
+
+                    bsFiles?.ResetBindings(false);
+
+                    // 设置当前PDF路径为最后加载的文件
+                    currentPdfPath = path;
+                    _currentItem = item;
                 }
 
                 if (statusStrip?.Items["lblStatus"] != null)
@@ -375,6 +483,24 @@ namespace WindowsFormsApp3.Forms.Panels
             {
                 LogHelper.Error($"[ImpositionWorkspacePanel] 加载PDF文件失败: {ex.Message}", ex);
                 MessageBox.Show($"加载 PDF 失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async Task<int> GetPdfPageCountAsync(string pdfPath)
+        {
+            try
+            {
+                // 简单异步获取页数（可后续优化为通过 iText 或 PdfiumViewer）
+                using (var reader = new iText.Kernel.Pdf.PdfReader(pdfPath))
+                using (var doc = new iText.Kernel.Pdf.PdfDocument(reader))
+                {
+                    return doc.GetNumberOfPages();
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Warn($"[ImpositionWorkspacePanel] 获取页数失败: {pdfPath}, {ex.Message}");
+                return -1;
             }
         }
 
@@ -605,6 +731,9 @@ namespace WindowsFormsApp3.Forms.Panels
             {
                 // 更新当前PDF路径
                 currentPdfPath = e.FilePath;
+
+                // 同步左侧文件列表选中项
+                SelectItemByPath(e.FilePath);
                 
                 // 更新状态栏
                 var fileName = Path.GetFileName(e.FilePath);
@@ -619,6 +748,153 @@ namespace WindowsFormsApp3.Forms.Panels
             {
                 LogHelper.Error($"[ImpositionWorkspacePanel] 标签页切换错误: {ex.Message}", ex);
             }
+        }
+
+        private void DgvFiles_SelectionChanged(object sender, EventArgs e)
+        {
+            if (_suppressSelectionChanged)
+                return;
+
+            try
+            {
+                if (dgvFiles?.SelectedRows == null || dgvFiles.SelectedRows.Count == 0)
+                    return;
+
+                var item = dgvFiles.SelectedRows[0].DataBoundItem as WorkspacePdfItem;
+                if (item == null)
+                    return;
+
+                _currentItem = item;
+                currentPdfPath = item.FilePath;
+
+                // 通过标签页预览控件切换（如果已打开则只切换，不重复打开）
+                _ = pdfPreview?.AddTabAsync(item.FilePath);
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error("[ImpositionWorkspacePanel] DgvFiles_SelectionChanged error", ex);
+            }
+        }
+
+        private void DgvFiles_KeyDown(object sender, KeyEventArgs e)
+        {
+            try
+            {
+                if (e.KeyCode == Keys.Delete)
+                {
+                    RemoveSelectedItem();
+                    e.Handled = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error("[ImpositionWorkspacePanel] DgvFiles_KeyDown error", ex);
+            }
+        }
+
+        private void DgvFiles_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data != null && e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effect = DragDropEffects.Copy;
+            }
+        }
+
+        private void DgvFiles_DragDrop(object sender, DragEventArgs e)
+        {
+            try
+            {
+                if (e.Data == null || !e.Data.GetDataPresent(DataFormats.FileDrop))
+                    return;
+
+                var dropped = (string[])e.Data.GetData(DataFormats.FileDrop);
+                if (dropped == null || dropped.Length == 0)
+                    return;
+
+                var pdfs = new System.Collections.Generic.List<string>();
+                foreach (var p in dropped)
+                {
+                    if (Directory.Exists(p))
+                    {
+                        try
+                        {
+                            pdfs.AddRange(Directory.GetFiles(p, "*.pdf", SearchOption.TopDirectoryOnly));
+                        }
+                        catch
+                        {
+                        }
+                        continue;
+                    }
+
+                    if (File.Exists(p) && string.Equals(Path.GetExtension(p), ".pdf", StringComparison.OrdinalIgnoreCase))
+                        pdfs.Add(p);
+                }
+
+                if (pdfs.Count > 0)
+                {
+                    LoadPdfFiles(pdfs.ToArray());
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error("[ImpositionWorkspacePanel] DgvFiles_DragDrop error", ex);
+            }
+        }
+
+        private void SelectItemByPath(string filePath)
+        {
+            if (string.IsNullOrEmpty(filePath) || dgvFiles == null)
+                return;
+
+            try
+            {
+                _suppressSelectionChanged = true;
+
+                foreach (DataGridViewRow row in dgvFiles.Rows)
+                {
+                    var item = row.DataBoundItem as WorkspacePdfItem;
+                    if (item == null)
+                        continue;
+
+                    if (string.Equals(item.FilePath, filePath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        row.Selected = true;
+                        dgvFiles.CurrentCell = row.Cells[0];
+                        _currentItem = item;
+                        currentPdfPath = item.FilePath;
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error("[ImpositionWorkspacePanel] SelectItemByPath error", ex);
+            }
+            finally
+            {
+                _suppressSelectionChanged = false;
+            }
+        }
+
+        private void RemoveSelectedItem()
+        {
+            if (dgvFiles?.SelectedRows == null || dgvFiles.SelectedRows.Count == 0)
+                return;
+
+            var item = dgvFiles.SelectedRows[0].DataBoundItem as WorkspacePdfItem;
+            if (item == null)
+                return;
+
+            _workspaceItems.Remove(item);
+            bsFiles?.ResetBindings(false);
+
+            if (_currentItem == item)
+            {
+                _currentItem = null;
+                currentPdfPath = null;
+            }
+
+            UpdateStatus($"已移除: {item.FileName}");
         }
 
         /// <summary>

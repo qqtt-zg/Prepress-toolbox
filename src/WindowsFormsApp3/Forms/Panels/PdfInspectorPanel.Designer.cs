@@ -45,7 +45,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this._toolbarPanel.Location = new System.Drawing.Point(0, 0);
             this._toolbarPanel.Name = "_toolbarPanel";
             this._toolbarPanel.Padding = new System.Windows.Forms.Padding(10);
-            this._toolbarPanel.Size = new System.Drawing.Size(941, 50);
+            this._toolbarPanel.Size = new System.Drawing.Size(945, 50);
             this._toolbarPanel.TabIndex = 0;
             // 
             // _openButton
@@ -65,7 +65,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this._inspector.Location = new System.Drawing.Point(0, 50);
             this._inspector.Name = "_inspector";
             this._inspector.Padding = new System.Windows.Forms.Padding(10);
-            this._inspector.Size = new System.Drawing.Size(941, 533);
+            this._inspector.Size = new System.Drawing.Size(945, 478);
             this._inspector.TabIndex = 1;
             this._inspector.PageSelected += new System.EventHandler<int>(this.Inspector_PageSelected);
             // 
@@ -74,7 +74,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.Controls.Add(this._inspector);
             this.Controls.Add(this._toolbarPanel);
             this.Name = "PdfInspectorPanel";
-            this.Size = new System.Drawing.Size(941, 583);
+            this.Size = new System.Drawing.Size(945, 528);
             this._toolbarPanel.ResumeLayout(false);
             this.ResumeLayout(false);
 

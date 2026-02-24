@@ -495,10 +495,11 @@ namespace WindowsFormsApp3.Forms.Main
             AddNavButton("数据库", "DatabaseOutlined", "database");
             
             // 3. PDF操作
-            AddNavButton("PDF操作", "FilePdfOutlined", "pdf_operations");
+            AddNavButton("工作台", "AppstoreAddOutlined", "ae_workspace");
             
             // 4. 拼版工具
-            AddNavButton("拼版工具", "AppstoreAddOutlined", "imposition_workspace");
+            // 已由 AE 风格工作台替代
+            // AddNavButton("拼版工具", "AppstoreAddOutlined", "imposition_workspace");
              
              // 5. 设置
             AddNavButton("设置", "SettingOutlined", "settings");
@@ -781,6 +782,14 @@ namespace WindowsFormsApp3.Forms.Main
             }
             catch (Exception ex)
             {
+                try
+                {
+                    LogHelper.Error($"[MainShellForm] 切换面板失败: panelKey={panelKey}", ex);
+                }
+                catch
+                {
+                }
+
                 MessageBox.Show($"切换面板失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -812,6 +821,9 @@ namespace WindowsFormsApp3.Forms.Main
                     // 所有设置相关菜单都返回设置面板
                     return new WindowsFormsApp3.Forms.Panels.SettingsPanel();
                     
+                case "ae_workspace":
+                    return new WindowsFormsApp3.Forms.Panels.AeWorkspacePanel();
+
                 case "pdf_operations":
                     return new WindowsFormsApp3.Forms.Panels.PdfOperationsPanel();
 
