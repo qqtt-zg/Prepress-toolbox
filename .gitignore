@@ -28,6 +28,21 @@ lpt9
 *.suo
 *.userosscache
 *.sln.docstates
+*.vssscc
+*.vspscc
+*.aps
+*.ncb
+*.opendb
+*.sdf
+*.cache
+*.pch
+*.ipch
+*.tlog
+*.idb
+*.pdb
+*.ilk
+*.exp
+*.res
 
 # Build results
 [Dd]ebug/
@@ -50,16 +65,6 @@ bld/
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
 
-# User-specific files
-*.rsuser
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-
-# Mono auto generated files
-mono_crash.*
-
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
@@ -73,7 +78,15 @@ $RECYCLE.BIN/
 # Mac
 .DS_Store
 
+# Logs
+# - runtime logs should never be committed
+# - keep both root-level *.log and logs/ folder ignored
+logs/
+*.log
+app_*.log
+
 # Installers
-installers/
+installers/Output/
+installers/安装包/*.exe
 # 但保留 Setup.iss 配置文件（需要版本控制）
 !installers/Setup.iss

@@ -22,7 +22,8 @@ namespace WindowsFormsApp3.Utils
         private static string _logDirectory = AppDataPathManager.LogsDirectory;
         private static string _logFileNameFormat = "log_{0:yyyyMMdd}.txt";
         private const int _bufferSize = 50; // 默认缓冲大小
-        
+        private const int _maxLogAgeDays = 7; // 日志保留天数
+
         /// <summary>
         /// 获取日志记录器实例
         /// </summary>
@@ -37,10 +38,46 @@ namespace WindowsFormsApp3.Utils
                         if (!_isInitialized)
                         {
                             InitializeLogger();
+                            CleanupOldLogs();
                         }
                     }
                 }
                 return _logger;
+            }
+        }
+
+        /// <summary>
+        /// 清理旧日志文件
+        /// </summary>
+        private static void CleanupOldLogs()
+        {
+            try
+            {
+                if (!Directory.Exists(_logDirectory)) return;
+
+                var directory = new DirectoryInfo(_logDirectory);
+                var files = directory.GetFiles("log_*.txt");
+                var cutoffDate = DateTime.Now.AddDays(-_maxLogAgeDays);
+
+                foreach (var file in files)
+                {
+                    if (file.LastWriteTime < cutoffDate)
+                    {
+                        try
+                        {
+                            file.Delete();
+                        }
+                        catch (Exception ex)
+                        {
+                            // 无法删除则忽略，可能文件正在被使用
+                            Trace.WriteLine($"无法删除旧日志文件 {file.Name}: {ex.Message}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"清理旧日志失败: {ex.Message}");
             }
         }
         
