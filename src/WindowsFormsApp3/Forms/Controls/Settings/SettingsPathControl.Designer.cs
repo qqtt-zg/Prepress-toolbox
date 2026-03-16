@@ -57,7 +57,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.dgvExportPaths.Name = "dgvExportPaths";
             this.dgvExportPaths.RowHeadersVisible = false;
             this.dgvExportPaths.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.dgvExportPaths.Size = new System.Drawing.Size(700, 300);
+            this.dgvExportPaths.Size = new System.Drawing.Size(950, 300);
             this.dgvExportPaths.TabIndex = 0;
             this.dgvExportPaths.CellValueChanged += new System.Windows.Forms.DataGridViewCellEventHandler(this.DgvExportPaths_CellValueChanged);
             this.dgvExportPaths.CurrentCellDirtyStateChanged += new System.EventHandler(this.DgvExportPaths_CurrentCellDirtyStateChanged);
@@ -80,18 +80,18 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.btnDelete.Type = AntdUI.TTypeMini.Error;
             this.btnDelete.Click += new System.EventHandler(this.BtnDelete_Click);
 
-            // 
+            //
             // btnMoveUp
-            // 
-            this.btnMoveUp.Location = new System.Drawing.Point(510, 340);
+            //
+            this.btnMoveUp.Location = new System.Drawing.Point(800, 340);
             this.btnMoveUp.Size = new System.Drawing.Size(100, 32);
             this.btnMoveUp.Text = "上移";
             this.btnMoveUp.Click += new System.EventHandler(this.BtnMoveUp_Click);
 
-            // 
+            //
             // btnMoveDown
-            // 
-            this.btnMoveDown.Location = new System.Drawing.Point(620, 340);
+            //
+            this.btnMoveDown.Location = new System.Drawing.Point(910, 340);
             this.btnMoveDown.Size = new System.Drawing.Size(100, 32);
             this.btnMoveDown.Text = "下移";
             this.btnMoveDown.Click += new System.EventHandler(this.BtnMoveDown_Click);
@@ -100,7 +100,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             // lblStatus
             // 
             this.lblStatus.Location = new System.Drawing.Point(20, 390);
-            this.lblStatus.Size = new System.Drawing.Size(700, 32);
+            this.lblStatus.Size = new System.Drawing.Size(950, 32);
             this.lblStatus.Text = "路径状态...";
             
             // 
@@ -113,7 +113,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.Controls.Add(this.btnMoveDown);
             this.Controls.Add(this.lblStatus);
             this.Name = "SettingsPathControl";
-            this.Size = new System.Drawing.Size(750, 450);
+            this.Size = new System.Drawing.Size(1000, 450);
             
             ((System.ComponentModel.ISupportInitialize)(this.dgvExportPaths)).EndInit();
             this.ResumeLayout(false);

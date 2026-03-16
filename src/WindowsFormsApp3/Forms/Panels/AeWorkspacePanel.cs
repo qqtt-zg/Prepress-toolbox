@@ -120,10 +120,15 @@ namespace WindowsFormsApp3.Forms.Panels
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Vertical,
                 FixedPanel = FixedPanel.Panel2,
-                SplitterWidth = 2
+                SplitterWidth = 1,
+                BorderStyle = BorderStyle.None,
+                BackColor = DesignTokens.BgTertiary
             };
 
             // 默认折叠左侧空白工作区（Panel1），避免树与预览之间出现多余留白
+            _topSplit.Panel1MinSize = 0;
+            _topSplit.SplitterDistance = 0;
+            _topSplit.IsSplitterFixed = true;
             _topSplit.Panel1Collapsed = true;
 
             _workArea = new WinFormsPanel

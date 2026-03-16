@@ -31,6 +31,7 @@ namespace WindowsFormsApp3.Presenters
         private readonly Services.IPdfProcessingService _pdfProcessingService;
         private readonly Interfaces.ILogger _logger;
         private readonly string _savedGridsPath;
+        private readonly IImpositionService _impositionService;
 
         private System.Windows.Forms.Timer _autoSaveTimer;
         private bool _isShutdownInProgress;
@@ -81,6 +82,7 @@ namespace WindowsFormsApp3.Presenters
                 _excelImportService = ServiceLocator.Instance.GetExcelImportService();
                 _pdfDimensionService = PdfDimensionServiceFactory.GetInstance();
                 _pdfProcessingService = new Services.PdfProcessingService();
+                _impositionService = new ImpositionService();
             }
             catch (Exception ex)
             {
@@ -287,6 +289,105 @@ namespace WindowsFormsApp3.Presenters
                 }
             }
             return "";
+        }
+
+        /// <summary>
+        /// 从缓存读取并更新两种排版模式的布局数量
+        /// </summary>
+        /// <param name="fileInfo">文件信息</param>
+        private void UpdateBothLayoutCountsAsync(FileRenameInfo fileInfo)
+        {
+            // 使用INFO级别日志确保能看见
+            _logger?.LogInformation($"[UpdateBothLayoutCountsAsync] 从缓存读取布局数 - AlwaysOutputBothLayoutCounts={AppSettings.AlwaysOutputBothLayoutCounts}");
+
+            try
+            {
+                // 从 LayoutResultsCache 读取布局结果
+                int flatSheetCount = LayoutResultsCache.FlatSheetLayoutCount;
+                int flatSheetRows = LayoutResultsCache.FlatSheetRows;
+                int flatSheetCols = LayoutResultsCache.FlatSheetColumns;
+
+                int rollCount = LayoutResultsCache.RollMaterialLayoutCount;
+                int rollRows = LayoutResultsCache.RollMaterialRows;
+                int rollCols = LayoutResultsCache.RollMaterialColumns;
+
+                _logger?.LogInformation($"[UpdateBothLayoutCountsAsync] 缓存读取: FlatSheet={flatSheetCount}({flatSheetRows}x{flatSheetCols}), Roll={rollCount}({rollRows}x{rollCols})");
+
+                // 根据设置和用户选择的模式决定如何显示
+                if (AppSettings.AlwaysOutputBothLayoutCounts)
+                {
+                    // 启用同时输出：两列都显示计算值
+                    fileInfo.FlatSheetLayoutCount = flatSheetCount > 0 ? flatSheetCount.ToString() : "";
+                    fileInfo.FlatSheetLayoutRows = flatSheetRows > 0 ? flatSheetRows.ToString() : "";
+                    fileInfo.FlatSheetLayoutColumns = flatSheetCols > 0 ? flatSheetCols.ToString() : "";
+                    fileInfo.RollMaterialLayoutCount = rollCount > 0 ? rollCount.ToString() : "";
+                    fileInfo.RollMaterialLayoutRows = rollRows > 0 ? rollRows.ToString() : "";
+                    fileInfo.RollMaterialLayoutColumns = rollCols > 0 ? rollCols.ToString() : "";
+
+                    // 根据用户选择的模式设置 LayoutRows/LayoutColumns 用于重命名输出
+                    if (_currentImpositionMaterialType == "FlatSheet")
+                    {
+                        fileInfo.LayoutRows = flatSheetRows > 0 ? flatSheetRows.ToString() : "";
+                        fileInfo.LayoutColumns = flatSheetCols > 0 ? flatSheetCols.ToString() : "";
+                    }
+                    else if (_currentImpositionMaterialType == "RollMaterial")
+                    {
+                        fileInfo.LayoutRows = rollRows > 0 ? rollRows.ToString() : "";
+                        fileInfo.LayoutColumns = rollCols > 0 ? rollCols.ToString() : "";
+                    }
+                    else
+                    {
+                        fileInfo.LayoutRows = "";
+                        fileInfo.LayoutColumns = "";
+                    }
+                }
+                else
+                {
+                    // 未启用同时输出：只在对应列显示布局数
+                    if (_currentImpositionMaterialType == "FlatSheet")
+                    {
+                        fileInfo.FlatSheetLayoutCount = flatSheetCount > 0 ? flatSheetCount.ToString() : "";
+                        fileInfo.FlatSheetLayoutRows = flatSheetRows > 0 ? flatSheetRows.ToString() : "";
+                        fileInfo.FlatSheetLayoutColumns = flatSheetCols > 0 ? flatSheetCols.ToString() : "";
+                        fileInfo.RollMaterialLayoutCount = ""; // 卷装列清空
+                        fileInfo.RollMaterialLayoutRows = "";
+                        fileInfo.RollMaterialLayoutColumns = "";
+                        fileInfo.LayoutRows = flatSheetRows > 0 ? flatSheetRows.ToString() : "";
+                        fileInfo.LayoutColumns = flatSheetCols > 0 ? flatSheetCols.ToString() : "";
+                    }
+                    else if (_currentImpositionMaterialType == "RollMaterial")
+                    {
+                        fileInfo.FlatSheetLayoutCount = ""; // 平张列清空
+                        fileInfo.FlatSheetLayoutRows = "";
+                        fileInfo.FlatSheetLayoutColumns = "";
+                        fileInfo.RollMaterialLayoutCount = rollCount > 0 ? rollCount.ToString() : "";
+                        fileInfo.RollMaterialLayoutRows = rollRows > 0 ? rollRows.ToString() : "";
+                        fileInfo.RollMaterialLayoutColumns = rollCols > 0 ? rollCols.ToString() : "";
+                        fileInfo.LayoutRows = rollRows > 0 ? rollRows.ToString() : "";
+                        fileInfo.LayoutColumns = rollCols > 0 ? rollCols.ToString() : "";
+                    }
+                    else
+                    {
+                        fileInfo.FlatSheetLayoutCount = "";
+                        fileInfo.FlatSheetLayoutRows = "";
+                        fileInfo.FlatSheetLayoutColumns = "";
+                        fileInfo.RollMaterialLayoutCount = "";
+                        fileInfo.RollMaterialLayoutRows = "";
+                        fileInfo.RollMaterialLayoutColumns = "";
+                        fileInfo.LayoutRows = "";
+                        fileInfo.LayoutColumns = "";
+                    }
+                }
+
+                // 记录添加行时的是否启用高亮设置，之后不受设置变化影响
+                fileInfo.HighlightApplied = AppSettings.AlwaysOutputBothLayoutCounts;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, $"[UpdateBothLayoutCountsAsync] 更新布局数失败: {fileInfo.OriginalName}");
+                fileInfo.FlatSheetLayoutCount = "";
+                fileInfo.RollMaterialLayoutCount = "";
+            }
         }
 
         /// <summary>
@@ -1001,7 +1102,10 @@ namespace WindowsFormsApp3.Presenters
                             currentFileInfo.LayoutColumns = selectionResult.LayoutColumns ?? "";
                             // ✅ 设置排版模式
                             currentFileInfo.ImpositionMode = GetImpositionModeString();
-                            
+
+                            // ✅ 计算平张布局数量（仅输出到平张布局数列）
+                            UpdateBothLayoutCountsAsync(currentFileInfo);
+
                             // 应用当前索引对应的数量和序号
                             currentFileInfo.Quantity = i < quantities.Length ? quantities[i] : quantities[quantities.Length - 1];
                             currentFileInfo.SerialNumber = i < serialNumbers.Length ? serialNumbers[i] : serialNumbers[serialNumbers.Length - 1];
@@ -1128,6 +1232,9 @@ namespace WindowsFormsApp3.Presenters
                             // ✅ 设置排版模式
                             currentFileInfo.ImpositionMode = GetImpositionModeString();
 
+                            // ✅ 计算平张布局数量（仅输出到平张布局数列）
+                            UpdateBothLayoutCountsAsync(currentFileInfo);
+
                             // 生成新文件名
                             currentFileInfo.NewName = GenerateNewFileName(currentFileInfo);
 
@@ -1155,6 +1262,9 @@ namespace WindowsFormsApp3.Presenters
                         
                         // ✅ 设置排版模式
                         fileInfo.ImpositionMode = GetImpositionModeString();
+
+                        // ✅ 计算平张布局数量（仅输出到平张布局数列）
+                        UpdateBothLayoutCountsAsync(fileInfo);
 
                         // 生成新文件名
                         fileInfo.NewName = GenerateNewFileName(fileInfo);
@@ -2501,6 +2611,13 @@ namespace WindowsFormsApp3.Presenters
             target.SerialNumber = source.SerialNumber;
             target.Shape = source.Shape;
             target.ImpositionMode = source.ImpositionMode; // Also verify this one while I am at it
+            target.FlatSheetLayoutCount = source.FlatSheetLayoutCount;
+            target.RollMaterialLayoutCount = source.RollMaterialLayoutCount;
+            target.FlatSheetLayoutRows = source.FlatSheetLayoutRows;
+            target.FlatSheetLayoutColumns = source.FlatSheetLayoutColumns;
+            target.RollMaterialLayoutRows = source.RollMaterialLayoutRows;
+            target.RollMaterialLayoutColumns = source.RollMaterialLayoutColumns;
+            target.HighlightApplied = source.HighlightApplied;
         }
 
         /// <summary>
@@ -2573,6 +2690,15 @@ namespace WindowsFormsApp3.Presenters
                 _logger?.LogError(ex, "处理单元格值变化失败");
             }
         }
+
+        #endregion
+
+        #region 排版材料类型
+
+        /// <summary>
+        /// 获取当前排版材料类型
+        /// </summary>
+        public string CurrentImpositionMaterialType => _currentImpositionMaterialType;
 
         #endregion
 

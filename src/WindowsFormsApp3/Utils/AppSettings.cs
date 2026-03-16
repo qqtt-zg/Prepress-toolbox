@@ -164,6 +164,18 @@ namespace WindowsFormsApp3.Utils
             set => Instance.MaterialFormPreviewExpanded = value;
         }
 
+        public static System.Collections.Generic.List<Models.MaterialSelectionPreset> MaterialPresets
+        {
+            get => Instance.MaterialPresets;
+            set => Instance.MaterialPresets = value;
+        }
+
+        public static string LastUsedMaterialPreset
+        {
+            get => Instance.LastUsedMaterialPreset;
+            set => Instance.LastUsedMaterialPreset = value;
+        }
+
         public static string LastExportPath
         {
             get => Instance.LastExportPath;
@@ -376,6 +388,15 @@ namespace WindowsFormsApp3.Utils
         {
             get => GetValue<bool>("EnableDailyJson", true);
             set => SetValue("EnableDailyJson", value);
+        }
+
+        /// <summary>
+        /// 同时输出排版模式布局数
+        /// </summary>
+        public static bool AlwaysOutputBothLayoutCounts
+        {
+            get => GetValue<bool>("AlwaysOutputBothLayoutCounts", false);
+            set => SetValue("AlwaysOutputBothLayoutCounts", value);
         }
 
         public static bool EnableDynamicFileReadyTimeout

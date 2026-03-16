@@ -83,6 +83,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.Shape = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.CompositeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.LayoutCount = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.RollMaterialLayoutCount = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Process = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.PageCount = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Time = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -397,6 +398,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.Shape,
             this.CompositeColumn,
             this.LayoutCount,
+            this.RollMaterialLayoutCount,
             this.Process,
             this.PageCount,
             this.Time});
@@ -522,17 +524,26 @@ namespace WindowsFormsApp3.Forms.Panels
             this.CompositeColumn.Name = "CompositeColumn";
             this.CompositeColumn.ReadOnly = true;
             // 
-            // LayoutCount
-            // 
-            this.LayoutCount.DataPropertyName = "LayoutCount";
+            // LayoutCount (平张)
+            //
+            this.LayoutCount.DataPropertyName = "FlatSheetLayoutCount";
             this.LayoutCount.FillWeight = 4F;
-            this.LayoutCount.HeaderText = "布局数";
+            this.LayoutCount.HeaderText = "平张";
             this.LayoutCount.MinimumWidth = 40;
             this.LayoutCount.Name = "LayoutCount";
             this.LayoutCount.ReadOnly = true;
-            // 
+            //
+            // RollMaterialLayoutCount (卷装)
+            //
+            this.RollMaterialLayoutCount.DataPropertyName = "RollMaterialLayoutCount";
+            this.RollMaterialLayoutCount.FillWeight = 4F;
+            this.RollMaterialLayoutCount.HeaderText = "卷装";
+            this.RollMaterialLayoutCount.MinimumWidth = 40;
+            this.RollMaterialLayoutCount.Name = "RollMaterialLayoutCount";
+            this.RollMaterialLayoutCount.ReadOnly = true;
+            //
             // Process
-            // 
+            //
             this.Process.DataPropertyName = "Process";
             this.Process.FillWeight = 5F;
             this.Process.HeaderText = "工艺";
@@ -651,6 +662,7 @@ namespace WindowsFormsApp3.Forms.Panels
         private System.Windows.Forms.DataGridViewTextBoxColumn Shape;
         private System.Windows.Forms.DataGridViewTextBoxColumn CompositeColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn LayoutCount;
+        private System.Windows.Forms.DataGridViewTextBoxColumn RollMaterialLayoutCount;
         private System.Windows.Forms.DataGridViewTextBoxColumn Process;
         private System.Windows.Forms.DataGridViewTextBoxColumn PageCount;
         private System.Windows.Forms.DataGridViewTextBoxColumn Time;

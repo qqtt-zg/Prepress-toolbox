@@ -23,6 +23,13 @@ namespace WindowsFormsApp3
         private string _process;
         private string _layoutRows;
         private string _layoutColumns;
+        private string _flatSheetLayoutCount; // 平张布局数量
+        private string _rollMaterialLayoutCount; // 卷装布局数量
+        private string _flatSheetLayoutRows; // 平张布局行数
+        private string _flatSheetLayoutColumns; // 平张布局列数
+        private string _rollMaterialLayoutRows; // 卷装布局行数
+        private string _rollMaterialLayoutColumns; // 卷装布局列数
+        private bool _highlightApplied; // 高亮是否已应用（记录添加行时的设置状态）
         private string _time;
         private string _status;
         private string _errorMessage;
@@ -144,6 +151,65 @@ namespace WindowsFormsApp3
                 }
                 return "";
             }
+        }
+        public string FlatSheetLayoutCount
+        {
+            get { return _flatSheetLayoutCount; }
+            set { _flatSheetLayoutCount = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// 卷装布局数量
+        /// </summary>
+        public string RollMaterialLayoutCount
+        {
+            get { return _rollMaterialLayoutCount; }
+            set { _rollMaterialLayoutCount = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// 平张布局行数
+        /// </summary>
+        public string FlatSheetLayoutRows
+        {
+            get { return _flatSheetLayoutRows; }
+            set { _flatSheetLayoutRows = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// 平张布局列数
+        /// </summary>
+        public string FlatSheetLayoutColumns
+        {
+            get { return _flatSheetLayoutColumns; }
+            set { _flatSheetLayoutColumns = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// 卷装布局行数
+        /// </summary>
+        public string RollMaterialLayoutRows
+        {
+            get { return _rollMaterialLayoutRows; }
+            set { _rollMaterialLayoutRows = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// 卷装布局列数
+        /// </summary>
+        public string RollMaterialLayoutColumns
+        {
+            get { return _rollMaterialLayoutColumns; }
+            set { _rollMaterialLayoutColumns = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// 高亮是否已应用（记录添加行时的设置状态）
+        /// </summary>
+        public bool HighlightApplied
+        {
+            get { return _highlightApplied; }
+            set { _highlightApplied = value; OnPropertyChanged(); }
         }
         public string Time
         {
@@ -491,7 +557,14 @@ namespace WindowsFormsApp3
                 FileExtension = this.FileExtension,
                 ImpositionMode = this.ImpositionMode,
                 IsPreserveMode = this.IsPreserveMode,
-                Shape = this.Shape
+                Shape = this.Shape,
+                FlatSheetLayoutCount = this.FlatSheetLayoutCount,
+                RollMaterialLayoutCount = this.RollMaterialLayoutCount,
+                FlatSheetLayoutRows = this.FlatSheetLayoutRows,
+                FlatSheetLayoutColumns = this.FlatSheetLayoutColumns,
+                RollMaterialLayoutRows = this.RollMaterialLayoutRows,
+                RollMaterialLayoutColumns = this.RollMaterialLayoutColumns,
+                HighlightApplied = this.HighlightApplied
             };
 
             // 深拷贝字典

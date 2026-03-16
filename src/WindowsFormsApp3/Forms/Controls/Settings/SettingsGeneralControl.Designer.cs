@@ -17,6 +17,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private AntdUI.Label lblAutoSaveSeconds;
         private System.Windows.Forms.NumericUpDown numAutoSaveSeconds;
         private AntdUI.Checkbox chkEnableDailyJson;
+        private AntdUI.Checkbox chkAlwaysOutputBothLayoutCounts;
 
         protected override void Dispose(bool disposing)
         {
@@ -41,6 +42,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.lblAutoSaveSeconds = new AntdUI.Label();
             this.numAutoSaveSeconds = new System.Windows.Forms.NumericUpDown();
             this.chkEnableDailyJson = new AntdUI.Checkbox();
+            this.chkAlwaysOutputBothLayoutCounts = new AntdUI.Checkbox();
             ((System.ComponentModel.ISupportInitialize)(this.numAutoSaveSeconds)).BeginInit();
             this.SuspendLayout();
             // 
@@ -146,17 +148,26 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             0,
             0,
             0});
-            // 
+            //
             // chkEnableDailyJson
-            // 
+            //
             this.chkEnableDailyJson.Location = new System.Drawing.Point(20, 260);
             this.chkEnableDailyJson.Name = "chkEnableDailyJson";
             this.chkEnableDailyJson.Size = new System.Drawing.Size(260, 32);
             this.chkEnableDailyJson.TabIndex = 11;
             this.chkEnableDailyJson.Text = "启用当日JSON自动创建/加载";
-            // 
+            //
+            // chkAlwaysOutputBothLayoutCounts
+            //
+            this.chkAlwaysOutputBothLayoutCounts.Location = new System.Drawing.Point(20, 300);
+            this.chkAlwaysOutputBothLayoutCounts.Name = "chkAlwaysOutputBothLayoutCounts";
+            this.chkAlwaysOutputBothLayoutCounts.Size = new System.Drawing.Size(260, 32);
+            this.chkAlwaysOutputBothLayoutCounts.TabIndex = 12;
+            this.chkAlwaysOutputBothLayoutCounts.Text = "同时输出排版模式布局数";
+            //
             // SettingsGeneralControl
-            // 
+            //
+            this.Controls.Add(this.chkAlwaysOutputBothLayoutCounts);
             this.Controls.Add(this.chkEnableDailyJson);
             this.Controls.Add(this.numAutoSaveSeconds);
             this.Controls.Add(this.lblAutoSaveSeconds);

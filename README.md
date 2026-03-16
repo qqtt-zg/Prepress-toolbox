@@ -166,6 +166,46 @@
 - 响应式布局
 - 字体自定义功能
 
+## 项目架构
+
+本项目采用 **MVP (Model-View-Presenter)** 架构思想，结合 **服务定位器 (Service Locator)** 模式，实现了高度模块化和可扩展的设计。
+
+### 核心设计原则
+
+- **插件化面板 (Plugin-based Panels)**: 主窗体 `MainShellForm` 作为一个外壳，根据导航指令动态加载并切换不同的功能面板（UserControls）。
+- **统一服务管理**: 通过 `ServiceLocator` 统一管理日志、配置、主题和数据完整性检查服务。
+- **混合渲染技术**: 结合原生 WinForms、AntdUI 组件库以及基于 Chromium (CefSharp) 的 PDF 渲染引擎，兼顾性能与美观。
+- **命令模式 (Command Pattern)**: 实现撤销/重做机制，确保批量操作的安全性。
+
+### 模块职责划分
+
+- **UI 层**: 位于 `Forms/` 和 `Controls/`，负责交互逻辑与视觉呈现。
+- **逻辑服务层**: 位于 `Services/`，包含文件匹配算法、PDF 拼版逻辑、Excel 解析引擎。
+- **数据层**: 位于 `Models/`，定义了项目内流转的核心数据结构。
+- **基础设施**: 位于 `Utils/` 和 `Helpers/`，提供 IO 辅助、加密、热键管理等通用能力。
+
+## 📂 详细目录结构
+
+```text
+src/WindowsFormsApp3/
+├── Forms/                    # 窗体与交互中心
+│   ├── Main/                 # 主框架 (MainShellForm)
+│   ├── Panels/               # 独立业务功能面板 (重命名、PDF、拼版等)
+│   ├── Dialogs/              # 业务弹出对话框
+│   └── Utils/                # UI 辅助工具窗体 (如悬浮球)
+├── Services/                 # 核心业务逻辑实现
+│   ├── Imposition/           # 拼版服务引擎
+│   └── DataIntegrity/        # 数据完整性与修复服务
+├── Models/                   # 核心数据模型 (POCOs)
+├── Controls/                 # 自定义 UI 组件
+│   ├── Printing/             # 印刷相关专用控件
+│   └── Svg/                  # 基于 SVG 的现代化控件
+├── Commands/                 # 命令模式实现 (支持撤销/重做)
+├── Utils/                    # 静态工具类库 (LogHelper, AppSettings)
+├── Resources/                # 静态资源 (图标、pdfjs 桥接文件)
+└── Test/                     # 内部测试与生成工具
+```
+
 ## 技术栈
 
 - **框架**: .NET Framework 4.8

@@ -387,12 +387,15 @@ namespace WindowsFormsApp3.Forms.Panels
             // 绑定右键菜单事件
             _fileTable.CellClick += FileTable_CellClick;
             _fileTable.CellMouseUp += FileTable_CellMouseUp;
-            
+
             // 绑定行头序号绘制事件
             _fileTable.RowPostPaint += FileTable_RowPostPaint;
-            
-            // ✅ 绑定行预绘制事件，用于高亮“已匹配”的行
+
+            // ✅ 绑定行预绘制事件，用于高亮”已匹配”的行
             _fileTable.RowPrePaint += FileTable_RowPrePaint;
+
+            // ✅ 绑定单元格格式化事件，用于高亮平张/卷装列
+            _fileTable.CellFormatting += FileTable_CellFormatting;
 
             // 初始化列头右键菜单
             InitializeColumnHeaderContextMenu();
@@ -435,6 +438,52 @@ namespace WindowsFormsApp3.Forms.Panels
                 {
                     _fileTable.Rows[e.RowIndex].DefaultCellStyle.BackColor = Color.FromArgb(240, 255, 240); // Honeydew
                     _fileTable.Rows[e.RowIndex].DefaultCellStyle.SelectionBackColor = Color.FromArgb(200, 240, 200);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 单元格格式化事件处理 - 高亮平张/卷装列
+        /// </summary>
+        private void FileTable_CellFormatting(object sender, System.Windows.Forms.DataGridViewCellFormattingEventArgs e)
+        {
+            // 只处理平张列和卷装列
+            string columnName = _fileTable.Columns[e.ColumnIndex].Name;
+            if (columnName != "LayoutCount" && columnName != "RollMaterialLayoutCount")
+                return;
+
+            // 获取当前行的数据
+            if (e.RowIndex < 0 || e.RowIndex >= _fileTable.Rows.Count)
+                return;
+
+            var row = _fileTable.Rows[e.RowIndex];
+            if (row.DataBoundItem is not FileRenameInfo fileInfo)
+                return;
+
+            // 获取该行的材料类型（ImpositionMode），而不是全局的
+            string rowMaterialType = fileInfo.ImpositionMode ?? "";
+
+            // 只有该行添加时启用"同时输出排版模式布局数"设置时才高亮（记录在行数据中）
+            if (!fileInfo.HighlightApplied)
+                return;
+
+            // 获取单元格值
+            var cellValue = e.Value?.ToString() ?? "";
+
+            // 如果单元格有值，才进行高亮
+            if (!string.IsNullOrEmpty(cellValue))
+            {
+                // 橙色高亮
+                Color highlightColor = Color.FromArgb(255, 240, 200); // 浅橙色
+
+                // 根据该行的 ImpositionMode 决定是否高亮
+                if (columnName == "LayoutCount" && rowMaterialType == "平张")
+                {
+                    e.CellStyle.BackColor = highlightColor;
+                }
+                else if (columnName == "RollMaterialLayoutCount" && rowMaterialType == "卷装")
+                {
+                    e.CellStyle.BackColor = highlightColor;
                 }
             }
         }

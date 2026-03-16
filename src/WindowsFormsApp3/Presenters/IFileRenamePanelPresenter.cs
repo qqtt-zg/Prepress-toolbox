@@ -302,6 +302,15 @@ namespace WindowsFormsApp3.Presenters
 
         #endregion
 
+        #region 排版材料类型
+
+        /// <summary>
+        /// 获取当前排版材料类型（FlatSheet 或 RollMaterial）
+        /// </summary>
+        string CurrentImpositionMaterialType { get; }
+
+        #endregion
+
         #region 工具方法
 
         /// <summary>

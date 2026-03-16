@@ -104,6 +104,10 @@ namespace WindowsFormsApp3.Services
             public FormWindowState MaterialFormWindowState { get; set; } = FormWindowState.Normal;
             public bool MaterialFormPreviewExpanded { get; set; } = false; // PDF预览状态
 
+            // 材料选择预设
+            public List<Models.MaterialSelectionPreset> MaterialPresets { get; set; } = new List<Models.MaterialSelectionPreset>();
+            public string LastUsedMaterialPreset { get; set; } = "";
+
             // 正则表达式变化自动刷新配置
             public bool AutoRefreshFileNameOnRegexChange { get; set; } = false;
 
@@ -394,6 +398,18 @@ namespace WindowsFormsApp3.Services
         {
             get => _settings.MaterialFormPreviewExpanded;
             set { _settings.MaterialFormPreviewExpanded = value; MarkAsChanged(); }
+        }
+
+        public List<Models.MaterialSelectionPreset> MaterialPresets
+        {
+            get => _settings.MaterialPresets;
+            set { _settings.MaterialPresets = value; MarkAsChanged(); }
+        }
+
+        public string LastUsedMaterialPreset
+        {
+            get => _settings.LastUsedMaterialPreset;
+            set { _settings.LastUsedMaterialPreset = value; MarkAsChanged(); }
         }
 
         public string LastExportPath

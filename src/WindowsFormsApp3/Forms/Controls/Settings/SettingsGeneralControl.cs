@@ -19,7 +19,8 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private const string RenameNotificationKey = "ShowRenameCompleteNotification";
         private const string AutoSaveIntervalSecondsKey = "AutoSaveIntervalSeconds";
         private const string EnableDailyJsonKey = "EnableDailyJson";
-        
+        private const string AlwaysOutputBothLayoutCountsKey = "AlwaysOutputBothLayoutCounts";
+
         public SettingsGeneralControl()
         {
             InitializeComponent();
@@ -74,6 +75,10 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             object enableDailyJson = AppSettings.Get(EnableDailyJsonKey);
             chkEnableDailyJson.Checked = enableDailyJson is bool b ? b : true;
 
+            // 同时输出排版模式布局数开关
+            object alwaysOutputBothLayoutCounts = AppSettings.Get(AlwaysOutputBothLayoutCountsKey);
+            chkAlwaysOutputBothLayoutCounts.Checked = alwaysOutputBothLayoutCounts is bool b2 ? b2 : false;
+
             // 开关变化时实时启用/禁用自动保存相关控件
             chkEnableDailyJson.CheckedChanged += (s, e) => UpdateAutoSaveControlsEnabledState();
 
@@ -102,7 +107,10 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 
             // 当日JSON自动创建/加载开关
             AppSettings.Set(EnableDailyJsonKey, chkEnableDailyJson.Checked);
-            
+
+            // 同时输出排版模式布局数开关
+            AppSettings.Set(AlwaysOutputBothLayoutCountsKey, chkAlwaysOutputBothLayoutCounts.Checked);
+
             AppSettings.Save();
             
             SettingsSaved?.Invoke(this, EventArgs.Empty);

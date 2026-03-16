@@ -200,6 +200,10 @@ namespace WindowsFormsApp3
         // 一式两联复选框状态
         private bool _isDuplicateLayoutEnabled = false;
 
+        // 预设右键菜单
+        private System.Windows.Forms.ContextMenuStrip _presetContextMenu;
+        private string _currentPresetName = "";
+
         // 配置数据结构
         public class ExportFolderConfig
         {
@@ -207,6 +211,15 @@ namespace WindowsFormsApp3
             public string Path { get; set; }
             public bool Enabled { get; set; } = true;
             public string Icon { get; set; } = "folder"; // Changed default to "folder" key
+
+            // 预设参数绑定（通过导出路径快速选择预设）
+            public string PresetMaterial { get; set; } = "";      // 预设材料
+            public string PresetBleed { get; set; } = "";        // 预设出血值
+            public string PresetColorMode { get; set; } = "";    // 预设颜色模式
+            public string PresetFilmType { get; set; } = "";     // 预设膜类型
+            public bool PresetAddIdentifierPage { get; set; } = false; // 预设标识页
+            public string PresetShape { get; set; } = "";        // 预设形状
+            public bool PresetDualCopy { get; set; } = false;   // 预设一式两联
         }
 
         // 路径项数据结构
@@ -266,6 +279,9 @@ namespace WindowsFormsApp3
 
             // 使用设计器中的窗口尺寸，不再动态调整大小
             LoadMaterials();
+
+            // 初始化预设右键菜单
+            InitializePresetContextMenu();
 
             // 绑定窗口位置管理事件
             this.FormClosing += MaterialSelectFormModern_FormClosing;
@@ -710,6 +726,10 @@ namespace WindowsFormsApp3
             SetCurrentFileName(fileName);
 
             LoadMaterials();
+
+            // 初始化预设右键菜单
+            InitializePresetContextMenu();
+
             InitializeEventHandlers();
             InitializeFolderTree(); // 初始化文件夹菜单
 
@@ -1539,12 +1559,35 @@ namespace WindowsFormsApp3
 
                 LogHelper.Debug($"从AppSettings.ExportPaths加载了 {exportPaths.Count} 个导出路径");
 
+                // 加载预设配置
+                var presetSettingsObj = AppSettings.Get("ExportPathPresetSettings");
+                Dictionary<string, Dictionary<string, object>> presetSettings = null;
+                if (presetSettingsObj != null)
+                {
+                    try
+                    {
+                        var json = presetSettingsObj.ToString();
+                        presetSettings = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, object>>>(json);
+                    }
+                    catch
+                    {
+                        presetSettings = new Dictionary<string, Dictionary<string, object>>();
+                    }
+                }
+                else
+                {
+                    presetSettings = new Dictionary<string, Dictionary<string, object>>();
+                }
+
                 foreach (var path in exportPaths)
                 {
                     if (string.IsNullOrEmpty(path)) continue;
 
                     try
                     {
+                        // 获取预设配置
+                        var preset = presetSettings.ContainsKey(path) ? presetSettings[path] : null;
+
                         if (Directory.Exists(path))
                         {
                             var folderName = Path.GetFileName(path);
@@ -1553,13 +1596,27 @@ namespace WindowsFormsApp3
                                 folderName = path; // 如果是根目录，使用完整路径
                             }
 
-                            folders.Add(new ExportFolderConfig
+                            var folderConfig = new ExportFolderConfig
                             {
                                 Name = folderName,
                                 Path = path,
                                 Icon = "📁",
                                 Enabled = true
-                            });
+                            };
+
+                            // 应用预设配置
+                            if (preset != null)
+                            {
+                                if (preset.ContainsKey("PresetMaterial")) folderConfig.PresetMaterial = preset["PresetMaterial"]?.ToString() ?? "";
+                                if (preset.ContainsKey("PresetBleed")) folderConfig.PresetBleed = preset["PresetBleed"]?.ToString() ?? "";
+                                if (preset.ContainsKey("PresetColorMode")) folderConfig.PresetColorMode = preset["PresetColorMode"]?.ToString() ?? "";
+                                if (preset.ContainsKey("PresetFilmType")) folderConfig.PresetFilmType = preset["PresetFilmType"]?.ToString() ?? "";
+                                if (preset.ContainsKey("PresetAddIdentifierPage")) folderConfig.PresetAddIdentifierPage = preset["PresetAddIdentifierPage"]?.ToString() == "True";
+                                if (preset.ContainsKey("PresetShape")) folderConfig.PresetShape = preset["PresetShape"]?.ToString() ?? "";
+                                if (preset.ContainsKey("PresetDualCopy")) folderConfig.PresetDualCopy = preset["PresetDualCopy"]?.ToString() == "True";
+                            }
+
+                            folders.Add(folderConfig);
 
                             LogHelper.Debug($"添加导出路径: {path} -> {folderName}");
                         }
@@ -1586,6 +1643,54 @@ namespace WindowsFormsApp3
                     catch (Exception pathEx)
                     {
                         LogHelper.Error($"处理导出路径失败: {path}, 错误: {pathEx.Message}");
+                    }
+                }
+
+                // 加载预设配置中的子文件夹（不在ExportPaths中的路径）
+                if (presetSettings != null)
+                {
+                    foreach (var presetPath in presetSettings.Keys)
+                    {
+                        // 跳过根路径（已在上面处理）
+                        if (exportPaths.Contains(presetPath)) continue;
+
+                        // 跳过不存在的路径
+                        if (!Directory.Exists(presetPath)) continue;
+
+                        try
+                        {
+                            var folderName = Path.GetFileName(presetPath);
+                            if (string.IsNullOrEmpty(folderName))
+                            {
+                                folderName = presetPath;
+                            }
+
+                            var folderConfig = new ExportFolderConfig
+                            {
+                                Name = folderName,
+                                Path = presetPath,
+                                Icon = "📂",
+                                Enabled = true
+                            };
+
+                            // 应用预设配置
+                            var preset = presetSettings[presetPath];
+                            if (preset.ContainsKey("PresetMaterial")) folderConfig.PresetMaterial = preset["PresetMaterial"]?.ToString() ?? "";
+                            if (preset.ContainsKey("PresetBleed")) folderConfig.PresetBleed = preset["PresetBleed"]?.ToString() ?? "";
+                            if (preset.ContainsKey("PresetColorMode")) folderConfig.PresetColorMode = preset["PresetColorMode"]?.ToString() ?? "";
+                            if (preset.ContainsKey("PresetFilmType")) folderConfig.PresetFilmType = preset["PresetFilmType"]?.ToString() ?? "";
+                            if (preset.ContainsKey("PresetAddIdentifierPage")) folderConfig.PresetAddIdentifierPage = preset["PresetAddIdentifierPage"]?.ToString() == "True";
+                            if (preset.ContainsKey("PresetShape")) folderConfig.PresetShape = preset["PresetShape"]?.ToString() ?? "";
+                            if (preset.ContainsKey("PresetDualCopy")) folderConfig.PresetDualCopy = preset["PresetDualCopy"]?.ToString() == "True";
+
+                            folders.Add(folderConfig);
+
+                            LogHelper.Debug($"添加子文件夹: {presetPath} -> {folderName}");
+                        }
+                        catch (Exception subFolderEx)
+                        {
+                            LogHelper.Error($"处理子文件夹失败: {presetPath}, 错误: {subFolderEx.Message}");
+                        }
                     }
                 }
 
@@ -1654,6 +1759,9 @@ namespace WindowsFormsApp3
 
                     // 保存选择的导出路径到设置
                     SaveSelectedExportPath();
+
+                    // 应用路径绑定的预设参数
+                    ApplyPathBoundPreset();
 
                     // 更新页面头部显示当前选择的路径（已改为显示文件名）
                     // UpdatePageHeaderWithSelectedPath(); // 改为显示文件名，不再显示导出路径
@@ -4186,6 +4294,546 @@ namespace WindowsFormsApp3
         }
 
         /// <summary>
+        /// 应用导出路径绑定的预设参数
+        /// </summary>
+        private void ApplyPathBoundPreset()
+        {
+            try
+            {
+                if (selectedTreeNode?.Tag == null) return;
+
+                string selectedPath = selectedTreeNode.Tag.ToString();
+                var folders = GetConfiguredExportFolders();
+
+                // 优先精确匹配当前路径的预设配置
+                var folderConfig = folders.FirstOrDefault(f => f.Path == selectedPath);
+
+                // 如果没有精确匹配，尝试查找父路径的预设配置（用于子路径继承父路径预设）
+                if (folderConfig == null || !HasPresetConfiguration(folderConfig))
+                {
+                    // 查找父路径
+                    var parentPath = FindParentConfiguredPath(selectedPath, folders);
+                    if (parentPath != null)
+                    {
+                        folderConfig = parentPath;
+                        LogHelper.Debug($"[路径预设] 子路径 {selectedPath} 继承父路径预设: {folderConfig.Name}");
+                    }
+                }
+
+                if (folderConfig == null || !HasPresetConfiguration(folderConfig)) return;
+
+                // 检查是否有绑定预设参数
+                bool hasPreset = HasPresetConfiguration(folderConfig);
+
+                if (!hasPreset) return;
+
+                LogHelper.Debug($"[路径预设] 应用绑定预设: {folderConfig.Name}");
+
+                // 应用材料
+                if (!string.IsNullOrEmpty(folderConfig.PresetMaterial))
+                {
+                    // 尝试在材料按钮中找到匹配的材料并点击
+                    var tabControl = Controls.OfType<AntdUI.Tabs>().FirstOrDefault();
+                    if (tabControl != null)
+                    {
+                        foreach (var tabPage in tabControl.Pages)
+                        {
+                            foreach (var btn in tabPage.Controls.OfType<AntdUI.Button>())
+                            {
+                                if (btn.Text == folderConfig.PresetMaterial)
+                                {
+                                    btn.PerformClick();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    // 如果按钮中没有找到，直接设置属性
+                    if (SelectedMaterial != folderConfig.PresetMaterial)
+                    {
+                        SelectedMaterial = folderConfig.PresetMaterial;
+                    }
+                }
+
+                // 应用出血值
+                if (!string.IsNullOrEmpty(folderConfig.PresetBleed) && bleedDropdown != null)
+                {
+                    for (int i = 0; i < bleedDropdown.Items.Count; i++)
+                    {
+                        if (bleedDropdown.Items[i].ToString() == folderConfig.PresetBleed)
+                        {
+                            bleedDropdown.SelectedIndex = i;
+                            SelectedTetBleed = double.TryParse(folderConfig.PresetBleed, out double bleed) ? bleed : 0;
+                            break;
+                        }
+                    }
+                }
+
+                // 应用颜色模式
+                if (!string.IsNullOrEmpty(folderConfig.PresetColorMode))
+                {
+                    ColorMode = folderConfig.PresetColorMode;
+                    SetColorModeButtonWithIcon(ColorMode);
+                    UpdateFixedField();
+                }
+
+                // 应用膜类型
+                if (!string.IsNullOrEmpty(folderConfig.PresetFilmType))
+                {
+                    int buttonIndex = -1;
+                    if (folderConfig.PresetFilmType == "光膜") buttonIndex = 0;
+                    else if (folderConfig.PresetFilmType == "哑膜") buttonIndex = 1;
+                    else if (folderConfig.PresetFilmType == "不过膜") buttonIndex = 2;
+                    else if (folderConfig.PresetFilmType == "红膜") buttonIndex = 3;
+
+                    if (buttonIndex >= 0)
+                    {
+                        SelectFilmType(folderConfig.PresetFilmType, buttonIndex);
+                    }
+                }
+
+                // 应用标识页
+                if (folderConfig.PresetAddIdentifierPage != AddIdentifierPage)
+                {
+                    AddIdentifierPage = folderConfig.PresetAddIdentifierPage;
+                    if (chkIdentifierPage != null)
+                    {
+                        chkIdentifierPage.Checked = AddIdentifierPage;
+                    }
+                }
+
+                // 应用形状
+                if (!string.IsNullOrEmpty(folderConfig.PresetShape))
+                {
+                    if (Enum.TryParse<ShapeType>(folderConfig.PresetShape, out var shapeType))
+                    {
+                        SelectShape(shapeType);
+                    }
+                }
+
+                // 应用一式两联
+                if (folderConfig.PresetDualCopy != _isDuplicateLayoutEnabled)
+                {
+                    _isDuplicateLayoutEnabled = folderConfig.PresetDualCopy;
+                    if (duplicateLayoutCheckbox != null)
+                    {
+                        duplicateLayoutCheckbox.Checked = _isDuplicateLayoutEnabled;
+                    }
+                }
+
+                LogHelper.Info($"[路径预设] 已应用预设: {folderConfig.Name}");
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[路径预设] 应用预设失败: {ex.Message}", ex);
+            }
+        }
+
+        #region 预设功能
+
+        /// <summary>
+        /// 检查是否有绑定预设参数
+        /// </summary>
+        private bool HasPresetConfiguration(ExportFolderConfig config)
+        {
+            if (config == null) return false;
+
+            return !string.IsNullOrEmpty(config.PresetMaterial) ||
+                   !string.IsNullOrEmpty(config.PresetBleed) ||
+                   !string.IsNullOrEmpty(config.PresetColorMode) ||
+                   !string.IsNullOrEmpty(config.PresetFilmType) ||
+                   config.PresetAddIdentifierPage ||
+                   !string.IsNullOrEmpty(config.PresetShape) ||
+                   config.PresetDualCopy;
+        }
+
+        /// <summary>
+        /// 查找父路径的预设配置（用于子路径继承）
+        /// </summary>
+        private ExportFolderConfig FindParentConfiguredPath(string childPath, List<ExportFolderConfig> folders)
+        {
+            if (string.IsNullOrEmpty(childPath) || folders == null) return null;
+
+            // 遍历所有配置的根路径，检查 childPath 是否是其子路径
+            foreach (var folder in folders)
+            {
+                if (string.IsNullOrEmpty(folder.Path)) continue;
+
+                // 检查 childPath 是否以 folder.Path 开头
+                if (childPath.StartsWith(folder.Path + Path.DirectorySeparatorChar) ||
+                    childPath.StartsWith(folder.Path + "\\"))
+                {
+                    // 找到父路径，检查父路径是否有预设配置
+                    if (HasPresetConfiguration(folder))
+                    {
+                        return folder;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        // 右键菜单消息常量
+        private const int WM_CONTEXTMENU = 0x007B;
+
+        /// <summary>
+        /// 重写窗口消息处理，捕获右键菜单
+        /// </summary>
+        protected override void WndProc(ref System.Windows.Forms.Message m)
+        {
+            if (m.Msg == WM_CONTEXTMENU && _presetContextMenu != null)
+            {
+                // 获取鼠标位置
+                int x = m.LParam.ToInt32() & 0xFFFF;
+                int y = m.LParam.ToInt32() >> 16;
+
+                // 如果是 -1,-1（由键盘触发），则显示在窗体中心
+                if (x == 0xFFFF && y == 0xFFFF)
+                {
+                    x = this.Width / 2;
+                    y = this.Height / 2;
+                }
+
+                // 转换屏幕坐标到客户端坐标
+                Point clientPoint = this.PointToClient(new Point(x, y));
+
+                // 显示右键菜单
+                UpdatePresetMenu();
+                _presetContextMenu.Show(this, clientPoint);
+                return;
+            }
+
+            base.WndProc(ref m);
+        }
+
+        /// <summary>
+        /// 初始化预设右键菜单
+        /// </summary>
+        private void InitializePresetContextMenu()
+        {
+            _presetContextMenu = new System.Windows.Forms.ContextMenuStrip();
+            _presetContextMenu.Items.Add("保存为预设...", null, (s, e) => SaveCurrentAsPreset());
+
+            // 添加分隔线
+            _presetContextMenu.Items.Add(new ToolStripSeparator());
+
+            // 添加分隔线（为预设列表预留位置）
+            _presetContextMenu.Items.Add(new ToolStripSeparator());
+
+            // 预留位置给预设列表（动态插入）
+            _presetContextMenu.Items.Add(new ToolStripMenuItem(""));
+
+            // 添加分隔线
+            _presetContextMenu.Items.Add(new ToolStripSeparator());
+
+            // 删除预设菜单项
+            var deleteItem = new ToolStripMenuItem("删除当前预设", null, (s, e) => DeleteCurrentPreset());
+            deleteItem.Enabled = !string.IsNullOrEmpty(_currentPresetName);
+            _presetContextMenu.Items.Add(deleteItem);
+
+            // 加载预设列表
+            UpdatePresetMenu();
+        }
+
+        /// <summary>
+        /// 更新预设菜单项
+        /// </summary>
+        private void UpdatePresetMenu()
+        {
+            if (_presetContextMenu == null) return;
+
+            // 索引2处是预设列表分隔线，索引3处是预设列表内容
+            // 获取预设列表
+            var presets = AppSettings.MaterialPresets;
+
+            // 移除旧的预设列表项（从索引3开始移除，直到遇到下一个分隔线）
+            while (_presetContextMenu.Items.Count > 4)
+            {
+                _presetContextMenu.Items.RemoveAt(3);
+            }
+
+            if (presets != null && presets.Count > 0)
+            {
+                foreach (var preset in presets)
+                {
+                    var menuItem = new ToolStripMenuItem(preset.Name, null, (s, e) => LoadPreset(preset.Name));
+                    if (preset.Name == _currentPresetName)
+                    {
+                        menuItem.Checked = true;
+                    }
+                    _presetContextMenu.Items.Insert(3, menuItem);
+                }
+            }
+            else
+            {
+                var noPresetItem = new ToolStripMenuItem("(无预设)");
+                noPresetItem.Enabled = false;
+                _presetContextMenu.Items.Insert(3, noPresetItem);
+            }
+        }
+
+        /// <summary>
+        /// 保存当前设置为预设
+        /// </summary>
+        private void SaveCurrentAsPreset()
+        {
+            // 弹出输入对话框让用户输入预设名称
+            using (var inputDialog = new Form())
+            {
+                inputDialog.Width = 300;
+                inputDialog.Height = 130;
+                inputDialog.FormBorderStyle = FormBorderStyle.FixedDialog;
+                inputDialog.Text = "保存预设";
+                inputDialog.StartPosition = FormStartPosition.CenterParent;
+                inputDialog.MaximizeBox = false;
+                inputDialog.MinimizeBox = false;
+
+                var label = new System.Windows.Forms.Label() { Left = 20, Top = 20, Text = "请输入预设名称:" };
+                var textBox = new System.Windows.Forms.TextBox() { Left = 20, Top = 45, Width = 250 };
+                var okButton = new System.Windows.Forms.Button() { Text = "确定", Left = 110, Width = 80, Top = 70, DialogResult = DialogResult.OK };
+                var cancelButton = new System.Windows.Forms.Button() { Text = "取消", Left = 195, Width = 80, Top = 70, DialogResult = DialogResult.Cancel };
+
+                inputDialog.Controls.Add(label);
+                inputDialog.Controls.Add(textBox);
+                inputDialog.Controls.Add(okButton);
+                inputDialog.Controls.Add(cancelButton);
+                inputDialog.AcceptButton = okButton;
+                inputDialog.CancelButton = cancelButton;
+
+                if (inputDialog.ShowDialog(this) == DialogResult.OK && !string.IsNullOrWhiteSpace(textBox.Text))
+                {
+                    string presetName = textBox.Text.Trim();
+
+                    // 创建预设
+                    var preset = new MaterialSelectionPreset
+                    {
+                        Name = presetName,
+                        SelectedMaterial = SelectedMaterial,
+                        TetBleed = SelectedTetBleed,
+                        ColorMode = ColorMode,
+                        FilmType = FilmType,
+                        AddIdentifierPage = AddIdentifierPage,
+                        ShapeState = SelectedShape.ToString(),
+                        IsDualCopy = _isDuplicateLayoutEnabled,
+                        ExportPath = SelectedExportPath ?? "",
+                        RoundRadius = RoundRadius
+                    };
+
+                    // 获取现有预设列表
+                    var presets = AppSettings.MaterialPresets ?? new List<MaterialSelectionPreset>();
+
+                    // 检查是否已存在同名预设
+                    var existingIndex = presets.FindIndex(p => p.Name == presetName);
+                    if (existingIndex >= 0)
+                    {
+                        // 询问是否覆盖
+                        var result = MessageBox.Show($"预设\"{presetName}\"已存在，是否覆盖？", "确认覆盖",
+                            MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                        if (result != DialogResult.Yes)
+                            return;
+                        presets[existingIndex] = preset;
+                    }
+                    else
+                    {
+                        presets.Add(preset);
+                    }
+
+                    // 保存到设置
+                    AppSettings.MaterialPresets = presets;
+                    AppSettings.LastUsedMaterialPreset = presetName;
+                    AppSettings.Save();
+
+                    // 更新当前预设名称
+                    _currentPresetName = presetName;
+
+                    // 更新菜单
+                    UpdatePresetMenu();
+
+                    LogHelper.Info($"[预设] 已保存预设: {presetName}");
+                    MessageBox.Show($"预设\"{presetName}\"保存成功！", "保存成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 加载预设
+        /// </summary>
+        private void LoadPreset(string presetName)
+        {
+            var presets = AppSettings.MaterialPresets;
+            if (presets == null) return;
+
+            var preset = presets.FirstOrDefault(p => p.Name == presetName);
+            if (preset == null) return;
+
+            try
+            {
+                // 加载材料
+                if (!string.IsNullOrEmpty(preset.SelectedMaterial))
+                {
+                    // 尝试在材料按钮中找到匹配的材料
+                    var tabControl = Controls.OfType<AntdUI.Tabs>().FirstOrDefault();
+                    if (tabControl != null)
+                    {
+                        foreach (var tabPage in tabControl.Pages)
+                        {
+                            foreach (var btn in tabPage.Controls.OfType<AntdUI.Button>())
+                            {
+                                if (btn.Text == preset.SelectedMaterial)
+                                {
+                                    // 模拟点击按钮来选中材料
+                                    btn.PerformClick();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // 如果按钮中没有找到，直接设置属性
+                    if (SelectedMaterial != preset.SelectedMaterial)
+                    {
+                        SelectedMaterial = preset.SelectedMaterial;
+                    }
+                }
+
+                // 加载出血值
+                if (preset.TetBleed >= 0 && bleedDropdown != null)
+                {
+                    // 尝试在出血值列表中找到匹配的值
+                    string bleedText = preset.TetBleed.ToString();
+                    bool found = false;
+                    for (int i = 0; i < bleedDropdown.Items.Count; i++)
+                    {
+                        if (bleedDropdown.Items[i].ToString() == bleedText)
+                        {
+                            bleedDropdown.SelectedIndex = i;
+                            SelectedTetBleed = preset.TetBleed;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                    {
+                        // 如果没找到匹配的，直接设置文本
+                        bleedDropdown.Text = bleedText;
+                        SelectedTetBleed = preset.TetBleed;
+                    }
+                }
+
+                // 加载颜色模式
+                if (!string.IsNullOrEmpty(preset.ColorMode))
+                {
+                    ColorMode = preset.ColorMode;
+                    SetColorModeButtonWithIcon(ColorMode);
+                    UpdateFixedField();
+                }
+
+                // 加载膜类型
+                if (!string.IsNullOrEmpty(preset.FilmType))
+                {
+                    // 根据膜类型选择对应的按钮索引
+                    int buttonIndex = -1;
+                    if (preset.FilmType == "光膜") buttonIndex = 0;
+                    else if (preset.FilmType == "哑膜") buttonIndex = 1;
+                    else if (preset.FilmType == "不过膜") buttonIndex = 2;
+                    else if (preset.FilmType == "红膜") buttonIndex = 3;
+
+                    if (buttonIndex >= 0)
+                    {
+                        SelectFilmType(preset.FilmType, buttonIndex);
+                    }
+                }
+
+                // 加载标识页
+                if (AddIdentifierPage != preset.AddIdentifierPage)
+                {
+                    AddIdentifierPage = preset.AddIdentifierPage;
+                    if (chkIdentifierPage != null)
+                    {
+                        chkIdentifierPage.Checked = AddIdentifierPage;
+                    }
+                }
+
+                // 加载形状
+                if (Enum.TryParse<ShapeType>(preset.ShapeState, out var shapeType))
+                {
+                    SelectShape(shapeType);
+                }
+
+                // 加载一式两联
+                if (preset.IsDualCopy != _isDuplicateLayoutEnabled)
+                {
+                    _isDuplicateLayoutEnabled = preset.IsDualCopy;
+                    if (duplicateLayoutCheckbox != null)
+                    {
+                        duplicateLayoutCheckbox.Checked = _isDuplicateLayoutEnabled;
+                    }
+                }
+
+                // 加载导出路径
+                if (!string.IsNullOrEmpty(preset.ExportPath) && Directory.Exists(preset.ExportPath))
+                {
+                    SelectedExportPath = preset.ExportPath;
+                }
+
+                // 加载圆角半径
+                RoundRadius = preset.RoundRadius;
+                if (radiusTextBox != null)
+                {
+                    radiusTextBox.Text = preset.RoundRadius > 0 ? preset.RoundRadius.ToString() : "";
+                }
+
+                // 保存当前预设名称
+                _currentPresetName = presetName;
+                AppSettings.LastUsedMaterialPreset = presetName;
+
+                // 更新菜单
+                UpdatePresetMenu();
+
+                LogHelper.Info($"[预设] 已加载预设: {presetName}");
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[预设] 加载预设失败: {ex.Message}", ex);
+                MessageBox.Show($"加载预设失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// 删除当前预设
+        /// </summary>
+        private void DeleteCurrentPreset()
+        {
+            if (string.IsNullOrEmpty(_currentPresetName))
+            {
+                MessageBox.Show("请先选择一个预设", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var result = MessageBox.Show($"确定要删除预设\"{_currentPresetName}\"吗？", "确认删除",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (result == DialogResult.Yes)
+            {
+                var presets = AppSettings.MaterialPresets;
+                if (presets != null)
+                {
+                    presets.RemoveAll(p => p.Name == _currentPresetName);
+                    AppSettings.MaterialPresets = presets;
+                    AppSettings.Save();
+
+                    _currentPresetName = "";
+                    UpdatePresetMenu();
+
+                    LogHelper.Info($"[预设] 已删除预设");
+                }
+            }
+        }
+
+        #endregion
+
+        /// <summary>
         /// 恢复上次选择的导出路径
         /// </summary>
         private void RestoreLastSelectedExportPath()
@@ -5386,12 +6034,22 @@ namespace WindowsFormsApp3
                     // 保存当前排版计算结果
                     _currentImpositionResult = result;
 
-                    // 更新布局计算结果缓存，用于重命名功能
-                    LayoutResultsCache.UpdateLayoutResults(result.Rows, result.Columns);
+                    // 更新布局计算结果缓存，用于重命名功能（根据用户选择的类型）
+                    if (config is FlatSheetConfiguration)
+                    {
+                        LayoutResultsCache.UpdateFlatSheetLayoutResults(result.Rows, result.Columns);
+                    }
+                    else if (config is RollMaterialConfiguration)
+                    {
+                        LayoutResultsCache.UpdateRollMaterialLayoutResults(result.Rows, result.Columns);
+                    }
 
                     // 更新显示实际计算结果
                     UpdateLayoutDisplay(result);
                     LogHelper.Debug($"[MaterialSelectFormModern] 布局计算完成: {result.Rows}x{result.Columns}, 利用率: {result.SpaceUtilization:F1}%, 旋转角度: {result.RotationAngle}°");
+
+                    // 计算两种布局数并缓存（用于平张列和卷装列同时显示）
+                    await CalculateBothLayoutTypesAsync(pdfInfo);
                 }
                 else
                 {
@@ -5413,6 +6071,149 @@ namespace WindowsFormsApp3
                 {
                     UpdateLayoutDisplay("计算错误");
                 }
+            }
+        }
+
+        /// <summary>
+        /// 计算平张和卷装两种布局类型并缓存结果
+        /// 用于平张列和卷装列同时显示
+        /// </summary>
+        private async Task CalculateBothLayoutTypesAsync(ImpositionPdfInfo pdfInfo)
+        {
+            try
+            {
+                if (pdfInfo == null)
+                    return;
+
+                // 获取平张配置
+                var flatSheetConfig = GetFlatSheetConfiguration();
+                // 获取卷装配置
+                var rollConfig = GetRollMaterialConfiguration();
+
+                ImpositionResult flatSheetResult = null;
+                ImpositionResult rollResult = null;
+
+                // 并行计算两种布局
+                if (flatSheetConfig != null)
+                {
+                    flatSheetResult = await _impositionService.CalculateFlatSheetLayoutAsync(flatSheetConfig, pdfInfo);
+                }
+
+                if (rollConfig != null)
+                {
+                    rollResult = await _impositionService.CalculateRollMaterialLayoutAsync(rollConfig, pdfInfo);
+                }
+
+                // 更新缓存
+                if (flatSheetResult != null && flatSheetResult.OptimalLayoutQuantity > 0)
+                {
+                    LayoutResultsCache.UpdateFlatSheetLayoutResults(flatSheetResult.Rows, flatSheetResult.Columns);
+                    LogHelper.Debug($"[MaterialSelectFormModern] 平张布局计算完成: {flatSheetResult.Rows}x{flatSheetResult.Columns}={flatSheetResult.OptimalLayoutQuantity}");
+                }
+                else
+                {
+                    LayoutResultsCache.UpdateFlatSheetLayoutResults(0, 0);
+                }
+
+                if (rollResult != null && rollResult.OptimalLayoutQuantity > 0)
+                {
+                    LayoutResultsCache.UpdateRollMaterialLayoutResults(rollResult.Rows, rollResult.Columns);
+                    LogHelper.Debug($"[MaterialSelectFormModern] 卷装布局计算完成: {rollResult.Rows}x{rollResult.Columns}={rollResult.OptimalLayoutQuantity}");
+                }
+                else
+                {
+                    LayoutResultsCache.UpdateRollMaterialLayoutResults(0, 0);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[MaterialSelectFormModern] 计算两种布局类型时发生错误: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 获取平张配置（从设置中加载）
+        /// </summary>
+        private FlatSheetConfiguration GetFlatSheetConfiguration()
+        {
+            try
+            {
+                var paperWidthStr = AppSettings.Get("Imposition_PaperWidth") as string;
+                var paperHeightStr = AppSettings.Get("Imposition_PaperHeight") as string;
+
+                if (string.IsNullOrEmpty(paperWidthStr) || string.IsNullOrEmpty(paperHeightStr))
+                    return null;
+
+                var paperWidth = GetFloatValue(paperWidthStr, 0);
+                var paperHeight = GetFloatValue(paperHeightStr, 0);
+
+                if (paperWidth <= 0 || paperHeight <= 0)
+                    return null;
+
+                var marginTopStr = AppSettings.Get("Imposition_MarginTop") as string;
+                var marginBottomStr = AppSettings.Get("Imposition_MarginBottom") as string;
+                var marginLeftStr = AppSettings.Get("Imposition_MarginLeft") as string;
+                var marginRightStr = AppSettings.Get("Imposition_MarginRight") as string;
+                var rowsStr = AppSettings.Get("Imposition_Rows") as string;
+                var columnsStr = AppSettings.Get("Imposition_Columns") as string;
+
+                return new FlatSheetConfiguration
+                {
+                    PaperWidth = paperWidth,
+                    PaperHeight = paperHeight,
+                    MarginTop = GetFloatValue(marginTopStr, 0),
+                    MarginBottom = GetFloatValue(marginBottomStr, 0),
+                    MarginLeft = GetFloatValue(marginLeftStr, 0),
+                    MarginRight = GetFloatValue(marginRightStr, 0),
+                    Rows = GetIntValue(rowsStr, 0),
+                    Columns = GetIntValue(columnsStr, 0)
+                };
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Warn($"[MaterialSelectFormModern] 获取平张配置失败: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 获取卷装配置（从设置中加载）
+        /// </summary>
+        private RollMaterialConfiguration GetRollMaterialConfiguration()
+        {
+            try
+            {
+                var rollWidthStr = AppSettings.Get("Imposition_FixedWidth") as string;
+                var minLengthStr = AppSettings.Get("Imposition_MinLength") as string;
+
+                if (string.IsNullOrEmpty(rollWidthStr) || string.IsNullOrEmpty(minLengthStr))
+                    return null;
+
+                var rollWidth = GetFloatValue(rollWidthStr, 0);
+                var minLength = GetFloatValue(minLengthStr, 0);
+
+                if (rollWidth <= 0 || minLength <= 0)
+                    return null;
+
+                var marginTopStr = AppSettings.Get("Imposition_RollMarginTop") as string;
+                var marginBottomStr = AppSettings.Get("Imposition_RollMarginBottom") as string;
+                var marginLeftStr = AppSettings.Get("Imposition_RollMarginLeft") as string;
+                var marginRightStr = AppSettings.Get("Imposition_RollMarginRight") as string;
+
+                return new RollMaterialConfiguration
+                {
+                    FixedWidth = rollWidth,
+                    MinLength = minLength,
+                    MarginTop = GetFloatValue(marginTopStr, 0),
+                    MarginBottom = GetFloatValue(marginBottomStr, 0),
+                    MarginLeft = GetFloatValue(marginLeftStr, 0),
+                    MarginRight = GetFloatValue(marginRightStr, 0)
+                };
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Warn($"[MaterialSelectFormModern] 获取卷装配置失败: {ex.Message}");
+                return null;
             }
         }
 
@@ -6416,8 +7217,15 @@ namespace WindowsFormsApp3
                     // 保存计算结果
                     _currentImpositionResult = result;
 
-                    // 更新布局计算结果缓存
-                    LayoutResultsCache.UpdateLayoutResults(result.Rows, result.Columns);
+                    // 更新布局计算结果缓存（根据用户选择的类型）
+                    if (materialType == "FlatSheet")
+                    {
+                        LayoutResultsCache.UpdateFlatSheetLayoutResults(result.Rows, result.Columns);
+                    }
+                    else
+                    {
+                        LayoutResultsCache.UpdateRollMaterialLayoutResults(result.Rows, result.Columns);
+                    }
 
                     // 更新显示
                     UpdateLayoutDisplay(result);
