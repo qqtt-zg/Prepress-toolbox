@@ -125,11 +125,13 @@ namespace WindowsFormsApp3.Services
         /// <param name="config">卷装模式配置</param>
         /// <param name="pdfInfo">PDF文件信息</param>
         /// <param name="cancellationToken">取消令牌</param>
+        /// <param name="rotationMode">卷装旋转模式（可选，默认null表示自动计算）</param>
         /// <returns>布局计算结果</returns>
         public async Task<ImpositionResult> CalculateRollMaterialLayoutAsync(
             RollMaterialConfiguration config,
             ImpositionPdfInfo pdfInfo,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            RollRotationMode? rotationMode = null)
         {
             if (config == null)
                 throw new ArgumentNullException(nameof(config));
@@ -176,7 +178,7 @@ namespace WindowsFormsApp3.Services
 
                     // 计算卷装布局（基于固定1行利用率最大化）
                     var result = CalculateRollMaterialLayoutOptimized(
-                        pageWidth, pageHeight, usableWidth, config, pdfInfo.PageRotation);
+                        pageWidth, pageHeight, usableWidth, config, pdfInfo.PageRotation, rotationMode);
 
                     result.MaterialType = MaterialType.RollMaterial;
                     result.Success = true;
@@ -1159,13 +1161,15 @@ namespace WindowsFormsApp3.Services
         /// <param name="usableWidth">可用宽度</param>
         /// <param name="config">配置</param>
         /// <param name="pdfPageRotation">PDF页面本身的旋转角度</param>
+        /// <param name="rotationMode">卷装旋转模式（可选，默认null表示自动计算）</param>
         /// <returns>布局计算结果</returns>
         private ImpositionResult CalculateRollMaterialLayoutOptimized(
             float pageWidth,
             float pageHeight,
             float usableWidth,
             RollMaterialConfiguration config,
-            int pdfPageRotation = 0)
+            int pdfPageRotation = 0,
+            RollRotationMode? rotationMode = null)
         {
             // 计算固定1行时的布局利用率（不旋转和旋转两种情况）
 
@@ -1195,26 +1199,36 @@ namespace WindowsFormsApp3.Services
             float widthUtilizationNormal = (usedWidthNormal / usableWidth) * 100;
             float widthUtilizationRotated = (usedWidthRotated / usableWidth) * 100;
 
-            // 选择最优旋转方向（优先级：1.宽度利用率 > 2.列数 > 3.空间利用率）
-            // 宽度利用率是最关键的，决定了能否充分利用卷材宽度
+            // 选择最优旋转方向（优先级：1.手动强制 > 2.宽度利用率 > 3.列数 > 4.空间利用率）
             bool useRotation = false;
-            
-            if (Math.Abs(widthUtilizationRotated - widthUtilizationNormal) > 0.1f) // 宽度利用率差异大于0.1%
+
+            // 如果指定了手动旋转模式，强制使用指定模式
+            if (rotationMode.HasValue && rotationMode.Value != RollRotationMode.Auto)
             {
-                // 优先选择宽度利用率更高的方案
-                useRotation = widthUtilizationRotated > widthUtilizationNormal;
+                // 强制模式
+                useRotation = (rotationMode.Value == RollRotationMode.Force270Degree);
+                LogHelper.Debug($"[ImpositionService] 卷装布局: 手动强制{(useRotation ? "270度" : "0度")}");
             }
-            else // 宽度利用率基本相同时
+            else
             {
-                if (columnsWithRotation != columnsWithoutRotation)
+                // 自动选择逻辑：宽度利用率是最关键的，决定了能否充分利用卷材宽度
+                if (Math.Abs(widthUtilizationRotated - widthUtilizationNormal) > 0.1f) // 宽度利用率差异大于0.1%
                 {
-                    // 选择列数更多的方案
-                    useRotation = columnsWithRotation > columnsWithoutRotation;
+                    // 优先选择宽度利用率更高的方案
+                    useRotation = widthUtilizationRotated > widthUtilizationNormal;
                 }
-                else
+                else // 宽度利用率基本相同时
                 {
-                    // 列数也相同，选择空间利用率更高的方案
-                    useRotation = utilizationRotated > utilizationNormal;
+                    if (columnsWithRotation != columnsWithoutRotation)
+                    {
+                        // 选择列数更多的方案
+                        useRotation = columnsWithRotation > columnsWithoutRotation;
+                    }
+                    else
+                    {
+                        // 列数也相同，选择空间利用率更高的方案
+                        useRotation = utilizationRotated > utilizationNormal;
+                    }
                 }
             }
 

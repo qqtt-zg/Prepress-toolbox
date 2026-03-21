@@ -31,7 +31,10 @@
       "Bash(\"C:/Program Files \\(x86\\)/Inno Setup 6/ISCC.exe\" D:/vibe_codeing/Prepress-toolbox/installers/Setup.iss)",
       "Bash(\"D:/vibe_codeing/Prepress-toolbox/src/WindowsFormsApp3/bin/Release/net48/win-x64/poppler/pdfinfo.exe\" \"C:/Users/admin/Desktop/合并文档 1.pdf\")",
       "Bash(\"D:/vibe_codeing/Prepress-toolbox/src/WindowsFormsApp3/bin/Debug/net48/win-x64/poppler/bin/pdfinfo.exe\" \"C:/Users/admin/Desktop/合并文档 1.pdf\" 2>&1)",
-      "Bash(\"C:/Program Files \\(x86\\)/Inno Setup 6/ISCC.exe\" installers/Setup.iss)"
+      "Bash(\"C:/Program Files \\(x86\\)/Inno Setup 6/ISCC.exe\" installers/Setup.iss)",
+      "Bash(where ISCC.exe)",
+      "Bash(ls \"C:/Program Files \\(x86\\)/Inno Setup 6/ISCC.exe\")",
+      "Read(//c/Program Files \\(x86\\)/Inno Setup 5/**)"
     ]
   }
 }

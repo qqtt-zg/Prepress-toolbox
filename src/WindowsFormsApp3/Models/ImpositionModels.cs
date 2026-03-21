@@ -65,6 +65,27 @@ namespace WindowsFormsApp3.Models
         Manual = 3
     }
 
+    /// <summary>
+    /// 卷装旋转模式枚举
+    /// </summary>
+    public enum RollRotationMode
+    {
+        /// <summary>
+        /// 自动（默认）
+        /// </summary>
+        Auto = 0,
+
+        /// <summary>
+        /// 强制0度（不旋转）
+        /// </summary>
+        Force0Degree = 1,
+
+        /// <summary>
+        /// 强制270度（旋转90度）
+        /// </summary>
+        Force270Degree = 2
+    }
+
     #endregion
 
     #region 配置模型

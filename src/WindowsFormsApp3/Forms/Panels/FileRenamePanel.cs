@@ -46,6 +46,9 @@ namespace WindowsFormsApp3.Forms.Panels
         // 拖拽操作模式
         private DropOperationMode _dropOperationMode = DropOperationMode.Default;
 
+        // 列顺序保存Timer（用于防抖）
+        private System.Windows.Forms.Timer _columnSaveTimer;
+
         public override string PanelKey => "rename";
         public override string DisplayName => "首页";
         public override string IconName => "HomeOutlined";
@@ -60,6 +63,14 @@ namespace WindowsFormsApp3.Forms.Panels
 
             // 设置下拉框列表宽度自适应内容
             _cmbJsonFiles.ListAutoWidth = true;
+
+            // 初始化列顺序保存Timer（用于防抖）
+            _columnSaveTimer = new System.Windows.Forms.Timer();
+            _columnSaveTimer.Interval = 1000; // 1秒延迟，避免频繁保存
+            _columnSaveTimer.Tick += (s, args) => {
+                _columnSaveTimer.Stop();
+                SaveColumnSettings();
+            };
         }
 
         protected override void InitializePanel()
@@ -157,7 +168,17 @@ namespace WindowsFormsApp3.Forms.Panels
             // Excel操作按钮（阶段5：迁移到Presenter）
             _btnImportExcel.Click += async (s, e) => await _presenter.HandleImportExcelAsync();
             _btnMatchExcel.Click += (s, e) => _presenter.MatchExcelData();
-            _btnClearExcel.Click += (s, e) => _presenter.HandleClearExcel();
+            _btnClearExcel.Click += (s, e) => {
+                if (ShowConfirm("确定要清除所有文件列表数据吗？此操作不可撤销。", "确认清除"))
+                {
+                    _presenter.ClearFileList();
+                    // 清除后添加999行空数据
+                    for (int i = 0; i < 999; i++)
+                    {
+                        _presenter.AddEmptyRowToTable();
+                    }
+                }
+            };
             _btnExportExcel.Click += (s, e) => _presenter.HandleExportExcel();
 
             // 模式切换按钮（阶段5：迁移到Presenter）
@@ -269,8 +290,13 @@ namespace WindowsFormsApp3.Forms.Panels
                     // 同步当前配置名称，用于退出时自动保存到当前选中项
                     CurrentConfigName = fileName;
 
-                    // 使用 Presenter 加载
-                    _presenter.LoadFromJsonFile(filePath);
+                    // 使用 Presenter 加载并设置到 FileList
+                    var dataList = _presenter.LoadFromJsonFile(filePath);
+                    if (dataList != null)
+                    {
+                        FileList = new BindingList<FileRenameInfo>(dataList);
+                        RefreshFileTable();
+                    }
 
                     UpdateStatusLabel($"已加载: {fileName}");
                 }
@@ -293,17 +319,19 @@ namespace WindowsFormsApp3.Forms.Panels
 
                 string fileName = null;
 
-                // 1. 如果下拉框有选中项，使用选中项作为文件名
-                if (_cmbJsonFiles.SelectedIndex >= 0)
+                // 1. 优先使用用户输入的文本（_cmbJsonFiles可输入）
+                if (!string.IsNullOrEmpty(_cmbJsonFiles.Text))
+                {
+                    fileName = _cmbJsonFiles.Text.Trim();
+                }
+
+                // 2. 如果没有输入，尝试使用选中项
+                if (string.IsNullOrEmpty(fileName) && _cmbJsonFiles.SelectedIndex >= 0)
                 {
                     fileName = _cmbJsonFiles.SelectedValue?.ToString();
-                    if (string.IsNullOrEmpty(fileName))
-                    {
-                        fileName = _cmbJsonFiles.Text;
-                    }
                 }
-                
-                // 2. 如果没有选中项，提示用户输入
+
+                // 3. 如果都没有，提示用户输入
                 if (string.IsNullOrEmpty(fileName))
                 {
                    string defaultName = $"Grid_{DateTime.Now:yyyyMMdd_HHmmss}";
@@ -316,7 +344,7 @@ namespace WindowsFormsApp3.Forms.Panels
                        return; // 用户取消
                    }
                 }
-                
+
                 if (string.IsNullOrEmpty(fileName)) return;
 
                 // 自动添加 .json 后缀
@@ -332,7 +360,7 @@ namespace WindowsFormsApp3.Forms.Panels
 
                 // 刷新下拉列表
                 PopulateJsonFilesDropdown();
-                
+
                 // 尝试选中刚保存的文件
                 var nameWithoutExt = System.IO.Path.GetFileNameWithoutExtension(fileName);
                 if (string.IsNullOrEmpty(InputDirectory)) // 只有在没有设置 InputDir 触发 setter 逻辑干扰时才手动选
@@ -345,7 +373,7 @@ namespace WindowsFormsApp3.Forms.Panels
                          }
                      }
                 }
-                
+
                 UpdateStatusLabel($"已保存: {nameWithoutExt}");
             }
             catch (Exception ex)
@@ -402,6 +430,9 @@ namespace WindowsFormsApp3.Forms.Panels
             
             // 加载保存的列配置
             LoadColumnSettings();
+
+            // 监听列顺序变化，自动保存
+            _fileTable.ColumnDisplayIndexChanged += FileTable_ColumnDisplayIndexChanged;
         }
         
         /// <summary>
@@ -1052,6 +1083,15 @@ namespace WindowsFormsApp3.Forms.Panels
             {
                 LogHelper.Error($"复制失败: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// 列显示顺序变化时自动保存（防抖处理）
+        /// </summary>
+        private void FileTable_ColumnDisplayIndexChanged(object sender, DataGridViewColumnEventArgs e)
+        {
+            _columnSaveTimer?.Stop();
+            _columnSaveTimer?.Start();
         }
 
         private void DeleteSelectedRow()

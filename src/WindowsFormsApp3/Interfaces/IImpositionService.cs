@@ -31,11 +31,13 @@ namespace WindowsFormsApp3.Interfaces
         /// <param name="config">卷装模式配置</param>
         /// <param name="pdfInfo">PDF文件信息</param>
         /// <param name="cancellationToken">取消令牌</param>
+        /// <param name="rotationMode">卷装旋转模式（可选，默认null表示自动计算）</param>
         /// <returns>布局计算结果</returns>
         Task<ImpositionResult> CalculateRollMaterialLayoutAsync(
             RollMaterialConfiguration config,
             ImpositionPdfInfo pdfInfo,
-            CancellationToken cancellationToken = default);
+            CancellationToken cancellationToken = default,
+            RollRotationMode? rotationMode = null);
 
         /// <summary>
         /// 计算最优偶数列布局（一式两联）

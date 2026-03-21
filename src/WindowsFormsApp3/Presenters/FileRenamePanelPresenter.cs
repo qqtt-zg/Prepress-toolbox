@@ -2584,6 +2584,19 @@ namespace WindowsFormsApp3.Presenters
         }
 
         /// <summary>
+        /// 添加空行到表格
+        /// </summary>
+        public void AddEmptyRowToTable()
+        {
+            if (_view.FileList == null)
+            {
+                _view.FileList = new BindingList<FileRenameInfo>();
+            }
+
+            _view.FileList.Add(new FileRenameInfo());
+        }
+
+        /// <summary>
         /// 复制 FileRenameInfo 的所有属性
         /// </summary>
         private void CopyFileRenameInfo(FileRenameInfo source, FileRenameInfo target)

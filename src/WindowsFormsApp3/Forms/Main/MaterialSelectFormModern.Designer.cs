@@ -789,7 +789,8 @@ namespace WindowsFormsApp3
 			this.rotationDisplayLabel.Size = new System.Drawing.Size(90, 20);
 			this.rotationDisplayLabel.TabIndex = 62;
 			this.rotationDisplayLabel.Text = "旋转角度: —";
-			// 
+			this.rotationDisplayLabel.Cursor = System.Windows.Forms.Cursors.Hand;
+			//
 			// pdfSizeDisplayLabel
 			// 
 			this.pdfSizeDisplayLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold);

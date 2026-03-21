@@ -287,6 +287,11 @@ namespace WindowsFormsApp3.Presenters
         /// </summary>
         void ClearFileList();
 
+        /// <summary>
+        /// 添加空行到表格
+        /// </summary>
+        void AddEmptyRowToTable();
+
         #endregion
 
         #region 单元格编辑

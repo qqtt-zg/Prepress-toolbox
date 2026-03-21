@@ -299,6 +299,15 @@ namespace WindowsFormsApp3.Utils
             set => Instance.LastLayoutMode = value;
         }
 
+        /// <summary>
+        /// 卷装旋转模式
+        /// </summary>
+        public static string RollRotationMode
+        {
+            get => Instance.RollRotationMode;
+            set => Instance.RollRotationMode = value;
+        }
+
         // ... existing code ...
         /// <summary>
         /// 是否隐藏半径数值

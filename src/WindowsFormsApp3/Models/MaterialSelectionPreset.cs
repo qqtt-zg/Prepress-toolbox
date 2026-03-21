@@ -57,5 +57,46 @@ namespace WindowsFormsApp3.Models
         /// 圆角半径（仅用于圆角矩形）
         /// </summary>
         public double RoundRadius { get; set; } = 0;
+
+        /// <summary>
+        /// 材料类型（FlatSheet-平张/RollMaterial-卷装）
+        /// </summary>
+        public string MaterialType { get; set; } = "FlatSheet";
+
+        /// <summary>
+        /// 排版模式（Continuous-连拼/Folding-折手）
+        /// </summary>
+        public string LayoutMode { get; set; } = "Continuous";
+
+        /// <summary>
+        /// 是否启用排版
+        /// </summary>
+        public bool EnableImposition { get; set; } = false;
+
+        /// <summary>
+        /// 预设加载时禁用的参数（使用 PresetIgnoreOptions 标志）
+        /// </summary>
+        public PresetIgnoreOptions DisabledOptions { get; set; } = PresetIgnoreOptions.None;
+    }
+
+    /// <summary>
+    /// 预设忽略选项标志枚举
+    /// </summary>
+    [Flags]
+    public enum PresetIgnoreOptions
+    {
+        None = 0,
+        Material = 1,
+        TetBleed = 2,
+        ColorMode = 4,
+        FilmType = 8,
+        IdentifierPage = 16,
+        Shape = 32,
+        IsDualCopy = 64,
+        ExportPath = 128,
+        RoundRadius = 256,
+        MaterialType = 512,
+        LayoutMode = 1024,
+        EnableImposition = 2048
     }
 }

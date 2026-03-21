@@ -87,6 +87,7 @@ namespace WindowsFormsApp3.Services
             public bool EnableImpositionChecked { get; set; } = false;
             public string LastMaterialType { get; set; } = "平张";
             public string LastLayoutMode { get; set; } = "连拼模式";
+            public string RollRotationMode { get; set; } = "Auto";
 
             // ... existing code ...
             // 是否隐藏半径数值
@@ -472,6 +473,12 @@ namespace WindowsFormsApp3.Services
         {
             get => _settings.LastLayoutMode;
             set { _settings.LastLayoutMode = value; MarkAsChanged(); }
+        }
+
+        public string RollRotationMode
+        {
+            get => _settings.RollRotationMode;
+            set { _settings.RollRotationMode = value; MarkAsChanged(); }
         }
 
         // ... existing code ...
