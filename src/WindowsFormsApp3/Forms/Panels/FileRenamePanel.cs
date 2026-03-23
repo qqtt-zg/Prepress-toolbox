@@ -1552,10 +1552,6 @@ namespace WindowsFormsApp3.Forms.Panels
 
         private void SubscribeToDataChanges()
         {
-            // 暂时使用空实现，后续可通过事件机制同步数据
-            // TODO: 实现从Form1获取数据源并绑定到_fileTable
-            // 当前Table将在用户操作时通过Form1的事件更新
-
             // 订阅配置保存事件，以便主题切换时更新悬浮拖拽窗口
             try
             {

@@ -1577,25 +1577,9 @@ namespace WindowsFormsApp3.Presenters
                 // 应用 PDF 形状处理（如果需要）
                 if (_currentIsShapeSelected && destPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) && _pdfProcessingService != null)
                 {
-                    string cornerRadius;
-                    switch (_currentShapeType)
-                    {
-                        case ShapeType.Circle:
-                            cornerRadius = "R";
-                            break;
-                        case ShapeType.Special:
-                            cornerRadius = "Y";
-                            break;
-                        case ShapeType.RoundRect:
-                            cornerRadius = _currentRoundRadius.ToString();
-                            break;
-                        default:
-                            cornerRadius = "0";
-                            break;
-                    }
-                    
-                    bool usePdfLastPage = _currentShapeType == ShapeType.Special;
-                    bool shapeResult = _pdfProcessingService.AddDotsAddCounterLayer(destPath, _currentDimensions, cornerRadius, usePdfLastPage);
+                    // 使用新版方法 AddDotsAddCounterLayer(string, string, ShapeType, double)
+                    // 通过强制转换调用具体类型的明确方法实现，避免接口方法歧义
+                    bool shapeResult = ((Services.PdfProcessingService)_pdfProcessingService).AddDotsAddCounterLayer(destPath, _currentDimensions, _currentShapeType, _currentRoundRadius);
                     _logger?.LogInformation($"[CopyFileToDestinationAsync] PDF形状处理结果: {shapeResult}");
                 }
                 
@@ -2631,16 +2615,6 @@ namespace WindowsFormsApp3.Presenters
             target.RollMaterialLayoutRows = source.RollMaterialLayoutRows;
             target.RollMaterialLayoutColumns = source.RollMaterialLayoutColumns;
             target.HighlightApplied = source.HighlightApplied;
-        }
-
-        /// <summary>
-        /// 更新表格中的文件行
-        /// </summary>
-        /// <param name="fileInfo">文件信息</param>
-        public void UpdateFileInTable(FileRenameInfo fileInfo)
-        {
-            // TODO: 实现更新逻辑
-            _view.RefreshFileTable();
         }
 
         /// <summary>

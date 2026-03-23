@@ -266,12 +266,6 @@ namespace WindowsFormsApp3.Presenters
         void AddFileToTable(FileRenameInfo fileInfo);
 
         /// <summary>
-        /// 更新表格中的文件行
-        /// </summary>
-        /// <param name="fileInfo">文件信息</param>
-        void UpdateFileInTable(FileRenameInfo fileInfo);
-
-        /// <summary>
         /// 从表格中删除文件行
         /// </summary>
         /// <param name="rowIndex">行索引</param>

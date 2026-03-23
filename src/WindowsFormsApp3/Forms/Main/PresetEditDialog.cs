@@ -141,7 +141,7 @@ namespace WindowsFormsApp3.Forms.Main
             _chkEnableShape = new CheckBox { Location = new Point(chkX, startY + rowHeight * 7), AutoSize = true, Checked = true };
             var lblShapeState = new Label { Text = "形状:", Location = new Point(labelX, startY + rowHeight * 7), AutoSize = true };
             _cmbShapeState = new ComboBox { Location = new Point(controlX, startY + rowHeight * 7), Width = 100, Height = height, DropDownStyle = ComboBoxStyle.DropDownList };
-            _cmbShapeState.Items.AddRange(new object[] { "直角", "圆形", "异形", "圆角矩形" });
+            _cmbShapeState.Items.AddRange(new object[] { "无", "直角", "圆形", "异形", "圆角矩形" });
             this.Controls.Add(_chkEnableShape);
             this.Controls.Add(lblShapeState);
             this.Controls.Add(_cmbShapeState);
@@ -224,9 +224,13 @@ namespace WindowsFormsApp3.Forms.Main
 
         private void CmbShapeState_SelectedIndexChanged(object sender, EventArgs e)
         {
-            bool isRoundRect = _cmbShapeState.SelectedIndex == 3; // 圆角矩形
+            // "无"是索引0，"直角"是索引1，"圆形"是索引2，"异形"是索引3，"圆角矩形"是索引4
+            bool isRoundRect = _cmbShapeState.SelectedIndex == 4; // 圆角矩形
+            bool isShapeSelected = _cmbShapeState.SelectedIndex > 0; // 不是"无"
             _numRoundRadius.Enabled = isRoundRect;
             _lblRadiusUnit.Enabled = isRoundRect;
+            _chkEnableRoundRadius.Enabled = isShapeSelected;
+            _chkEnableRoundRadius.Checked = isShapeSelected && isRoundRect;
         }
 
         private void LoadMaterials()
@@ -281,19 +285,19 @@ namespace WindowsFormsApp3.Forms.Main
             _cmbFilmType.Text = _preset.FilmType;
             _chkAddIdentifierPage.Checked = _preset.AddIdentifierPage;
 
-            // 形状
+            // 形状: "无"(0), "直角"(1), "圆形"(2), "异形"(3), "圆角矩形"(4)
             int shapeIndex = _preset.ShapeState switch
             {
-                "RightAngle" => 0,
-                "Circle" => 1,
-                "Special" => 2,
-                "RoundRect" => 3,
-                _ => 0
+                "RightAngle" => 1,
+                "Circle" => 2,
+                "Special" => 3,
+                "RoundRect" => 4,
+                _ => 0  // "无" 或空
             };
             _cmbShapeState.SelectedIndex = shapeIndex;
             _numRoundRadius.Value = (decimal)_preset.RoundRadius;
-            _numRoundRadius.Enabled = shapeIndex == 3;
-            _lblRadiusUnit.Enabled = shapeIndex == 3;
+            _numRoundRadius.Enabled = shapeIndex == 4;  // 圆角矩形是索引4
+            _lblRadiusUnit.Enabled = shapeIndex == 4;
 
             // 排版模式
             _cmbLayoutMode.Text = _preset.LayoutMode switch
@@ -386,7 +390,8 @@ namespace WindowsFormsApp3.Forms.Main
             _preset.FilmType = _cmbFilmType.Text;
             _preset.AddIdentifierPage = _chkAddIdentifierPage.Checked;
 
-            string[] shapeValues = { "RightAngle", "Circle", "Special", "RoundRect" };
+            // 形状: 索引0="无", 1="RightAngle", 2="Circle", 3="Special", 4="RoundRect"
+            string[] shapeValues = { "", "RightAngle", "Circle", "Special", "RoundRect" };
             _preset.ShapeState = shapeValues[_cmbShapeState.SelectedIndex];
             _preset.RoundRadius = (double)_numRoundRadius.Value;
 

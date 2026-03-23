@@ -4235,14 +4235,15 @@ namespace WindowsFormsApp3
                     // 创建预设主菜单项 - 直接点击加载
                     var menuItem = new ToolStripMenuItem(preset.Name, null, (s, e) => LoadPreset(preset.Name));
 
-                    _presetContextMenu.Items.Insert(3, menuItem);
+                    // 使用 Add 而非 Insert，保持与 PresetManagementForm 中一致的顺序
+                    _presetContextMenu.Items.Add(menuItem);
                 }
             }
             else
             {
                 var noPresetItem = new ToolStripMenuItem("(无预设)");
                 noPresetItem.Enabled = false;
-                _presetContextMenu.Items.Insert(3, noPresetItem);
+                _presetContextMenu.Items.Add(noPresetItem);
             }
         }
 
@@ -4464,13 +4465,80 @@ namespace WindowsFormsApp3
                     }
                 }
 
-                // 加载形状 - 先比较当前形状，如果相同则跳过避免重复触发
-                if (!ignoreOptions.HasFlag(PresetIgnoreOptions.Shape) && Enum.TryParse<ShapeType>(preset.ShapeState, out var shapeType))
+                // 加载形状 - 直接处理，不依赖当前状态比较
+                if (!ignoreOptions.HasFlag(PresetIgnoreOptions.Shape))
                 {
-                    if (SelectedShape != shapeType)
+                    // 处理"无"形状（ShapeState为空字符串或"None"）
+                    if (string.IsNullOrEmpty(preset.ShapeState) || preset.ShapeState == "None")
                     {
-                        SelectShape(shapeType);
+                        // 重置为不选择任何形状
+                        _isShapeExplicitlySelected = false;
+                        RoundRadius = 0;
+                        UpdateShapeButtonStates(-1);
+                        AppSettings.Set("LastSelectedShape", "NONE");
+                        AppSettings.Set("LastCornerRadius", "0");
+                        AppSettings.Set("LastRoundRadius", "0");
+                        AppSettings.Save();
+                        if (radiusTextBox != null) radiusTextBox.Visible = false;
                     }
+                    else if (Enum.TryParse<ShapeType>(preset.ShapeState, out var shapeType))
+                    {
+                        // 直接更新按钮状态和属性（不使用SelectShape以避免toggle逻辑干扰）
+                        UpdateShapeButtonStates((int)shapeType);
+
+                        // 根据形状类型设置属性
+                        switch (shapeType)
+                        {
+                            case ShapeType.RightAngle:
+                                SelectedShape = ShapeType.RightAngle;
+                                RoundRadius = 0;
+                                _isShapeExplicitlySelected = true;
+                                if (radiusTextBox != null) radiusTextBox.Visible = false;
+                                break;
+                            case ShapeType.Circle:
+                                SelectedShape = ShapeType.Circle;
+                                RoundRadius = 0;
+                                _isShapeExplicitlySelected = true;
+                                if (radiusTextBox != null) radiusTextBox.Visible = false;
+                                break;
+                            case ShapeType.Special:
+                                SelectedShape = ShapeType.Special;
+                                RoundRadius = 0;
+                                _isShapeExplicitlySelected = true;
+                                if (radiusTextBox != null) radiusTextBox.Visible = false;
+                                break;
+                            case ShapeType.RoundRect:
+                                SelectedShape = ShapeType.RoundRect;
+                                _isShapeExplicitlySelected = true;
+                                // 恢复圆角半径
+                                if (radiusTextBox != null)
+                                {
+                                    radiusTextBox.Visible = true;
+                                    string savedRadius = AppSettings.GetValue<string>("LastRoundRadius") ?? "5";
+                                    radiusTextBox.Text = preset.RoundRadius > 0 ? preset.RoundRadius.ToString() : savedRadius;
+                                    RoundRadius = preset.RoundRadius > 0 ? preset.RoundRadius : (double.TryParse(savedRadius, out double r) ? r : 5);
+                                }
+                                break;
+                        }
+
+                        // 保存形状选择
+                        AppSettings.Set("LastSelectedShape", shapeType.ToString());
+                        AppSettings.Set("LastCornerRadius", GetCompatibleCornerRadius());
+                        if (shapeType == ShapeType.RoundRect)
+                        {
+                            AppSettings.Set("LastRoundRadius", RoundRadius.ToString());
+                        }
+                        AppSettings.Save();
+
+                        LogHelper.Debug($"加载预设形状: {shapeType}, 圆角: {RoundRadius}");
+                    }
+                }
+
+                // 更新尺寸显示（形状变化可能影响最终尺寸）
+                if (_initialWidth > 0 && _initialHeight > 0)
+                {
+                    UpdateDimensionsWithBleed();
+                    LogHelper.Debug($"加载预设形状后更新尺寸显示: {AdjustedDimensions}");
                 }
 
                 // 加载一式两联

@@ -34,7 +34,9 @@
       "Bash(\"C:/Program Files \\(x86\\)/Inno Setup 6/ISCC.exe\" installers/Setup.iss)",
       "Bash(where ISCC.exe)",
       "Bash(ls \"C:/Program Files \\(x86\\)/Inno Setup 6/ISCC.exe\")",
-      "Read(//c/Program Files \\(x86\\)/Inno Setup 5/**)"
+      "Read(//c/Program Files \\(x86\\)/Inno Setup 5/**)",
+      "Bash(grep -n \"enum.*Shape\\\\|PresetIgnoreOptions\\\\|MaterialSelectionPreset\" D:/vibe_codeing/Prepress-toolbox/src/WindowsFormsApp3/Models/*.cs)",
+      "Bash(xargs ls:*)"
     ]
   }
 }
