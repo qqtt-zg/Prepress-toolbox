@@ -87,6 +87,16 @@ namespace WindowsFormsApp3
         // 排版材料类型
         public string ImpositionMaterialType { get; private set; }
 
+        /// <summary>
+        /// 更新后的正则结果（序号搜索反向更新时使用）
+        /// </summary>
+        public string UpdatedRegexResult { get; private set; }
+
+        /// <summary>
+        /// 更新后的列组合值（序号搜索反向更新时使用）
+        /// </summary>
+        public string UpdatedCompositeColumn { get; private set; }
+
         // Excel数据相关字段
         private DataTable _excelData;
         private int _searchColumnIndex;
@@ -94,6 +104,9 @@ namespace WindowsFormsApp3
         private int _serialColumnIndex;
         private int _newColumnIndex;
         private string _regexResult;
+        private bool _enableSerialSearchResultToRegex;
+        private int _serialSearchResultColumnIndex;
+        private bool _isColumnCombineMode;
 
         // 透明度相关
         private double _opacityValue;
@@ -654,9 +667,12 @@ namespace WindowsFormsApp3
             int searchColumnIndex,
             int returnColumnIndex,
             int serialColumnIndex,
-            int newColumnIndex,  // 添加缺失的newColumnIndex参数
+            int newColumnIndex,
             string serialNumber,
-            List<DataRow> matchedRows = null)  // 添加matchedRows参数
+            List<DataRow> matchedRows = null,
+            bool enableSerialSearchResultToRegex = false,
+            int serialSearchResultColumnIndex = -1,
+            bool isColumnCombineMode = false)
         {
             InitializeComponent();
 
@@ -679,6 +695,9 @@ namespace WindowsFormsApp3
             _serialColumnIndex = serialColumnIndex;
             _newColumnIndex = newColumnIndex;
             _regexResult = regexResult;
+            _enableSerialSearchResultToRegex = enableSerialSearchResultToRegex;
+            _serialSearchResultColumnIndex = serialSearchResultColumnIndex;
+            _isColumnCombineMode = isColumnCombineMode;
             this.SerialNumber = serialNumber;
             
             // 如果传递了matchedRows，直接使用它
@@ -3006,6 +3025,192 @@ namespace WindowsFormsApp3
             }
         }
 
+        /// <summary>
+        /// 序号搜索复选框状态变更事件
+        /// </summary>
+        private void enableSerialSearchCheckbox_CheckedChanged(object sender, AntdUI.BoolEventArgs e)
+        {
+            try
+            {
+                if (enableSerialSearchCheckbox.Checked)
+                {
+                    // 启用序号搜索模式
+                    LogHelper.Debug("启用序号搜索模式");
+                }
+                else
+                {
+                    // 禁用序号搜索模式
+                    LogHelper.Debug("禁用序号搜索模式");
+                }
+
+                // ✅ 持久化序号搜索复选框状态
+                AppSettings.MaterialEnableSerialSearchCheckbox = enableSerialSearchCheckbox.Checked;
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"序号搜索复选框状态变更处理失败: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// 序号文本框内容变更事件（启用搜索时触发）
+        /// </summary>
+        private void serialNumberTextBox_TextChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (enableSerialSearchCheckbox != null && enableSerialSearchCheckbox.Checked)
+                {
+                    if (!string.IsNullOrEmpty(serialNumberTextBox.Text))
+                    {
+                        SearchQuantityBySerialNumber(serialNumberTextBox.Text.Trim());
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"序号文本框变更事件处理失败: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// 根据序号在已匹配数据中查找对应的数量
+        /// </summary>
+        /// <param name="serialNumber">要查找的序号</param>
+        private void SearchQuantityBySerialNumber(string serialNumber)
+        {
+            if (string.IsNullOrEmpty(serialNumber))
+            {
+                return;
+            }
+
+            List<string> matchedQuantities = new List<string>();
+            List<DataRow> matchedRowsList = new List<DataRow>();
+            string matchedSerial = string.Empty;
+
+            // 优先在已匹配的行中查找
+            if (MatchedRows != null && MatchedRows.Count > 0)
+            {
+                foreach (DataRow row in MatchedRows)
+                {
+                    string rowSerialNumber = row[_serialColumnIndex]?.ToString().Trim();
+                    if (string.Equals(rowSerialNumber, serialNumber, StringComparison.Ordinal))
+                    {
+                        string quantity = row[_returnColumnIndex]?.ToString() ?? string.Empty;
+                        matchedQuantities.Add(quantity);
+                        matchedRowsList.Add(row);
+                        matchedSerial = serialNumber;
+                    }
+                }
+
+                if (matchedQuantities.Count == 1)
+                {
+                    // 唯一匹配，填充数量
+                    quantityTextBox.Text = matchedQuantities[0];
+                    LogHelper.Debug($"序号二级搜索成功(MatchedRows): 序号={matchedSerial}, 数量={matchedQuantities[0]}");
+
+                    // 如果启用了序号搜索结果反向更新正则结果
+                    UpdateRegexResultFromMatchedRow(matchedRowsList[0]);
+
+                    return;
+                }
+                else if (matchedQuantities.Count > 1)
+                {
+                    // 多个匹配属于错误情况，提示用户
+                    AntdUI.Message.warn(this.FindForm(), $"序号 '{matchedSerial}' 存在多条匹配记录，请检查数据", autoClose: 3);
+                    LogHelper.Warn($"序号二级搜索发现多条匹配(MatchedRows): 序号={matchedSerial}, 匹配数={matchedQuantities.Count}");
+                    return;
+                }
+            }
+
+            // MatchedRows为空或没有匹配时，直接在Excel数据中按序号列搜索
+            if (_excelData != null && _excelData.Rows.Count > 0 && _serialColumnIndex >= 0)
+            {
+                LogHelper.Debug($"序号二级搜索: MatchedRows为空，直接搜索Excel序号列, 序号={serialNumber}, 序号列索引={_serialColumnIndex}, 返回列索引={_returnColumnIndex}");
+
+                foreach (DataRow row in _excelData.Rows)
+                {
+                    string rowSerialNumber = row[_serialColumnIndex]?.ToString().Trim();
+                    LogHelper.Debug($"  检查行: 序号列值='{rowSerialNumber}', 比较结果={string.Equals(rowSerialNumber, serialNumber, StringComparison.Ordinal)}");
+                    if (string.Equals(rowSerialNumber, serialNumber, StringComparison.Ordinal))
+                    {
+                        string quantity = row[_returnColumnIndex]?.ToString() ?? string.Empty;
+                        matchedQuantities.Add(quantity);
+                        matchedRowsList.Add(row);
+                        matchedSerial = serialNumber;
+                        LogHelper.Debug($"  匹配成功: 序号={serialNumber}, 数量={quantity}");
+                    }
+                }
+
+                if (matchedQuantities.Count == 1)
+                {
+                    // 唯一匹配，填充数量
+                    quantityTextBox.Text = matchedQuantities[0];
+                    LogHelper.Debug($"序号二级搜索成功(Excel): 序号={matchedSerial}, 数量={matchedQuantities[0]}");
+
+                    // 如果启用了序号搜索结果反向更新正则结果
+                    UpdateRegexResultFromMatchedRow(matchedRowsList[0]);
+                }
+                else if (matchedQuantities.Count > 1)
+                {
+                    // 多个匹配属于错误情况，提示用户
+                    AntdUI.Message.warn(this.FindForm(), $"序号 '{matchedSerial}' 存在多条匹配记录，请检查数据", autoClose: 3);
+                    LogHelper.Warn($"序号二级搜索发现多条匹配(Excel): 序号={matchedSerial}, 匹配数={matchedQuantities.Count}");
+                }
+                else
+                {
+                    // 未找到匹配
+                    LogHelper.Debug($"序号二级搜索未找到匹配: 序号={serialNumber}");
+                }
+            }
+            else
+            {
+                LogHelper.Debug($"序号二级搜索无法执行: MatchedRows为空且Excel数据不可用");
+            }
+        }
+
+        /// <summary>
+        /// 从匹配的DataRow更新正则结果和列组合
+        /// </summary>
+        private void UpdateRegexResultFromMatchedRow(DataRow matchedRow)
+        {
+            if (!_enableSerialSearchResultToRegex || _serialSearchResultColumnIndex < 0)
+            {
+                return;
+            }
+
+            if (matchedRow == null)
+            {
+                return;
+            }
+
+            // 检查列索引是否有效
+            if (_serialSearchResultColumnIndex >= matchedRow.Table.Columns.Count)
+            {
+                LogHelper.Debug($"序号二级搜索更新正则结果失败: 列索引{_serialSearchResultColumnIndex}超出范围");
+                return;
+            }
+
+            string newRegexResult = matchedRow[_serialSearchResultColumnIndex]?.ToString() ?? string.Empty;
+            if (!string.IsNullOrEmpty(newRegexResult))
+            {
+                _regexResult = newRegexResult;
+                UpdatedRegexResult = newRegexResult;
+                LogHelper.Debug($"序号二级搜索更新正则结果: 新正则={newRegexResult}");
+            }
+
+            // ✅ 同步获取列组合值（从序号搜索匹配的行中直接提取）
+            if (matchedRow.Table.Columns.Contains("列组合"))
+            {
+                int compositeColumnIndex = matchedRow.Table.Columns.IndexOf("列组合");
+                if (compositeColumnIndex >= 0 && compositeColumnIndex < matchedRow.Table.Columns.Count)
+                {
+                    UpdatedCompositeColumn = matchedRow[compositeColumnIndex]?.ToString() ?? string.Empty;
+                    LogHelper.Debug($"序号二级搜索更新列组合: 列组合={UpdatedCompositeColumn}");
+                }
+            }
+        }
+
         #region 阶段1：核心数据迁移方法
 
         /// <summary>
@@ -3068,6 +3273,13 @@ namespace WindowsFormsApp3
 
             // 恢复排版控件状态
             LoadImpositionControlStates();
+
+            // ✅ 恢复序号搜索复选框状态
+            if (enableSerialSearchCheckbox != null)
+            {
+                enableSerialSearchCheckbox.Checked = AppSettings.MaterialEnableSerialSearchCheckbox;
+                LogHelper.Debug($"[Load] 恢复序号搜索复选框状态: {AppSettings.MaterialEnableSerialSearchCheckbox}");
+            }
 
             // ✅ 初始化预览面板为折叠状态（设计器中为180px，需要运行时重置）
             if (pdfPreviewPanel != null)
@@ -4288,7 +4500,8 @@ namespace WindowsFormsApp3
                         ColorMode = ColorMode,
                         FilmType = FilmType,
                         AddIdentifierPage = AddIdentifierPage,
-                        ShapeState = SelectedShape.ToString(),
+                        // 如果用户没有明确选择形状（点击了"无"），则保存空字符串表示"无"
+                        ShapeState = _isShapeExplicitlySelected ? SelectedShape.ToString() : "",
                         IsDualCopy = _isDuplicateLayoutEnabled,
                         EnableImposition = enableImpositionCheckbox?.Checked == true,
                         ExportPath = SelectedExportPath ?? "",

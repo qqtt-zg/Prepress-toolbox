@@ -215,6 +215,21 @@ namespace WindowsFormsApp3.Forms.Main
                 row.Cells["ShapeState"].Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
                 row.Cells["ExportPath"].Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
             }
+
+            // 如果有预设数据，选中第一行并启用编辑/删除按钮
+            if (_presets.Count > 0)
+            {
+                _dgvPresets.Rows[0].Selected = true;
+                _selectedPreset = _presets[0];
+                _btnEdit.Enabled = true;
+                _btnDelete.Enabled = true;
+            }
+            else
+            {
+                _selectedPreset = null;
+                _btnEdit.Enabled = false;
+                _btnDelete.Enabled = false;
+            }
         }
 
         private string GetShapeDisplayName(string shapeState)
@@ -340,7 +355,8 @@ namespace WindowsFormsApp3.Forms.Main
                 ShapeState = preset.ShapeState,
                 IsDualCopy = preset.IsDualCopy,
                 ExportPath = preset.ExportPath,
-                RoundRadius = preset.RoundRadius
+                RoundRadius = preset.RoundRadius,
+                DisabledOptions = preset.DisabledOptions
             };
 
             using (var dialog = new PresetEditDialog(editPreset, false))
@@ -361,6 +377,7 @@ namespace WindowsFormsApp3.Forms.Main
                     preset.EnableImposition = dialog.Preset.EnableImposition;
                     preset.ExportPath = dialog.Preset.ExportPath;
                     preset.RoundRadius = dialog.Preset.RoundRadius;
+                    preset.DisabledOptions = dialog.Preset.DisabledOptions;
                     SaveAndRefresh();
                 }
             }

@@ -43,6 +43,16 @@ namespace WindowsFormsApp3.Services
         string SelectedRegexPattern { get; set; }
 
         /// <summary>
+        /// 获取或设置是否启用序号搜索结果反向更新正则结果
+        /// </summary>
+        bool EnableSerialSearchResultToRegex { get; set; }
+
+        /// <summary>
+        /// 获取或设置序号搜索结果反向更新的列索引
+        /// </summary>
+        int SerialSearchResultColumnIndex { get; set; }
+
+        /// <summary>
         /// 获取Excel导入表单实例
         /// </summary>
         ExcelImportForm ExcelImportFormInstance { get; }

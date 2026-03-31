@@ -33,6 +33,13 @@
     </Content>
   </ItemGroup>
 
+  <!-- ICO图标文件资源 -->
+  <ItemGroup>
+    <Content Include="Resources\Icons\*.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
   <!-- 字体文件资源嵌入 -->
   <ItemGroup>
     <EmbeddedResource Include="Resources\Fonts\simhei.ttf" />

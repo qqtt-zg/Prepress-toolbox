@@ -2049,6 +2049,8 @@ namespace WindowsFormsApp3.Forms.Panels
             List<string> columnNames,
             Dictionary<string, List<string>> columnItemsMap,
             int initialSerialNumber,
+            bool enableSerialSearchResultToRegex,
+            int serialSearchResultColumnIndex,
             out MaterialSelectionResult result)
         {
             result = null;
@@ -2069,7 +2071,7 @@ namespace WindowsFormsApp3.Forms.Panels
                     returnColIdx = ExcelReturnColumnIndex;
                     serialColIdx = ExcelSerialColumnIndex;
                     newColIdx = excelData.Columns.Count - 1; // 最后一列
-                    
+
                     LogHelper.Debug($"[ShowMaterialSelectionDialog] 使用列索引: search={searchColIdx}, return={returnColIdx}, serial={serialColIdx}");
                 }
 
@@ -2085,7 +2087,10 @@ namespace WindowsFormsApp3.Forms.Panels
                     returnColumnIndex: returnColIdx,
                     serialColumnIndex: serialColIdx,
                     newColumnIndex: newColIdx,
-                    serialNumber: initialSerialNumber.ToString()))
+                    serialNumber: initialSerialNumber.ToString(),
+                    enableSerialSearchResultToRegex: enableSerialSearchResultToRegex,
+                    serialSearchResultColumnIndex: serialSearchResultColumnIndex,
+                    isColumnCombineMode: isColumnCombineMode))
                 {
                     if (dialog.ShowDialog() == DialogResult.OK)
                     {
@@ -2121,7 +2126,11 @@ namespace WindowsFormsApp3.Forms.Panels
                             AddIdentifierPage = dialog.AddIdentifierPage,
                             IdentifierPageContent = dialog.AddIdentifierPage ? dialog.GenerateIdentifierPageContent() : "",
                             // ✅ 修复:从对话框读取排版材料类型
-                            ImpositionMaterialType = dialog.ImpositionMaterialType
+                            ImpositionMaterialType = dialog.ImpositionMaterialType,
+                            // ✅ 序号搜索反向更新正则结果
+                            UpdatedRegexResult = dialog.UpdatedRegexResult,
+                            // ✅ 序号搜索反向更新列组合
+                            CompositeColumn = dialog.UpdatedCompositeColumn ?? ""
                         };
                         return DialogResult.OK;
                     }

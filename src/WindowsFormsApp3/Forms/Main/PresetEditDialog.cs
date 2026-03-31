@@ -235,16 +235,29 @@ namespace WindowsFormsApp3.Forms.Main
 
         private void LoadMaterials()
         {
-            var materials = AppSettings.Materials;
+            // 优先从 AppSettings.Material 加载（与 MaterialSelectFormModern 保持一致）
+            var materials = AppSettings.Material;
+            if (string.IsNullOrEmpty(materials))
+            {
+                // 如果 Material 为空，尝试从 Materials 加载
+                materials = AppSettings.Materials;
+            }
             if (!string.IsNullOrEmpty(materials))
             {
-                var materialList = materials.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-                _cmbMaterial.Items.AddRange(materialList);
+                var materialList = materials.Split(new[] { ',', '|', '，', '、' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var m in materialList)
+                {
+                    var trimmed = m.Trim();
+                    if (!string.IsNullOrEmpty(trimmed) && !_cmbMaterial.Items.Contains(trimmed))
+                    {
+                        _cmbMaterial.Items.Add(trimmed);
+                    }
+                }
             }
-            else
+            // 如果仍然没有材料，添加默认材料列表
+            if (_cmbMaterial.Items.Count == 0)
             {
-                // 默认材料列表
-                _cmbMaterial.Items.AddRange(new object[] { "铜版纸", "哑粉纸", "胶版纸", "卡纸", "不干胶", "特种纸" });
+                _cmbMaterial.Items.AddRange(new object[] { "PET", "PP", "PVC", "PET环保", "PET透明", "PET哑光", "PET镭射", "PET磨砂", "PET金色", "PET银色", "PET白色", "PET红色", "PET蓝色", "PET绿色", "PP环保" });
             }
         }
 

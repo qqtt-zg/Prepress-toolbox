@@ -262,6 +262,27 @@ namespace WindowsFormsApp3.Utils
             set => Instance.ExcelReturnColumnParams = value;
         }
 
+        public static bool ExcelEnableSerialSearchResultToRegex
+        {
+            get => GetValue<bool>("ExcelEnableSerialSearchResultToRegex", false);
+            set => SetValue("ExcelEnableSerialSearchResultToRegex", value);
+        }
+
+        public static int ExcelSerialSearchResultColumnIndex
+        {
+            get => GetValue<int>("ExcelSerialSearchResultColumnIndex", -1);
+            set => SetValue("ExcelSerialSearchResultColumnIndex", value);
+        }
+
+        /// <summary>
+        /// 材料选择表单序号搜索复选框状态
+        /// </summary>
+        public static bool MaterialEnableSerialSearchCheckbox
+        {
+            get => GetValue<bool>("MaterialEnableSerialSearchCheckbox", false);
+            set => SetValue("MaterialEnableSerialSearchCheckbox", value);
+        }
+
         // 主题设置
         public static string CurrentThemeName
         {

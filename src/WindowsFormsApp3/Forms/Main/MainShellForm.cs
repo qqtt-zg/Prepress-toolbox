@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
+using System.IO;
 using WindowsFormsApp3.Utils; // For AppSettings
 using WindowsFormsApp3.Forms.Panels;
 using WindowsFormsApp3.Services;
@@ -496,6 +497,9 @@ namespace WindowsFormsApp3.Forms.Main
             
             // 3. PDF操作
             AddNavButton("工作台", "AppstoreAddOutlined", "ae_workspace");
+
+            // 4. PDF拆分
+            AddNavButton("PDF拆分", "FileSplitOutlined", "pdf_split");
             
             // 4. 拼版工具
             // 已由 AE 风格工作台替代
@@ -543,6 +547,32 @@ namespace WindowsFormsApp3.Forms.Main
             navPanel.Controls.Add(btn);
             navButtons.Add(btn, tag);
             _originalButtonTexts[btn] = text; // ✅ 保存初始中文文本
+
+            // ✅ 为PDF拆分按钮加载自定义SVG图标
+            if (tag == "pdf_split")
+            {
+                LoadCustomSvgIcon(btn);
+            }
+        }
+
+        /// <summary>
+        /// 为指定按钮加载自定义SVG图标
+        /// </summary>
+        private void LoadCustomSvgIcon(AntdUI.Button btn)
+        {
+            try
+            {
+                string svgPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "Icons", "pdf-split.svg");
+                if (File.Exists(svgPath))
+                {
+                    string svgContent = File.ReadAllText(svgPath);
+                    btn.IconSvg = svgContent; // AntdUI.Button可能支持SVG字符串内容
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Warn($"[MainShellForm] 加载自定义SVG图标失败: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -829,7 +859,10 @@ namespace WindowsFormsApp3.Forms.Main
 
                 case "imposition_workspace":
                     return new WindowsFormsApp3.Forms.Panels.ImpositionWorkspacePanel();
-                    
+
+                case "pdf_split":
+                    return new WindowsFormsApp3.Forms.Panels.PdfSplitPanel();
+
                 default:
                     return CreatePlaceholderPanel(panelKey);
             }
@@ -885,6 +918,7 @@ namespace WindowsFormsApp3.Forms.Main
                 "excel" => "Excel导入",
                 "settings" => "设置",
                 "pdf_operations" => "PDF操作",
+                "pdf_split" => "PDF拆分",
                 _ => panelKey
             };
         }

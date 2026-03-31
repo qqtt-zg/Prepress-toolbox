@@ -127,6 +127,11 @@ namespace WindowsFormsApp3.Models
         /// </summary>
         public string ImpositionMaterialType { get; set; }
 
+        /// <summary>
+        /// 更新后的正则结果（序号搜索反向更新时使用）
+        /// </summary>
+        public string UpdatedRegexResult { get; set; }
+
         public MaterialSelectionResult()
         {
             ColumnValues = new Dictionary<string, string>();

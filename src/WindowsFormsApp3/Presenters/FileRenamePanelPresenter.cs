@@ -981,6 +981,8 @@ namespace WindowsFormsApp3.Presenters
                                     columnNames: GetExcelColumnNames(),
                                     columnItemsMap: GetExcelColumnItemsMap(),
                                     initialSerialNumber: GetNextSerialNumber(),
+                                    enableSerialSearchResultToRegex: _excelImportService.EnableSerialSearchResultToRegex,
+                                    serialSearchResultColumnIndex: _excelImportService.SerialSearchResultColumnIndex,
                                     out selectionResult
                                 );
                             }));
@@ -1002,6 +1004,8 @@ namespace WindowsFormsApp3.Presenters
                                 columnNames: GetExcelColumnNames(),
                                 columnItemsMap: GetExcelColumnItemsMap(),
                                 initialSerialNumber: GetNextSerialNumber(),
+                                enableSerialSearchResultToRegex: _excelImportService.EnableSerialSearchResultToRegex,
+                                serialSearchResultColumnIndex: _excelImportService.SerialSearchResultColumnIndex,
                                 out selectionResult
                             );
                         }
@@ -1028,7 +1032,14 @@ namespace WindowsFormsApp3.Presenters
                         // 如果没有有效值，使用默认值
                         if (quantities.Length == 0) quantities = new[] { "" };
                         if (serialNumbers.Length == 0) serialNumbers = new[] { GetNextSerialNumber().ToString() };
-                        
+
+                        // ✅ 序号搜索反向更新正则结果
+                        if (!string.IsNullOrEmpty(selectionResult.UpdatedRegexResult))
+                        {
+                            fileInfo.RegexResult = selectionResult.UpdatedRegexResult;
+                            _logger?.LogInformation($"[ProcessNewFileAsync] 序号搜索更新正则结果: {selectionResult.UpdatedRegexResult}");
+                        }
+
                         // 确定输出文件数量（取最大值）
                         int fileCount = Math.Max(quantities.Length, serialNumbers.Length);
                         _logger?.LogInformation($"[ProcessNewFileAsync] 多值输出: 数量数={quantities.Length}, 序号数={serialNumbers.Length}, 总文件数={fileCount}");
@@ -1074,6 +1085,18 @@ namespace WindowsFormsApp3.Presenters
                             string regexForMatching = GetRegexResultForMatching(fileInfo);
                             matchDataList = MatchExcelData(regexForMatching);
                         }
+
+                        // ✅ 序号搜索更新正则后，重新匹配Excel数据
+                        if (_view.ExcelData != null && !string.IsNullOrEmpty(selectionResult?.UpdatedRegexResult))
+                        {
+                            matchDataList = MatchExcelData(selectionResult.UpdatedRegexResult);
+                            _logger?.LogInformation($"[ProcessNewFileAsync] 序号搜索更新后重新匹配Excel数据，匹配到 {matchDataList?.Count ?? 0} 条记录");
+                        }
+
+                        // ✅ 序号搜索更新后，如果序号搜索返回了列组合值，则优先使用（来自序号搜索匹配到的那一行）
+                        bool useDirectCompositeColumn = _view.ExcelData != null &&
+                            !string.IsNullOrEmpty(selectionResult?.UpdatedRegexResult) &&
+                            !string.IsNullOrEmpty(selectionResult?.CompositeColumn);
 
                         // ✅ 为每个值组合生成独立文件
                         for (int i = 0; i < fileCount; i++)
@@ -1124,7 +1147,7 @@ namespace WindowsFormsApp3.Presenters
                                     {
                                         currentFileInfo.Material = matchData.Material;
                                     }
-                                    
+
                                     // 应用列组合匹配结果
                                     if (!string.IsNullOrEmpty(matchData.CompositeColumn))
                                     {
@@ -1132,6 +1155,13 @@ namespace WindowsFormsApp3.Presenters
                                         _logger?.LogDebug($"✅ 手动模式设置列组合数据({i+1}): 文件='{currentFileInfo.OriginalName}', 列组合='{matchData.CompositeColumn}'");
                                     }
                                 }
+                            }
+
+                            // ✅ 如果序号搜索更新后重新匹配失败，直接使用序号搜索返回的列组合
+                            if (useDirectCompositeColumn)
+                            {
+                                currentFileInfo.CompositeColumn = selectionResult.CompositeColumn;
+                                _logger?.LogInformation($"[ProcessNewFileAsync] 序号搜索直接返回列组合: 列组合='{selectionResult.CompositeColumn}'");
                             }
                             
                             // 生成新文件名

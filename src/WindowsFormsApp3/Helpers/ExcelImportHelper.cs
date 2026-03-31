@@ -24,6 +24,8 @@ namespace WindowsFormsApp3.Services
         private int _serialColumnIndex = -1;
         private int _materialColumnIndex = -1;
         private string _selectedRegexPattern;
+        private bool _enableSerialSearchResultToRegex = false;
+        private int _serialSearchResultColumnIndex = -1;
         private ExcelImportForm _excelImportFormInstance;
         private Interfaces.ILogger _logger;
         
@@ -214,6 +216,24 @@ namespace WindowsFormsApp3.Services
         }
 
         /// <summary>
+        /// 获取或设置是否启用序号搜索结果反向更新正则结果
+        /// </summary>
+        public bool EnableSerialSearchResultToRegex
+        {
+            get { return _enableSerialSearchResultToRegex; }
+            set { _enableSerialSearchResultToRegex = value; }
+        }
+
+        /// <summary>
+        /// 获取或设置序号搜索结果反向更新的列索引
+        /// </summary>
+        public int SerialSearchResultColumnIndex
+        {
+            get { return _serialSearchResultColumnIndex; }
+            set { _serialSearchResultColumnIndex = value; }
+        }
+
+        /// <summary>
         /// 获取Excel导入配置窗体实例
         /// </summary>
         public ExcelImportForm ExcelImportFormInstance
@@ -299,13 +319,15 @@ namespace WindowsFormsApp3.Services
                 if (result == DialogResult.OK)
                 {
                     _logger?.LogInformation("用户确认导入配置");
-                    
+
                     // 保存导入结果
                     _importedData = _excelImportFormInstance.ImportedData;
                     _searchColumnIndex = _excelImportFormInstance.SearchColumnIndex;
                     _returnColumnIndex = _excelImportFormInstance.ReturnColumnIndex;
                     _serialColumnIndex = _excelImportFormInstance.NewColumnIndex;
                     _selectedRegexPattern = _excelImportFormInstance.SelectedRegexPattern;
+                    _enableSerialSearchResultToRegex = _excelImportFormInstance.EnableSerialSearchResultToRegex;
+                    _serialSearchResultColumnIndex = _excelImportFormInstance.SerialSearchResultColumnIndex;
 
                     // 验证数据和索引
                     if (!ValidateImportResult())

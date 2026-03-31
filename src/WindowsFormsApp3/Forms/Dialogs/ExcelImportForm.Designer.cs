@@ -37,6 +37,8 @@ namespace WindowsFormsApp3 {
             this.labelCompositeColumns = new AntdUI.Label();
             this.labelSeparator = new AntdUI.Label();
             this.chkEnableComposite = new AntdUI.Checkbox();
+            this.chkEnableSerialSearchResultToRegex = new AntdUI.Checkbox();
+            this.cmbSerialSearchResultColumn = new AntdUI.Select();
             this.SuspendLayout();
             // 
             // label1
@@ -49,7 +51,7 @@ namespace WindowsFormsApp3 {
             // 
             // btnOK
             // 
-            this.btnOK.Location = new System.Drawing.Point(21, 559);
+            this.btnOK.Location = new System.Drawing.Point(490, 527);
             this.btnOK.Name = "btnOK";
             this.btnOK.Size = new System.Drawing.Size(75, 32);
             this.btnOK.TabIndex = 5;
@@ -59,12 +61,12 @@ namespace WindowsFormsApp3 {
             // 
             // btnCancel
             // 
-            this.btnCancel.Location = new System.Drawing.Point(113, 559);
+            this.btnCancel.Ghost = true;
+            this.btnCancel.Location = new System.Drawing.Point(490, 565);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(75, 32);
             this.btnCancel.TabIndex = 6;
             this.btnCancel.Text = "取消";
-            this.btnCancel.Ghost = true;
             this.btnCancel.Click += new System.EventHandler(this.BtnCancel_Click);
             // 
             // label2
@@ -116,7 +118,8 @@ namespace WindowsFormsApp3 {
             // chkImportSerialColumn
             // 
             this.chkImportSerialColumn.Checked = true;
-            this.chkImportSerialColumn.Location = new System.Drawing.Point(127, 359);
+            this.chkImportSerialColumn.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkImportSerialColumn.Location = new System.Drawing.Point(253, 358);
             this.chkImportSerialColumn.Name = "chkImportSerialColumn";
             this.chkImportSerialColumn.Size = new System.Drawing.Size(150, 23);
             this.chkImportSerialColumn.TabIndex = 6;
@@ -124,6 +127,7 @@ namespace WindowsFormsApp3 {
             // 
             // dgvPreview
             // 
+            this.dgvPreview.Gap = 12;
             this.dgvPreview.Location = new System.Drawing.Point(12, 41);
             this.dgvPreview.Name = "dgvPreview";
             this.dgvPreview.Size = new System.Drawing.Size(669, 300);
@@ -165,18 +169,10 @@ namespace WindowsFormsApp3 {
             this.cmbRegex2.Size = new System.Drawing.Size(175, 32);
             this.cmbRegex2.TabIndex = 11;
             // 
-            // chkEnableComposite
-            // 
-            this.chkEnableComposite.Checked = false;
-            this.chkEnableComposite.Location = new System.Drawing.Point(480, 359);
-            this.chkEnableComposite.Name = "chkEnableComposite";
-            this.chkEnableComposite.Size = new System.Drawing.Size(120, 23);
-            this.chkEnableComposite.TabIndex = 9;
-            this.chkEnableComposite.Text = "启用列组合";
-            // 
             // clbCompositeColumns
             // 
             this.clbCompositeColumns.Enabled = false;
+            this.clbCompositeColumns.Gap = 12;
             this.clbCompositeColumns.Location = new System.Drawing.Point(480, 387);
             this.clbCompositeColumns.Name = "clbCompositeColumns";
             this.clbCompositeColumns.Size = new System.Drawing.Size(168, 132);
@@ -194,23 +190,23 @@ namespace WindowsFormsApp3 {
             // btnSelectAllColumns
             // 
             this.btnSelectAllColumns.Enabled = false;
+            this.btnSelectAllColumns.Ghost = true;
             this.btnSelectAllColumns.Location = new System.Drawing.Point(571, 527);
             this.btnSelectAllColumns.Name = "btnSelectAllColumns";
             this.btnSelectAllColumns.Size = new System.Drawing.Size(77, 32);
             this.btnSelectAllColumns.TabIndex = 12;
             this.btnSelectAllColumns.Text = "全选";
-            this.btnSelectAllColumns.Ghost = true;
             this.btnSelectAllColumns.Click += new System.EventHandler(this.btnSelectAllColumns_Click);
             // 
             // btnClearAllColumns
             // 
             this.btnClearAllColumns.Enabled = false;
+            this.btnClearAllColumns.Ghost = true;
             this.btnClearAllColumns.Location = new System.Drawing.Point(571, 565);
             this.btnClearAllColumns.Name = "btnClearAllColumns";
             this.btnClearAllColumns.Size = new System.Drawing.Size(77, 32);
             this.btnClearAllColumns.TabIndex = 13;
             this.btnClearAllColumns.Text = "取消全选";
-            this.btnClearAllColumns.Ghost = true;
             this.btnClearAllColumns.Click += new System.EventHandler(this.btnClearAllColumns_Click);
             // 
             // labelCompositeColumns
@@ -230,6 +226,29 @@ namespace WindowsFormsApp3 {
             this.labelSeparator.Size = new System.Drawing.Size(53, 23);
             this.labelSeparator.TabIndex = 15;
             this.labelSeparator.Text = "分隔符：";
+            // 
+            // chkEnableComposite
+            // 
+            this.chkEnableComposite.Location = new System.Drawing.Point(480, 359);
+            this.chkEnableComposite.Name = "chkEnableComposite";
+            this.chkEnableComposite.Size = new System.Drawing.Size(120, 23);
+            this.chkEnableComposite.TabIndex = 9;
+            this.chkEnableComposite.Text = "启用列组合";
+            // 
+            // chkEnableSerialSearchResultToRegex
+            // 
+            this.chkEnableSerialSearchResultToRegex.Location = new System.Drawing.Point(308, 556);
+            this.chkEnableSerialSearchResultToRegex.Name = "chkEnableSerialSearchResultToRegex";
+            this.chkEnableSerialSearchResultToRegex.Size = new System.Drawing.Size(160, 23);
+            this.chkEnableSerialSearchResultToRegex.TabIndex = 16;
+            this.chkEnableSerialSearchResultToRegex.Text = "序号搜索结果更新正则";
+            // 
+            // cmbSerialSearchResultColumn
+            // 
+            this.cmbSerialSearchResultColumn.Location = new System.Drawing.Point(127, 551);
+            this.cmbSerialSearchResultColumn.Name = "cmbSerialSearchResultColumn";
+            this.cmbSerialSearchResultColumn.Size = new System.Drawing.Size(175, 32);
+            this.cmbSerialSearchResultColumn.TabIndex = 17;
             // 
             // ExcelImportForm
             // 
@@ -254,6 +273,8 @@ namespace WindowsFormsApp3 {
             this.Controls.Add(this.label5);
             this.Controls.Add(this.cmbRegex2);
             this.Controls.Add(this.chkEnableComposite);
+            this.Controls.Add(this.chkEnableSerialSearchResultToRegex);
+            this.Controls.Add(this.cmbSerialSearchResultColumn);
             this.Controls.Add(this.clbCompositeColumns);
             this.Controls.Add(this.txtCompositeSeparator);
             this.Controls.Add(this.btnSelectAllColumns);
@@ -268,7 +289,6 @@ namespace WindowsFormsApp3 {
             this.Text = "Excel导入设置";
             this.Load += new System.EventHandler(this.ExcelImportForm_Load);
             this.ResumeLayout(false);
-            this.PerformLayout();
 
         }
 
@@ -289,6 +309,8 @@ namespace WindowsFormsApp3 {
         private AntdUI.Label label5;
         private AntdUI.Select cmbRegex2;
         private AntdUI.Checkbox chkEnableComposite;
+        private AntdUI.Checkbox chkEnableSerialSearchResultToRegex;
+        private AntdUI.Select cmbSerialSearchResultColumn;
         private AntdUI.Table clbCompositeColumns;
         private AntdUI.Input txtCompositeSeparator;
         private AntdUI.Button btnSelectAllColumns;

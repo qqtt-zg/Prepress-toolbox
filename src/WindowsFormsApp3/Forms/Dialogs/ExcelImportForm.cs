@@ -42,6 +42,8 @@ namespace WindowsFormsApp3
         public int ReturnColumnIndex { get; private set; }
         public int NewColumnIndex { get; private set; } // 序号列索引
         public string SelectedRegexPattern { get; private set; } // 选中的正则表达式模式
+        public bool EnableSerialSearchResultToRegex { get; private set; } // 序号搜索结果反向更新正则结果
+        public int SerialSearchResultColumnIndex { get; private set; } // 序号搜索结果反向更新的列索引
 
         
         // ...
@@ -94,7 +96,11 @@ namespace WindowsFormsApp3
             txtNewColumnParams.Text = AppSettings.ExcelSerialColumnParams;
             txtSearchColumnParams.Text = AppSettings.ExcelSearchColumnParams;
             txtReturnColumnParams.Text = AppSettings.ExcelReturnColumnParams;
-            
+
+            // 序号搜索结果反向更新正则结果设置
+            chkEnableSerialSearchResultToRegex.Checked = AppSettings.ExcelEnableSerialSearchResultToRegex;
+            SerialSearchResultColumnIndex = AppSettings.ExcelSerialSearchResultColumnIndex;
+
             // 使用列组合服务加载设置
             (List<string> columns, string separator) = _compositeColumnService.LoadCompositeColumnSettings();
             if (columns != null)
@@ -245,12 +251,13 @@ namespace WindowsFormsApp3
             cmbSearchColumn.Items.Clear();
             cmbReturnColumn.Items.Clear();
             cmbNewColumn.Items.Clear();
-            
+            cmbSerialSearchResultColumn.Items.Clear();
+
             // 配置组合列Table
             clbCompositeColumns.Columns.Clear();
             clbCompositeColumns.Columns.Add(new ColumnCheck("Selected", "")); // 复选框列
             clbCompositeColumns.Columns.Add(new Column("Name", "列名"));
-            
+
             var compositeList = new List<CompositeColumnItem>();
 
             foreach (DataColumn column in ImportedData.Columns)
@@ -258,10 +265,11 @@ namespace WindowsFormsApp3
                 cmbSearchColumn.Items.Add(column.ColumnName);
                 cmbReturnColumn.Items.Add(column.ColumnName);
                 cmbNewColumn.Items.Add(column.ColumnName);
-                
+                cmbSerialSearchResultColumn.Items.Add(column.ColumnName);
+
                 compositeList.Add(new CompositeColumnItem { Name = column.ColumnName, Selected = false });
             }
-            
+
             clbCompositeColumns.DataSource = compositeList;
 
             // 自动选择序号列
@@ -270,6 +278,15 @@ namespace WindowsFormsApp3
             AutoSelectColumn(cmbSearchColumn, txtSearchColumnParams.Text);
             // 自动选择返回列
             AutoSelectColumn(cmbReturnColumn, txtReturnColumnParams.Text);
+            // 自动选择序号搜索结果列
+            if (SerialSearchResultColumnIndex >= 0 && SerialSearchResultColumnIndex < cmbSerialSearchResultColumn.Items.Count)
+            {
+                cmbSerialSearchResultColumn.SelectedIndex = SerialSearchResultColumnIndex;
+            }
+            else if (cmbSerialSearchResultColumn.Items.Count > 0)
+            {
+                cmbSerialSearchResultColumn.SelectedIndex = 0;
+            }
         }
 
         private void AutoSelectColumn(AntdUI.Select comboBox, string paramsText)
@@ -499,7 +516,13 @@ namespace WindowsFormsApp3
             AppSettings.ExcelSerialColumnParams = txtNewColumnParams.Text;
             AppSettings.ExcelSearchColumnParams = txtSearchColumnParams.Text;
             AppSettings.ExcelReturnColumnParams = txtReturnColumnParams.Text;
-            
+
+            // 保存序号搜索结果反向更新正则结果设置
+            EnableSerialSearchResultToRegex = chkEnableSerialSearchResultToRegex.Checked;
+            SerialSearchResultColumnIndex = cmbSerialSearchResultColumn.SelectedIndex;
+            AppSettings.ExcelEnableSerialSearchResultToRegex = EnableSerialSearchResultToRegex;
+            AppSettings.ExcelSerialSearchResultColumnIndex = SerialSearchResultColumnIndex;
+
             // 使用列组合服务保存设置
             _compositeColumnService.SaveCompositeColumnSettings(SelectedCompositeColumns, CompositeColumnSeparator);
             

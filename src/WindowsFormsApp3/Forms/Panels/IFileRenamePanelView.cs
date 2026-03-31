@@ -218,6 +218,8 @@ namespace WindowsFormsApp3.Forms.Panels
             List<string> columnNames,
             Dictionary<string, List<string>> columnItemsMap,
             int initialSerialNumber,
+            bool enableSerialSearchResultToRegex,
+            int serialSearchResultColumnIndex,
             out MaterialSelectionResult result
         );
 
