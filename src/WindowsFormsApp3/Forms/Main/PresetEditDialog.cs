@@ -43,6 +43,7 @@ namespace WindowsFormsApp3.Forms.Main
         private CheckBox _chkEnableIsDualCopy;
         private CheckBox _chkEnableIdentifierPage;
         private CheckBox _chkEnableExportPath;
+        private CheckBox _chkShowInPresetButtons;
 
         private Button _btnOK;
         private Button _btnCancel;
@@ -65,7 +66,7 @@ namespace WindowsFormsApp3.Forms.Main
         private void InitializeComponent()
         {
             this.Text = _isNew ? "新建预设" : "编辑预设";
-            this.Size = new Size(480, 720);
+            this.Size = new Size(480, 800);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -196,11 +197,17 @@ namespace WindowsFormsApp3.Forms.Main
             this.Controls.Add(_cmbExportPath);
             this.Controls.Add(_btnBrowsePath);
 
+            // 第13行：添加到预设按钮
+            _chkShowInPresetButtons = new CheckBox { Location = new Point(chkX, startY + rowHeight * 12), AutoSize = true, Checked = false };
+            var lblShowInPresetButtons = new Label { Text = "添加到预设按钮:", Location = new Point(labelX, startY + rowHeight * 12), AutoSize = true };
+            this.Controls.Add(_chkShowInPresetButtons);
+            this.Controls.Add(lblShowInPresetButtons);
+
             // 按钮
             _btnOK = new Button
             {
                 Text = "确定",
-                Location = new Point(280, startY + rowHeight * 12 + 10),
+                Location = new Point(280, startY + rowHeight * 13 + 10),
                 Size = new Size(80, 30),
                 FlatStyle = FlatStyle.System,
                 DialogResult = DialogResult.OK
@@ -211,7 +218,7 @@ namespace WindowsFormsApp3.Forms.Main
             _btnCancel = new Button
             {
                 Text = "取消",
-                Location = new Point(370, startY + rowHeight * 12 + 10),
+                Location = new Point(370, startY + rowHeight * 13 + 10),
                 Size = new Size(80, 30),
                 FlatStyle = FlatStyle.System,
                 DialogResult = DialogResult.Cancel
@@ -337,6 +344,9 @@ namespace WindowsFormsApp3.Forms.Main
             _chkEnableIsDualCopy.Checked = !_preset.DisabledOptions.HasFlag(PresetIgnoreOptions.IsDualCopy);
             _chkEnableIdentifierPage.Checked = !_preset.DisabledOptions.HasFlag(PresetIgnoreOptions.IdentifierPage);
             _chkEnableExportPath.Checked = !_preset.DisabledOptions.HasFlag(PresetIgnoreOptions.ExportPath);
+
+            // 加载 ShowInPresetButtons
+            _chkShowInPresetButtons.Checked = _preset.ShowInPresetButtons;
         }
 
         private void BtnBrowsePath_Click(object sender, EventArgs e)
@@ -435,6 +445,9 @@ namespace WindowsFormsApp3.Forms.Main
             if (!_chkEnableIdentifierPage.Checked) disabled |= PresetIgnoreOptions.IdentifierPage;
             if (!_chkEnableExportPath.Checked) disabled |= PresetIgnoreOptions.ExportPath;
             _preset.DisabledOptions = disabled;
+
+            // 保存 ShowInPresetButtons
+            _preset.ShowInPresetButtons = _chkShowInPresetButtons.Checked;
         }
     }
 }

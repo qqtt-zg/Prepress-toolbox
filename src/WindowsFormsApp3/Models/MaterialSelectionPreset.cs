@@ -77,6 +77,60 @@ namespace WindowsFormsApp3.Models
         /// 预设加载时禁用的参数（使用 PresetIgnoreOptions 标志）
         /// </summary>
         public PresetIgnoreOptions DisabledOptions { get; set; } = PresetIgnoreOptions.None;
+
+        /// <summary>
+        /// 是否显示在预设按钮区域（默认不显示）
+        /// </summary>
+        public bool ShowInPresetButtons { get; set; } = false;
+
+        /// <summary>
+        /// 创建当前预设的深度副本
+        /// </summary>
+        public MaterialSelectionPreset Clone()
+        {
+            return new MaterialSelectionPreset
+            {
+                Name = this.Name,
+                SelectedMaterial = this.SelectedMaterial,
+                TetBleed = this.TetBleed,
+                ColorMode = this.ColorMode,
+                FilmType = this.FilmType,
+                AddIdentifierPage = this.AddIdentifierPage,
+                ShapeState = this.ShapeState,
+                IsDualCopy = this.IsDualCopy,
+                ExportPath = this.ExportPath,
+                RoundRadius = this.RoundRadius,
+                MaterialType = this.MaterialType,
+                LayoutMode = this.LayoutMode,
+                EnableImposition = this.EnableImposition,
+                DisabledOptions = this.DisabledOptions,
+                ShowInPresetButtons = this.ShowInPresetButtons
+            };
+        }
+
+        /// <summary>
+        /// 从另一个预设中复制所有属性
+        /// </summary>
+        public void CopyFrom(MaterialSelectionPreset other)
+        {
+            if (other == null) return;
+
+            this.Name = other.Name;
+            this.SelectedMaterial = other.SelectedMaterial;
+            this.TetBleed = other.TetBleed;
+            this.ColorMode = other.ColorMode;
+            this.FilmType = other.FilmType;
+            this.AddIdentifierPage = other.AddIdentifierPage;
+            this.ShapeState = other.ShapeState;
+            this.IsDualCopy = other.IsDualCopy;
+            this.ExportPath = other.ExportPath;
+            this.RoundRadius = other.RoundRadius;
+            this.MaterialType = other.MaterialType;
+            this.LayoutMode = other.LayoutMode;
+            this.EnableImposition = other.EnableImposition;
+            this.DisabledOptions = other.DisabledOptions;
+            this.ShowInPresetButtons = other.ShowInPresetButtons;
+        }
     }
 
     /// <summary>
@@ -97,6 +151,7 @@ namespace WindowsFormsApp3.Models
         RoundRadius = 256,
         MaterialType = 512,
         LayoutMode = 1024,
-        EnableImposition = 2048
+        EnableImposition = 2048,
+        ShowInPresetButtons = 4096
     }
 }

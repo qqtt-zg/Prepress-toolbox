@@ -341,43 +341,14 @@ namespace WindowsFormsApp3.Forms.Main
         private void EditPreset(MaterialSelectionPreset preset)
         {
             // 创建副本用于编辑
-            var editPreset = new MaterialSelectionPreset
-            {
-                Name = preset.Name,
-                MaterialType = preset.MaterialType,
-                LayoutMode = preset.LayoutMode,
-                EnableImposition = preset.EnableImposition,
-                SelectedMaterial = preset.SelectedMaterial,
-                TetBleed = preset.TetBleed,
-                ColorMode = preset.ColorMode,
-                FilmType = preset.FilmType,
-                AddIdentifierPage = preset.AddIdentifierPage,
-                ShapeState = preset.ShapeState,
-                IsDualCopy = preset.IsDualCopy,
-                ExportPath = preset.ExportPath,
-                RoundRadius = preset.RoundRadius,
-                DisabledOptions = preset.DisabledOptions
-            };
+            var editPreset = preset.Clone();
 
             using (var dialog = new PresetEditDialog(editPreset, false))
             {
                 if (dialog.ShowDialog(this) == DialogResult.OK)
                 {
                     // 更新原预设
-                    preset.Name = dialog.Preset.Name;
-                    preset.MaterialType = dialog.Preset.MaterialType;
-                    preset.LayoutMode = dialog.Preset.LayoutMode;
-                    preset.SelectedMaterial = dialog.Preset.SelectedMaterial;
-                    preset.TetBleed = dialog.Preset.TetBleed;
-                    preset.ColorMode = dialog.Preset.ColorMode;
-                    preset.FilmType = dialog.Preset.FilmType;
-                    preset.AddIdentifierPage = dialog.Preset.AddIdentifierPage;
-                    preset.ShapeState = dialog.Preset.ShapeState;
-                    preset.IsDualCopy = dialog.Preset.IsDualCopy;
-                    preset.EnableImposition = dialog.Preset.EnableImposition;
-                    preset.ExportPath = dialog.Preset.ExportPath;
-                    preset.RoundRadius = dialog.Preset.RoundRadius;
-                    preset.DisabledOptions = dialog.Preset.DisabledOptions;
+                    preset.CopyFrom(dialog.Preset);
                     SaveAndRefresh();
                 }
             }

@@ -101,6 +101,7 @@ namespace WindowsFormsApp3
             this.pdfPreviewPanel = new System.Windows.Forms.Panel();
             this.pdfPreviewControl = new System.Windows.Forms.Panel();
             this.label1 = new AntdUI.Label();
+            this.presetButtonsPanel = new System.Windows.Forms.FlowLayoutPanel();
             this.tabs1.SuspendLayout();
             this.tabPage3.SuspendLayout();
             this.materialTypeGroupBox.SuspendLayout();
@@ -257,9 +258,9 @@ namespace WindowsFormsApp3
             this.bleedDropdown.Size = new System.Drawing.Size(54, 32);
             this.bleedDropdown.TabIndex = 18;
             this.bleedDropdown.WaveSize = 0;
-            // 
+            //
             // confirmButton
-            // 
+            //
             this.confirmButton.BorderWidth = 2F;
             this.confirmButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.confirmButton.Location = new System.Drawing.Point(243, 598);
@@ -269,9 +270,9 @@ namespace WindowsFormsApp3
             this.confirmButton.Text = "确认";
             this.confirmButton.WaveSize = 0;
             this.confirmButton.Click += new System.EventHandler(this.ConfirmButton_Click);
-            // 
+            //
             // cancelButton
-            // 
+            //
             this.cancelButton.BorderWidth = 2F;
             this.cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.cancelButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
@@ -283,9 +284,9 @@ namespace WindowsFormsApp3
             this.cancelButton.Text = "取消";
             this.cancelButton.WaveSize = 0;
             this.cancelButton.Click += new System.EventHandler(this.cancelButton_Click_1);
-            // 
+            //
             // colorModeButton
-            // 
+            //
             this.colorModeButton.BorderWidth = 2F;
             this.colorModeButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.colorModeButton.Ghost = true;
@@ -699,9 +700,9 @@ namespace WindowsFormsApp3
             this.enableImpositionCheckbox.Size = new System.Drawing.Size(83, 26);
             this.enableImpositionCheckbox.TabIndex = 54;
             this.enableImpositionCheckbox.Text = "启用排版";
-            // 
+            //
             // materialTypeGroupBox
-            // 
+            //
             this.materialTypeGroupBox.Controls.Add(this.flatSheetRadioButton);
             this.materialTypeGroupBox.Controls.Add(this.rollMaterialRadioButton);
             this.materialTypeGroupBox.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold);
@@ -711,27 +712,27 @@ namespace WindowsFormsApp3
             this.materialTypeGroupBox.TabIndex = 55;
             this.materialTypeGroupBox.TabStop = false;
             this.materialTypeGroupBox.Text = "材料类型";
-            // 
+            //
             // flatSheetRadioButton
-            // 
+            //
             this.flatSheetRadioButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F);
             this.flatSheetRadioButton.Location = new System.Drawing.Point(10, 19);
             this.flatSheetRadioButton.Name = "flatSheetRadioButton";
             this.flatSheetRadioButton.Size = new System.Drawing.Size(64, 24);
             this.flatSheetRadioButton.TabIndex = 55;
             this.flatSheetRadioButton.Text = "平张";
-            // 
+            //
             // rollMaterialRadioButton
-            // 
+            //
             this.rollMaterialRadioButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F);
             this.rollMaterialRadioButton.Location = new System.Drawing.Point(80, 19);
             this.rollMaterialRadioButton.Name = "rollMaterialRadioButton";
             this.rollMaterialRadioButton.Size = new System.Drawing.Size(64, 24);
             this.rollMaterialRadioButton.TabIndex = 56;
             this.rollMaterialRadioButton.Text = "卷装";
-            // 
+            //
             // layoutModeGroupBox
-            // 
+            //
             this.layoutModeGroupBox.Controls.Add(this.continuousLayoutRadioButton);
             this.layoutModeGroupBox.Controls.Add(this.foldingLayoutRadioButton);
             this.layoutModeGroupBox.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold);
@@ -741,27 +742,27 @@ namespace WindowsFormsApp3
             this.layoutModeGroupBox.TabIndex = 57;
             this.layoutModeGroupBox.TabStop = false;
             this.layoutModeGroupBox.Text = "排版模式";
-            // 
+            //
             // continuousLayoutRadioButton
-            // 
+            //
             this.continuousLayoutRadioButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F);
             this.continuousLayoutRadioButton.Location = new System.Drawing.Point(10, 15);
             this.continuousLayoutRadioButton.Name = "continuousLayoutRadioButton";
             this.continuousLayoutRadioButton.Size = new System.Drawing.Size(70, 24);
             this.continuousLayoutRadioButton.TabIndex = 57;
             this.continuousLayoutRadioButton.Text = "连拼";
-            // 
+            //
             // foldingLayoutRadioButton
-            // 
+            //
             this.foldingLayoutRadioButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F);
             this.foldingLayoutRadioButton.Location = new System.Drawing.Point(85, 15);
             this.foldingLayoutRadioButton.Name = "foldingLayoutRadioButton";
             this.foldingLayoutRadioButton.Size = new System.Drawing.Size(70, 24);
             this.foldingLayoutRadioButton.TabIndex = 58;
             this.foldingLayoutRadioButton.Text = "折手";
-            // 
+            //
             // rowsDisplayLabel
-            // 
+            //
             this.rowsDisplayLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold);
             this.rowsDisplayLabel.ForeColor = System.Drawing.Color.DodgerBlue;
             this.rowsDisplayLabel.Location = new System.Drawing.Point(18, 571);
@@ -769,9 +770,9 @@ namespace WindowsFormsApp3
             this.rowsDisplayLabel.Size = new System.Drawing.Size(60, 20);
             this.rowsDisplayLabel.TabIndex = 59;
             this.rowsDisplayLabel.Text = "行数: —";
-            // 
+            //
             // columnsDisplayLabel
-            // 
+            //
             this.columnsDisplayLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold);
             this.columnsDisplayLabel.ForeColor = System.Drawing.Color.ForestGreen;
             this.columnsDisplayLabel.Location = new System.Drawing.Point(97, 571);
@@ -779,9 +780,9 @@ namespace WindowsFormsApp3
             this.columnsDisplayLabel.Size = new System.Drawing.Size(60, 20);
             this.columnsDisplayLabel.TabIndex = 60;
             this.columnsDisplayLabel.Text = "列数: —";
-            // 
+            //
             // layoutCountDisplayLabel
-            // 
+            //
             this.layoutCountDisplayLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold);
             this.layoutCountDisplayLabel.ForeColor = System.Drawing.Color.Orange;
             this.layoutCountDisplayLabel.Location = new System.Drawing.Point(176, 571);
@@ -789,9 +790,9 @@ namespace WindowsFormsApp3
             this.layoutCountDisplayLabel.Size = new System.Drawing.Size(100, 20);
             this.layoutCountDisplayLabel.TabIndex = 61;
             this.layoutCountDisplayLabel.Text = "布局数量: —";
-            // 
+            //
             // rotationDisplayLabel
-            // 
+            //
             this.rotationDisplayLabel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.rotationDisplayLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold);
             this.rotationDisplayLabel.ForeColor = System.Drawing.Color.MediumPurple;
@@ -800,9 +801,9 @@ namespace WindowsFormsApp3
             this.rotationDisplayLabel.Size = new System.Drawing.Size(90, 20);
             this.rotationDisplayLabel.TabIndex = 62;
             this.rotationDisplayLabel.Text = "旋转角度: —";
-            // 
+            //
             // pdfSizeDisplayLabel
-            // 
+            //
             this.pdfSizeDisplayLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold);
             this.pdfSizeDisplayLabel.ForeColor = System.Drawing.Color.SeaGreen;
             this.pdfSizeDisplayLabel.Location = new System.Drawing.Point(18, 601);
@@ -824,7 +825,7 @@ namespace WindowsFormsApp3
             // previewCollapseButton
             // 
             this.previewCollapseButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F);
-            this.previewCollapseButton.Location = new System.Drawing.Point(0, 627);
+            this.previewCollapseButton.Location = new System.Drawing.Point(0, 658);
             this.previewCollapseButton.Name = "previewCollapseButton";
             this.previewCollapseButton.Radius = 0;
             this.previewCollapseButton.Size = new System.Drawing.Size(400, 15);
@@ -832,18 +833,18 @@ namespace WindowsFormsApp3
             this.previewCollapseButton.Text = "▲";
             this.previewCollapseButton.WaveSize = 0;
             this.previewCollapseButton.Click += new System.EventHandler(this.PreviewCollapseButton_Click);
-            // 
+            //
             // pdfPreviewPanel
-            // 
+            //
             this.pdfPreviewPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
             this.pdfPreviewPanel.Controls.Add(this.pdfPreviewControl);
-            this.pdfPreviewPanel.Location = new System.Drawing.Point(0, 644);
+            this.pdfPreviewPanel.Location = new System.Drawing.Point(0, 673);
             this.pdfPreviewPanel.Name = "pdfPreviewPanel";
             this.pdfPreviewPanel.Size = new System.Drawing.Size(400, 245);
             this.pdfPreviewPanel.TabIndex = 61;
-            // 
+            //
             // pdfPreviewControl
-            // 
+            //
             this.pdfPreviewControl.BackColor = System.Drawing.Color.White;
             this.pdfPreviewControl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pdfPreviewControl.Location = new System.Drawing.Point(0, 0);
@@ -851,18 +852,29 @@ namespace WindowsFormsApp3
             this.pdfPreviewControl.Name = "pdfPreviewControl";
             this.pdfPreviewControl.Size = new System.Drawing.Size(400, 245);
             this.pdfPreviewControl.TabIndex = 0;
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.BackColor = System.Drawing.Color.Transparent;
             this.label1.Font = new System.Drawing.Font("Microsoft YaHei UI", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.label1.ForeColor = System.Drawing.Color.Gray;
-            this.label1.Location = new System.Drawing.Point(15, 627);
+            this.label1.Location = new System.Drawing.Point(15, 658);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(120, 15);
             this.label1.TabIndex = 66;
             this.label1.Text = "页码: —";
             this.label1.Click += new System.EventHandler(this.label1_Click);
+            //
+            // presetButtonsPanel
+            //
+            this.presetButtonsPanel.BackColor = System.Drawing.Color.Transparent;
+            this.presetButtonsPanel.FlowDirection = System.Windows.Forms.FlowDirection.LeftToRight;
+            this.presetButtonsPanel.Location = new System.Drawing.Point(0, 628);
+            this.presetButtonsPanel.Name = "presetButtonsPanel";
+            this.presetButtonsPanel.Size = new System.Drawing.Size(400, 30);
+            this.presetButtonsPanel.TabIndex = 67;
+            this.presetButtonsPanel.Visible = true;
+            this.presetButtonsPanel.WrapContents = true;
             // 
             // MaterialSelectFormModern
             // 
@@ -871,11 +883,10 @@ namespace WindowsFormsApp3
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
             this.CancelButton = this.cancelButton;
-            this.ClientSize = new System.Drawing.Size(400, 890);
-            this.Controls.Add(this.label1);
-            this.Controls.Add(this.previewCollapseButton);
+            this.ClientSize = new System.Drawing.Size(400, 918);
             this.Controls.Add(this.fileNameSeparator);
             this.Controls.Add(this.fileNameLabel);
+            this.Controls.Add(this.presetButtonsPanel);
             this.Controls.Add(this.confirmButton);
             this.Controls.Add(this.cancelButton);
             this.Controls.Add(this.colorModeButton);
@@ -913,6 +924,8 @@ namespace WindowsFormsApp3
             this.Controls.Add(this.shapeRoundRectButton);
             this.Controls.Add(this.folderTreeView);
             this.Controls.Add(this.tabs1);
+            this.Controls.Add(this.label1);
+            this.Controls.Add(this.previewCollapseButton);
             this.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.KeyPreview = true;
@@ -1010,5 +1023,8 @@ namespace WindowsFormsApp3
         private System.Windows.Forms.Panel pdfPreviewPanel;
         private System.Windows.Forms.Panel pdfPreviewControl;
         private AntdUI.Label label1;
+
+        // 预设按钮区域
+        private System.Windows.Forms.FlowLayoutPanel presetButtonsPanel;
     }
 }

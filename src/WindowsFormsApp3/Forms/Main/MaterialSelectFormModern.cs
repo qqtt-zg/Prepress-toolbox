@@ -173,7 +173,7 @@ namespace WindowsFormsApp3
                 case ShapeType.RightAngle:
                 default:
                     return "0"; // 直角用"0"
-            }
+        }
         }
 
         /// <summary>
@@ -288,6 +288,12 @@ namespace WindowsFormsApp3
             // 初始化预设右键菜单
             InitializePresetContextMenu();
 
+            // 初始化预设按钮区域
+            LoadPresetButtons();
+
+            // 🔧 确保预设按钮在加载时应用正确的主题样式
+            ApplyCurrentTheme();
+
             // 绑定窗口位置管理事件
             this.FormClosing += MaterialSelectFormModern_FormClosing;
 
@@ -400,6 +406,22 @@ namespace WindowsFormsApp3
             }
         }
 
+        private void UpdateFormSizeBasedOnPreviewState()
+        {
+            if (_isPreviewExpanded)
+            {
+                pdfPreviewPanel.Height = MAX_PREVIEW_HEIGHT;
+                this.ClientSize = new Size(this.ClientSize.Width, pdfPreviewPanel.Bottom);
+                previewCollapseButton.Text = "▲";
+            }
+            else
+            {
+                pdfPreviewPanel.Height = 0;
+                this.ClientSize = new Size(this.ClientSize.Width, pdfPreviewPanel.Top);
+                previewCollapseButton.Text = "▼";
+            }
+        }
+
         /// <summary>
         /// 预览状态预恢复方法，在预定位阶段安全地恢复预览状态
         /// </summary>
@@ -421,17 +443,13 @@ namespace WindowsFormsApp3
                 if (shouldExpand)
                 {
                     _isPreviewExpanded = true;
-                    pdfPreviewPanel.Height = MAX_PREVIEW_HEIGHT;
-                    this.ClientSize = new Size(400, 886);  // 🔧 添加：设置展开状态窗体大小
-                    previewCollapseButton.Text = "▲";
+                    UpdateFormSizeBasedOnPreviewState();
                     LogHelper.Debug("[预定位] 恢复预览展开状态和窗体大小");
                 }
                 else
                 {
                     _isPreviewExpanded = false;
-                    pdfPreviewPanel.Height = 0;
-                    this.ClientSize = new Size(400, 644);  // 🔧 添加：设置折叠状态窗体大小（包含文件名区域）
-                    previewCollapseButton.Text = "▼";
+                    UpdateFormSizeBasedOnPreviewState();
                     LogHelper.Debug("[预定位] 恢复预览折叠状态和窗体大小");
                 }
             }
@@ -470,9 +488,7 @@ namespace WindowsFormsApp3
                     {
                         if (shouldExpand)
                         {
-                            pdfPreviewPanel.Height = MAX_PREVIEW_HEIGHT;
-                            this.ClientSize = new Size(400, 886);  // 🔧 添加：设置展开状态窗体大小
-                            previewCollapseButton.Text = "▲";
+                            UpdateFormSizeBasedOnPreviewState();
 
                             // ✅ 如果有待加载的PDF且预览已展开，现在加载它
                             if (!string.IsNullOrEmpty(_pendingPdfToLoad))
@@ -498,9 +514,7 @@ namespace WindowsFormsApp3
                         }
                         else
                         {
-                            pdfPreviewPanel.Height = 0;
-                            this.ClientSize = new Size(400, 644);  // 🔧 添加：设置折叠状态窗体大小（包含文件名区域）
-                            previewCollapseButton.Text = "▼";
+                            UpdateFormSizeBasedOnPreviewState();
                             LogHelper.Debug("[状态检查] 确认折叠状态UI和窗体大小");
                         }
                     }
@@ -746,6 +760,12 @@ namespace WindowsFormsApp3
 
             // 初始化预设右键菜单
             InitializePresetContextMenu();
+
+            // 🔧 确保在这个重载构造函数中也初始化预设按钮
+            LoadPresetButtons();
+            
+            // 加载主题
+            ApplyCurrentTheme();
 
             InitializeEventHandlers();
             InitializeFolderTree(); // 初始化文件夹菜单
@@ -3271,6 +3291,9 @@ namespace WindowsFormsApp3
             // ✅ 关键修复：在材料按钮加载完成后，立即恢复上次的材料选择状态
             LoadLastSelectedMaterial();
 
+            // 🔧 在Load事件中也调用一次，确保预设按钮加载成功
+            LoadPresetButtons();
+
             // 恢复排版控件状态
             LoadImpositionControlStates();
 
@@ -3290,8 +3313,8 @@ namespace WindowsFormsApp3
             }
             
             // ✅ 重置预览面板为折叠状态
-            pdfPreviewPanel.Height = 0;
-            this.ClientSize = new System.Drawing.Size(400, 644); // 初始设置为折叠状态（包含文件名区域）
+            _isPreviewExpanded = false;
+            UpdateFormSizeBasedOnPreviewState();
 
             // ✅ 保存当前需要加载的PDF文件路径
             if (!string.IsNullOrEmpty(CurrentFileName) && File.Exists(CurrentFileName))
@@ -3463,6 +3486,9 @@ namespace WindowsFormsApp3
             // 确保窗体始终在最前端显示
             TopMost = true;
             this.Activate();
+
+            // 🔧 强制重新加载预设按钮，确保它们在窗体显示后可见
+            LoadPresetButtons();
 
             // 在窗体显示后设置焦点，确保句柄已创建
             this.BeginInvoke(new Action(SetOrderTextBoxFocus));
@@ -4425,6 +4451,224 @@ namespace WindowsFormsApp3
         }
 
         /// <summary>
+        /// 加载预设按钮到按钮区域
+        /// </summary>
+        private void LoadPresetButtons()
+        {
+            if (presetButtonsPanel == null) return;
+
+            // 清除现有按钮
+            presetButtonsPanel.Controls.Clear();
+
+            var presets = AppSettings.MaterialPresets;
+            if (presets == null || presets.Count == 0) 
+            {
+                LogHelper.Debug("[LoadPresetButtons] 预设列表为空或为 null。");
+                AdjustLayoutForPresetButtons();
+                return;
+            }
+
+            LogHelper.Debug($"[LoadPresetButtons] 加载预设按钮开始，共发现 {presets.Count} 个预设");
+
+            // 获取当前主题
+            ThemeDefinition currentTheme = null;
+            bool isDark = false;
+            try
+            {
+                var themeManager = ServiceLocator.Instance.GetThemeManager();
+                if (themeManager != null)
+                {
+                    currentTheme = themeManager.GetThemeByName(AppSettings.CurrentThemeName) ?? themeManager.GetThemeByName("浅色");
+                    isDark = currentTheme != null && IsThemeDark(currentTheme);
+                }
+            }
+            catch { /* 忽略获取主题失败 */ }
+
+            int addedCount = 0;
+            foreach (var preset in presets)
+            {
+                // 只添加 ShowInPresetButtons 为 true 的预设
+                if (preset.ShowInPresetButtons)
+                {
+                    var button = CreatePresetButton(preset);
+                    presetButtonsPanel.Controls.Add(button);
+                    
+                    // 🔧 在添加时直接应用主题
+                    if (currentTheme != null)
+                    {
+                        ApplyThemeToMaterialButton(button, currentTheme, isDark);
+                    }
+                    
+                    // 强制按钮可见
+                    button.Visible = true;
+                    addedCount++;
+                }
+            }
+            
+            LogHelper.Debug($"[LoadPresetButtons] 加载完成，添加了 {addedCount} 个预设按钮到面板");
+
+            // 🔧 强制设置可见性，以防设计器默认隐藏
+            presetButtonsPanel.Visible = true;
+            presetButtonsPanel.BringToFront(); // 确保不被其他控件遮挡
+
+            // 🔧 强制重绘面板以确保按钮显示
+            presetButtonsPanel.PerformLayout();
+            presetButtonsPanel.Refresh();
+
+            // 调整预设按钮面板及下方控件的位置和窗体高度
+            AdjustLayoutForPresetButtons();
+        }
+
+        /// <summary>
+        /// 调整预设按钮面板高度，并相应移动下方控件及调整窗体高度
+        /// </summary>
+        private void AdjustLayoutForPresetButtons()
+        {
+            if (presetButtonsPanel == null) return;
+
+            int oldHeight = presetButtonsPanel.Height;
+            
+            // 强制执行一次布局，确保控件的Bounds是最新的
+            presetButtonsPanel.PerformLayout();
+
+            // 手动计算实际需要的最大高度
+            int maxBottom = 0;
+            foreach (Control c in presetButtonsPanel.Controls)
+            {
+                if (c.Visible)
+                {
+                    int bottomWithMargin = c.Bottom + c.Margin.Bottom;
+                    if (bottomWithMargin > maxBottom)
+                    {
+                        maxBottom = bottomWithMargin;
+                    }
+                }
+            }
+            
+            // 如果只有一行，可能算出来的高度和默认 30 差不多，确保最小高度为 30
+            int newHeight = maxBottom;
+            if (newHeight < 30) newHeight = 30;
+
+            if (newHeight != oldHeight)
+            {
+                int diff = newHeight - oldHeight;
+                presetButtonsPanel.Height = newHeight;
+
+                // 移动下方的控件
+                if (previewCollapseButton != null)
+                    previewCollapseButton.Top += diff;
+                if (label1 != null)
+                    label1.Top += diff;
+                if (pdfPreviewPanel != null)
+                    pdfPreviewPanel.Top += diff;
+
+                // 因为改变了 pdfPreviewPanel.Top/Bottom，这里统一调用 UpdateFormSizeBasedOnPreviewState 来调整窗体高度
+                UpdateFormSizeBasedOnPreviewState();
+            }
+        }
+
+        /// <summary>
+        /// 创建预设按钮
+        /// </summary>
+        private AntdUI.Button CreatePresetButton(MaterialSelectionPreset preset)
+        {
+            // 动态计算按钮宽度：容纳文字长度，加一些 padding
+            int textWidth = TextRenderer.MeasureText(preset.Name, this.Font).Width;
+            
+            // 预设面板总宽度约为 400px，每个按钮的 Margin 为左右各 3px（总计 6px）
+            // 5 个按钮加外边距的总宽度应小于等于 400，即 (Width + 6) * 5 <= 400 -> Width <= 74
+            int minWidth = 74; 
+            
+            // 计算需要的宽度，并确保不会超过容器单行可用最大宽度
+            int buttonWidth = Math.Max(minWidth, textWidth + 20); // 20 为左右内边距补偿，略微缩小使得4个字更容易适应 74 宽度
+            buttonWidth = Math.Min(buttonWidth, presetButtonsPanel.Width - 10); // 防止单个按钮过长超出面板
+
+            var button = new AntdUI.Button
+            {
+                Text = preset.Name,
+                BorderWidth = 1F,
+                Type = AntdUI.TTypeMini.Default,
+                Size = new System.Drawing.Size(buttonWidth, 28),
+                Tag = preset.Name,
+                WaveSize = 0,
+                Margin = new Padding(3, 1, 3, 1),
+                Visible = true
+            };
+            button.Click += (s, e) => PresetButton_Click(preset.Name);
+            return button;
+        }
+
+        /// <summary>
+        /// 更新激活的预设按钮样式
+        /// </summary>
+        private void UpdateActivePresetButton(string activePresetName)
+        {
+            if (presetButtonsPanel == null) return;
+
+            // 获取当前主题
+            ThemeDefinition currentTheme = null;
+            bool isDark = false;
+            try
+            {
+                var themeManager = ServiceLocator.Instance.GetThemeManager();
+                if (themeManager != null)
+                {
+                    currentTheme = themeManager.GetThemeByName(AppSettings.CurrentThemeName) ?? themeManager.GetThemeByName("浅色");
+                    isDark = currentTheme != null && IsThemeDark(currentTheme);
+                }
+            }
+            catch { /* 忽略获取主题失败 */ }
+
+            foreach (Control ctrl in presetButtonsPanel.Controls)
+            {
+                if (ctrl is AntdUI.Button btn)
+                {
+                    if (btn.Tag != null && btn.Tag.ToString() == activePresetName)
+                    {
+                        // 激活状态：Ghost=true，Primary类型实现边框和文字高亮，背景透明
+                        btn.Type = AntdUI.TTypeMini.Primary;
+                        btn.Ghost = true;
+                        btn.BorderWidth = 1.5F;
+                    }
+                    else
+                    {
+                        // 非激活状态：恢复Default类型
+                        btn.Type = AntdUI.TTypeMini.Default;
+                        btn.Ghost = false;
+                        btn.BorderWidth = 1F;
+                    }
+
+                    // 重新应用主题颜色
+                    if (currentTheme != null)
+                    {
+                        ApplyThemeToMaterialButton(btn, currentTheme, isDark);
+                    }
+                    else
+                    {
+                        // 兜底方案，如果没有主题
+                        if (btn.Type == AntdUI.TTypeMini.Primary)
+                        {
+                            btn.ForeColor = AntdUI.Style.Db.Primary;
+                        }
+                        else
+                        {
+                            btn.ForeColor = Color.Black;
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 预设按钮点击事件
+        /// </summary>
+        private void PresetButton_Click(string presetName)
+        {
+            LoadPreset(presetName);
+            UpdateActivePresetButton(presetName);
+        }
+
+        /// <summary>
         /// 更新预设菜单项
         /// </summary>
         private void UpdatePresetMenu()
@@ -4539,6 +4783,8 @@ namespace WindowsFormsApp3
 
                     // 更新菜单
                     UpdatePresetMenu();
+                    LoadPresetButtons();
+                    ApplyCurrentTheme();
 
                     LogHelper.Info($"[预设] 已保存预设: {presetName}");
                     MessageBox.Show($"预设\"{presetName}\"保存成功！", "保存成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -4865,8 +5111,12 @@ namespace WindowsFormsApp3
             {
                 form.ShowDialog(this);
             }
-            // 关闭管理窗口后刷新预设菜单
+            // 关闭管理窗口后刷新预设菜单和预设按钮
             UpdatePresetMenu();
+            LoadPresetButtons();
+            
+            // 🔧 重新应用主题以确保新创建的按钮正确显示
+            ApplyCurrentTheme();
         }
 
         #endregion
@@ -7393,9 +7643,7 @@ namespace WindowsFormsApp3
                 if (_isPreviewExpanded)
                 {
                     // ✅ 展开预览（立即显示，无动画）
-                    pdfPreviewPanel.Height = MAX_PREVIEW_HEIGHT;
-                    this.ClientSize = new System.Drawing.Size(400, 886); // 恢复到设计器大小（包含文件名区域）
-                    previewCollapseButton.Text = "▲"; // 上箭头
+                    UpdateFormSizeBasedOnPreviewState();
 
                     // ✅ 如果有待加载的PDF，现在加载它
                     if (!string.IsNullOrEmpty(_pendingPdfToLoad))
@@ -7419,9 +7667,7 @@ namespace WindowsFormsApp3
                 else
                 {
                     // ✅ 折叠预览（立即隐藏，无动画）
-                    pdfPreviewPanel.Height = 0;
-                    this.ClientSize = new System.Drawing.Size(400, 644); // 折叠到按钮位置（包含文件名区域+30px）
-                    previewCollapseButton.Text = "▼"; // 下箭头
+                    UpdateFormSizeBasedOnPreviewState();
                 }
 
                 // 保存预览状态到设置
@@ -7429,7 +7675,7 @@ namespace WindowsFormsApp3
 
                 // 同步窗口位置和预览状态到WindowPositionManager
                 WindowPositionManager.SaveWindowPosition(this, _isPreviewExpanded);
-                
+
                 // 🔧 关键修复：直接提交预览状态更改，不依赖5秒自动保存
                 AppSettings.CommitChanges();
                 LogHelper.Debug("[PDF 预览] 已立即提交预览状态设置到文件");
@@ -7598,9 +7844,7 @@ namespace WindowsFormsApp3
                 {
                     // 直接设置展开状态，避免调用PreviewCollapseButton_Click
                     _isPreviewExpanded = true;
-                    pdfPreviewPanel.Height = MAX_PREVIEW_HEIGHT;
-                    this.ClientSize = new Size(400, 886);  // 🔧 添加：设置展开状态窗体大小
-                    previewCollapseButton.Text = "▲";
+                    UpdateFormSizeBasedOnPreviewState();
 
                     // 展开后触发最优适应缩放
                     if ((PdfPreview?.PageCount ?? 0) > 0)
@@ -7615,9 +7859,7 @@ namespace WindowsFormsApp3
                 {
                     // 直接设置折叠状态，避免调用PreviewCollapseButton_Click
                     _isPreviewExpanded = false;
-                    pdfPreviewPanel.Height = 0;
-                    this.ClientSize = new Size(400, 644);  // 🔧 添加：设置折叠状态窗体大小（包含文件名区域）
-                    previewCollapseButton.Text = "▼";
+                    UpdateFormSizeBasedOnPreviewState();
 
                     LogHelper.Debug("[PDF 预览] 从设置恢复折叠状态（直接设置，避免位置干扰）");
                 }
@@ -7923,6 +8165,14 @@ namespace WindowsFormsApp3
                 // 11. 应用 PDF 预览面板
                 ApplyThemeToPdfPreview(theme, isDark);
 
+                // 🔧 强制重绘预设按钮面板
+                if (presetButtonsPanel != null)
+                {
+                    presetButtonsPanel.Visible = true;
+                    presetButtonsPanel.PerformLayout();
+                    presetButtonsPanel.Refresh();
+                }
+
                 // 12. 应用滚动条主题
                 ThemeHelper.ApplyScrollBarThemeRecursive(this, isDark);
 
@@ -8036,6 +8286,15 @@ namespace WindowsFormsApp3
                 previewCollapseButton.DefaultBack = theme.Surface;
                 previewCollapseButton.ForeColor = theme.TextPrimary;
                 previewCollapseButton.DefaultBorderColor = theme.Border;
+            }
+
+            // 预设按钮面板
+            if (presetButtonsPanel != null)
+            {
+                foreach (var btn in presetButtonsPanel.Controls.OfType<AntdUI.Button>())
+                {
+                    ApplyThemeToMaterialButton(btn, theme, isDark);
+                }
             }
         }
 
