@@ -26,6 +26,10 @@ namespace WindowsFormsApp3.Forms.Main
         private Label _lblRadiusUnit;
         private ComboBox _cmbLayoutMode;
         private CheckBox _chkIsDualCopy;
+        private NumericUpDown _numCopyCount;
+        private ComboBox _cmbCopyMode;
+        private CheckBox _chkEnableCopyCount;
+        private CheckBox _chkEnableCopyMode;
         private CheckBox _chkEnableImposition;
         private ComboBox _cmbExportPath;
         private Button _btnBrowsePath;
@@ -66,7 +70,7 @@ namespace WindowsFormsApp3.Forms.Main
         private void InitializeComponent()
         {
             this.Text = _isNew ? "新建预设" : "编辑预设";
-            this.Size = new Size(480, 800);
+            this.Size = new Size(480, 850);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -178,19 +182,36 @@ namespace WindowsFormsApp3.Forms.Main
             this.Controls.Add(lblEnableImposition);
             this.Controls.Add(_chkEnableImposition);
 
-            // 第11行：一式两联
+            // 第11行：一式N联
             _chkEnableIsDualCopy = new CheckBox { Location = new Point(chkX, startY + rowHeight * 10), AutoSize = true, Checked = true };
-            var lblIsDualCopy = new Label { Text = "一式两联:", Location = new Point(labelX, startY + rowHeight * 10), AutoSize = true };
+            var lblIsDualCopy = new Label { Text = "一式N联:", Location = new Point(labelX, startY + rowHeight * 10), AutoSize = true };
             _chkIsDualCopy = new CheckBox { Location = new Point(controlX, startY + rowHeight * 10), AutoSize = true };
             this.Controls.Add(_chkEnableIsDualCopy);
             this.Controls.Add(lblIsDualCopy);
             this.Controls.Add(_chkIsDualCopy);
 
+            // 第11-1行：联数
+            _chkEnableCopyCount = new CheckBox { Location = new Point(chkX, startY + rowHeight * 10 + 22), AutoSize = true, Checked = true };
+            var lblCopyCount = new Label { Text = "联数:", Location = new Point(labelX, startY + rowHeight * 10 + 22), AutoSize = true };
+            _numCopyCount = new NumericUpDown { Location = new Point(controlX, startY + rowHeight * 10 + 22), Width = 60, Height = height, Minimum = 2, Maximum = 16, Value = 2 };
+            this.Controls.Add(_chkEnableCopyCount);
+            this.Controls.Add(lblCopyCount);
+            this.Controls.Add(_numCopyCount);
+
+            // 第11-2行：倍数方向
+            _chkEnableCopyMode = new CheckBox { Location = new Point(chkX, startY + rowHeight * 10 + 44), AutoSize = true, Checked = true };
+            var lblCopyMode = new Label { Text = "倍数方向:", Location = new Point(labelX, startY + rowHeight * 10 + 44), AutoSize = true };
+            _cmbCopyMode = new ComboBox { Location = new Point(controlX, startY + rowHeight * 10 + 44), Width = width, Height = height, DropDownStyle = ComboBoxStyle.DropDownList };
+            _cmbCopyMode.Items.AddRange(new object[] { "自适应列", "自适应行", "不旋转列", "不旋转行" });
+            this.Controls.Add(_chkEnableCopyMode);
+            this.Controls.Add(lblCopyMode);
+            this.Controls.Add(_cmbCopyMode);
+
             // 第12行：导出路径
-            _chkEnableExportPath = new CheckBox { Location = new Point(chkX, startY + rowHeight * 11), AutoSize = true, Checked = true };
-            var lblExportPath = new Label { Text = "导出路径:", Location = new Point(labelX, startY + rowHeight * 11), AutoSize = true };
-            _cmbExportPath = new ComboBox { Location = new Point(controlX, startY + rowHeight * 11), Width = 180, Height = height, DropDownStyle = ComboBoxStyle.DropDown };
-            _btnBrowsePath = new Button { Text = "浏览...", Location = new Point(controlX + 185, startY + rowHeight * 11), Width = 55, Height = height, FlatStyle = FlatStyle.System };
+            _chkEnableExportPath = new CheckBox { Location = new Point(chkX, startY + rowHeight * 12), AutoSize = true, Checked = true };
+            var lblExportPath = new Label { Text = "导出路径:", Location = new Point(labelX, startY + rowHeight * 12), AutoSize = true };
+            _cmbExportPath = new ComboBox { Location = new Point(controlX, startY + rowHeight * 12), Width = 180, Height = height, DropDownStyle = ComboBoxStyle.DropDown };
+            _btnBrowsePath = new Button { Text = "浏览...", Location = new Point(controlX + 185, startY + rowHeight * 12), Width = 55, Height = height, FlatStyle = FlatStyle.System };
             _btnBrowsePath.Click += BtnBrowsePath_Click;
             this.Controls.Add(_chkEnableExportPath);
             this.Controls.Add(lblExportPath);
@@ -198,8 +219,8 @@ namespace WindowsFormsApp3.Forms.Main
             this.Controls.Add(_btnBrowsePath);
 
             // 第13行：添加到预设按钮
-            _chkShowInPresetButtons = new CheckBox { Location = new Point(chkX, startY + rowHeight * 12), AutoSize = true, Checked = false };
-            var lblShowInPresetButtons = new Label { Text = "添加到预设按钮:", Location = new Point(labelX, startY + rowHeight * 12), AutoSize = true };
+            _chkShowInPresetButtons = new CheckBox { Location = new Point(chkX, startY + rowHeight * 13), AutoSize = true, Checked = false };
+            var lblShowInPresetButtons = new Label { Text = "添加到预设按钮:", Location = new Point(labelX, startY + rowHeight * 13), AutoSize = true };
             this.Controls.Add(_chkShowInPresetButtons);
             this.Controls.Add(lblShowInPresetButtons);
 
@@ -207,7 +228,7 @@ namespace WindowsFormsApp3.Forms.Main
             _btnOK = new Button
             {
                 Text = "确定",
-                Location = new Point(280, startY + rowHeight * 13 + 10),
+                Location = new Point(280, startY + rowHeight * 14 + 10),
                 Size = new Size(80, 30),
                 FlatStyle = FlatStyle.System,
                 DialogResult = DialogResult.OK
@@ -218,7 +239,7 @@ namespace WindowsFormsApp3.Forms.Main
             _btnCancel = new Button
             {
                 Text = "取消",
-                Location = new Point(370, startY + rowHeight * 13 + 10),
+                Location = new Point(370, startY + rowHeight * 14 + 10),
                 Size = new Size(80, 30),
                 FlatStyle = FlatStyle.System,
                 DialogResult = DialogResult.Cancel
@@ -328,6 +349,8 @@ namespace WindowsFormsApp3.Forms.Main
             };
 
             _chkIsDualCopy.Checked = _preset.IsDualCopy;
+            _numCopyCount.Value = _preset.CopyCount > 0 ? _preset.CopyCount : 2;
+            _cmbCopyMode.SelectedIndex = (int)_preset.CopyMode;
             _chkEnableImposition.Checked = _preset.EnableImposition;
             _cmbExportPath.Text = _preset.ExportPath;
 
@@ -342,6 +365,8 @@ namespace WindowsFormsApp3.Forms.Main
             _chkEnableLayoutMode.Checked = !_preset.DisabledOptions.HasFlag(PresetIgnoreOptions.LayoutMode);
             _chkEnableImpositionOption.Checked = !_preset.DisabledOptions.HasFlag(PresetIgnoreOptions.EnableImposition);
             _chkEnableIsDualCopy.Checked = !_preset.DisabledOptions.HasFlag(PresetIgnoreOptions.IsDualCopy);
+            _chkEnableCopyCount.Checked = !_preset.DisabledOptions.HasFlag(PresetIgnoreOptions.CopyCount);
+            _chkEnableCopyMode.Checked = !_preset.DisabledOptions.HasFlag(PresetIgnoreOptions.CopyMode);
             _chkEnableIdentifierPage.Checked = !_preset.DisabledOptions.HasFlag(PresetIgnoreOptions.IdentifierPage);
             _chkEnableExportPath.Checked = !_preset.DisabledOptions.HasFlag(PresetIgnoreOptions.ExportPath);
 
@@ -427,6 +452,8 @@ namespace WindowsFormsApp3.Forms.Main
             };
 
             _preset.IsDualCopy = _chkIsDualCopy.Checked;
+            _preset.CopyCount = (int)_numCopyCount.Value;
+            _preset.CopyMode = (CopyMode)_cmbCopyMode.SelectedIndex;
             _preset.EnableImposition = _chkEnableImposition.Checked;
             _preset.ExportPath = _cmbExportPath.Text;
 
@@ -442,6 +469,8 @@ namespace WindowsFormsApp3.Forms.Main
             if (!_chkEnableLayoutMode.Checked) disabled |= PresetIgnoreOptions.LayoutMode;
             if (!_chkEnableImpositionOption.Checked) disabled |= PresetIgnoreOptions.EnableImposition;
             if (!_chkEnableIsDualCopy.Checked) disabled |= PresetIgnoreOptions.IsDualCopy;
+            if (!_chkEnableCopyCount.Checked) disabled |= PresetIgnoreOptions.CopyCount;
+            if (!_chkEnableCopyMode.Checked) disabled |= PresetIgnoreOptions.CopyMode;
             if (!_chkEnableIdentifierPage.Checked) disabled |= PresetIgnoreOptions.IdentifierPage;
             if (!_chkEnableExportPath.Checked) disabled |= PresetIgnoreOptions.ExportPath;
             _preset.DisabledOptions = disabled;

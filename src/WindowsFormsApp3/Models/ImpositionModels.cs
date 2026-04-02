@@ -86,6 +86,32 @@ namespace WindowsFormsApp3.Models
         Force270Degree = 2
     }
 
+    /// <summary>
+    /// 联数倍数方向枚举
+    /// </summary>
+    public enum CopyMode
+    {
+        /// <summary>
+        /// 自适应列（列数是联数的倍数，自动选择旋转方向）
+        /// </summary>
+        AutoByColumn = 0,
+
+        /// <summary>
+        /// 自适应行（行数是联数的倍数，自动选择旋转方向）
+        /// </summary>
+        AutoByRow = 1,
+
+        /// <summary>
+        /// 不旋转列（列数是联数的倍数，强制不旋转）
+        /// </summary>
+        FixedNoRotationByColumn = 2,
+
+        /// <summary>
+        /// 不旋转行（行数是联数的倍数，强制不旋转）
+        /// </summary>
+        FixedNoRotationByRow = 3
+    }
+
     #endregion
 
     #region 配置模型
@@ -151,6 +177,16 @@ namespace WindowsFormsApp3.Models
         /// 列数设置（0=自动计算，或1-8列）
         /// </summary>
         public int Columns { get; set; } = 0;
+
+        /// <summary>
+        /// 联数（一式几联，0=不使用）
+        /// </summary>
+        public int CopyCount { get; set; } = 0;
+
+        /// <summary>
+        /// 联数倍数方向
+        /// </summary>
+        public CopyMode CopyMode { get; set; } = CopyMode.AutoByColumn;
 
         /// <summary>
         /// 布局计算模式
@@ -265,6 +301,16 @@ namespace WindowsFormsApp3.Models
         /// 列数设置（0=自动计算，或1-8列）
         /// </summary>
         public int Columns { get; set; } = 0;
+
+        /// <summary>
+        /// 联数（一式几联，0=不使用）
+        /// </summary>
+        public int CopyCount { get; set; } = 0;
+
+        /// <summary>
+        /// 联数倍数方向
+        /// </summary>
+        public CopyMode CopyMode { get; set; } = CopyMode.AutoByColumn;
 
         /// <summary>
         /// 布局计算模式

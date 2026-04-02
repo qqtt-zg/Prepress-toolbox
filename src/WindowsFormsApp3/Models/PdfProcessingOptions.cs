@@ -180,6 +180,11 @@ namespace WindowsFormsApp3.Models
         public int RotationAngle { get; set; }
 
         /// <summary>
+        /// 联数（一式几联，0=不使用）
+        /// </summary>
+        public int CopyCount { get; set; }
+
+        /// <summary>
         /// 构造函数
         /// </summary>
         public PdfProcessingOptions()
@@ -201,6 +206,7 @@ namespace WindowsFormsApp3.Models
             LayoutMode = LayoutMode.Continuous;
             LayoutQuantity = 0;
             RotationAngle = 0;
+            CopyCount = 0;
         }
 
         /// <summary>

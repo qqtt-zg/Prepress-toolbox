@@ -82,6 +82,8 @@ namespace WindowsFormsApp3.Forms.Main
             _dgvPresets.Columns.Add("FilmType", "膜类型");
             _dgvPresets.Columns.Add("ShapeState", "形状");
             _dgvPresets.Columns.Add("ExportPath", "导出路径");
+            _dgvPresets.Columns.Add("CopyCount", "联数");
+            _dgvPresets.Columns.Add("CopyMode", "倍数方向");
             // 列宽调整以完整显示内容
             _dgvPresets.Columns["Name"].Width = 80;
             _dgvPresets.Columns["MaterialType"].Width = 70;
@@ -92,7 +94,9 @@ namespace WindowsFormsApp3.Forms.Main
             _dgvPresets.Columns["ColorMode"].Width = 70;
             _dgvPresets.Columns["FilmType"].Width = 70;
             _dgvPresets.Columns["ShapeState"].Width = 70;
-            _dgvPresets.Columns["ExportPath"].Width = 280;
+            _dgvPresets.Columns["ExportPath"].Width = 230;
+            _dgvPresets.Columns["CopyCount"].Width = 50;
+            _dgvPresets.Columns["CopyMode"].Width = 80;
             _dgvPresets.SelectionChanged += DgvPresets_SelectionChanged;
             _dgvPresets.DoubleClick += DgvPresets_DoubleClick;
             this.Controls.Add(_dgvPresets);
@@ -201,6 +205,8 @@ namespace WindowsFormsApp3.Forms.Main
                 row.Cells["FilmType"].Value = preset.FilmType;
                 row.Cells["ShapeState"].Value = GetShapeDisplayName(preset.ShapeState);
                 row.Cells["ExportPath"].Value = preset.ExportPath;
+                row.Cells["CopyCount"].Value = preset.CopyCount;
+                row.Cells["CopyMode"].Value = GetCopyModeDisplayName(preset.CopyMode);
                 row.Tag = preset;
 
                 // 设置单元格居中显示
@@ -214,6 +220,8 @@ namespace WindowsFormsApp3.Forms.Main
                 row.Cells["FilmType"].Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
                 row.Cells["ShapeState"].Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
                 row.Cells["ExportPath"].Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                row.Cells["CopyCount"].Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                row.Cells["CopyMode"].Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
             }
 
             // 如果有预设数据，选中第一行并启用编辑/删除按钮
@@ -269,6 +277,18 @@ namespace WindowsFormsApp3.Forms.Main
         private string GetImpositionDisplayName(bool enableImposition)
         {
             return enableImposition ? "是" : "否";
+        }
+
+        private string GetCopyModeDisplayName(CopyMode copyMode)
+        {
+            return copyMode switch
+            {
+                CopyMode.AutoByColumn => "自适应列",
+                CopyMode.AutoByRow => "自适应行",
+                CopyMode.FixedNoRotationByColumn => "不旋转列",
+                CopyMode.FixedNoRotationByRow => "不旋转行",
+                _ => "自适应列"
+            };
         }
 
         private void DgvPresets_SelectionChanged(object sender, EventArgs e)

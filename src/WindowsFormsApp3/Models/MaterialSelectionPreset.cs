@@ -49,6 +49,16 @@ namespace WindowsFormsApp3.Models
         public bool IsDualCopy { get; set; } = false;
 
         /// <summary>
+        /// 联数（一式几联）
+        /// </summary>
+        public int CopyCount { get; set; } = 2;
+
+        /// <summary>
+        /// 联数倍数方向
+        /// </summary>
+        public CopyMode CopyMode { get; set; } = CopyMode.AutoByColumn;
+
+        /// <summary>
         /// 导出路径
         /// </summary>
         public string ExportPath { get; set; } = "";
@@ -98,6 +108,8 @@ namespace WindowsFormsApp3.Models
                 AddIdentifierPage = this.AddIdentifierPage,
                 ShapeState = this.ShapeState,
                 IsDualCopy = this.IsDualCopy,
+                CopyCount = this.CopyCount,
+                CopyMode = this.CopyMode,
                 ExportPath = this.ExportPath,
                 RoundRadius = this.RoundRadius,
                 MaterialType = this.MaterialType,
@@ -123,6 +135,8 @@ namespace WindowsFormsApp3.Models
             this.AddIdentifierPage = other.AddIdentifierPage;
             this.ShapeState = other.ShapeState;
             this.IsDualCopy = other.IsDualCopy;
+            this.CopyCount = other.CopyCount;
+            this.CopyMode = other.CopyMode;
             this.ExportPath = other.ExportPath;
             this.RoundRadius = other.RoundRadius;
             this.MaterialType = other.MaterialType;
@@ -147,6 +161,8 @@ namespace WindowsFormsApp3.Models
         IdentifierPage = 16,
         Shape = 32,
         IsDualCopy = 64,
+        CopyCount = 8192,
+        CopyMode = 16384,
         ExportPath = 128,
         RoundRadius = 256,
         MaterialType = 512,

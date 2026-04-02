@@ -429,6 +429,15 @@ namespace WindowsFormsApp3.Utils
             set => SetValue("AlwaysOutputBothLayoutCounts", value);
         }
 
+        /// <summary>
+        /// 尺寸显示时大数在前（宽×长格式）
+        /// </summary>
+        public static bool SwapWidthHeightForDisplay
+        {
+            get => GetValue<bool>("SwapWidthHeightForDisplay", true);
+            set => SetValue("SwapWidthHeightForDisplay", value);
+        }
+
         public static bool EnableDynamicFileReadyTimeout
         {
             get => GetValue<bool>("EnableDynamicFileReadyTimeout", true);

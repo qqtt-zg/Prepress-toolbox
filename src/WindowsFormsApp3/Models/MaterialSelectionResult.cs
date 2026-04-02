@@ -123,6 +123,16 @@ namespace WindowsFormsApp3.Models
         public string IdentifierPageContent { get; set; } = "";
 
         /// <summary>
+        /// 一式N联联数
+        /// </summary>
+        public int CopyCount { get; set; }
+
+        /// <summary>
+        /// 一式N联倍数方向
+        /// </summary>
+        public CopyMode CopyMode { get; set; }
+
+        /// <summary>
         /// 排版材料类型 (FlatSheet/RollMaterial)
         /// </summary>
         public string ImpositionMaterialType { get; set; }

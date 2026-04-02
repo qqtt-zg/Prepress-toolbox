@@ -2130,7 +2130,10 @@ namespace WindowsFormsApp3.Forms.Panels
                             // ✅ 序号搜索反向更新正则结果
                             UpdatedRegexResult = dialog.UpdatedRegexResult,
                             // ✅ 序号搜索反向更新列组合
-                            CompositeColumn = dialog.UpdatedCompositeColumn ?? ""
+                            CompositeColumn = dialog.UpdatedCompositeColumn ?? "",
+                            // ✅ 一式N联信息
+                            CopyCount = dialog.GetCopyCount(),
+                            CopyMode = dialog.GetCopyMode()
                         };
                         return DialogResult.OK;
                     }

@@ -44,11 +44,15 @@ namespace WindowsFormsApp3.Interfaces
         /// </summary>
         /// <param name="config">排版配置（平张或卷装）</param>
         /// <param name="pdfInfo">PDF文件信息</param>
+        /// <param name="copyCount">联数（一式几联，0=不使用）</param>
+        /// <param name="copyMode">联数倍数方向</param>
         /// <param name="cancellationToken">取消令牌</param>
-        /// <returns>布局计算结果（确保列数为最优偶数）</returns>
+        /// <returns>布局计算结果（确保列数或行数为联数的倍数）</returns>
         Task<ImpositionResult> CalculateOptimalEvenColumnsLayoutAsync(
             object config,
             ImpositionPdfInfo pdfInfo,
+            int copyCount = 0,
+            CopyMode copyMode = CopyMode.AutoByColumn,
             CancellationToken cancellationToken = default);
 
         #endregion
@@ -95,12 +99,14 @@ namespace WindowsFormsApp3.Interfaces
         /// <param name="currentPageCount">当前页数</param>
         /// <param name="layoutQuantity">布局数量</param>
         /// <param name="layoutMode">排版模式</param>
+        /// <param name="copyCount">联数（一式几联，0=不使用）</param>
         /// <param name="cancellationToken">取消令牌</param>
         /// <returns>空白页补充结果</returns>
         Task<BlankPageResult> CalculateBlankPageInsertionAsync(
             int currentPageCount,
             int layoutQuantity,
             LayoutMode layoutMode,
+            int copyCount = 0,
             CancellationToken cancellationToken = default);
 
         #endregion

@@ -1107,9 +1107,14 @@ namespace WindowsFormsApp3.Services
                         impositionService = new ImpositionService();
                     }
 
-                    // 计算需要的空白页数量
-                    int blankPagesNeeded = impositionService.CalculateBlankPagesNeeded(currentPageCount, pdfOptions.LayoutQuantity);
-                    LogHelper.Debug($"需要添加空白页数量: {blankPagesNeeded}");
+                    // 计算需要的空白页数量（支持一式N联）
+                    var blankPageResult = impositionService.CalculateBlankPageInsertionAsync(
+                        currentPageCount,
+                        pdfOptions.LayoutQuantity,
+                        pdfOptions.LayoutMode,
+                        pdfOptions.CopyCount).GetAwaiter().GetResult();
+                    int blankPagesNeeded = blankPageResult.BlankPagesNeeded;
+                    LogHelper.Debug($"需要添加空白页数量: {blankPagesNeeded}，{blankPageResult.CalculationDetails}");
 
                     if (blankPagesNeeded > 0)
                     {

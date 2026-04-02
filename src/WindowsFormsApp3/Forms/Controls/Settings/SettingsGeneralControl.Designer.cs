@@ -18,6 +18,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private System.Windows.Forms.NumericUpDown numAutoSaveSeconds;
         private AntdUI.Checkbox chkEnableDailyJson;
         private AntdUI.Checkbox chkAlwaysOutputBothLayoutCounts;
+        private AntdUI.Checkbox chkSwapWidthHeightForDisplay;
 
         protected override void Dispose(bool disposing)
         {
@@ -43,6 +44,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.numAutoSaveSeconds = new System.Windows.Forms.NumericUpDown();
             this.chkEnableDailyJson = new AntdUI.Checkbox();
             this.chkAlwaysOutputBothLayoutCounts = new AntdUI.Checkbox();
+            this.chkSwapWidthHeightForDisplay = new AntdUI.Checkbox();
             ((System.ComponentModel.ISupportInitialize)(this.numAutoSaveSeconds)).BeginInit();
             this.SuspendLayout();
             // 
@@ -165,8 +167,17 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.chkAlwaysOutputBothLayoutCounts.TabIndex = 12;
             this.chkAlwaysOutputBothLayoutCounts.Text = "同时输出排版模式布局数";
             //
+            // chkSwapWidthHeightForDisplay
+            //
+            this.chkSwapWidthHeightForDisplay.Location = new System.Drawing.Point(20, 340);
+            this.chkSwapWidthHeightForDisplay.Name = "chkSwapWidthHeightForDisplay";
+            this.chkSwapWidthHeightForDisplay.Size = new System.Drawing.Size(260, 32);
+            this.chkSwapWidthHeightForDisplay.TabIndex = 13;
+            this.chkSwapWidthHeightForDisplay.Text = "尺寸显示时大数在前（宽×长）";
+            //
             // SettingsGeneralControl
             //
+            this.Controls.Add(this.chkSwapWidthHeightForDisplay);
             this.Controls.Add(this.chkAlwaysOutputBothLayoutCounts);
             this.Controls.Add(this.chkEnableDailyJson);
             this.Controls.Add(this.numAutoSaveSeconds);

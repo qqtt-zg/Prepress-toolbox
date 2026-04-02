@@ -20,6 +20,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private const string AutoSaveIntervalSecondsKey = "AutoSaveIntervalSeconds";
         private const string EnableDailyJsonKey = "EnableDailyJson";
         private const string AlwaysOutputBothLayoutCountsKey = "AlwaysOutputBothLayoutCounts";
+        private const string SwapWidthHeightForDisplayKey = "SwapWidthHeightForDisplay";
 
         public SettingsGeneralControl()
         {
@@ -79,6 +80,10 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             object alwaysOutputBothLayoutCounts = AppSettings.Get(AlwaysOutputBothLayoutCountsKey);
             chkAlwaysOutputBothLayoutCounts.Checked = alwaysOutputBothLayoutCounts is bool b2 ? b2 : false;
 
+            // 尺寸显示大数在前开关
+            object swapWidthHeightForDisplay = AppSettings.Get(SwapWidthHeightForDisplayKey);
+            chkSwapWidthHeightForDisplay.Checked = swapWidthHeightForDisplay is bool b3 ? b3 : true;
+
             // 开关变化时实时启用/禁用自动保存相关控件
             chkEnableDailyJson.CheckedChanged += (s, e) => UpdateAutoSaveControlsEnabledState();
 
@@ -110,6 +115,9 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 
             // 同时输出排版模式布局数开关
             AppSettings.Set(AlwaysOutputBothLayoutCountsKey, chkAlwaysOutputBothLayoutCounts.Checked);
+
+            // 尺寸显示大数在前开关
+            AppSettings.Set(SwapWidthHeightForDisplayKey, chkSwapWidthHeightForDisplay.Checked);
 
             AppSettings.Save();
             

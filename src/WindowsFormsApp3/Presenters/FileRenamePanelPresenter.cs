@@ -62,6 +62,8 @@ namespace WindowsFormsApp3.Presenters
         private bool _currentAddIdentifierPage = false;
         private string _currentIdentifierPageContent = "";
         private string _currentImpositionMaterialType = "";
+        // ✅ 添加一式N联联数字段
+        private int _currentCopyCount = 0;
 
         /// <summary>
         /// 构造函数
@@ -1056,6 +1058,8 @@ namespace WindowsFormsApp3.Presenters
                         _currentEnableImposition = selectionResult.EnableImposition;
                         _currentLayoutMode = selectionResult.LayoutMode;
                         _currentLayoutQuantity = selectionResult.LayoutQuantity;
+                        // ✅ 保存一式N联联数
+                        _currentCopyCount = selectionResult.CopyCount;
                         // ✅ 保存排版材料类型（平张/卷装）
                         _currentImpositionMaterialType = selectionResult.ImpositionMaterialType; 
                         
@@ -1501,6 +1505,8 @@ namespace WindowsFormsApp3.Presenters
                         // ✅ 关键修复:传递排版信息以触发折手模式空白页逻辑
                         LayoutMode = _currentLayoutMode,
                         LayoutQuantity = _currentLayoutQuantity,
+                        // ✅ 一式N联联数
+                        CopyCount = _currentCopyCount,
                         // ✅ 关键修复:传递标识页信息
                         AddIdentifierPage = _currentAddIdentifierPage,
                         IdentifierPageContent = _currentIdentifierPageContent

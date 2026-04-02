@@ -213,6 +213,8 @@ namespace WindowsFormsApp3
 
         // 一式两联复选框状态
         private bool _isDuplicateLayoutEnabled = false;
+        private int _copyCount = 2;
+        private CopyMode _copyMode = CopyMode.AutoByColumn;
 
         // 预设右键菜单
         private System.Windows.Forms.ContextMenuStrip _presetContextMenu;
@@ -650,6 +652,20 @@ namespace WindowsFormsApp3
                 duplicateLayoutCheckbox.Checked = _isDuplicateLayoutEnabled;
                 // 一式两联复选框事件
                 duplicateLayoutCheckbox.CheckedChanged += DuplicateLayoutCheckbox_CheckedChanged;
+            }
+
+            // 初始化联数控件
+            if (copyCountNumericUpDown != null)
+            {
+                copyCountNumericUpDown.Value = _copyCount;
+                copyCountNumericUpDown.Enabled = _isDuplicateLayoutEnabled;
+            }
+
+            // 初始化倍数方向控件
+            if (copyModeComboBox != null)
+            {
+                copyModeComboBox.SelectedIndex = (int)_copyMode;
+                copyModeComboBox.Enabled = _isDuplicateLayoutEnabled;
             }
 
             // 旋转角度标签点击事件（用于切换强制旋转）
@@ -1356,14 +1372,13 @@ namespace WindowsFormsApp3
                     // 切换颜色模式
                     ColorMode = (ColorMode == "彩色") ? "黑白" : "彩色";
                     SetColorModeButtonWithIcon(ColorMode);
-                    
-                    // 保存到设置
-                    AppSettings.Set("LastColorMode", ColorMode);
-                    AppSettings.Save();
-                    
+
+                    // 保存到设置（使用统一的属性访问器）
+                    AppSettings.LastColorMode = ColorMode;
+
                     // 更新FixedField（颜色模式 + 膜类型）
                     UpdateFixedField();
-                    
+
                     LogHelper.Debug($"颜色模式切换为: {ColorMode}");
                 }
             }
@@ -1691,39 +1706,39 @@ namespace WindowsFormsApp3
             {
                 if (e.Node != null)
                 {
-                    if (e.Node.Level == 0)
+                    // 获取当前节点的祖先节点列表
+                    var ancestors = new List<TreeNode>();
+                    TreeNode parent = e.Node.Parent;
+                    while (parent != null)
                     {
-                        // 如果要展开的是根节点，则折叠其他所有根节点
-                        foreach (TreeNode rootNode in folderTreeView.Nodes)
-                        {
-                            if (rootNode != e.Node && rootNode.IsExpanded)
-                            {
-                                rootNode.Collapse();
-                            }
-                        }
+                        ancestors.Add(parent);
+                        parent = parent.Parent;
                     }
-                    else if (e.Node.Level == 1)
-                    {
-                        // 如果要展开的是二级目录，则折叠其他所有已展开的二级目录
-                        foreach (TreeNode rootNode in folderTreeView.Nodes)
-                        {
-                            if (rootNode.IsExpanded)
-                            {
-                                foreach (TreeNode secondLevelNode in rootNode.Nodes)
-                                {
-                                    if (secondLevelNode != e.Node && secondLevelNode.IsExpanded)
-                                    {
-                                        secondLevelNode.Collapse();
-                                    }
-                                }
-                            }
-                        }
-                    }
+
+                    // 递归折叠所有不在路径上的已展开节点
+                    CollapseAllExceptPath(folderTreeView.Nodes, e.Node, ancestors);
                 }
             }
             catch (Exception ex)
             {
                 LogHelper.Debug($"TreeView展开事件处理错误: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 递归折叠所有不在指定路径上的已展开节点
+        /// </summary>
+        private void CollapseAllExceptPath(TreeNodeCollection nodes, TreeNode targetNode, List<TreeNode> ancestors)
+        {
+            foreach (TreeNode node in nodes)
+            {
+                // 如果节点已展开且不是目标节点且不是祖先节点，则折叠
+                if (node.IsExpanded && node != targetNode && !ancestors.Contains(node))
+                {
+                    node.Collapse();
+                }
+                // 递归处理子节点
+                CollapseAllExceptPath(node.Nodes, targetNode, ancestors);
             }
         }
 
@@ -1902,9 +1917,9 @@ namespace WindowsFormsApp3
                     LogHelper.Debug($"恢复自动递增状态: {autoIncrementState}");
                 }
 
-                // 恢复颜色模式
-                string lastColorMode = AppSettings.Get("LastColorMode")?.ToString();
-                if (!string.IsNullOrEmpty(lastColorMode))
+                // 恢复颜色模式（使用统一的属性访问器）
+                string lastColorMode = AppSettings.LastColorMode;
+                if (!string.IsNullOrEmpty(lastColorMode) && lastColorMode != "彩色")
                 {
                     ColorMode = lastColorMode;
                     if (colorModeButton != null)
@@ -1915,7 +1930,7 @@ namespace WindowsFormsApp3
                 }
 
                 // 恢复膜类型
-                string lastFilmType = AppSettings.Get("LastFilmType")?.ToString();
+                string lastFilmType = AppSettings.LastFilmType;
                 if (!string.IsNullOrEmpty(lastFilmType))
                 {
                     FilmType = lastFilmType;
@@ -3592,12 +3607,12 @@ namespace WindowsFormsApp3
             _originalWidth = Regex.Replace(width, @"[^\d.]", "");
             _originalHeight = Regex.Replace(height, @"[^\d.]", "");
 
-            // 确保大数在前（统一输出格式，避免54x84和84x54两种结果）
+            // 根据设置决定是否大数在前（统一输出格式，避免54x84和84x54两种结果）
             if (double.TryParse(_originalWidth, out double w) && double.TryParse(_originalHeight, out double h))
             {
-                if (w < h)
+                if (AppSettings.SwapWidthHeightForDisplay && w < h)
                 {
-                    // 交换宽高
+                    // 交换宽高（大数在前）
                     var temp = _originalWidth;
                     _originalWidth = _originalHeight;
                     _originalHeight = temp;
@@ -4747,6 +4762,8 @@ namespace WindowsFormsApp3
                         // 如果用户没有明确选择形状（点击了"无"），则保存空字符串表示"无"
                         ShapeState = _isShapeExplicitlySelected ? SelectedShape.ToString() : "",
                         IsDualCopy = _isDuplicateLayoutEnabled,
+                        CopyCount = _copyCount,
+                        CopyMode = _copyMode,
                         EnableImposition = enableImpositionCheckbox?.Checked == true,
                         ExportPath = SelectedExportPath ?? "",
                         RoundRadius = RoundRadius,
@@ -5007,6 +5024,26 @@ namespace WindowsFormsApp3
                     if (duplicateLayoutCheckbox != null)
                     {
                         duplicateLayoutCheckbox.Checked = _isDuplicateLayoutEnabled;
+                    }
+                }
+
+                // 加载联数
+                if (!ignoreOptions.HasFlag(PresetIgnoreOptions.CopyCount))
+                {
+                    _copyCount = preset.CopyCount > 0 ? preset.CopyCount : 2;
+                    if (copyCountNumericUpDown != null)
+                    {
+                        copyCountNumericUpDown.Value = _copyCount;
+                    }
+                }
+
+                // 加载倍数方向
+                if (!ignoreOptions.HasFlag(PresetIgnoreOptions.CopyMode))
+                {
+                    _copyMode = preset.CopyMode;
+                    if (copyModeComboBox != null)
+                    {
+                        copyModeComboBox.SelectedIndex = (int)_copyMode;
                     }
                 }
 
@@ -7189,6 +7226,24 @@ namespace WindowsFormsApp3
             return enableImpositionCheckbox?.Checked == true;
         }
 
+        /// <summary>
+        /// 获取一式N联联数
+        /// </summary>
+        /// <returns>联数</returns>
+        public int GetCopyCount()
+        {
+            return _copyCount;
+        }
+
+        /// <summary>
+        /// 获取一式N联倍数方向
+        /// </summary>
+        /// <returns>倍数方向</returns>
+        public CopyMode GetCopyMode()
+        {
+            return _copyMode;
+        }
+
 /// <summary>
         /// 获取布局计算的行数
         /// </summary>
@@ -7275,6 +7330,14 @@ namespace WindowsFormsApp3
                 AppSettings.Set("LastDuplicateLayoutEnabled", _isDuplicateLayoutEnabled);
                 LogHelper.Debug($"[MaterialSelectFormModern] 保存一式两联状态: {_isDuplicateLayoutEnabled}");
 
+                // 保存联数设置
+                AppSettings.Set("LastCopyCount", _copyCount);
+                LogHelper.Debug($"[MaterialSelectFormModern] 保存联数: {_copyCount}");
+
+                // 保存倍数方向设置
+                AppSettings.Set("LastCopyMode", (int)_copyMode);
+                LogHelper.Debug($"[MaterialSelectFormModern] 保存倍数方向: {_copyMode}");
+
                 // 保存设置到文件
                 AppSettings.Save();
                 LogHelper.Debug("[MaterialSelectFormModern] 排版控件状态已保存到AppSettings");
@@ -7332,6 +7395,30 @@ namespace WindowsFormsApp3
                     }
                 }
 
+                // 恢复联数设置
+                var copyCountSetting = AppSettings.Get("LastCopyCount") as int?;
+                if (copyCountSetting.HasValue)
+                {
+                    _copyCount = copyCountSetting.Value;
+                    if (copyCountNumericUpDown != null)
+                    {
+                        copyCountNumericUpDown.Value = _copyCount;
+                    }
+                    LogHelper.Debug($"[MaterialSelectFormModern] 恢复联数: {_copyCount}");
+                }
+
+                // 恢复倍数方向设置
+                var copyModeSetting = AppSettings.Get("LastCopyMode") as int?;
+                if (copyModeSetting.HasValue)
+                {
+                    _copyMode = (CopyMode)copyModeSetting.Value;
+                    if (copyModeComboBox != null)
+                    {
+                        copyModeComboBox.SelectedIndex = (int)_copyMode;
+                    }
+                    LogHelper.Debug($"[MaterialSelectFormModern] 恢复倍数方向: {_copyMode}");
+                }
+
                 LogHelper.Debug("[MaterialSelectFormModern] 排版控件状态已从AppSettings恢复");
             }
             catch (Exception ex)
@@ -7350,9 +7437,25 @@ namespace WindowsFormsApp3
                 // 从事件参数获取状态
                 _isDuplicateLayoutEnabled = e.Value;
 
+                // 更新联数和倍数方向控件的启用状态
+                if (copyCountNumericUpDown != null)
+                {
+                    copyCountNumericUpDown.Enabled = _isDuplicateLayoutEnabled;
+                }
+                if (copyModeComboBox != null)
+                {
+                    copyModeComboBox.Enabled = _isDuplicateLayoutEnabled;
+                }
+
                 if (_isDuplicateLayoutEnabled)
                 {
-                    LogHelper.Info("[MaterialSelectFormModern] 一式两联模式已激活，开始重新计算布局（偶数列）");
+                    LogHelper.Info("[MaterialSelectFormModern] 一式N联模式已激活，开始重新计算布局");
+
+                    // 自动将联数填入数量字段
+                    if (quantityTextBox != null)
+                    {
+                        quantityTextBox.Text = _copyCount.ToString();
+                    }
 
                     // 检查当前是否启用排版
                     if (enableImpositionCheckbox?.Checked != true)
@@ -7379,12 +7482,12 @@ namespace WindowsFormsApp3
                         return;
                     }
 
-                    // 异步计算一式两联布局
+                    // 异步计算一式N联布局
                     Task.Run(async () => await CalculateDuplicateLayout());
                 }
                 else
                 {
-                    LogHelper.Info("[MaterialSelectFormModern] 一式两联模式已取消，恢复标准布局计算");
+                    LogHelper.Info("[MaterialSelectFormModern] 一式N联模式已取消，恢复标准布局计算");
 
                     // 恢复标准布局计算
                     if (enableImpositionCheckbox?.Checked == true)
@@ -7395,8 +7498,8 @@ namespace WindowsFormsApp3
             }
             catch (Exception ex)
             {
-                LogHelper.Error($"[MaterialSelectFormModern] 一式两联复选框状态改变事件处理错误: {ex.Message}", ex);
-                MessageBox.Show($"一式两联功能发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                LogHelper.Error($"[MaterialSelectFormModern] 一式N联复选框状态改变事件处理错误: {ex.Message}", ex);
+                MessageBox.Show($"一式N联功能发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
                 // 出错时重置状态
                 if (duplicateLayoutCheckbox != null)
@@ -7404,6 +7507,70 @@ namespace WindowsFormsApp3
                     duplicateLayoutCheckbox.Checked = false;
                 }
                 _isDuplicateLayoutEnabled = false;
+            }
+        }
+
+        /// <summary>
+        /// 联数数值改变事件处理
+        /// </summary>
+        private void CopyCountNumericUpDown_ValueChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (copyCountNumericUpDown != null)
+                {
+                    _copyCount = (int)copyCountNumericUpDown.Value;
+                    LogHelper.Debug($"[MaterialSelectFormModern] 联数已更改: {_copyCount}");
+
+                    // 如果一式N联模式已启用，自动将联数填入数量字段
+                    if (_isDuplicateLayoutEnabled && quantityTextBox != null)
+                    {
+                        quantityTextBox.Text = _copyCount.ToString();
+                    }
+
+                    // 如果一式N联模式已启用，重新计算布局
+                    if (_isDuplicateLayoutEnabled && enableImpositionCheckbox?.Checked == true)
+                    {
+                        Task.Run(async () => await CalculateDuplicateLayout());
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[MaterialSelectFormModern] 联数数值改变事件处理错误: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// 倍数方向下拉框选择改变事件处理
+        /// </summary>
+        private void CopyModeComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (copyModeComboBox != null)
+                {
+                    _copyMode = (CopyMode)copyModeComboBox.SelectedIndex;
+                    string modeDesc = _copyMode switch
+                    {
+                        CopyMode.AutoByColumn => "自适应列",
+                        CopyMode.AutoByRow => "自适应行",
+                        CopyMode.FixedNoRotationByColumn => "不旋转列",
+                        CopyMode.FixedNoRotationByRow => "不旋转行",
+                        _ => "未知"
+                    };
+                    LogHelper.Debug($"[MaterialSelectFormModern] 倍数方向已更改: {modeDesc}");
+
+                    // 如果一式N联模式已启用，重新计算布局
+                    if (_isDuplicateLayoutEnabled && enableImpositionCheckbox?.Checked == true)
+                    {
+                        Task.Run(async () => await CalculateDuplicateLayout());
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[MaterialSelectFormModern] 倍数方向选择改变事件处理错误: {ex.Message}", ex);
             }
         }
 
@@ -7561,12 +7728,12 @@ namespace WindowsFormsApp3
                 {
                     // 对于平张材料，需要获取配置对象
                     dynamic flatSheetConfig = config;
-                    result = await _impositionService.CalculateOptimalEvenColumnsLayoutAsync(flatSheetConfig, pdfInfo);
+                    result = await _impositionService.CalculateOptimalEvenColumnsLayoutAsync(flatSheetConfig, pdfInfo, _copyCount, _copyMode);
                 }
                 else
                 {
                     dynamic rollMaterialConfig = config;
-                    result = await _impositionService.CalculateOptimalEvenColumnsLayoutAsync(rollMaterialConfig, pdfInfo);
+                    result = await _impositionService.CalculateOptimalEvenColumnsLayoutAsync(rollMaterialConfig, pdfInfo, _copyCount, _copyMode);
                 }
 
                 if (result != null)

@@ -70,7 +70,8 @@
       "Bash(ls -la installers/*.exe)",
       "Bash(ls -la \"installers/安装包/\"*.exe)",
       "Bash(ls -la publish/*.exe)",
-      "Bash(\"/c/Program Files \\(x86\\)/Inno Setup 6/ISCC.exe\" D:/vibe_codeing/Prepress-toolbox/installers/Setup.iss 2>&1)"
+      "Bash(\"/c/Program Files \\(x86\\)/Inno Setup 6/ISCC.exe\" D:/vibe_codeing/Prepress-toolbox/installers/Setup.iss 2>&1)",
+      "Bash(cd /d D:/vibe_codeing/Prepress-toolbox)"
     ]
   }
 }

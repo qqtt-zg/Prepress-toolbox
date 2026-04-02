@@ -204,11 +204,15 @@ namespace WindowsFormsApp3.Services
         /// </summary>
         /// <param name="config">排版配置（平张或卷装）</param>
         /// <param name="pdfInfo">PDF文件信息</param>
+        /// <param name="copyCount">联数（一式几联，0=不使用）</param>
+        /// <param name="copyMode">联数倍数方向</param>
         /// <param name="cancellationToken">取消令牌</param>
-        /// <returns>布局计算结果（确保列数为最优偶数）</returns>
+        /// <returns>布局计算结果（确保列数或行数为联数的倍数）</returns>
         public async Task<ImpositionResult> CalculateOptimalEvenColumnsLayoutAsync(
             object config,
             ImpositionPdfInfo pdfInfo,
+            int copyCount = 0,
+            CopyMode copyMode = CopyMode.AutoByColumn,
             CancellationToken cancellationToken = default)
         {
             if (config == null)
@@ -229,11 +233,11 @@ namespace WindowsFormsApp3.Services
 
                     if (config is FlatSheetConfiguration flatSheetConfig)
                     {
-                        result = CalculateFlatSheetLayoutWithEvenColumns(flatSheetConfig, pdfInfo);
+                        result = CalculateFlatSheetLayoutWithEvenColumns(flatSheetConfig, pdfInfo, copyCount, copyMode);
                     }
                     else if (config is RollMaterialConfiguration rollMaterialConfig)
                     {
-                        result = CalculateRollMaterialLayoutWithEvenColumns(rollMaterialConfig, pdfInfo);
+                        result = CalculateRollMaterialLayoutWithEvenColumns(rollMaterialConfig, pdfInfo, copyCount, copyMode);
                     }
                     else
                     {
@@ -269,7 +273,7 @@ namespace WindowsFormsApp3.Services
         /// 计算平张模式的最优偶数列布局（在标准布局计算基础上增加偶数列约束）
         /// </summary>
         private ImpositionResult CalculateFlatSheetLayoutWithEvenColumns(
-            FlatSheetConfiguration config, ImpositionPdfInfo pdfInfo)
+            FlatSheetConfiguration config, ImpositionPdfInfo pdfInfo, int copyCount, CopyMode copyMode)
         {
             // 验证配置
             var validationResult = ValidateFlatSheetConfiguration(config);
@@ -303,7 +307,7 @@ namespace WindowsFormsApp3.Services
 
             // 调用标准布局计算逻辑，但增加偶数列约束
             var result = CalculateOptimalLayoutWithEvenColumns(
-                pageWidth, pageHeight, usableWidth, usableHeight, config, pdfInfo.PageRotation);
+                pageWidth, pageHeight, usableWidth, usableHeight, config, pdfInfo.PageRotation, copyCount, copyMode);
 
             result.MaterialType = MaterialType.FlatSheet;
             result.Success = true;
@@ -320,7 +324,9 @@ namespace WindowsFormsApp3.Services
             float usableWidth,
             float usableHeight,
             FlatSheetConfiguration config,
-            int pdfPageRotation = 0)
+            int pdfPageRotation = 0,
+            int copyCount = 0,
+            CopyMode copyMode = CopyMode.AutoByColumn)
         {
             // 计算不旋转时的布局
             int columnsNormal = (int)Math.Floor(usableWidth / pageWidth);
@@ -332,13 +338,13 @@ namespace WindowsFormsApp3.Services
             int rowsRotated = (int)Math.Floor(usableHeight / pageWidth);
             int layoutRotated = columnsRotated * rowsRotated;
 
-            LogHelper.Debug($"[ImpositionService] 一式两联布局计算: 不旋转={columnsNormal}列×{rowsNormal}行={layoutNormal}页, 旋转90度={columnsRotated}列×{rowsRotated}行={layoutRotated}页");
+            LogHelper.Debug($"[ImpositionService] 一式N联布局计算: 不旋转={columnsNormal}列×{rowsNormal}行={layoutNormal}页, 旋转90度={columnsRotated}列×{rowsRotated}行={layoutRotated}页");
 
-            // 应用偶数列约束到两种布局方案
-            var evenNormalResult = CalculateEvenColumnsLayout(columnsNormal, rowsNormal, false);
-            var evenRotatedResult = CalculateEvenColumnsLayout(columnsRotated, rowsRotated, true);
+            // 应用联数倍数约束到两种布局方案
+            var evenNormalResult = CalculateNCopiesLayout(columnsNormal, rowsNormal, copyCount, copyMode);
+            var evenRotatedResult = CalculateNCopiesLayout(columnsRotated, rowsRotated, copyCount, copyMode);
 
-            // 应用用户指定的行数限制（偶数列约束后）
+            // 应用用户指定的行数限制（联数约束后）
             if (config.Rows > 0)
             {
                 evenNormalResult.Rows = Math.Min(config.Rows, evenNormalResult.Rows);
@@ -348,25 +354,50 @@ namespace WindowsFormsApp3.Services
             {
                 evenNormalResult.Columns = Math.Min(config.Columns, evenNormalResult.Columns);
                 evenRotatedResult.Columns = Math.Min(config.Columns, evenRotatedResult.Columns);
-                // 确保用户指定的列数也是偶数
-                if (evenNormalResult.Columns % 2 != 0) evenNormalResult.Columns--;
-                if (evenRotatedResult.Columns % 2 != 0) evenRotatedResult.Columns--;
+                // 确保用户指定的列数也是联数的倍数（仅在按列模式下）
+                if ((copyMode == CopyMode.AutoByColumn || copyMode == CopyMode.FixedNoRotationByColumn) && copyCount > 0)
+                {
+                    if (evenNormalResult.Columns % copyCount != 0)
+                        evenNormalResult.Columns = evenNormalResult.Columns - (evenNormalResult.Columns % copyCount);
+                    if (evenRotatedResult.Columns % copyCount != 0)
+                        evenRotatedResult.Columns = evenRotatedResult.Columns - (evenRotatedResult.Columns % copyCount);
+                }
             }
 
-            // 确保至少为1行2列（满足一式两联的基本要求）
-            evenNormalResult.Rows = Math.Max(1, evenNormalResult.Rows);
-            evenNormalResult.Columns = Math.Max(2, evenNormalResult.Columns);
-            evenRotatedResult.Rows = Math.Max(1, evenRotatedResult.Rows);
-            evenRotatedResult.Columns = Math.Max(2, evenRotatedResult.Columns);
+            // 确定最小值（基于联数或默认值2）
+            int minValue = copyCount > 0 ? copyCount : 2;
+
+            // 根据倍数方向应用不同的最小值约束
+            if ((copyMode == CopyMode.AutoByColumn || copyMode == CopyMode.FixedNoRotationByColumn))
+            {
+                // 按列模式：列数至少为联数值，行数至少为1
+                evenNormalResult.Rows = Math.Max(1, evenNormalResult.Rows);
+                evenNormalResult.Columns = Math.Max(minValue, evenNormalResult.Columns);
+                evenRotatedResult.Rows = Math.Max(1, evenRotatedResult.Rows);
+                evenRotatedResult.Columns = Math.Max(minValue, evenRotatedResult.Columns);
+            }
+            else
+            {
+                // 按行模式：行数至少为联数值，列数至少为1
+                evenNormalResult.Rows = Math.Max(minValue, evenNormalResult.Rows);
+                evenNormalResult.Columns = Math.Max(1, evenNormalResult.Columns);
+                evenRotatedResult.Rows = Math.Max(minValue, evenRotatedResult.Rows);
+                evenRotatedResult.Columns = Math.Max(1, evenRotatedResult.Columns);
+            }
 
             // 计算调整后的页数
             int evenLayoutNormal = evenNormalResult.Rows * evenNormalResult.Columns;
             int evenLayoutRotated = evenRotatedResult.Rows * evenRotatedResult.Columns;
 
-            LogHelper.Debug($"[ImpositionService] 一式两联调整后: 不旋转={evenNormalResult.Columns}列×{evenNormalResult.Rows}行={evenLayoutNormal}页, 旋转90度={evenRotatedResult.Columns}列×{evenRotatedResult.Rows}行={evenLayoutRotated}页");
+            LogHelper.Debug($"[ImpositionService] 一式N联调整后: 不旋转={evenNormalResult.Columns}列×{evenNormalResult.Rows}行={evenLayoutNormal}页, 旋转90度={evenRotatedResult.Columns}列×{evenRotatedResult.Rows}行={evenLayoutRotated}页");
 
             // 选择页数更多的方案（保持与标准布局相同的选择逻辑）
-            bool useRotation = evenLayoutRotated > evenLayoutNormal;
+            // 但如果不旋转模式，则强制不旋转
+            bool useRotation = false;
+            if (copyMode != CopyMode.FixedNoRotationByColumn && copyMode != CopyMode.FixedNoRotationByRow)
+            {
+                useRotation = evenLayoutRotated > evenLayoutNormal;
+            }
             var selectedResult = useRotation ? evenRotatedResult : evenNormalResult;
 
             // 计算实际页面尺寸（考虑旋转）
@@ -384,7 +415,15 @@ namespace WindowsFormsApp3.Services
             int layoutRotationAngle = useRotation ? 270 : 0;
             int finalRotationAngle = layoutRotationAngle;
 
-            LogHelper.Debug($"[ImpositionService] 一式两联最终选择: {(useRotation ? "旋转90度" : "不旋转")}，{selectedResult.Rows}行×{selectedResult.Columns}列={layoutQuantity}页，最终旋转{finalRotationAngle}°，利用率{spaceUtilization:F1}%");
+            string modeDesc = copyMode switch
+            {
+                CopyMode.AutoByColumn => "自适应列",
+                CopyMode.AutoByRow => "自适应行",
+                CopyMode.FixedNoRotationByColumn => "不旋转列",
+                CopyMode.FixedNoRotationByRow => "不旋转行",
+                _ => "列"
+            };
+            LogHelper.Debug($"[ImpositionService] 一式N联最终选择: {(useRotation ? "旋转90度" : "不旋转")}，{selectedResult.Rows}行×{selectedResult.Columns}列={layoutQuantity}页，最终旋转{finalRotationAngle}°，利用率{spaceUtilization:F1}%");
 
             return new ImpositionResult
             {
@@ -397,38 +436,53 @@ namespace WindowsFormsApp3.Services
                 IsPrintable = layoutQuantity > 0,
                 UseRotation = useRotation,
                 RotationAngle = finalRotationAngle,
-                Description = $"一式两联平张{selectedResult.Rows}行×{selectedResult.Columns}列 = {layoutQuantity}页/纸，{(useRotation ? "旋转90度" : "不旋转")}，最终旋转{finalRotationAngle}°，利用率{spaceUtilization:F1}%（偶数列约束）"
+                Description = $"一式{copyCount}联平张{selectedResult.Rows}行×{selectedResult.Columns}列 = {layoutQuantity}页/纸，{(useRotation ? "旋转90度" : "不旋转")}，最终旋转{finalRotationAngle}°，利用率{spaceUtilization:F1}%（按{modeDesc}倍数约束）"
             };
         }
 
         /// <summary>
-        /// 对给定的行列配置应用偶数列约束
+        /// 对给定的行列配置应用联数倍数约束
         /// </summary>
-        private (int Columns, int Rows) CalculateEvenColumnsLayout(int columns, int rows, bool isRotated)
+        /// <param name="columns">原始列数</param>
+        /// <param name="rows">原始行数</param>
+        /// <param name="copyCount">联数（0=不使用约束，使用默认值2）</param>
+        /// <param name="copyMode">倍数方向</param>
+        /// <returns>调整后的行列数</returns>
+        private (int Columns, int Rows) CalculateNCopiesLayout(int columns, int rows, int copyCount, CopyMode copyMode)
         {
-            // 确保列数为偶数
-            int evenColumns = columns;
-            if (evenColumns % 2 != 0)
-            {
-                evenColumns = Math.Max(2, evenColumns - 1); // 减1变为偶数，至少保持2列
-            }
+            int effectiveCopyCount = copyCount > 0 ? copyCount : 2;
 
-            // 如果无法达到偶数列要求，返回最小可用配置
-            if (evenColumns < 2)
+            if ((copyMode == CopyMode.AutoByColumn || copyMode == CopyMode.FixedNoRotationByColumn))
             {
-                evenColumns = 2;
-                // 可能需要调整行数来适应2列的约束
-                // 但这里我们保持行数不变，让上层逻辑处理
+                // 列数必须是联数的倍数
+                int remainder = columns % effectiveCopyCount;
+                int adjustedColumns = remainder == 0 ? columns : columns - remainder;
+                // 如果调整后小于物理限制或为0，保留物理限制，不强制增加
+                if (adjustedColumns <= 0 || adjustedColumns > columns)
+                {
+                    adjustedColumns = columns;
+                }
+                return (adjustedColumns, rows);
             }
-
-            return (evenColumns, rows);
+            else
+            {
+                // 行数必须是联数的倍数
+                int remainder = rows % effectiveCopyCount;
+                int adjustedRows = remainder == 0 ? rows : rows - remainder;
+                // 如果调整后小于物理限制或为0，保留物理限制，不强制增加
+                if (adjustedRows <= 0 || adjustedRows > rows)
+                {
+                    adjustedRows = rows;
+                }
+                return (columns, adjustedRows);
+            }
         }
 
         /// <summary>
         /// 计算卷装模式的最优偶数列布局（在标准布局计算基础上增加偶数列约束）
         /// </summary>
         private ImpositionResult CalculateRollMaterialLayoutWithEvenColumns(
-            RollMaterialConfiguration config, ImpositionPdfInfo pdfInfo)
+            RollMaterialConfiguration config, ImpositionPdfInfo pdfInfo, int copyCount, CopyMode copyMode)
         {
             // 验证配置
             var validationResult = ValidateRollMaterialConfiguration(config);
@@ -461,7 +515,7 @@ namespace WindowsFormsApp3.Services
 
             // 调用标准布局计算逻辑，但增加偶数列约束
             var result = CalculateRollMaterialLayoutWithEvenColumnsOptimized(
-                pageWidth, pageHeight, usableWidth, config, pdfInfo.PageRotation);
+                pageWidth, pageHeight, usableWidth, config, pdfInfo.PageRotation, copyCount, copyMode);
 
             result.MaterialType = MaterialType.RollMaterial;
             result.Success = true;
@@ -477,33 +531,40 @@ namespace WindowsFormsApp3.Services
             float pageHeight,
             float usableWidth,
             RollMaterialConfiguration config,
-            int pdfPageRotation = 0)
+            int pdfPageRotation = 0,
+            int copyCount = 0,
+            CopyMode copyMode = CopyMode.AutoByColumn)
         {
             // 计算固定1行时的最大可能列数（不旋转和旋转两种情况）
             int maxColumnsWithoutRotation = (int)Math.Floor(usableWidth / pageWidth);
             int maxColumnsWithRotation = (int)Math.Floor(usableWidth / pageHeight);
 
-            LogHelper.Debug($"[ImpositionService] 卷装一式两联布局计算: 最大可能列数-不旋转={maxColumnsWithoutRotation}列, 旋转90度={maxColumnsWithRotation}列");
+            LogHelper.Debug($"[ImpositionService] 卷装一式N联布局计算: 最大可能列数-不旋转={maxColumnsWithoutRotation}列, 旋转90度={maxColumnsWithRotation}列");
 
-            // 应用偶数列约束到两种布局方案
-            var evenNormalResult = CalculateEvenColumnsLayout(maxColumnsWithoutRotation, 1, false);
-            var evenRotatedResult = CalculateEvenColumnsLayout(maxColumnsWithRotation, 1, true);
+            // 应用联数倍数约束到两种布局方案
+            var evenNormalResult = CalculateNCopiesLayout(maxColumnsWithoutRotation, 1, copyCount, copyMode);
+            var evenRotatedResult = CalculateNCopiesLayout(maxColumnsWithRotation, 1, copyCount, copyMode);
 
-            // 应用用户指定的列数限制（偶数列约束后）
+            // 确定最小值（基于联数或默认值2）
+            int minValue = copyCount > 0 ? copyCount : 2;
+
+            // 应用用户指定的列数限制（联数约束后）
             if (config.Columns > 0)
             {
                 evenNormalResult.Columns = Math.Min(config.Columns, evenNormalResult.Columns);
                 evenRotatedResult.Columns = Math.Min(config.Columns, evenRotatedResult.Columns);
-                // 确保用户指定的列数也是偶数
-                if (evenNormalResult.Columns % 2 != 0) evenNormalResult.Columns--;
-                if (evenRotatedResult.Columns % 2 != 0) evenRotatedResult.Columns--;
+                // 确保用户指定的列数也是联数的倍数（仅在按列模式下）
+                if ((copyMode == CopyMode.AutoByColumn || copyMode == CopyMode.FixedNoRotationByColumn) && copyCount > 0)
+                {
+                    if (evenNormalResult.Columns % copyCount != 0)
+                        evenNormalResult.Columns = evenNormalResult.Columns - (evenNormalResult.Columns % copyCount);
+                    if (evenRotatedResult.Columns % copyCount != 0)
+                        evenRotatedResult.Columns = evenRotatedResult.Columns - (evenRotatedResult.Columns % copyCount);
+                }
             }
 
-            // 确保至少为2列（满足一式两联的基本要求）
-            evenNormalResult.Columns = Math.Max(2, evenNormalResult.Columns);
-            evenRotatedResult.Columns = Math.Max(2, evenRotatedResult.Columns);
-
-            // 直接基于偶数列约束计算两种方案的利用率
+            // 直接基于联数倍数约束计算两种方案的利用率
+            // 注意：不要在这里用 Math.Max 约束，因为这会影响旋转判断的准确性
             // 不旋转时的布局计算
             int columnsNormal = evenNormalResult.Columns;
             float cellWidthNormal = usableWidth / columnsNormal;
@@ -520,38 +581,49 @@ namespace WindowsFormsApp3.Services
             float usedAreaRotated = columnsRotated * cellWidthRotated * cellHeightRotated;
             float utilizationRotated = (usedAreaRotated / totalPageAreaRotated) * 100;
 
-            LogHelper.Debug($"[ImpositionService] 卷装一式两联调整后: 不旋转={columnsNormal}列(利用率{utilizationNormal:F1}%), 旋转90度={columnsRotated}列(利用率{utilizationRotated:F1}%)");
+            LogHelper.Debug($"[ImpositionService] 卷装一式N联调整后: 不旋转={columnsNormal}列(利用率{utilizationNormal:F1}%), 旋转90度={columnsRotated}列(利用率{utilizationRotated:F1}%)");
 
             // 计算两种方案的实际使用宽度
             float usedWidthNormal = columnsNormal * pageWidth;   // 不旋转时的实际使用宽度
             float usedWidthRotated = columnsRotated * pageHeight; // 旋转90度时的实际使用宽度
-            
-            LogHelper.Debug($"[ImpositionService] 卷装一式两联宽度使用: 不旋转使用宽度={usedWidthNormal:F1}mm, 旋转90度使用宽度={usedWidthRotated:F1}mm");
 
-            // 选择最优旋转方向（优先级：1.列数最大 2.宽度利用率 3.空间利用率）
-            // 在卷装材料中，优先选择能放置更多列的方案，提高生产效率
-            bool useRotation = columnsRotated > columnsNormal;
-            if (columnsRotated == columnsNormal) // 列数相同时
+            LogHelper.Debug($"[ImpositionService] 卷装一式N联宽度使用: 不旋转使用宽度={usedWidthNormal:F1}mm, 旋转90度使用宽度={usedWidthRotated:F1}mm");
+
+            // 选择最优旋转方向（优先级：1.宽度利用率 2.列数 3.空间利用率）
+            // 但如果不旋转模式，则强制不旋转
+            bool useRotation = false;
+            if (copyMode != CopyMode.FixedNoRotationByColumn && copyMode != CopyMode.FixedNoRotationByRow)
             {
-                // 优先选择宽度利用率更大的方案
-                useRotation = usedWidthRotated > usedWidthNormal;
-                if (Math.Abs(usedWidthRotated - usedWidthNormal) < 0.1f) // 宽度差异小于0.1mm时认为相等
+                // 优先比较宽度利用率
+                if (Math.Abs(usedWidthRotated - usedWidthNormal) > 0.1f)
                 {
-                    // 最后选择空间利用率更高的方案
-                    useRotation = utilizationRotated > utilizationNormal;
+                    useRotation = usedWidthRotated > usedWidthNormal;
+                }
+                else
+                {
+                    // 宽度利用率相同时比较列数
+                    if (columnsRotated != columnsNormal)
+                    {
+                        useRotation = columnsRotated > columnsNormal;
+                    }
+                    else
+                    {
+                        // 列数也相同时比较空间利用率
+                        useRotation = utilizationRotated > utilizationNormal;
+                    }
                 }
             }
             
             int optimalColumns = useRotation ? evenRotatedResult.Columns : evenNormalResult.Columns;
             float actualUtilization = useRotation ? utilizationRotated : utilizationNormal;
 
-            LogHelper.Debug($"[ImpositionService] 卷装一式两联选择: 不旋转={evenNormalResult.Columns}列(利用率{utilizationNormal:F1}%), 旋转90度={evenRotatedResult.Columns}列(利用率{utilizationRotated:F1}%), 选择{(useRotation ? "旋转" : "不旋转")}");
+            LogHelper.Debug($"[ImpositionService] 卷装一式N联选择: 不旋转={evenNormalResult.Columns}列(利用率{utilizationNormal:F1}%), 旋转90度={evenRotatedResult.Columns}列(利用率{utilizationRotated:F1}%), 选择{(useRotation ? "旋转" : "不旋转")}");
 
             // 计算单个页面的实际尺寸（考虑旋转）
             float actualPageWidth = useRotation ? pageHeight : pageWidth;
             float actualPageHeight = useRotation ? pageWidth : pageHeight;
 
-            LogHelper.Debug($"[ImpositionService] 卷装一式两联页面尺寸: 实际页面宽度={actualPageWidth:F1}mm, 实际页面高度={actualPageHeight:F1}mm");
+            LogHelper.Debug($"[ImpositionService] 卷装一式N联页面尺寸: 实际页面宽度={actualPageWidth:F1}mm, 实际页面高度={actualPageHeight:F1}mm");
 
             // 计算需要的行数以满足最小长度要求（最终长度需要超过最小长度）
             float singleRowLength = config.MarginTop + actualPageHeight + config.MarginBottom;
@@ -560,7 +632,25 @@ namespace WindowsFormsApp3.Services
             // 确保至少有1行
             minRowsRequired = Math.Max(1, minRowsRequired);
 
-            LogHelper.Debug($"[ImpositionService] 卷装一式两联多行计算: 最小长度要求={config.MinLength}mm, 单行长度={singleRowLength:F1}mm, 需要行数={minRowsRequired}行");
+            // 如果是按行模式，需要将行数调整为联数的倍数
+            if ((copyMode == CopyMode.AutoByRow || copyMode == CopyMode.FixedNoRotationByRow) && copyCount > 0)
+            {
+                int remainder = minRowsRequired % copyCount;
+                if (remainder != 0)
+                {
+                    minRowsRequired = minRowsRequired + (copyCount - remainder);
+                }
+                minRowsRequired = Math.Max(copyCount, minRowsRequired);
+            }
+
+            LogHelper.Debug($"[ImpositionService] 卷装一式N联多行计算: 最小长度要求={config.MinLength}mm, 单行长度={singleRowLength:F1}mm, 需要行数={minRowsRequired}行");
+
+            // 确保最终列数满足最小联数值约束（仅在按列模式下）
+            // 注意：这里的约束是在旋转判断之后应用的，不会影响旋转选择的准确性
+            if ((copyMode == CopyMode.AutoByColumn || copyMode == CopyMode.FixedNoRotationByColumn))
+            {
+                optimalColumns = Math.Max(minValue, optimalColumns);
+            }
 
             int layoutQuantity = optimalColumns * minRowsRequired;
 
@@ -576,7 +666,15 @@ namespace WindowsFormsApp3.Services
             int layoutRotationAngle = useRotation ? 270 : 0;
             int finalRotationAngle = layoutRotationAngle;
 
-            LogHelper.Debug($"[ImpositionService] 卷装一式两联最终选择: {(useRotation ? "旋转90度" : "不旋转")}，{minRowsRequired}行×{optimalColumns}列={layoutQuantity}页，最终旋转{finalRotationAngle}°，利用率{finalUtilization:F1}%");
+            string modeDesc = copyMode switch
+            {
+                CopyMode.AutoByColumn => "自适应列",
+                CopyMode.AutoByRow => "自适应行",
+                CopyMode.FixedNoRotationByColumn => "不旋转列",
+                CopyMode.FixedNoRotationByRow => "不旋转行",
+                _ => "列"
+            };
+            LogHelper.Debug($"[ImpositionService] 卷装一式N联最终选择: {(useRotation ? "旋转90度" : "不旋转")}，{minRowsRequired}行×{optimalColumns}列={layoutQuantity}页，最终旋转{finalRotationAngle}°，利用率{finalUtilization:F1}%");
 
             return new ImpositionResult
             {
@@ -589,7 +687,7 @@ namespace WindowsFormsApp3.Services
                 IsPrintable = layoutQuantity > 0,
                 UseRotation = useRotation,
                 RotationAngle = finalRotationAngle,
-                Description = $"一式两联卷装{minRowsRequired}行×{optimalColumns}列 = {layoutQuantity}页/纸，{(useRotation ? "旋转90度" : "不旋转")}，最终旋转{finalRotationAngle}°，利用率{finalUtilization:F1}%（偶数列约束）"
+                Description = $"一式{copyCount}联卷装{minRowsRequired}行×{optimalColumns}列 = {layoutQuantity}页/纸，{(useRotation ? "旋转90度" : "不旋转")}，最终旋转{finalRotationAngle}°，利用率{finalUtilization:F1}%（按{modeDesc}倍数约束）"
             };
         }
 
@@ -723,23 +821,28 @@ namespace WindowsFormsApp3.Services
         /// <param name="currentPageCount">当前页数</param>
         /// <param name="layoutQuantity">布局数量</param>
         /// <param name="layoutMode">排版模式</param>
+        /// <param name="copyCount">联数（一式几联，0=不使用）</param>
         /// <param name="cancellationToken">取消令牌</param>
         /// <returns>空白页补充结果</returns>
         public async Task<BlankPageResult> CalculateBlankPageInsertionAsync(
             int currentPageCount,
             int layoutQuantity,
             LayoutMode layoutMode,
+            int copyCount = 0,
             CancellationToken cancellationToken = default)
         {
             return await Task.Run(() =>
             {
+                // 如果启用了一式N联，实际页数需要乘以联数
+                int effectivePageCount = copyCount > 0 ? currentPageCount * copyCount : currentPageCount;
+
                 var result = new BlankPageResult
                 {
                     OriginalPageCount = currentPageCount,
                     LayoutQuantity = layoutQuantity,
                     LayoutMode = layoutMode,
-                    TotalPageCount = currentPageCount,
-                    RequiredSheets = (int)Math.Ceiling((double)currentPageCount / layoutQuantity)
+                    TotalPageCount = effectivePageCount,
+                    RequiredSheets = (int)Math.Ceiling((double)effectivePageCount / layoutQuantity)
                 };
 
                 if (layoutQuantity <= 0)
@@ -749,20 +852,23 @@ namespace WindowsFormsApp3.Services
                     return result;
                 }
 
-                int remainder = currentPageCount % layoutQuantity;
+                int remainder = effectivePageCount % layoutQuantity;
 
                 if (remainder == 0)
                 {
                     result.BlankPagesNeeded = 0;
-                    result.CalculationDetails = $"{layoutMode}模式，当前页数{currentPageCount}是布局数量{layoutQuantity}的倍数，无需补充空白页";
+                    string copyDesc = copyCount > 0 ? $"一式{copyCount}联，" : "";
+                    result.CalculationDetails = $"{copyDesc}{layoutMode}模式，当前页数{effectivePageCount}是布局数量{layoutQuantity}的倍数，无需补充空白页";
                     result.Success = true;
                     return result;
                 }
 
                 if (layoutMode == LayoutMode.Folding)
                 {
-                    // 折手模式：需要补足到布局数量的倍数
-                    result.BlankPagesNeeded = layoutQuantity - remainder;
+                    // 折手模式：空白页基于复制后总页数计算，但分配到每个副本
+                    int totalBlankPages = layoutQuantity - remainder;
+                    // 每个副本需要的空白页数 = 总空白页 ÷ 联数
+                    result.BlankPagesNeeded = copyCount > 0 ? totalBlankPages / copyCount : totalBlankPages;
                     result.TotalPageCount = currentPageCount + result.BlankPagesNeeded;
 
                     // 计算插入位置（均匀分布策略）
@@ -774,13 +880,16 @@ namespace WindowsFormsApp3.Services
                     }
 
                     result.RequiredSheets = (int)Math.Ceiling((double)result.TotalPageCount / layoutQuantity);
-                    result.CalculationDetails = $"折手模式：{currentPageCount}页 ÷ {layoutQuantity}页/纸 = 余{remainder}页，需补充{result.BlankPagesNeeded}个空白页，共{result.TotalPageCount}页，需要{result.RequiredSheets}张纸";
+                    string copyDesc = copyCount > 0 ? $"一式{copyCount}联，" : "";
+                    int finalTotalPages = (currentPageCount + result.BlankPagesNeeded) * copyCount;
+                    result.CalculationDetails = $"{copyDesc}折手模式：{currentPageCount}页×{copyCount}联={currentPageCount * copyCount}页 ÷ {layoutQuantity}页/纸 = 余{remainder}页，需补充{result.BlankPagesNeeded}个空白页/副本，凑成{currentPageCount + result.BlankPagesNeeded}页/副本（一式{copyCount}联后共{finalTotalPages}页）";
                 }
                 else
                 {
                     // 连拼模式：不需要添加空白页
                     result.BlankPagesNeeded = 0;
-                    result.CalculationDetails = $"连拼模式：{currentPageCount}页，按{layoutQuantity}页/纸布局，剩余{remainder}页直接拼接，无需补充空白页";
+                    string copyDesc = copyCount > 0 ? $"一式{copyCount}联，" : "";
+                    result.CalculationDetails = $"连拼模式：{currentPageCount}页 × {copyCount}(联数) = {effectivePageCount}页，按{layoutQuantity}页/纸布局，剩余{remainder}页直接拼接，无需补充空白页";
                 }
 
                 result.Success = true;
