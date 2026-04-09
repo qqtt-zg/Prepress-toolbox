@@ -438,6 +438,15 @@ namespace WindowsFormsApp3.Utils
             set => SetValue("SwapWidthHeightForDisplay", value);
         }
 
+        /// <summary>
+        /// 一式N联时自动将联数填入数量
+        /// </summary>
+        public static bool AutoFillQuantityForDuplicateLayout
+        {
+            get => GetValue<bool>("AutoFillQuantityForDuplicateLayout", true);
+            set => SetValue("AutoFillQuantityForDuplicateLayout", value);
+        }
+
         public static bool EnableDynamicFileReadyTimeout
         {
             get => GetValue<bool>("EnableDynamicFileReadyTimeout", true);

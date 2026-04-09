@@ -21,6 +21,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private const string EnableDailyJsonKey = "EnableDailyJson";
         private const string AlwaysOutputBothLayoutCountsKey = "AlwaysOutputBothLayoutCounts";
         private const string SwapWidthHeightForDisplayKey = "SwapWidthHeightForDisplay";
+        private const string AutoFillQuantityForDuplicateLayoutKey = "AutoFillQuantityForDuplicateLayout";
 
         public SettingsGeneralControl()
         {
@@ -84,6 +85,10 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             object swapWidthHeightForDisplay = AppSettings.Get(SwapWidthHeightForDisplayKey);
             chkSwapWidthHeightForDisplay.Checked = swapWidthHeightForDisplay is bool b3 ? b3 : true;
 
+            // 一式N联时自动填入数量开关
+            object autoFillQuantityForDuplicateLayout = AppSettings.Get(AutoFillQuantityForDuplicateLayoutKey);
+            chkAutoFillQuantityForDuplicateLayout.Checked = autoFillQuantityForDuplicateLayout is bool b4 ? b4 : true;
+
             // 开关变化时实时启用/禁用自动保存相关控件
             chkEnableDailyJson.CheckedChanged += (s, e) => UpdateAutoSaveControlsEnabledState();
 
@@ -118,6 +123,9 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
 
             // 尺寸显示大数在前开关
             AppSettings.Set(SwapWidthHeightForDisplayKey, chkSwapWidthHeightForDisplay.Checked);
+
+            // 一式N联时自动填入数量开关
+            AppSettings.Set(AutoFillQuantityForDuplicateLayoutKey, chkAutoFillQuantityForDuplicateLayout.Checked);
 
             AppSettings.Save();
             

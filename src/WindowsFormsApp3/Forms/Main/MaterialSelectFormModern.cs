@@ -5017,37 +5017,7 @@ namespace WindowsFormsApp3
                     LogHelper.Debug($"加载预设形状后更新尺寸显示: {AdjustedDimensions}");
                 }
 
-                // 加载一式两联
-                if (preset.IsDualCopy != _isDuplicateLayoutEnabled && !ignoreOptions.HasFlag(PresetIgnoreOptions.IsDualCopy))
-                {
-                    _isDuplicateLayoutEnabled = preset.IsDualCopy;
-                    if (duplicateLayoutCheckbox != null)
-                    {
-                        duplicateLayoutCheckbox.Checked = _isDuplicateLayoutEnabled;
-                    }
-                }
-
-                // 加载联数
-                if (!ignoreOptions.HasFlag(PresetIgnoreOptions.CopyCount))
-                {
-                    _copyCount = preset.CopyCount > 0 ? preset.CopyCount : 2;
-                    if (copyCountNumericUpDown != null)
-                    {
-                        copyCountNumericUpDown.Value = _copyCount;
-                    }
-                }
-
-                // 加载倍数方向
-                if (!ignoreOptions.HasFlag(PresetIgnoreOptions.CopyMode))
-                {
-                    _copyMode = preset.CopyMode;
-                    if (copyModeComboBox != null)
-                    {
-                        copyModeComboBox.SelectedIndex = (int)_copyMode;
-                    }
-                }
-
-                // 加载导出路径
+                // 加载导出路径（提前到启用排版之前）
                 if (!string.IsNullOrEmpty(preset.ExportPath) && Directory.Exists(preset.ExportPath) && !ignoreOptions.HasFlag(PresetIgnoreOptions.ExportPath))
                 {
                     SelectedExportPath = preset.ExportPath;
@@ -5083,12 +5053,42 @@ namespace WindowsFormsApp3
                         foldingLayoutRadioButton.Checked = true;
                 }
 
-                // 加载启用排版
+                // 加载启用排版（必须先于一式两联加载）
                 if (preset.EnableImposition != (enableImpositionCheckbox?.Checked == true) && !ignoreOptions.HasFlag(PresetIgnoreOptions.EnableImposition))
                 {
                     if (enableImpositionCheckbox != null)
                     {
                         enableImpositionCheckbox.Checked = preset.EnableImposition;
+                    }
+                }
+
+                // 加载一式两联（必须在启用排版之后）
+                if (preset.IsDualCopy != _isDuplicateLayoutEnabled && !ignoreOptions.HasFlag(PresetIgnoreOptions.IsDualCopy))
+                {
+                    _isDuplicateLayoutEnabled = preset.IsDualCopy;
+                    if (duplicateLayoutCheckbox != null)
+                    {
+                        duplicateLayoutCheckbox.Checked = _isDuplicateLayoutEnabled;
+                    }
+                }
+
+                // 加载联数
+                if (!ignoreOptions.HasFlag(PresetIgnoreOptions.CopyCount))
+                {
+                    _copyCount = preset.CopyCount > 0 ? preset.CopyCount : 2;
+                    if (copyCountNumericUpDown != null)
+                    {
+                        copyCountNumericUpDown.Value = _copyCount;
+                    }
+                }
+
+                // 加载倍数方向
+                if (!ignoreOptions.HasFlag(PresetIgnoreOptions.CopyMode))
+                {
+                    _copyMode = preset.CopyMode;
+                    if (copyModeComboBox != null)
+                    {
+                        copyModeComboBox.SelectedIndex = (int)_copyMode;
                     }
                 }
 
@@ -7229,10 +7229,10 @@ namespace WindowsFormsApp3
         /// <summary>
         /// 获取一式N联联数
         /// </summary>
-        /// <returns>联数</returns>
+        /// <returns>联数（如果未启用一式N联则返回0）</returns>
         public int GetCopyCount()
         {
-            return _copyCount;
+            return _isDuplicateLayoutEnabled ? _copyCount : 0;
         }
 
         /// <summary>
@@ -7451,8 +7451,8 @@ namespace WindowsFormsApp3
                 {
                     LogHelper.Info("[MaterialSelectFormModern] 一式N联模式已激活，开始重新计算布局");
 
-                    // 自动将联数填入数量字段
-                    if (quantityTextBox != null)
+                    // 自动将联数填入数量字段（根据设置决定）
+                    if (AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
                     {
                         quantityTextBox.Text = _copyCount.ToString();
                     }
@@ -7489,6 +7489,12 @@ namespace WindowsFormsApp3
                 {
                     LogHelper.Info("[MaterialSelectFormModern] 一式N联模式已取消，恢复标准布局计算");
 
+                    // 恢复数量为1
+                    if (quantityTextBox != null)
+                    {
+                        quantityTextBox.Text = "1";
+                    }
+
                     // 恢复标准布局计算
                     if (enableImpositionCheckbox?.Checked == true)
                     {
@@ -7522,8 +7528,8 @@ namespace WindowsFormsApp3
                     _copyCount = (int)copyCountNumericUpDown.Value;
                     LogHelper.Debug($"[MaterialSelectFormModern] 联数已更改: {_copyCount}");
 
-                    // 如果一式N联模式已启用，自动将联数填入数量字段
-                    if (_isDuplicateLayoutEnabled && quantityTextBox != null)
+                    // 如果一式N联模式已启用，自动将联数填入数量字段（根据设置决定）
+                    if (_isDuplicateLayoutEnabled && AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
                     {
                         quantityTextBox.Text = _copyCount.ToString();
                     }

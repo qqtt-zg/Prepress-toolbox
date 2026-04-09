@@ -19,6 +19,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
         private AntdUI.Checkbox chkEnableDailyJson;
         private AntdUI.Checkbox chkAlwaysOutputBothLayoutCounts;
         private AntdUI.Checkbox chkSwapWidthHeightForDisplay;
+        private AntdUI.Checkbox chkAutoFillQuantityForDuplicateLayout;
 
         protected override void Dispose(bool disposing)
         {
@@ -45,6 +46,7 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.chkEnableDailyJson = new AntdUI.Checkbox();
             this.chkAlwaysOutputBothLayoutCounts = new AntdUI.Checkbox();
             this.chkSwapWidthHeightForDisplay = new AntdUI.Checkbox();
+            this.chkAutoFillQuantityForDuplicateLayout = new AntdUI.Checkbox();
             ((System.ComponentModel.ISupportInitialize)(this.numAutoSaveSeconds)).BeginInit();
             this.SuspendLayout();
             // 
@@ -175,8 +177,17 @@ namespace WindowsFormsApp3.Forms.Controls.Settings
             this.chkSwapWidthHeightForDisplay.TabIndex = 13;
             this.chkSwapWidthHeightForDisplay.Text = "尺寸显示时大数在前（宽×长）";
             //
+            // chkAutoFillQuantityForDuplicateLayout
+            //
+            this.chkAutoFillQuantityForDuplicateLayout.Location = new System.Drawing.Point(20, 380);
+            this.chkAutoFillQuantityForDuplicateLayout.Name = "chkAutoFillQuantityForDuplicateLayout";
+            this.chkAutoFillQuantityForDuplicateLayout.Size = new System.Drawing.Size(260, 32);
+            this.chkAutoFillQuantityForDuplicateLayout.TabIndex = 14;
+            this.chkAutoFillQuantityForDuplicateLayout.Text = "一式N联时自动将联数填入数量";
+            //
             // SettingsGeneralControl
             //
+            this.Controls.Add(this.chkAutoFillQuantityForDuplicateLayout);
             this.Controls.Add(this.chkSwapWidthHeightForDisplay);
             this.Controls.Add(this.chkAlwaysOutputBothLayoutCounts);
             this.Controls.Add(this.chkEnableDailyJson);
