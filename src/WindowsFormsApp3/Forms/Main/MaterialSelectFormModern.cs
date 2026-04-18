@@ -4911,6 +4911,7 @@ namespace WindowsFormsApp3
                 if (!string.IsNullOrEmpty(preset.ColorMode) && !ignoreOptions.HasFlag(PresetIgnoreOptions.ColorMode))
                 {
                     ColorMode = preset.ColorMode;
+                    AppSettings.LastColorMode = ColorMode;
                     SetColorModeButtonWithIcon(ColorMode);
                     UpdateFixedField();
                 }

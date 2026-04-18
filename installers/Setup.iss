@@ -2,15 +2,15 @@
 ; 应用程序基本信息
 AppName=大诚重命名工具
 AppId={{D5F3E9B0-FEAT-ADD-PERF-MONITOR-FORM}}
-AppVersion=2.5.4
-AppVerName=大诚重命名工具 v2.5.4
+AppVersion=2.5.5
+AppVerName=大诚重命名工具 v2.5.5
 AppPublisher=大诚软件
 AppPublisherURL=
 AppSupportURL=
 AppUpdatesURL=
 AppCopyright=Copyright (C) 2026 大诚软件
 ; 版本更新说明
-AppComments=V2.5.4更新内容：修复折叠模式空白页计算逻辑；
+AppComments=V2.5.5更新内容：修复预设应用颜色模式后未正确持久化的问题；
 
 ; 默认安装目录
 DefaultDirName={autopf}\大诚重命名工具
@@ -19,7 +19,7 @@ DefaultGroupName=大诚重命名工具
 ; 输出设置
 ; 注意：文件名包含版本号，确保每次版本更新都会生成不同的文件名，从而保留旧版本的安装包
 ; 请确保在更新版本号时同步更新此处的文件名版本号
-OutputBaseFilename=大诚重命名工具_v2.5.4_安装包
+OutputBaseFilename=大诚重命名工具_v2.5.5_安装包
 OutputDir=.\安装包
 ; SetupIconFile=dc.ico
 
