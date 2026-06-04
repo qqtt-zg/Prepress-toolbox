@@ -35,7 +35,7 @@ namespace WindowsFormsApp3
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            AntdUI.Tabs.StyleLine styleLine2 = new AntdUI.Tabs.StyleLine();
+            AntdUI.Tabs.StyleLine styleLine1 = new AntdUI.Tabs.StyleLine();
             this.fileNameLabel = new AntdUI.Label();
             this.fileNameSeparator = new System.Windows.Forms.Panel();
             this.orderNumberLabel = new AntdUI.Label();
@@ -98,6 +98,7 @@ namespace WindowsFormsApp3
             this.pdfSizeDisplayLabel = new AntdUI.Label();
             this.duplicateLayoutCheckbox = new AntdUI.Checkbox();
             this.copyModeComboBox = new System.Windows.Forms.ComboBox();
+            this.copyTypeComboBox = new System.Windows.Forms.ComboBox();
             this.previewCollapseButton = new AntdUI.Button();
             this.pdfPreviewPanel = new System.Windows.Forms.Panel();
             this.pdfPreviewControl = new System.Windows.Forms.Panel();
@@ -423,7 +424,7 @@ namespace WindowsFormsApp3
             this.tabs1.Pages.Add(this.tabPage3);
             this.tabs1.Pages.Add(this.tabPage2);
             this.tabs1.Size = new System.Drawing.Size(400, 183);
-            this.tabs1.Style = styleLine2;
+            this.tabs1.Style = styleLine1;
             this.tabs1.TabIndex = 1;
             this.tabs1.Text = "tabs1";
             // 
@@ -820,9 +821,9 @@ namespace WindowsFormsApp3
             this.duplicateLayoutCheckbox.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.duplicateLayoutCheckbox.Location = new System.Drawing.Point(150, 441);
             this.duplicateLayoutCheckbox.Name = "duplicateLayoutCheckbox";
-            this.duplicateLayoutCheckbox.Size = new System.Drawing.Size(119, 26);
+            this.duplicateLayoutCheckbox.Size = new System.Drawing.Size(55, 26);
             this.duplicateLayoutCheckbox.TabIndex = 64;
-            this.duplicateLayoutCheckbox.Text = "一式                联";
+            this.duplicateLayoutCheckbox.Text = "一式";
             this.duplicateLayoutCheckbox.CheckedChanged += new AntdUI.BoolEventHandler(this.DuplicateLayoutCheckbox_CheckedChanged);
             // 
             // copyModeComboBox
@@ -835,11 +836,25 @@ namespace WindowsFormsApp3
             "自适应行",
             "不旋转列",
             "不旋转行"});
-            this.copyModeComboBox.Location = new System.Drawing.Point(278, 442);
+            this.copyModeComboBox.Location = new System.Drawing.Point(304, 443);
             this.copyModeComboBox.Name = "copyModeComboBox";
-            this.copyModeComboBox.Size = new System.Drawing.Size(91, 25);
-            this.copyModeComboBox.TabIndex = 66;
+            this.copyModeComboBox.Size = new System.Drawing.Size(76, 25);
+            this.copyModeComboBox.TabIndex = 67;
             this.copyModeComboBox.SelectedIndexChanged += new System.EventHandler(this.CopyModeComboBox_SelectedIndexChanged);
+            // 
+            // copyTypeComboBox
+            // 
+            this.copyTypeComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.copyTypeComboBox.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.copyTypeComboBox.FormattingEnabled = true;
+            this.copyTypeComboBox.Items.AddRange(new object[] {
+            "联",
+            "份"});
+            this.copyTypeComboBox.Location = new System.Drawing.Point(254, 442);
+            this.copyTypeComboBox.Name = "copyTypeComboBox";
+            this.copyTypeComboBox.Size = new System.Drawing.Size(41, 25);
+            this.copyTypeComboBox.TabIndex = 66;
+            this.copyTypeComboBox.SelectedIndexChanged += new System.EventHandler(this.CopyTypeComboBox_SelectedIndexChanged);
             // 
             // previewCollapseButton
             // 
@@ -942,6 +957,7 @@ namespace WindowsFormsApp3
             this.Controls.Add(this.pdfSizeDisplayLabel);
             this.Controls.Add(this.duplicateLayoutCheckbox);
             this.Controls.Add(this.copyModeComboBox);
+            this.Controls.Add(this.copyTypeComboBox);
             this.Controls.Add(this.chkIdentifierPage);
             this.Controls.Add(this.filmTypeRedButton);
             this.Controls.Add(this.orderNumberLabel);
@@ -1061,6 +1077,7 @@ namespace WindowsFormsApp3
         private AntdUI.Label pdfSizeDisplayLabel;
         private AntdUI.Checkbox duplicateLayoutCheckbox;
         private System.Windows.Forms.ComboBox copyModeComboBox;
+        private System.Windows.Forms.ComboBox copyTypeComboBox;
 
         // PDF 预览相关控件
         private AntdUI.Button previewCollapseButton;

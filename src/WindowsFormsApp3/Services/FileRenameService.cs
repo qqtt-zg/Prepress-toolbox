@@ -1065,6 +1065,13 @@ namespace WindowsFormsApp3.Services
                     return false;
                 }
 
+                // 步骤1.5：一式N联模式页面复制（在页面重排完成后执行，仅联模式需要）
+                // 联模式在步骤2.6复制，份模式在步骤4复制
+                // if (pdfOptions.CopyType == CopyType.Layout && pdfOptions.CopyCount > 1)
+                // {
+                //     // 联模式的复制在步骤2.6执行
+                // }
+
                 //步骤2：标识页插入（在页面重排完成后执行）
                 // 处理流程：页面重排 → 添加标识页
                 if (pdfOptions.AddIdentifierPage)
@@ -1178,6 +1185,97 @@ namespace WindowsFormsApp3.Services
                 else
                 {
                     LogHelper.Debug("未启用PDF图层处理");
+                }
+
+                // 步骤4：一式N联/份页面复制（在形状处理完成后执行）
+                // 联模式：CopyCount > 1，使用CopyPdfPagesAsync
+                // 份模式：DuplicateCount > 1，使用CopyPagesWithPattern（交替循环123123123）
+                if (pdfOptions.CopyType == CopyType.Layout && pdfOptions.CopyCount > 1)
+                {
+                    // 联模式：使用CopyPdfPagesAsync复制
+                    LogHelper.Debug($"=== 步骤4：一式N联页面复制（联模式） ===");
+                    LogHelper.Debug($"复制前文件页数: {GetPdfPageCount(tempFileInfo.FullPath)}");
+                    LogHelper.Debug($"联数: {pdfOptions.CopyCount}");
+
+                    var pdfService = ServiceLocator.Instance.GetPdfProcessingService();
+                    if (pdfService == null)
+                    {
+                        LogHelper.Debug("无法获取PDF处理服务");
+                        tempFileInfo.ErrorMessage = "无法获取PDF处理服务";
+                        return false;
+                    }
+
+                    string nCopyTempFile = Path.Combine(
+                        Path.GetDirectoryName(tempFileInfo.FullPath) ?? Path.GetTempPath(),
+                        $"ncopy_{Path.GetFileNameWithoutExtension(tempFileInfo.FullPath)}_{DateTime.Now:HHmmssffff}.pdf");
+
+                    bool copySuccess = pdfService.CopyPdfPagesAsync(
+                        tempFileInfo.FullPath,
+                        nCopyTempFile,
+                        pdfOptions.CopyCount).GetAwaiter().GetResult();
+
+                    if (copySuccess && File.Exists(nCopyTempFile))
+                    {
+                        LogHelper.Debug($"✓ 一式N联页面复制成功，复制后文件页数: {GetPdfPageCount(nCopyTempFile)}");
+
+                        File.Delete(tempFileInfo.FullPath);
+                        File.Move(nCopyTempFile, tempFileInfo.FullPath);
+
+                        LogHelper.Debug($"已替换原文件: {tempFileInfo.FullPath}");
+                    }
+                    else
+                    {
+                        LogHelper.Debug($"✗ 一式N联页面复制失败");
+                        tempFileInfo.ErrorMessage = "一式N联页面复制失败";
+
+                        if (File.Exists(nCopyTempFile))
+                        {
+                            try { File.Delete(nCopyTempFile); } catch { }
+                        }
+
+                        return false;
+                    }
+                }
+                else if (pdfOptions.CopyType == CopyType.Duplicate && pdfOptions.DuplicateCount > 1)
+                {
+                    // 份模式：使用CopyPagesWithPattern复制（交替循环123123123）
+                    LogHelper.Debug($"=== 步骤4：一式N份页面复制（份模式） ===");
+                    LogHelper.Debug($"复制模式: 123123123交替循环, 重复次数: {pdfOptions.DuplicateCount}");
+
+                    int? pageCountNullable = GetPdfPageCount(tempFileInfo.FullPath);
+                    int pageCount = pageCountNullable ?? 0;
+                    LogHelper.Debug($"复制前文件页数: {pageCount}");
+
+                    if (pageCount > 0)
+                    {
+                        var pdfSplitService = new PdfSplitService();
+                        string tempOutputPath = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(tempFileInfo.FullPath) + "_copy.pdf");
+
+                        bool copySuccess = pdfSplitService.CopyPagesWithPattern(
+                            tempFileInfo.FullPath,
+                            tempOutputPath,
+                            1,  // 起始页
+                            pageCount,  // 结束页
+                            pdfOptions.DuplicateCount,  // 重复次数
+                            PdfSplitService.PageCopyPattern.AlternatingCycle);  // 123123123模式
+
+                        if (copySuccess && File.Exists(tempOutputPath))
+                        {
+                            File.Delete(tempFileInfo.FullPath);
+                            File.Move(tempOutputPath, tempFileInfo.FullPath);
+                            LogHelper.Debug($"✓ 一式N份页面复制成功，最终页数: {GetPdfPageCount(tempFileInfo.FullPath)}");
+                        }
+                        else
+                        {
+                            LogHelper.Debug($"✗ 一式N份页面复制失败");
+                            tempFileInfo.ErrorMessage = "一式N份页面复制失败";
+                            if (File.Exists(tempOutputPath))
+                            {
+                                try { File.Delete(tempOutputPath); } catch { }
+                            }
+                            return false;
+                        }
+                    }
                 }
 
                 LogHelper.Debug($"PDF处理完成: {tempFileInfo.FullPath}");

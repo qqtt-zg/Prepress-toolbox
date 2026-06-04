@@ -72,7 +72,26 @@
       "Bash(ls -la publish/*.exe)",
       "Bash(\"/c/Program Files \\(x86\\)/Inno Setup 6/ISCC.exe\" D:/vibe_codeing/Prepress-toolbox/installers/Setup.iss 2>&1)",
       "Bash(cd /d D:/vibe_codeing/Prepress-toolbox)",
-      "Bash(\"/c/Program Files \\(x86\\)/Inno Setup 6/ISCC.exe\" \"D:/vibe_codeing/Prepress-toolbox/installers/Setup.iss\" 2>&1)"
+      "Bash(\"/c/Program Files \\(x86\\)/Inno Setup 6/ISCC.exe\" \"D:/vibe_codeing/Prepress-toolbox/installers/Setup.iss\" 2>&1)",
+      "Bash(xxd)",
+      "Bash(claude /plugin list)",
+      "Bash(plugin list:*)",
+      "Bash(git config *)",
+      "WebSearch",
+      "mcp__plugin_everything-claude-code_exa__web_search_exa",
+      "WebFetch(domain:jimeng.jianying.com)",
+      "Bash(curl -s https://jimeng.jianying.com/cli)",
+      "Bash(bash)",
+      "Bash(export PATH=\"$HOME/bin:$PATH\")",
+      "Bash(dreamina.exe --help)",
+      "Bash(dreamina.exe -h)",
+      "Bash(dreamina.exe help *)",
+      "Bash(dreamina.exe user_credit)",
+      "Bash(dreamina.exe login *)",
+      "PowerShell(Get-ChildItem -Recurse -File \"D:\\\\vibe_codeing\\\\Prepress-toolbox\\\\src\\\\WindowsFormsApp3\\\\UI\" | ForEach-Object { $_.FullName.Replace\\('D:\\\\vibe_codeing\\\\Prepress-toolbox\\\\',''\\) })",
+      "PowerShell(Get-ChildItem -Recurse -File \"D:\\\\vibe_codeing\\\\Prepress-toolbox\\\\src\\\\WindowsFormsApp3\\\\Services\" | Where-Object { $_.Extension -eq '.cs' } | ForEach-Object { $_.FullName.Replace\\('D:\\\\vibe_codeing\\\\Prepress-toolbox\\\\',''\\) })",
+      "PowerShell(git ls-tree *)",
+      "PowerShell(Test-Path *)"
     ]
   }
 }

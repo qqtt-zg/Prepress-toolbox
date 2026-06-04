@@ -64,6 +64,10 @@ namespace WindowsFormsApp3.Presenters
         private string _currentImpositionMaterialType = "";
         // ✅ 添加一式N联联数字段
         private int _currentCopyCount = 0;
+        // ✅ 添加一式类型（联/份）
+        private CopyType _currentCopyType = CopyType.Layout;
+        // ✅ 添加份数字段
+        private int _currentDuplicateCount = 2;
 
         /// <summary>
         /// 构造函数
@@ -1060,9 +1064,13 @@ namespace WindowsFormsApp3.Presenters
                         _currentLayoutQuantity = selectionResult.LayoutQuantity;
                         // ✅ 保存一式N联联数
                         _currentCopyCount = selectionResult.CopyCount;
+                        // ✅ 保存一式类型（联/份）
+                        _currentCopyType = selectionResult.CopyType;
+                        // ✅ 保存份数
+                        _currentDuplicateCount = selectionResult.DuplicateCount;
                         // ✅ 保存排版材料类型（平张/卷装）
-                        _currentImpositionMaterialType = selectionResult.ImpositionMaterialType; 
-                        
+                        _currentImpositionMaterialType = selectionResult.ImpositionMaterialType;
+
                         _logger?.LogInformation($"[ProcessNewFileAsync] 排版信息: EnableImposition={_currentEnableImposition}, LayoutMode={_currentLayoutMode}, LayoutQuantity={_currentLayoutQuantity}, MaterialType={_currentImpositionMaterialType}");
                         
                         // ✅ 保存标识页信息
@@ -1507,6 +1515,10 @@ namespace WindowsFormsApp3.Presenters
                         LayoutQuantity = _currentLayoutQuantity,
                         // ✅ 一式N联联数
                         CopyCount = _currentCopyCount,
+                        // ✅ 一式类型（联/份）
+                        CopyType = _currentCopyType,
+                        // ✅ 份数
+                        DuplicateCount = _currentDuplicateCount,
                         // ✅ 关键修复:传递标识页信息
                         AddIdentifierPage = _currentAddIdentifierPage,
                         IdentifierPageContent = _currentIdentifierPageContent

@@ -112,6 +112,22 @@ namespace WindowsFormsApp3.Models
         FixedNoRotationByRow = 3
     }
 
+    /// <summary>
+    /// 一式类型（联/份）
+    /// </summary>
+    public enum CopyType
+    {
+        /// <summary>
+        /// 联 - 拼版模式，使用最优偶数列布局计算
+        /// </summary>
+        Layout = 0,
+
+        /// <summary>
+        /// 份 - 直接复制模式，使用123123123交替循环排列
+        /// </summary>
+        Duplicate = 1
+    }
+
     #endregion
 
     #region 配置模型

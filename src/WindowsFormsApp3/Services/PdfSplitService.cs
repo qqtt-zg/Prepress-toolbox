@@ -61,6 +61,21 @@ namespace WindowsFormsApp3.Services
     public class PdfSplitService
     {
         /// <summary>
+        /// 页面复制排列模式
+        /// </summary>
+        public enum PageCopyPattern
+        {
+            /// <summary>
+            /// 连续重复模式 (111222333)：每页重复N次后再复制下一页
+            /// </summary>
+            ContinuousRepeat = 0,
+
+            /// <summary>
+            /// 交替循环模式 (123123123)：按顺序循环复制所有页面N次
+            /// </summary>
+            AlternatingCycle = 1
+        }
+        /// <summary>
         /// 计算页数范围（根据文件名和页数列表，自动累计）
         /// </summary>
         /// <param name="fileInfos">文件信息列表</param>
@@ -250,6 +265,197 @@ namespace WindowsFormsApp3.Services
             } while (File.Exists(newFilePath));
 
             return newFilePath;
+        }
+
+        /// <summary>
+        /// 按指定模式复制PDF页面（无取消支持）
+        /// </summary>
+        /// <param name="sourcePdfPath">源PDF路径</param>
+        /// <param name="outputPdfPath">输出PDF路径</param>
+        /// <param name="startPage">起始页（1-based，包含）</param>
+        /// <param name="endPage">结束页（1-based，包含）</param>
+        /// <param name="repeatCount">每页重复次数（最小为1）</param>
+        /// <param name="pattern">排列模式</param>
+        /// <param name="progressCallback">进度回调 (current, total, message)</param>
+        /// <returns>是否复制成功</returns>
+        public bool CopyPagesWithPattern(
+            string sourcePdfPath,
+            string outputPdfPath,
+            int startPage,
+            int endPage,
+            int repeatCount,
+            PageCopyPattern pattern,
+            Action<int, int, string> progressCallback = null)
+        {
+            return CopyPagesWithPattern(sourcePdfPath, outputPdfPath, startPage, endPage, repeatCount, pattern, CancellationToken.None, progressCallback);
+        }
+
+        /// <summary>
+        /// 按指定模式复制PDF页面（支持取消）
+        /// </summary>
+        /// <param name="sourcePdfPath">源PDF路径</param>
+        /// <param name="outputPdfPath">输出PDF路径</param>
+        /// <param name="startPage">起始页（1-based，包含）</param>
+        /// <param name="endPage">结束页（1-based，包含）</param>
+        /// <param name="repeatCount">每页重复次数（最小为1）</param>
+        /// <param name="pattern">排列模式</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <param name="progressCallback">进度回调 (current, total, message)</param>
+        /// <returns>是否复制成功</returns>
+        public bool CopyPagesWithPattern(
+            string sourcePdfPath,
+            string outputPdfPath,
+            int startPage,
+            int endPage,
+            int repeatCount,
+            PageCopyPattern pattern,
+            CancellationToken cancellationToken,
+            Action<int, int, string> progressCallback = null)
+        {
+            // 1. 参数验证
+            if (string.IsNullOrEmpty(sourcePdfPath) || !File.Exists(sourcePdfPath))
+            {
+                LogHelper.Error($"[CopyPagesWithPattern] 源文件不存在 - {sourcePdfPath}");
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(outputPdfPath))
+            {
+                LogHelper.Error("[CopyPagesWithPattern] 输出路径为空");
+                return false;
+            }
+
+            if (startPage < 1)
+            {
+                LogHelper.Error($"[CopyPagesWithPattern] 起始页必须 >= 1，实际：{startPage}");
+                return false;
+            }
+
+            if (endPage < startPage)
+            {
+                LogHelper.Error($"[CopyPagesWithPattern] 结束页必须 >= 起始页，起始页：{startPage}，结束页：{endPage}");
+                return false;
+            }
+
+            if (repeatCount < 1)
+            {
+                LogHelper.Warn($"[CopyPagesWithPattern] 重复次数必须 >= 1，已修正为1，实际：{repeatCount}");
+                repeatCount = 1;
+            }
+
+            // 2. 获取源PDF总页数并验证范围
+            int? totalSourcePages = GetSourcePageCount(sourcePdfPath);
+            if (!totalSourcePages.HasValue)
+            {
+                LogHelper.Error($"[CopyPagesWithPattern] 无法读取源PDF页数 - {sourcePdfPath}");
+                return false;
+            }
+
+            if (endPage > totalSourcePages.Value)
+            {
+                LogHelper.Error($"[CopyPagesWithPattern] 结束页{endPage}超出源文件范围(1-{totalSourcePages.Value})");
+                return false;
+            }
+
+            int pageCount = endPage - startPage + 1;
+            int totalOutputPages = pageCount * repeatCount;
+
+            LogHelper.Info($"[CopyPagesWithPattern] 开始复制 - 源：{sourcePdfPath}，页数范围：{startPage}-{endPage}，重复：{repeatCount}次，模式：{pattern}");
+
+            try
+            {
+                using (PdfReader reader = new PdfReader(sourcePdfPath))
+                using (PdfDocument sourceDocument = new PdfDocument(reader))
+                using (PdfWriter writer = new PdfWriter(outputPdfPath))
+                using (PdfDocument outputDocument = new PdfDocument(writer))
+                {
+                    switch (pattern)
+                    {
+                        case PageCopyPattern.ContinuousRepeat:
+                            CopyPagesContinuousRepeat(sourceDocument, outputDocument, startPage, endPage, repeatCount, cancellationToken, progressCallback);
+                            break;
+
+                        case PageCopyPattern.AlternatingCycle:
+                            CopyPagesAlternatingCycle(sourceDocument, outputDocument, startPage, endPage, repeatCount, cancellationToken, progressCallback);
+                            break;
+
+                        default:
+                            LogHelper.Error($"[CopyPagesWithPattern] 未知的排列模式：{pattern}");
+                            return false;
+                    }
+
+                    outputDocument.Close();
+                }
+
+                LogHelper.Info($"[CopyPagesWithPattern] 复制完成 - 输出：{outputPdfPath}，总页数：{totalOutputPages}");
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                LogHelper.Info("[CopyPagesWithPattern] 操作已取消");
+                if (File.Exists(outputPdfPath))
+                {
+                    try { File.Delete(outputPdfPath); } catch { }
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[CopyPagesWithPattern] 复制异常 - {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 连续重复模式复制（111222333）
+        /// </summary>
+        private void CopyPagesContinuousRepeat(
+            PdfDocument sourceDocument,
+            PdfDocument outputDocument,
+            int startPage,
+            int endPage,
+            int repeatCount,
+            CancellationToken cancellationToken,
+            Action<int, int, string> progressCallback)
+        {
+            int pageCount = endPage - startPage + 1;
+            int totalOperations = pageCount * repeatCount;
+            int currentOperation = 0;
+
+            for (int pageNum = startPage; pageNum <= endPage; pageNum++)
+            {
+                for (int rep = 0; rep < repeatCount; rep++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    sourceDocument.CopyPagesTo(pageNum, pageNum, outputDocument);
+
+                    currentOperation++;
+                    progressCallback?.Invoke(currentOperation, totalOperations, $"复制第{pageNum}页 ({rep + 1}/{repeatCount})");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 交替循环模式复制（123123123）
+        /// </summary>
+        private void CopyPagesAlternatingCycle(
+            PdfDocument sourceDocument,
+            PdfDocument outputDocument,
+            int startPage,
+            int endPage,
+            int repeatCount,
+            CancellationToken cancellationToken,
+            Action<int, int, string> progressCallback)
+        {
+            for (int cycle = 0; cycle < repeatCount; cycle++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                sourceDocument.CopyPagesTo(startPage, endPage, outputDocument);
+
+                progressCallback?.Invoke(cycle + 1, repeatCount, $"完成第{cycle + 1}次循环 (共{repeatCount}次)");
+            }
         }
     }
 }

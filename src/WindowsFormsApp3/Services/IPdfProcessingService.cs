@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using WindowsFormsApp3.Models;
 
 namespace WindowsFormsApp3.Services
@@ -53,5 +56,21 @@ namespace WindowsFormsApp3.Services
         /// <param name="usePdfLastPage">是否使用PDF最后一页逻辑</param>
         /// <returns>是否成功添加图层</returns>
         bool AddDotsAddCounterLayer(string filePath, string finalDimensions, string cornerRadius = "0", bool usePdfLastPage = false);
+
+        /// <summary>
+        /// 复制PDF页面（支持一式N份，按123123顺序复制）
+        /// </summary>
+        /// <param name="sourcePdfPath">源PDF路径</param>
+        /// <param name="outputPdfPath">输出PDF路径</param>
+        /// <param name="copySetCount">份数</param>
+        /// <param name="progressCallback">进度回调</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>是否成功</returns>
+        Task<bool> CopyPdfPagesAsync(
+            string sourcePdfPath,
+            string outputPdfPath,
+            int copySetCount,
+            IProgress<(int current, int total, string message)> progressCallback = null,
+            CancellationToken cancellationToken = default);
     }
 }

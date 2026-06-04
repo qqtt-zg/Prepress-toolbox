@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using Spire.Pdf;
 using Spire.Pdf.Graphics;
 using Spire.Pdf.Graphics.Layer;
+using iText.Kernel.Pdf;
 using WindowsFormsApp3.Models;
 using WindowsFormsApp3.Interfaces;
 using WindowsFormsApp3.Utils;
@@ -56,7 +59,7 @@ namespace WindowsFormsApp3.Services
 
             try
             {
-                using (PdfDocument document = new PdfDocument())
+                using (Spire.Pdf.PdfDocument document = new Spire.Pdf.PdfDocument())
                 {
                     document.LoadFromFile(sourcePdfPath);
 
@@ -112,7 +115,7 @@ namespace WindowsFormsApp3.Services
 
             try
             {
-                using (PdfDocument mergedDocument = new PdfDocument())
+                using (Spire.Pdf.PdfDocument mergedDocument = new Spire.Pdf.PdfDocument())
                 {
                     // 遍历所有源文件并合并
                     foreach (string sourceFile in sourceFiles)
@@ -130,7 +133,7 @@ namespace WindowsFormsApp3.Services
                             continue;
                         }
 
-                        using (PdfDocument sourceDocument = new PdfDocument())
+                        using (Spire.Pdf.PdfDocument sourceDocument = new Spire.Pdf.PdfDocument())
                         {
                             sourceDocument.LoadFromFile(sourceFile);
                             // 将源文档的所有页面添加到合并文档
@@ -263,6 +266,67 @@ namespace WindowsFormsApp3.Services
         public string CalculateFinalDimensions(double width, double height, double tetBleed, string cornerRadius = "0", bool addPdfLayers = false)
         {
             return PdfTools.CalculateFinalDimensions(width, height, tetBleed, cornerRadius, addPdfLayers);
+        }
+
+        /// <summary>
+        /// 复制PDF页面（支持一式N份，按123123顺序复制）
+        /// </summary>
+        public async Task<bool> CopyPdfPagesAsync(
+            string sourcePdfPath,
+            string outputPdfPath,
+            int copySetCount,
+            IProgress<(int current, int total, string message)> progressCallback = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(sourcePdfPath) || string.IsNullOrEmpty(outputPdfPath))
+                return false;
+            if (copySetCount < 1)
+                return false;
+            if (!File.Exists(sourcePdfPath))
+                return false;
+
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    using (iText.Kernel.Pdf.PdfReader reader = new iText.Kernel.Pdf.PdfReader(sourcePdfPath))
+                    using (iText.Kernel.Pdf.PdfDocument sourceDocument = new iText.Kernel.Pdf.PdfDocument(reader))
+                    using (iText.Kernel.Pdf.PdfWriter writer = new iText.Kernel.Pdf.PdfWriter(outputPdfPath))
+                    using (iText.Kernel.Pdf.PdfDocument outputDocument = new iText.Kernel.Pdf.PdfDocument(writer))
+                    {
+                        int totalPages = sourceDocument.GetNumberOfPages();
+                        int totalOutputPages = totalPages * copySetCount;
+
+                        int current = 0;
+                        // 按123123顺序复制：每份按顺序复制所有页
+                        for (int copy = 0; copy < copySetCount; copy++)
+                        {
+                            for (int page = 1; page <= totalPages; page++)
+                            {
+                                cancellationToken.ThrowIfCancellationRequested();
+                                sourceDocument.CopyPagesTo(page, page, outputDocument);
+                                current++;
+                                progressCallback?.Report((current, totalOutputPages, $"复制页面 {current}/{totalOutputPages}"));
+                            }
+                        }
+
+                        return true;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    if (File.Exists(outputPdfPath))
+                    {
+                        try { File.Delete(outputPdfPath); } catch { }
+                    }
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    LogHelper.Error($"[PdfProcessingService] 复制页面失败: {ex.Message}", ex);
+                    return false;
+                }
+            }, cancellationToken);
         }
     }
 }

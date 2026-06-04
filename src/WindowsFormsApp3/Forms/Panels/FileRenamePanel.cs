@@ -2133,7 +2133,9 @@ namespace WindowsFormsApp3.Forms.Panels
                             CompositeColumn = dialog.UpdatedCompositeColumn ?? "",
                             // ✅ 一式N联信息
                             CopyCount = dialog.GetCopyCount(),
-                            CopyMode = dialog.GetCopyMode()
+                            CopyMode = dialog.GetCopyMode(),
+                            CopyType = dialog.GetCopyType(),
+                            DuplicateCount = dialog.GetDuplicateCount()
                         };
                         return DialogResult.OK;
                     }

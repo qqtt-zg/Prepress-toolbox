@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Obsidian知识库图谱 - Prepress Toolbox</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0b1020;--panel:rgba(255,255,255,.07);--panel-strong:rgba(255,255,255,.11);--line:rgba(255,255,255,.15);--text:#f5f7fb;--muted:#aab2c5;--blue:#64b5f6;--green:#81c784;--orange:#ffb74d;--purple:#ce93d8;--red:#ef9a9a;--gray:#9ea7b8;--gold:#ffd166}
+body{font-family:"Microsoft YaHei",Segoe UI,sans-serif;background:radial-gradient(circle at 20% 0%,#28356d 0,#10172f 35%,#080d1a 100%);color:var(--text);line-height:1.6;min-height:100vh}
+a{color:inherit;text-decoration:none}
+.container{width:min(1440px,100%);margin:0 auto;padding:34px 24px 60px}
+.hero{padding:38px;border:1px solid var(--line);border-radius:28px;background:linear-gradient(135deg,rgba(100,181,246,.18),rgba(206,147,216,.12));box-shadow:0 24px 80px rgba(0,0,0,.3);position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;right:-120px;top:-120px;width:320px;height:320px;border-radius:50%;background:rgba(255,183,77,.18);filter:blur(8px)}
+.hero h1{font-size:clamp(2rem,4vw,4rem);line-height:1.15;margin-bottom:12px;background:linear-gradient(90deg,#ffd166,#64b5f6,#ce93d8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{color:#d9def0;max-width:850px;font-size:1.05rem;position:relative;z-index:1}
+.quick-links{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px;position:relative;z-index:1}
+.quick-links a,.filter-btn{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:var(--text);padding:9px 14px;border-radius:999px;cursor:pointer;transition:.2s;font-size:.92rem}
+.quick-links a:hover,.filter-btn:hover,.filter-btn.active{background:rgba(255,255,255,.18);transform:translateY(-1px)}
+.section{margin-top:30px;padding:26px;border:1px solid var(--line);border-radius:24px;background:var(--panel);backdrop-filter:blur(12px)}
+.section h2{font-size:1.45rem;margin-bottom:8px}
+.section-desc{color:var(--muted);margin-bottom:20px}
+.kb-flow{display:grid;grid-template-columns:repeat(8,minmax(120px,1fr));gap:12px;align-items:stretch}
+.flow-card{position:relative;text-align:center;min-height:116px;display:flex;flex-direction:column;justify-content:center;background:var(--panel-strong);border:1px solid var(--line);border-radius:18px;padding:16px;transition:.2s}
+.flow-card:not(:last-child):after{content:"\2192";position:absolute;right:-15px;top:50%;transform:translateY(-50%);color:var(--gold);font-weight:700;z-index:2}
+.flow-card strong{display:block;color:#fff;margin-bottom:6px}
+.flow-card span{color:var(--muted);font-size:.9rem}
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;align-items:center}
+.search{min-width:min(420px,100%);flex:1;background:rgba(0,0,0,.22);border:1px solid var(--line);border-radius:14px;color:var(--text);padding:11px 14px;font-size:1rem;outline:none}
+.search:focus{border-color:rgba(100,181,246,.5);box-shadow:0 0 0 3px rgba(100,181,246,.15)}
+.graph-layout{display:grid;grid-template-columns:1.4fr .6fr;gap:20px;align-items:start}
+
+/* 图谱画布 */
+.graph-canvas{position:relative;background:linear-gradient(135deg,rgba(20,30,60,.8),rgba(10,15,30,.9));border:1px solid var(--line);border-radius:20px;min-height:580px;overflow:hidden}
+.graph-canvas::before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle at 1px 1px,rgba(255,255,255,.04) 1px,transparent 0);background-size:32px 32px;pointer-events:none}
+.graph-canvas::after{content:"";position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(100,181,246,.08),transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;animation:pulse 8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.5;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}}
+#linkLayer{position:absolute;inset:0;pointer-events:none;z-index:1}
+#linkLayer line{stroke-width:1.5;transition:opacity .3s,stroke-width .3s}
+#linkLayer line.relation{stroke:rgba(255,209,102,.3);stroke-dasharray:6,4}
+#linkLayer line.active{stroke:rgba(255,209,102,.7);stroke-width:2;stroke-dasharray:none}
+#linkLayer line.dim{opacity:.15}
+
+/* 节点层 */
+.node-layer{position:absolute;inset:0;z-index:2}
+.node-card{position:absolute;width:150px;background:rgba(20,30,55,.85);border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer;transition:all .3s ease;backdrop-filter:blur(8px);box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.node-card:hover{transform:translateY(-3px) scale(1.03);box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.node-card.active{border-color:var(--gold);box-shadow:0 0 24px rgba(255,209,102,.3);transform:scale(1.05)}
+.node-card.related{border-color:rgba(100,181,246,.5);box-shadow:0 0 16px rgba(100,181,246,.2)}
+.node-card.dim{opacity:.3}
+.node-card.type-hub{width:180px;border-color:rgba(255,209,102,.4);background:linear-gradient(135deg,rgba(40,30,15,.9),rgba(25,20,10,.95))}
+.node-card.type-hub.active{border-color:var(--gold);box-shadow:0 0 32px rgba(255,209,102,.4)}
+.node-card.type-module{border-left:3px solid var(--blue)}
+.node-card.type-research{border-left:3px solid var(--orange)}
+.node-card.type-code{border-left:3px solid var(--purple)}
+.node-card.type-manual{border-left:3px solid var(--green)}
+.node-card.type-archive{border-left:3px solid var(--gray)}
+.node-card.type-hub .node-icon{color:var(--gold);font-size:1.4rem}
+.node-card.type-module .node-icon{color:var(--blue);font-size:1.2rem}
+.node-card.type-research .node-icon{color:var(--orange);font-size:1.2rem}
+.node-card.type-code .node-icon{color:var(--purple);font-size:1.2rem}
+.node-card.type-manual .node-icon{color:var(--green);font-size:1.2rem}
+.node-card.type-archive .node-icon{color:var(--gray);font-size:1.2rem}
+.node-top{display:flex;justify-content:space-between;gap:8px;align-items:start;margin-bottom:6px}
+.node-card h3{font-size:.92rem;line-height:1.3;flex:1}
+.node-card p{color:var(--muted);font-size:.78rem;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.node-status{font-size:.72rem;color:#d3d9e8;margin-top:6px;opacity:.8}
+.node-icon{display:inline-block}
+
+/* 详情面板 */
+.detail{position:sticky;top:18px;background:linear-gradient(145deg,rgba(25,35,65,.9),rgba(15,20,40,.95));border:1px solid var(--line);border-radius:20px;padding:24px;min-height:320px;backdrop-filter:blur(16px);box-shadow:0 8px 40px rgba(0,0,0,.4)}
+.detail h3{font-size:1.3rem;margin-bottom:12px;color:var(--gold);display:flex;align-items:center;gap:10px}
+.detail h3 .detail-icon{font-size:1.4rem}
+.detail-badges{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 10px;font-size:.76rem;white-space:nowrap;border:1px solid rgba(255,255,255,.12)}
+.type-module{color:var(--blue);background:rgba(100,181,246,.14)}
+.type-research{color:var(--orange);background:rgba(255,183,77,.14)}
+.type-code{color:var(--purple);background:rgba(206,147,216,.14)}
+.type-manual{color:var(--green);background:rgba(129,199,132,.14)}
+.type-archive{color:var(--gray);background:rgba(158,167,184,.14)}
+.type-hub{color:var(--gold);background:rgba(255,209,102,.14)}
+.detail p{color:#dce2f2;margin-bottom:12px;font-size:.95rem}
+.detail .detail-path{font-family:Consolas,"Courier New",monospace;color:#c7d2fe;font-size:.8rem;background:rgba(0,0,0,.2);padding:8px 12px;border-radius:10px;margin-bottom:16px;word-break:break-all;display:block}
+.detail h4{color:var(--gold);font-size:.95rem;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.1)}
+.detail ul{padding-left:0;list-style:none}
+.detail li{margin:6px 0;padding:8px 12px;border-radius:10px;background:rgba(0,0,0,.15);border:1px solid transparent;transition:.2s}
+.detail li:hover{border-color:rgba(255,255,255,.15);background:rgba(255,255,255,.06)}
+.detail li a{color:#dbe7ff;font-size:.9rem}
+.detail li a:hover{color:var(--gold)}
+.detail li .rel-status{color:var(--muted);font-size:.78rem;margin-left:6px}
+
+/* 关系摘要 */
+.edge-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-top:18px}
+.edge{border-left:3px solid var(--gold);background:rgba(0,0,0,.18);padding:12px 14px;border-radius:12px;color:#dce2f2;font-size:.9rem}
+.edge small{display:block;color:var(--muted);margin-top:4px}
+
+/* 其他区块 */
+.conflicts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.conflict-card{background:var(--panel-strong);border:1px solid rgba(239,154,154,.25);border-radius:18px;padding:16px;transition:.2s}
+.conflict-card strong{color:var(--red);display:block;margin-bottom:6px}
+.conflict-card p{color:var(--muted);font-size:.9rem}
+.code-table{width:100%;border-collapse:collapse;overflow:hidden;border-radius:16px;font-size:.92rem}
+.code-table th,.code-table td{border-bottom:1px solid var(--line);padding:14px;text-align:left;vertical-align:top}
+.code-table th{background:rgba(255,255,255,.1);color:var(--gold)}
+.code-table td{background:rgba(0,0,0,.13)}
+.code-table code{display:block;color:#c7d2fe;font-family:Consolas,"Courier New",monospace;margin:3px 0;font-size:.82rem;word-break:break-all}
+.routes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.route-card{position:relative;display:block;background:var(--panel-strong);border:1px solid var(--line);border-radius:18px;padding:16px 16px 16px 44px;transition:.2s;cursor:pointer}
+.route-card:hover{border-color:rgba(129,199,132,.6);background:rgba(255,255,255,.13);transform:translateY(-2px)}
+.route-index{position:absolute;left:14px;top:16px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:rgba(129,199,132,.2);color:var(--green);font-size:.78rem;font-weight:700}
+.route-card strong{display:block;color:#fff;margin-bottom:4px}
+.route-card p{color:var(--muted);font-size:.9rem}
+.research-routes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.route-line{display:flex;flex-direction:column;gap:10px}
+.route-line span{padding:12px;border-radius:14px;background:rgba(255,255,255,.09);border:1px solid var(--line);text-align:center}
+.route-line .arrow{background:transparent;border:0;color:var(--gold);padding:0}
+.manual-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.manual-card{background:var(--panel-strong);border:1px solid var(--line);border-radius:18px;padding:16px}
+.manual-card h3{color:var(--green);margin-bottom:10px}
+.manual-card a{display:block;color:#dbe7ff;padding:5px 0;font-size:.95rem}
+.manual-card a:hover{color:var(--gold)}
+.footer-note{margin-top:22px;color:var(--muted);font-size:.88rem;text-align:center}
+.hidden{display:none!important}
+
+/* 图例 */
+.canvas-legend{position:absolute;bottom:14px;left:14px;display:flex;gap:12px;flex-wrap:wrap;z-index:3}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--muted);background:rgba(0,0,0,.4);padding:4px 8px;border-radius:8px}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+
+@media(max-width:1100px){.kb-flow{grid-template-columns:repeat(4,1fr)}.flow-card:nth-child(4):after{display:none}.graph-layout{grid-template-columns:1fr}.detail{position:static}.routes,.research-routes{grid-template-columns:1fr 1fr}.graph-canvas{min-height:400px}}
+@media(max-width:720px){.container{padding:18px 14px 42px}.hero,.section{padding:20px}.kb-flow,.routes,.research-routes{grid-template-columns:1fr}.flow-card:after{display:none!important}.code-table,.code-table tbody,.code-table tr,.code-table td,.code-table th{display:block}.code-table thead{display:none}.code-table td{border-bottom:0}.code-table tr{border:1px solid var(--line);border-radius:14px;margin-bottom:12px;overflow:hidden;display:block}.node-card{position:relative!important;left:auto!important;top:auto!important;width:100%!important;margin-bottom:10px}.graph-canvas{min-height:auto}.canvas-legend{position:static;margin-top:10px}}
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="hero">
+    <h1>Obsidian知识库图谱</h1>
+    <p>把 Prepress-toolbox 的知识库主线、核心模块、竞品调研、代码入口和操作手册整理成一个可离线打开的 HTML 导航图，帮助快速理解“从哪里看、模块怎么连、代码在哪里”。</p>
+    <nav class="quick-links">
+      <a href="../Obsidian知识库/00-首页与导航/项目总览.md">项目总览</a>
+      <a href="../Obsidian知识库/00-首页与导航/模块地图.md">模块地图</a>
+      <a href="../Obsidian知识库/03-架构与实现/代码入口与模块映射.md">代码入口</a>
+      <a href="../Obsidian知识库/04-调研与竞品/竞品与行业研究.md">竞品研究</a>
+      <a href="../Obsidian知识库/05-操作手册与流程/用户操作教程索引.md">操作手册</a>
+      <a href="../Obsidian知识库/99-归档/归档总索引.md">归档索引</a>
+    </nav>
+  </header>
+
+  <section class="section" id="flow">
+    <h2>知识库主线</h2>
+    <p class="section-desc">来源：项目总览。先按主线理解范围，再进入模块、代码、调研和验证资料。</p>
+    <div class="kb-flow" id="flowCards"></div>
+  </section>
+
+  <section class="section" id="graph">
+    <h2>核心模块关系图</h2>
+    <p class="section-desc">来源：模块地图。点击节点查看详细信息，连线展示模块间的依赖与影响关系。</p>
+    <div class="toolbar">
+      <input class="search" id="searchInput" placeholder="搜索模块、说明或路径，例如 PDF、工作台、代码入口">
+      <button class="filter-btn active" data-filter="all">全部</button>
+      <button class="filter-btn" data-filter="module">核心模块</button>
+      <button class="filter-btn" data-filter="research">调研</button>
+      <button class="filter-btn" data-filter="code">代码入口</button>
+      <button class="filter-btn" data-filter="manual">操作手册</button>
+      <button class="filter-btn" data-filter="archive">归档</button>
+    </div>
+    <div class="graph-layout">
+      <div class="graph-canvas" id="graphCanvas">
+        <svg id="linkLayer"></svg>
+        <div class="node-layer" id="nodeLayer"></div>
+        <div class="canvas-legend">
+          <span class="legend-item"><span class="legend-dot" style="background:var(--gold)"></span>总入口</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>核心模块</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--orange)"></span>调研</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--purple)"></span>代码入口</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>操作手册</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--gray)"></span>归档</span>
+        </div>
+      </div>
+      <aside class="detail" id="detailPanel"></aside>
+    </div>
+    <div class="edge-list" id="edgeList"></div>
+  </section>
+
+  <section class="section" id="conflicts">
+    <h2>当前最需要收口的问题</h2>
+    <p class="section-desc">这些是理解知识库时最容易混淆的主题，后续阅读应优先以“当前有效说明”和代码现状为准。</p>
+    <div class="conflicts" id="conflictCards"></div>
+  </section>
+
+  <section class="section" id="code">
+    <h2>模块到代码入口映射</h2>
+    <p class="section-desc">来源：代码入口与模块映射。代码路径以文本展示，便于复制到编辑器中定位。</p>
+    <table class="code-table">
+      <thead><tr><th>模块</th><th>关键代码入口</th><th>说明</th></tr></thead>
+      <tbody id="codeMapBody"></tbody>
+    </table>
+  </section>
+
+  <section class="section" id="research">
+    <h2>调研影响路线</h2>
+    <p class="section-desc">来源：竞品与行业研究。调研不是单独资料，它反向影响模块优先级、产品定义和长期架构。</p>
+    <div class="research-routes" id="researchRoutes"></div>
+  </section>
+
+  <section class="section" id="reading">
+    <h2>推荐阅读路径</h2>
+    <p class="section-desc">按这个顺序看，能从全局地图进入冲突主题，再回到测试、归档和整理规则。</p>
+    <div class="routes" id="readingPath"></div>
+  </section>
+
+  <section class="section" id="manuals">
+    <h2>操作手册入口</h2>
+    <p class="section-desc">来源：用户操作教程索引。按用户任务分组，而不是按文件名分组。</p>
+    <div class="manual-groups" id="manualGroups"></div>
+  </section>
+
+  <p class="footer-note">数据来源：docs/Obsidian知识库 的 README、项目总览、模块地图、代码入口与模块映射、竞品与行业研究、用户操作教程索引。页面为纯静态文件，可离线使用。</p>
+</div>
+
+<script>
+const graphData = {
+  flow: [
+    ["产品与范围", "项目定位、能力边界和主线问题"],
+    ["模块知识", "按核心功能整理当前有效说明"],
+    ["架构与实现", "把文档主题映射到代码入口"],
+    ["调研与竞品", "解释模块规格和优先级来源"],
+    ["操作手册与流程", "面向用户任务的教程索引"],
+    ["发布与变更", "版本、安装包和历史变更"],
+    ["测试与验证", "功能验证和专项测试入口"],
+    ["历史归档", "过期总结和诊断资料检索"]
+  ],
+  nodes: [
+    {id:"hub",label:"Prepress-toolbox 知识库",type:"hub",status:"总入口",icon:"⚛",summary:"统一项目知识入口，连接模块、代码、调研、手册、测试和归档。",path:"../Obsidian知识库/README.md",links:["module-map","code-map","manual-index","archive-index"]},
+    {id:"module-map",label:"模块地图",type:"hub",status:"当前有效",icon:"⌂",summary:"核心 MOC，列出模块、竞品调研、当前有效说明、操作手册、发布测试与归档入口。",path:"../Obsidian知识库/00-首页与导航/模块地图.md",links:["rename","excel","workspace","pdf-checker","font-outline","pdf-split","settings"]},
+    {id:"rename",label:"文件重命名模块",type:"module",status:"核心模块",icon:"✏",summary:"负责文件批量重命名，依赖正则结果和 Excel 数据匹配生成新文件名。",path:"../Obsidian知识库/02-模块知识库/文件重命名模块.md",links:["excel","settings","code-map"]},
+    {id:"excel",label:"Excel导入与数据库视图",type:"module",status:"核心模块",icon:"☰",summary:"负责 Excel 数据导入、匹配和结果查看，是文件重命名的数据来源。",path:"../Obsidian知识库/02-模块知识库/Excel导入与数据库视图.md",links:["rename","manual-index","code-map"]},
+    {id:"workspace",label:"工作台与排版工作区",type:"module",status:"需收口",icon:"⌘",summary:"承载工作台、排版工作区、AE 风格工作台等容易混淆的概念。",path:"../Obsidian知识库/02-模块知识库/工作台与排版工作区.md",links:["quite","action-list","code-map"]},
+    {id:"pdf-checker",label:"PDF检查器",type:"module",status:"当前有效",icon:"☷",summary:"PDF 检查、预览、字体检测和后处理链路的核心入口。",path:"../Obsidian知识库/02-模块知识库/PDF检查器.md",links:["font-outline","pitstop","code-map"]},
+    {id:"font-outline",label:"字体兼容与转曲",type:"module",status:"当前有效",icon:"♫",summary:"与 PDF 检查器共享处理链路，关注字体检测、兼容性和转曲工作流。",path:"../Obsidian知识库/02-模块知识库/字体兼容与转曲.md",links:["pdf-checker","pitstop","code-map"]},
+    {id:"pdf-split",label:"PDF拆分模块",type:"module",status:"核心模块",icon:"✂",summary:"按规则或 Excel 数据拆分 PDF，未来可接入 Action List 式批处理。",path:"../Obsidian知识库/02-模块知识库/PDF拆分模块.md",links:["action-list","manual-index","code-map"]},
+    {id:"settings",label:"设置中心",type:"module",status:"支撑模块",icon:"⚙",summary:"为多个模块提供正则、材料、路径、排版、主题和字体等配置。",path:"../Obsidian知识库/02-模块知识库/设置中心.md",links:["rename","excel","workspace","pdf-checker"]},
+    {id:"code-map",label:"代码入口与模块映射",type:"code",status:"查代码",icon:"✎",summary:"从知识库主题跳到 Program、MainShellForm、Panel、Presenter、Service 等代码入口。",path:"../Obsidian知识库/03-架构与实现/代码入口与模块映射.md",links:["rename","workspace","pdf-checker","pdf-split"]},
+    {id:"research",label:"竞品与行业研究",type:"research",status:"需求来源",icon:"★",summary:"收口 Quite Imposing、PitStop、Action List 和市场调研对产品定义的影响。",path:"../Obsidian知识库/04-调研与竞品/竞品与行业研究.md",links:["quite","pitstop","action-list"]},
+    {id:"quite",label:"Quite Imposing 分析",type:"research",status:"拼版参考",icon:"□",summary:"为 N-Up、骑马订、页面重排、出血标记、爬移补偿提供规格参考。",path:"../Obsidian知识库/04-调研与竞品/QuiteImposing拼版功能分析.md",links:["workspace"]},
+    {id:"pitstop",label:"PitStop 分析",type:"research",status:"预检参考",icon:"♠",summary:"为 Preflight、Inspector、字体转曲、出血检测、颜色管理提供规格参考。",path:"../Obsidian知识库/04-调研与竞品/PitStop印前检查功能分析.md",links:["pdf-checker","font-outline"]},
+    {id:"action-list",label:"ActionList 架构方向",type:"research",status:"长期方向",icon:"☰",summary:"用于理解服务层自动化框架，不是短期 UI 目标。",path:"../Obsidian知识库/04-调研与竞品/ActionList架构方向.md",links:["pdf-split","workspace","settings"]},
+    {id:"manual-index",label:"用户操作教程索引",type:"manual",status:"用户手册",icon:"✍",summary:"把原用户操作教程拆成 13 个子页，按任务分组查阅。",path:"../Obsidian知识库/05-操作手册与流程/用户操作教程索引.md",links:["rename","excel","workspace","pdf-split","settings"]},
+    {id:"archive-index",label:"归档总索引",type:"archive",status:"历史检索",icon:"☖",summary:"过期历史文档入口，按 PDF检查器、字体、诊断、版本发布、实现完成等类别组织。",path:"../Obsidian知识库/99-归档/归档总索引.md",links:["module-map"]}
+  ],
+  edges: [
+    {from:"rename",to:"excel",label:"依赖 Excel 数据匹配"},
+    {from:"workspace",to:"quite",label:"拼版能力受调研影响"},
+    {from:"pdf-checker",to:"font-outline",label:"共享 PDF 处理链路"},
+    {from:"settings",to:"rename",label:"提供正则、材料、路径配置"},
+    {from:"settings",to:"workspace",label:"提供主题、排版配置"},
+    {from:"pdf-split",to:"action-list",label:"未来批处理扩展方向"},
+    {from:"code-map",to:"rename",label:"代码入口映射"},
+    {from:"code-map",to:"workspace",label:"代码入口映射"},
+    {from:"code-map",to:"pdf-checker",label:"代码入口映射"},
+    {from:"code-map",to:"pdf-split",label:"代码入口映射"},
+    {from:"research",to:"quite",label:"调研成果"},
+    {from:"research",to:"pitstop",label:"调研成果"},
+    {from:"research",to:"action-list",label:"调研成果"},
+    {from:"pitstop",to:"pdf-checker",label:"预检能力参考"},
+    {from:"pitstop",to:"font-outline",label:"字体处理参考"},
+    {from:"module-map",to:"hub",label:"知识库入口"},
+    {from:"module-map",to:"rename",label:"模块"},
+    {from:"module-map",to:"excel",label:"模块"},
+    {from:"module-map",to:"workspace",label:"模块"},
+    {from:"module-map",to:"pdf-checker",label:"模块"},
+    {from:"module-map",to:"pdf-split",label:"模块"},
+    {from:"manual-index",to:"rename",label:"操作教程"},
+    {from:"manual-index",to:"excel",label:"操作教程"},
+    {from:"manual-index",to:"pdf-split",label:"操作教程"},
+    {from:"archive-index",to:"module-map",label:"归档索引"}
+  ],
+  conflicts: [
+    ["工作台定义不一致", "工作台、排版工作区、AE 风格工作台需要分清：工作台是作业壳层，排版工作区是专业拼版参数和生成流程。"],
+    ["PDF 文档过多", "PDF检查器与字体转曲历史资料较多，阅读时优先看当前有效说明和模块页。"],
+    ["数据库命名误导", "数据库模块实际更接近 Excel 结果视图，应结合 Excel导入与数据库视图理解。"],
+    ["主链分散", "PRD、用户手册、调研和实现总结需要通过模块地图、代码映射和操作手册索引串起来。"]
+  ],
+  codeMap: [
+    ["应用主入口", ["src/WindowsFormsApp3/Program.cs", "src/WindowsFormsApp3/Forms/Main/MainShellForm.cs"], "应用启动与主壳。"],
+    ["文件重命名模块", ["src/WindowsFormsApp3/Forms/Panels/FileRenamePanel.cs", "src/WindowsFormsApp3/Presenters/FileRenamePanelPresenter.cs", "src/WindowsFormsApp3/Services/FileRenameService.cs"], "重命名主链路。"],
+    ["Excel导入与数据库视图", ["src/WindowsFormsApp3/Forms/Panels/ExcelImportPanel.cs", "src/WindowsFormsApp3/Forms/Dialogs/ExcelImportForm.cs", "src/WindowsFormsApp3/Forms/Panels/DatabasePanel.cs"], "数据导入与结果查看。"],
+    ["工作台与排版工作区", ["src/WindowsFormsApp3/Forms/Panels/AeWorkspacePanel.cs", "src/WindowsFormsApp3/Forms/Panels/ImpositionWorkspacePanel.cs", "src/WindowsFormsApp3/Services/ImpositionService.cs", "src/WindowsFormsApp3/Services/SaddleStitchService.cs"], "工作台与拼版。"],
+    ["PDF检查器与字体处理", ["src/WindowsFormsApp3/Forms/Panels/PdfOperationsPanel.cs"], "PDF检查与后处理承载。"],
+    ["PDF拆分模块", ["src/WindowsFormsApp3/Forms/Panels/PdfSplitPanel.cs", "src/WindowsFormsApp3/Services/PdfSplitService.cs"], "PDF拆分。"],
+    ["设置中心", ["src/WindowsFormsApp3/Forms/Panels/SettingsPanel.cs"], "配置入口。"],
+    ["服务注册", ["src/WindowsFormsApp3/Services/ServiceLocator.cs"], "服务集中注册。"]
+  ],
+  researchRoutes: [
+    ["Quite Imposing", "工作台与排版工作区", "拼版能力"],
+    ["PitStop", "PDF检查器 / 字体兼容与转曲", "预检与修复能力"],
+    ["Action List", "服务层自动化框架", "长期架构方向"]
+  ],
+  readingPath: [
+    ["模块地图", "../Obsidian知识库/00-首页与导航/模块地图.md", "先看全局模块入口。"],
+    ["工作台与排版工作区", "../Obsidian知识库/02-模块知识库/工作台与排版工作区.md", "理解最冲突的工作台概念。"],
+    ["PDF检查器", "../Obsidian知识库/02-模块知识库/PDF检查器.md", "进入 PDF 检查主线。"],
+    ["字体兼容与转曲", "../Obsidian知识库/02-模块知识库/字体兼容与转曲.md", "理解字体处理链路。"],
+    ["竞品与行业研究", "../Obsidian知识库/04-调研与竞品/竞品与行业研究.md", "看模块规格来源。"],
+    ["版本发布与变更记录", "../Obsidian知识库/06-发布与变更/版本发布与变更记录.md", "查版本与发布历史。"],
+    ["测试与验证索引", "../Obsidian知识库/07-测试与验证/测试与验证索引.md", "找验证资料。"],
+    ["归档总索引", "../Obsidian知识库/99-归档/归档总索引.md", "检索历史资料。"],
+    ["整理规则与迁移顺序", "../Obsidian知识库/00-首页与导航/整理规则与迁移顺序.md", "理解知识库维护规则。"]
+  ],
+  manuals: [
+    ["基础", [["产品概述与界面导航","../Obsidian知识库/05-操作手册与流程/产品概述与界面导航.md"],["文件批量重命名","../Obsidian知识库/05-操作手册与流程/文件批量重命名.md"]]],
+    ["数据驱动", [["Excel数据导入与匹配","../Obsidian知识库/05-操作手册与流程/Excel数据导入与匹配.md"],["材料选择对话框","../Obsidian知识库/05-操作手册与流程/材料选择对话框.md"],["数据库面板","../Obsidian知识库/05-操作手册与流程/数据库面板.md"]]],
+    ["文件处理", [["悬浮拖拽窗口","../Obsidian知识库/05-操作手册与流程/悬浮拖拽窗口.md"],["PDF拆分操作","../Obsidian知识库/05-操作手册与流程/PDF拆分操作.md"]]],
+    ["拼版与工作台", [["拼版工作台骑马订","../Obsidian知识库/05-操作手册与流程/拼版工作台骑马订.md"],["AE风格工作台","../Obsidian知识库/05-操作手册与流程/AE风格工作台.md"]]],
+    ["配置", [["综合设置","../Obsidian知识库/05-操作手册与流程/综合设置.md"],["主题系统","../Obsidian知识库/05-操作手册与流程/主题系统.md"]]],
+    ["参考", [["常见问题","../Obsidian知识库/05-操作手册与流程/常见问题.md"],["操作技巧","../Obsidian知识库/05-操作手册与流程/操作技巧.md"]]]
+  ]
+};
+
+const typeNames = {hub:"总入口",module:"核心模块",research:"调研",code:"代码入口",manual:"操作手册",archive:"归档"};
+const nodeLayer = document.getElementById("nodeLayer");
+const linkLayer = document.getElementById("linkLayer");
+const detailPanel = document.getElementById("detailPanel");
+const graphCanvas = document.getElementById("graphCanvas");
+let activeFilter = "all";
+let activeNodeId = "hub";
+
+function computeLayout(){
+  const rect = graphCanvas.getBoundingClientRect();
+  const w = rect.width;
+  const h = Math.max(rect.height, 580);
+  const cx = w / 2;
+  const cy = h / 2;
+  const layout = {};
+
+  const hubs = graphData.nodes.filter(n => n.type === "hub");
+  const modules = graphData.nodes.filter(n => n.type === "module");
+  const research = graphData.nodes.filter(n => n.type === "research");
+  const codes = graphData.nodes.filter(n => n.type === "code");
+  const manuals = graphData.nodes.filter(n => n.type === "manual");
+  const archives = graphData.nodes.filter(n => n.type === "archive");
+
+  hubs.forEach((n) => {
+    if(n.id === "hub") layout[n.id] = {x: cx - 90, y: cy - 40};
+    else layout[n.id] = {x: cx + 100, y: cy - 40};
+  });
+
+  const modR = Math.min(w, h) * 0.30;
+  modules.forEach((n, i) => {
+    const angle = -Math.PI/2 + (i / modules.length) * Math.PI * 2;
+    layout[n.id] = {x: cx + Math.cos(angle) * modR - 75, y: cy + Math.sin(angle) * modR - 35};
+  });
+
+  const resR = Math.min(w, h) * 0.42;
+  research.forEach((n, i) => {
+    const angle = Math.PI * 0.55 + (i / research.length) * Math.PI * 0.7;
+    layout[n.id] = {x: cx + Math.cos(angle) * resR - 75, y: cy + Math.sin(angle) * resR - 35};
+  });
+
+  codes.forEach((n, i) => {
+    layout[n.id] = {x: w - 175, y: 25 + i * 65};
+  });
+
+  manuals.forEach((n, i) => {
+    layout[n.id] = {x: 20, y: h - 90 - i * 65};
+  });
+
+  archives.forEach((n, i) => {
+    layout[n.id] = {x: 20, y: 25 + i * 65};
+  });
+
+  Object.keys(layout).forEach(id => {
+    layout[id].x = Math.max(8, Math.min(w - 158, layout[id].x));
+    layout[id].y = Math.max(8, Math.min(h - 85, layout[id].y));
+  });
+
+  return layout;
+}
+
+function renderFlow(){
+  document.getElementById("flowCards").innerHTML = graphData.flow.map(([title,desc]) => `<div class="flow-card"><strong>${title}</strong><span>${desc}</span></div>`).join("");
+}
+
+function renderNodes(){
+  const query = document.getElementById("searchInput").value.trim().toLowerCase();
+  const layout = computeLayout();
+  const activeNode = graphData.nodes.find(n => n.id === activeNodeId);
+  const relatedIds = new Set(activeNode ? activeNode.links : []);
+  relatedIds.add(activeNodeId);
+
+  nodeLayer.innerHTML = graphData.nodes.map(node => {
+    const haystack = `${node.label} ${node.summary} ${node.path} ${node.status}`.toLowerCase();
+    const visible = (activeFilter === "all" || node.type === activeFilter) && (!query || haystack.includes(query));
+    const pos = layout[node.id] || {x:0, y:0};
+    const isActive = node.id === activeNodeId;
+    const isRelated = relatedIds.has(node.id) && !isActive;
+    const isDim = !visible || (activeNodeId && !relatedIds.has(node.id));
+
+    return `<article class="node-card type-${node.type} ${isActive?"active":""} ${isRelated?"related":""} ${isDim?"dim":""} ${visible?"":"hidden"}"
+      data-id="${node.id}"
+      style="left:${pos.x}px;top:${pos.y}px">
+      <div class="node-top">
+        <h3>${node.label}</h3>
+        <span class="node-icon">${node.icon || ""}</span>
+      </div>
+      <p>${node.summary}</p>
+      <div class="node-status">${node.status}</div>
+    </article>`;
+  }).join("");
+
+  document.querySelectorAll(".node-card").forEach(card => card.addEventListener("click", () => {
+    activeNodeId = card.dataset.id;
+    renderNodes();
+    renderSvgEdges();
+    renderDetail();
+  }));
+}
+
+function renderSvgEdges(){
+  const layout = computeLayout();
+  const activeNode = graphData.nodes.find(n => n.id === activeNodeId);
+  const relatedIds = new Set(activeNode ? activeNode.links : []);
+  relatedIds.add(activeNodeId);
+
+  const lines = graphData.edges.filter(e => {
+    const fromNode = graphData.nodes.find(n => n.label === e.from || n.id === e.from);
+    const toNode = graphData.nodes.find(n => n.label === e.to || n.id === e.to);
+    return fromNode && toNode && layout[fromNode.id] && layout[toNode.id];
+  }).map(e => {
+    const fromNode = graphData.nodes.find(n => n.label === e.from || n.id === e.from);
+    const toNode = graphData.nodes.find(n => n.label === e.to || n.id === e.to);
+    const from = layout[fromNode.id];
+    const to = layout[toNode.id];
+    const isActive = activeNode && (fromNode.id === activeNodeId || toNode.id === activeNodeId);
+    const isDim = activeNode && !isActive && !(relatedIds.has(fromNode.id) && relatedIds.has(toNode.id));
+    return `<line x1="${from.x+75}" y1="${from.y+40}" x2="${to.x+75}" y2="${to.y+40}"
+      class="${isActive?"active":""} ${isDim?"dim":"relation"}"
+      marker-end="url(#arrow)"/>`;
+  });
+
+  linkLayer.innerHTML = `<defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="rgba(255,209,102,.5)"/></marker></defs>${lines.join("")}`;
+}
+
+function renderDetail(){
+  const node = graphData.nodes.find(item => item.id === activeNodeId) || graphData.nodes[0];
+  const related = node.links.map(id => graphData.nodes.find(item => item.id === id)).filter(Boolean);
+  detailPanel.innerHTML = `
+    <h3><span class="detail-icon">${node.icon||""}</span> ${node.label}</h3>
+    <div class="detail-badges">
+      <span class="badge type-${node.type}">${typeNames[node.type]}</span>
+      <span class="badge">${node.status}</span>
+    </div>
+    <p>${node.summary}</p>
+    <span class="detail-path">${node.path}</span>
+    <h4>关联节点</h4>
+    <ul>${related.map(item => `<li><a href="#graph" data-node-link="${item.id}">${item.label}</a><span class="rel-status">${item.status}</span></li>`).join("") || "<li>暂无关联节点</li>"}</ul>
+  `;
+  detailPanel.querySelectorAll("[data-node-link]").forEach(link => link.addEventListener("click", () => {
+    activeNodeId = link.dataset.nodeLink;
+    renderNodes();
+    renderSvgEdges();
+    renderDetail();
+  }));
+}
+
+function renderEdgeList(){
+  document.getElementById("edgeList").innerHTML = graphData.edges.slice(0,6).map(edge => `<div class="edge"><strong>${edge.from}</strong> → <strong>${edge.to}</strong><small>${edge.label}</small></div>`).join("");
+}
+
+function renderConflicts(){
+  document.getElementById("conflictCards").innerHTML = graphData.conflicts.map(([title,desc]) => `<div class="conflict-card"><strong>${title}</strong><p>${desc}</p></div>`).join("");
+}
+
+function renderCodeMap(){
+  document.getElementById("codeMapBody").innerHTML = graphData.codeMap.map(([module,files,summary]) => `<tr><td><strong>${module}</strong></td><td>${files.map(file => `<code>${file}</code>`).join("")}</td><td>${summary}</td></tr>`).join("");
+}
+
+function renderResearchRoutes(){
+  document.getElementById("researchRoutes").innerHTML = graphData.researchRoutes.map(route => `<div class="route-line"><span>${route[0]}</span><span class="arrow">↓</span><span>${route[1]}</span><span class="arrow">↓</span><span>${route[2]}</span></div>`).join("");
+}
+
+function renderReadingPath(){
+  document.getElementById("readingPath").innerHTML = graphData.readingPath.map(([title,path,summary], index) => `<a class="route-card" href="${path}"><span class="route-index">${index+1}</span><strong>${title}</strong><p>${summary}</p></a>`).join("");
+}
+
+function renderManuals(){
+  document.getElementById("manualGroups").innerHTML = graphData.manuals.map(([group,items]) => `<div class="manual-card"><h3>${group}</h3>${items.map(([title,path]) => `<a href="${path}">${title}</a>`).join("")}</div>`).join("");
+}
+
+function renderAll(){
+  renderFlow();
+  renderNodes();
+  renderSvgEdges();
+  renderDetail();
+  renderEdgeList();
+  renderConflicts();
+  renderCodeMap();
+  renderResearchRoutes();
+  renderReadingPath();
+  renderManuals();
+}
+
+document.querySelectorAll(".filter-btn").forEach(button => button.addEventListener("click", () => {
+  document.querySelectorAll(".filter-btn").forEach(item => item.classList.remove("active"));
+  button.classList.add("active");
+  activeFilter = button.dataset.filter;
+  renderNodes();
+  renderSvgEdges();
+}));
+document.getElementById("searchInput").addEventListener("input", () => {
+  renderNodes();
+  renderSvgEdges();
+});
+
+let resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    renderNodes();
+    renderSvgEdges();
+  }, 150);
+});
+
+renderAll();
+</script>
+</body>
+</html>

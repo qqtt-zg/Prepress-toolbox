@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>印前拼版软件市场调研 - 思维导图</title>
+<style>
+  body { margin: 0; padding: 0; }
+  #mindmap { width: 100vw; height: 100vh; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-view@0.15.4"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.15.4/dist/browser/index.js"></script>
+</head>
+<body>
+<svg id="mindmap"></svg>
+<script>
+const md = `# 印前拼版软件市场调研
+
+## 一、商业/专业级软件
+
+### Kodak Preps
+- 行业标杆，$6K-$10K
+- N-up/Step&Repeat/Booklet/Cut&Stack/Gang-up
+- 2020版新增DXF刀线导入
+- 无中文界面
+
+### Quite Imposing Plus
+- Acrobat插件，~$499+Acrobat订阅
+- N-up/Booklet/Shuffle/Step&Repeat
+- 20年市场积淀
+- 无刀线支持，标签适用性低
+
+### Ultimate Impostrip
+- €2.5K+起，6个版本
+- Pro Nesting版专为包装标签设计
+- DXF刀线嵌套（2020新增）
+- 1989年首创独立拼版服务器
+
+### Esko Phoenix（AI驱动）
+- $2K-$10K+/年
+- 唯一真正的AI驱动排版引擎
+- 搜索数百万种可能找最优方案
+- 13种导出格式（PDF/JDF/DXF等）
+
+### Esko Plato
+- 企业级定价
+- 标签拼版/无缝拼接/丝印连版
+- 有中文官网和技术支持
+- 覆盖凹版软包等中国特色品类
+
+### Heidelberg Prinect
+- $5K-$15K+，与Prinect工作流捆绑
+- 印刷机直连/色彩管理集成
+- 面向大型商业印刷
+
+### Montax Imposer
+- €299-€999，性价比最高
+- 支持中文界面（17种语言）
+- 功能全面但无刀线/嵌套支持
+
+## 二、标签/包装专用软件
+
+### 火并 LabelImposer
+- 专为短版标签数码印刷设计
+- 6种混拼模式
+- 热文件夹自动触发
+- 数码模切机对接（DXF）
+- 原生中文，最贴合标签场景
+
+### Compose TagEngine
+- 吊牌印刷专用
+- 可变数据生成（文本/图片/条码）
+- 智能合版按订单数优化
+- 减少90%+生产时间
+
+### PaSharp 锐图
+- 国产，30年研发积累
+- Trapping/Nest/VDP/DXF
+- PackFlow自动化引擎
+- 原生中文支持
+
+### SINOMV Smart Proof
+- 拼版后质量检测
+- 防止信息丢失/文字错误
+
+## 三、开源/免费工具
+
+### PdfDroplet（C# .NET）
+- MIT开源，NuGet可用
+- 8种布局方式
+- 作为嵌入式引擎有参考价值
+
+### jPDF Tweak（Java）
+- 免费，多年未更新
+- 功能过于基础
+
+### pdfjam（Shell/LaTeX）
+- 464 stars，仅Linux/macOS
+
+### PDFStitcher（Python）
+- 活跃维护，原为缝纫图案设计
+
+## 四、云端/SaaS
+
+### CHILI publish
+- 云端图形编辑平台
+- 偏设计端，非专业拼版
+
+### Gelato
+- 全球分布式印刷网络
+- 偏电商消费品
+
+## 五、综合对比
+
+### 按价格分层
+- 企业级（$5K+）：Kodak Preps / Prinect / Esko
+- 专业级（€2.5K+）：Ultimate Impostrip
+- 中端（€299-€999）：Montax Imposer
+- 标签专用（需询价）：火并 / PaSharp / TagEngine
+- 免费：PdfDroplet / jPDF Tweak / pdfjam
+
+### 按标签适用性排序
+- 极高：火并 / PaSharp / Esko Phoenix / TagEngine
+- 高：Ultimate Impostrip / Enfocus PitStop
+- 中等：Kodak Preps / Montax / callas pdfToolbox
+- 低：Quite Imposing / Fiery Impose
+
+## 六、市场空白与机会
+
+### 价格空白
+- 火并/PaSharp数万元级别
+- 缺少￥1K-5K的轻量级标签拼版工具
+
+### 中文体验空白
+- 国际工具无中文
+- 国产工具界面现代感不足
+
+### 自动化平民化
+- 热文件夹+订单驱动仅高端工具有
+- 中小厂仍用CorelDRAW手动拼版
+
+### 数码模切对接
+- 仅火并支持DXF自动输出
+
+### 可变数据+混拼
+- 仅火并和TagEngine专业支持
+
+## 七、项目现状（大诚工具）
+
+### 已完成
+- 平张/卷装布局计算
+- 骑马订（含Creep补偿）✅ 竞品缺失
+- 连拼/折手模式
+- 一式N联/N份
+- PDF尺寸识别
+- 裁切/套准标记对话框
+- PDF拆分
+- 预设系统
+
+### 开发中
+- N-Up拼版参数面板
+- 页面重排
+- 裁切标记集成到工作区
+- 进度条显示
+
+### 未开始
+- Cut & Stack
+- Perfect Binding（无线胶装）
+- 混拼（不同尺寸PDF）
+- DXF刀线导出
+- 可变数据VDP
+- 热文件夹自动化
+- PDF预检/修复
+
+## 八、与核心竞品差距
+
+### 领先项
+- Creep补偿（火并/PaSharp无）
+- 骑马订（火并/PaSharp无）
+- 现代UI（AntdUI）
+
+### 持平项
+- 中文原生
+- N-Up拼版（开发中）
+- Step&Repeat（连拼）
+
+### 差距项
+- Cut&Stack：中等差距
+- 混拼（不同尺寸）：大差距
+- DXF刀线导出：大差距
+- 可变数据VDP：大差距
+- 热文件夹：中等差距
+
+## 九、开发建议
+
+### 市场定位
+- ￥1K-5K轻量级标签拼版工具
+- 核心差异化：现代UI + Excel驱动 + 中文原生 + 价格亲民
+- 目标用户：中小型不干胶标签/吊牌印刷厂
+- 竞争策略：功能对标火并，价格降一个数量级
+
+### Sprint 1（2-3周）完善排版工作区
+
+#### P0：N-Up拼版参数面板
+- UI：行列数输入、间距控制、出血设置、方向选择
+- 文件：ImpositionWorkspacePanel.cs
+- 当前状态：按钮显示"正在开发中"
+- 参考：SettingsImpositionControl.cs 的布局方式
+
+#### P0：N-Up PDF生成
+- 调用 iText7 实现页面重排
+- 支持自动旋转优化（0°/270°对比）
+- 输出文件命名规则
+- 服务层：ImpositionService.cs 扩展
+
+#### P0：裁切标记集成
+- CropMarksDialog 已实现（318行）
+- 需接入工作区"生成"流程
+- 支持标记长度/偏移/线宽配置
+- 支持页码范围选择
+
+#### P1：进度条显示
+- 文件：ImpositionWorkspacePanel.cs
+- 当前：仅状态栏文字
+- 目标：底部ProgressBar控件
+- 绑定 ImpositionProgress 事件
+
+#### P1：页面重排面板
+- Shuffle参数UI：列式排列、自定义页序
+- 参考 Quite Imposing 的 Shuffle 功能
+- 支持手动输入页序（如 4,1,2,3）
+
+### Sprint 2（3-4周）标签印刷核心
+
+#### P0：Cut & Stack排版
+- 模式：111/222/333 → 裁切堆叠
+- 标签印刷最常用排版方式
+- PageOrderVisualizer 已有占位
+- 需实现页序计算 + PDF生成
+
+#### P0：Step & Repeat增强
+- 当前连拼功能需增强
+- 增加：间距控制（水平/垂直独立）
+- 增加：出血重叠设置
+- 增加：行列间距独立设置
+- 参考：火并的6种混拼模式
+
+#### P1：混拼支持
+- 不同尺寸PDF混合排列在一张纸上
+- 火并的核心差异化功能
+- 需实现：自动最优排列算法
+- 输入：多个PDF + 各自数量
+- 输出：最优排列方案 + PDF
+
+#### P1：DXF刀线导出
+- 输出数码模切机可识别的DXF文件
+- 标签厂刚需（仅火并支持）
+- 需实现：裁切线 → DXF转换
+- 参考：Esko Phoenix 的13种导出格式
+
+#### P2：Eye-mark色标自动生成
+- 标签印刷机自动对位用
+- 在拼版PDF边缘添加色标
+- 支持自定义色标样式和位置
+
+### Sprint 3（3-4周）自动化与效率
+
+#### P0：热文件夹监控
+- 监听指定目录的文件变化
+- 自动触发拼版流程
+- 输出到指定结果目录
+- 基础：FileMonitor 服务已有
+- 需扩展：拼版规则配置
+
+#### P1：批量拼版输出
+- 多PDF批量处理
+- BatchCalculateLayoutAsync 已有计算
+- 缺少：批量PDF生成
+- 进度报告和错误处理
+
+#### P1：拼版模板保存/加载
+- 将拼版参数保存为模板文件
+- 支持模板库管理
+- 快速复用常用拼版方案
+- 预设系统已有基础
+
+#### P2：PDF预检
+- 检查PDF问题：字体缺失、颜色空间、出血不足
+- 参考：callas pdfToolbox 的预检功能
+- 输出预检报告
+- 自动修复建议
+
+#### P2：Excel订单驱动拼版
+- 从Excel读取订单数量
+- 自动计算最优拼版方案
+- 生成拼版PDF
+- 与现有ExcelImportService集成
+
+### Sprint 4（未来规划）
+
+#### 可变数据VDP
+- 从数据库/Excel读取可变内容
+- 在拼版中嵌入可变文本/条码/图片
+- 参考：Compose TagEngine
+
+#### 无线胶装（Perfect Binding）
+- 页序计算（不同于骑马订）
+- 书脊厚度计算
+- 封面单独处理
+
+#### AI优化排版
+- 参考 Esko Phoenix 的AI引擎
+- 自动搜索最优排列方案
+- 考虑纸张利用率 + 裁切效率
+
+#### 云端协作
+- 多用户共享拼版模板
+- Web端预览和审批
+- 与现有MCP Server集成
+
+### 优先级矩阵
+
+#### 高影响 + 小工作量（立即做）
+- N-Up参数面板
+- 裁切标记集成
+- 进度条显示
+
+#### 高影响 + 大工作量（重点做）
+- Cut & Stack排版
+- Step&Repeat增强
+- 混拼支持
+- DXF刀线导出
+
+#### 低影响 + 小工作量（顺手做）
+- 页面重排面板
+
+#### 低影响 + 大工作量（规划做）
+- 热文件夹自动化
+- 可变数据VDP
+- PDF预检
+- AI优化排版
+`;
+
+(async () => {
+  const { Transformer } = markmap;
+  const transformer = new Transformer();
+  const { root } = transformer.transform(md);
+  const { Markmap } = markmap;
+  const mm = Markmap.create('#mindmap', {
+    autoFit: true,
+    duration: 300,
+    maxWidth: 400,
+    initialExpandLevel: 2,
+    zoom: true,
+    pan: true
+  }, root);
+})();
+</script>
+</body>
+</html>

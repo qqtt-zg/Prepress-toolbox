@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>项目现状汇报 - 大诚重命名工具</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei",sans-serif;background:#1a1a2e;color:#e0e0e0;min-height:100vh;padding:0}
+.back{position:fixed;top:20px;left:20px;color:#64b5f6;text-decoration:none;font-size:0.85em;z-index:10}
+.back:hover{text-decoration:underline}
+.slide{width:100%;min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:60px 80px}
+.hero{text-align:center;margin-bottom:50px}
+.hero h1{font-size:2.8em;background:linear-gradient(90deg,#f7971e,#ffd200);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:10px}
+.hero .sub{font-size:1.1em;color:#888}
+.row{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;margin-bottom:40px}
+.card{flex:1;min-width:220px;max-width:280px;border-radius:14px;padding:28px 22px;text-align:center}
+.card h2{font-size:1em;margin-bottom:10px;color:#fff}
+.card .num{font-size:3em;font-weight:700;margin-bottom:4px}
+.card p{font-size:0.82em;color:#aaa;line-height:1.5}
+.c1{background:linear-gradient(135deg,#1b5e20,#2e7d32);box-shadow:0 4px 20px rgba(46,125,50,0.3)}
+.c2{background:linear-gradient(135deg,#0d47a1,#1565c0);box-shadow:0 4px 20px rgba(21,101,192,0.3)}
+.c3{background:linear-gradient(135deg,#4a148c,#6a1b9a);box-shadow:0 4px 20px rgba(106,27,154,0.3)}
+.c4{background:linear-gradient(135deg,#e65100,#ef6c00);box-shadow:0 4px 20px rgba(239,108,0,0.3)}
+.c1 .num{color:#a5d6a7}
+.c2 .num{color:#90caf9}
+.c3 .num{color:#ce93d8}
+.c4 .num{color:#ffcc80}
+.section{max-width:1100px;margin:0 auto 40px}
+.section h2{font-size:1.3em;color:#ffd200;margin-bottom:16px;padding-left:14px;border-left:4px solid #ffd200}
+.feature-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.feat{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:10px}
+.feat .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dot-green{background:#52c41a}
+.dot-blue{background:#1890ff}
+.dot-gray{background:#555}
+.feat span{font-size:0.9em}
+.bar-section{max-width:1100px;margin:0 auto 40px}
+.bar-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.bar-label{width:100px;text-align:right;font-size:0.85em;color:#aaa;flex-shrink:0}
+.bar-track{flex:1;height:24px;background:rgba(255,255,255,0.06);border-radius:12px;overflow:hidden}
+.bar-fill{height:100%;border-radius:12px;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;font-size:0.75em;color:#fff;font-weight:700}
+.bar-green{background:linear-gradient(90deg,#2e7d32,#52c41a)}
+.bar-blue{background:linear-gradient(90deg,#1565c0,#1890ff)}
+.bar-gray{background:linear-gradient(90deg,#555,#888)}
+.next-steps{max-width:1100px;margin:0 auto;padding-bottom:60px}
+.next-steps h2{font-size:1.3em;color:#ffd200;margin-bottom:16px;padding-left:14px;border-left:4px solid #ffd200}
+.step-list{display:flex;gap:20px;flex-wrap:wrap}
+.step{flex:1;min-width:240px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px}
+.step .priority-tag{display:inline-block;padding:2px 10px;border-radius:12px;font-size:0.75em;font-weight:700;margin-bottom:10px}
+.pt-p0{background:rgba(245,34,45,0.2);color:#ff7875}
+.pt-p1{background:rgba(250,140,22,0.2);color:#ffa940}
+.pt-p2{background:rgba(140,140,140,0.2);color:#aaa}
+.step h3{font-size:0.95em;color:#fff;margin-bottom:6px}
+.step p{font-size:0.82em;color:#888;line-height:1.5}
+footer{text-align:center;padding:20px;color:#444;font-size:0.8em}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; 返回导航</a>
+
+<div class="slide">
+<div class="hero">
+<h1>大诚重命名工具</h1>
+<p class="sub">项目现状汇报 · 印前工作流解决方案 · 2026</p>
+</div>
+
+<div class="row">
+<div class="card c1"><h2>已完成</h2><div class="num">8</div><p>核心功能模块<br>已投入生产使用</p></div>
+<div class="card c2"><h2>开发中</h2><div class="num">3</div><p>排版扩展模块<br>架构与UI并行推进</p></div>
+<div class="card c3"><h2>设计中</h2><div class="num">2</div><p>高级排版功能<br>PRD与接口已定义</p></div>
+<div class="card c4"><h2>未开始</h2><div class="num">3</div><p>专业化场景<br>等待基础设施就绪</p></div>
+</div>
+</div>
+
+<div class="section">
+<h2>已完成的核心功能</h2>
+<div class="feature-grid">
+<div class="feat"><div class="dot dot-green"></div><span>主界面框架 (MainShellForm)</span></div>
+<div class="feat"><div class="dot dot-green"></div><span>文件批量重命名</span></div>
+<div class="feat"><div class="dot dot-green"></div><span>PDF拆分功能</span></div>
+<div class="feat"><div class="dot dot-green"></div><span>材料选择对话框</span></div>
+<div class="feat"><div class="dot dot-green"></div><span>骑马订拼版</span></div>
+<div class="feat"><div class="dot dot-green"></div><span>Excel导入与匹配</span></div>
+<div class="feat"><div class="dot dot-green"></div><span>数据库管理面板</span></div>
+<div class="feat"><div class="dot dot-green"></div><span>预设管理系统</span></div>
+</div>
+</div>
+
+<div class="section">
+<h2>正在推进的功能</h2>
+<div class="feature-grid">
+<div class="feat"><div class="dot dot-blue"></div><span>N-Up 多合一拼版</span></div>
+<div class="feat"><div class="dot dot-blue"></div><span>Action List 动作列表</span></div>
+<div class="feat"><div class="dot dot-blue"></div><span>工作台面板优化</span></div>
+</div>
+</div>
+
+<div class="bar-section">
+<h2 style="font-size:1.3em;color:#ffd200;margin-bottom:16px;padding-left:14px;border-left:4px solid #ffd200">功能完成度</h2>
+<div class="bar-row">
+<div class="bar-label">文件重命名</div>
+<div class="bar-track"><div class="bar-fill bar-green" style="width:100%">100%</div></div>
+</div>
+<div class="bar-row">
+<div class="bar-label">PDF拆分</div>
+<div class="bar-track"><div class="bar-fill bar-green" style="width:100%">100%</div></div>
+</div>
+<div class="bar-row">
+<div class="bar-label">骑马订拼版</div>
+<div class="bar-track"><div class="bar-fill bar-green" style="width:100%">100%</div></div>
+</div>
+<div class="bar-row">
+<div class="bar-label">N-Up拼版</div>
+<div class="bar-track"><div class="bar-fill bar-blue" style="width:40%">40%</div></div>
+</div>
+<div class="bar-row">
+<div class="bar-label">Action List</div>
+<div class="bar-track"><div class="bar-fill bar-blue" style="width:25%">25%</div></div>
+</div>
+<div class="bar-row">
+<div class="bar-label">裁切标记</div>
+<div class="bar-track"><div class="bar-fill bar-gray" style="width:5%">5%</div></div>
+</div>
+<div class="bar-row">
+<div class="bar-label">页面重排</div>
+<div class="bar-track"><div class="bar-fill bar-gray" style="width:5%">5%</div></div>
+</div>
+<div class="bar-row">
+<div class="bar-label">Step&Repeat</div>
+<div class="bar-track"><div class="bar-fill bar-gray" style="width:0%">0%</div></div>
+</div>
+</div>
+
+<div class="next-steps">
+<h2>下一步计划</h2>
+<div class="step-list">
+<div class="step">
+<span class="priority-tag pt-p0">P0 紧急</span>
+<h3>N-Up + Action List</h3>
+<p>补全排版最基础能力，建立后续所有高级功能的架构基础</p>
+</div>
+<div class="step">
+<span class="priority-tag pt-p1">P1 重要</span>
+<h3>裁切标记 + 页面重排 + Step&Repeat</h3>
+<p>依赖 P0 的 Action List 架构，实现高级排版功能</p>
+</div>
+<div class="step">
+<span class="priority-tag pt-p2">P2 可延后</span>
+<h3>Cut & Stack + 架构迁移</h3>
+<p>小众场景和技术债务，可在功能稳定后逐步推进</p>
+</div>
+</div>
+</div>
+
+<footer>大诚重命名工具 · 印前工作流解决方案</footer>
+</body>
+</html>

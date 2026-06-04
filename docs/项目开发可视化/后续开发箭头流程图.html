@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>后续开发箭头流程图 - 大诚重命名工具</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei",sans-serif;background:#fafafa;min-height:100vh;padding:30px}
+.back{display:inline-block;margin-bottom:20px;color:#1890ff;text-decoration:none;font-size:0.9em}
+.back:hover{text-decoration:underline}
+h1{text-align:center;font-size:1.8em;color:#222;margin-bottom:8px}
+.center-sub{text-align:center;color:#888;margin-bottom:40px;font-size:0.95em}
+.flow-container{max-width:1100px;margin:0 auto;position:relative}
+.phase{display:flex;gap:20px;margin-bottom:16px;align-items:stretch}
+.phase-label{width:90px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1em;color:#fff;border-radius:10px;flex-shrink:0;writing-mode:horizontal-tb;text-align:center;padding:8px}
+.pl-p0{background:linear-gradient(135deg,#f5222d,#ff4d4f)}
+.pl-p1{background:linear-gradient(135deg,#fa8c16,#ffa940)}
+.pl-p2{background:linear-gradient(135deg,#8c8c8c,#bfbfbf)}
+.phase-tasks{flex:1;display:flex;gap:12px;flex-wrap:wrap}
+.task-box{flex:1;min-width:200px;background:#fff;border-radius:10px;padding:18px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-top:4px solid #e8e8e8;position:relative}
+.tb-p0{border-top-color:#f5222d}
+.tb-p1{border-top-color:#fa8c16}
+.tb-p2{border-top-color:#bfbfbf}
+.task-box h3{font-size:0.95em;color:#333;margin-bottom:6px}
+.task-box p{font-size:0.8em;color:#888;line-height:1.5}
+.dep-tag{display:inline-block;font-size:0.7em;padding:2px 8px;border-radius:8px;margin-top:8px;background:#e6f7ff;color:#1890ff;border:1px solid #91d5ff}
+.arrow-section{display:flex;justify-content:center;padding:10px 0}
+.arrow-down{display:flex;flex-direction:column;align-items:center;color:#888;font-size:0.8em}
+.arrow-line{width:3px;height:40px;background:linear-gradient(180deg,#ccc,#888);position:relative}
+.arrow-head{width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:12px solid #888;margin-top:-2px}
+.arrow-label{margin-top:6px;color:#666;font-size:0.82em;font-weight:600;background:#fff;padding:2px 12px;border-radius:12px;border:1px solid #e8e8e8}
+.why-box{max-width:1100px;margin:40px auto 0;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);padding:28px}
+.why-box h2{font-size:1.2em;color:#333;margin-bottom:16px;padding-left:12px;border-left:4px solid #1890ff}
+.why-item{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start}
+.why-item .q{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75em;font-weight:700;color:#fff;flex-shrink:0}
+.q-p0{background:#f5222d}
+.q-p1{background:#fa8c16}
+.q-p2{background:#8c8c8c}
+.why-item .text{font-size:0.88em;color:#555;line-height:1.6}
+.why-item .text strong{color:#333}
+.timeline-hint{text-align:center;margin-top:30px;color:#aaa;font-size:0.85em}
+.timeline-hint span{display:inline-block;padding:6px 16px;background:#fff;border-radius:20px;border:1px solid #e8e8e8;margin:4px}
+footer{text-align:center;margin-top:30px;color:#aaa;font-size:0.8em}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; 返回导航</a>
+<h1>后续开发箭头流程图</h1>
+<p class="center-sub">展示 P0 → P1 → P2 开发顺序的依赖关系和原因</p>
+
+<div class="flow-container">
+
+<!-- 当前已完成 -->
+<div class="phase">
+<div class="phase-label" style="background:linear-gradient(135deg,#52c41a,#73d13d)">已完成</div>
+<div class="phase-tasks">
+<div class="task-box" style="border-top-color:#52c41a"><h3>MainShellForm 主框架</h3><p>导航、Panel 切换、系统托盘</p></div>
+<div class="task-box" style="border-top-color:#52c41a"><h3>文件重命名面板</h3><p>正则、监控、Excel 匹配、批量执行</p></div>
+<div class="task-box" style="border-top-color:#52c41a"><h3>PDF拆分</h3><p>页面范围、Excel/CSV 数据驱动</p></div>
+<div class="task-box" style="border-top-color:#52c41a"><h3>骑马订拼版</h3><p>Saddle Stitch 完整实现</p></div>
+</div>
+</div>
+
+<!-- 箭头：已完成 → P0 -->
+<div class="arrow-section">
+<div class="arrow-down">
+<div class="arrow-line"></div>
+<div class="arrow-head"></div>
+<div class="arrow-label">基础能力就绪，开始补全排版</div>
+</div>
+</div>
+
+<!-- P0 -->
+<div class="phase">
+<div class="phase-label pl-p0">P0 紧急</div>
+<div class="phase-tasks">
+<div class="task-box tb-p0">
+<h3>N-Up 多合一拼版</h3>
+<p>排版最基础能力，缺失则工作台面板不完整</p>
+<span class="dep-tag">依赖：iText PDF 操作</span>
+</div>
+<div class="task-box tb-p0">
+<h3>Action List 动作列表</h3>
+<p>模块化 PDF 处理链，后续所有高级功能的架构基础</p>
+<span class="dep-tag">无依赖 · 关键基础设施</span>
+</div>
+</div>
+</div>
+
+<!-- 箭头：P0 → P1 -->
+<div class="arrow-section">
+<div class="arrow-down">
+<div class="arrow-line" style="background:linear-gradient(180deg,#f5222d,#fa8c16)"></div>
+<div class="arrow-head" style="border-top-color:#fa8c16"></div>
+<div class="arrow-label">Action List 架构就绪，可开发高级排版</div>
+</div>
+</div>
+
+<!-- P1 -->
+<div class="phase">
+<div class="phase-label pl-p1">P1 重要</div>
+<div class="phase-tasks">
+<div class="task-box tb-p1">
+<h3>裁切标记生成</h3>
+<p>输出印刷裁切对位标记</p>
+<span class="dep-tag">依赖：Action List</span>
+</div>
+<div class="task-box tb-p1">
+<h3>页面重排 (Shuffle)</h3>
+<p>自定义页面顺序重新排列</p>
+<span class="dep-tag">依赖：Action List</span>
+</div>
+<div class="task-box tb-p1">
+<h3>Step & Repeat</h3>
+<p>单图案重复排列，标签/包装场景</p>
+<span class="dep-tag">依赖：Action List + N-Up</span>
+</div>
+</div>
+</div>
+
+<!-- 箭头：P1 → P2 -->
+<div class="arrow-section">
+<div class="arrow-down">
+<div class="arrow-line" style="background:linear-gradient(180deg,#fa8c16,#8c8c8c)"></div>
+<div class="arrow-head" style="border-top-color:#8c8c8c"></div>
+<div class="arrow-label">核心排版功能完备，可处理专业化场景</div>
+</div>
+</div>
+
+<!-- P2 -->
+<div class="phase">
+<div class="phase-label pl-p2">P2 延后</div>
+<div class="phase-tasks">
+<div class="task-box tb-p2">
+<h3>Cut & Stack</h3>
+<p>大批量印刷堆叠分切，小众场景</p>
+<span class="dep-tag">依赖：Action List</span>
+</div>
+<div class="task-box tb-p2">
+<h3>旧架构迁移</h3>
+<p>Form1 → MainShellForm + Panel，渐进式技术债偿还</p>
+<span class="dep-tag">技术债务 · 不影响新功能</span>
+</div>
+</div>
+</div>
+
+</div>
+
+<!-- 原因说明 -->
+<div class="why-box">
+<h2>为什么是这个顺序？</h2>
+<div class="why-item">
+<div class="q q-p0">1</div>
+<div class="text"><strong>N-Up 必须先做：</strong>它是排版最基础的能力（多页拼到一张），骑马订已有但 N-Up 缺失导致工作台面板功能不完整，用户会困惑为什么只有骑马订。而且 N-Up 的实现经验可直接复用到 Step & Repeat。</div>
+</div>
+<div class="why-item">
+<div class="q q-p0">2</div>
+<div class="text"><strong>Action List 必须先做：</strong>参考 PitStop Pro 的设计理念，每个 PDF 处理动作是一个独立可组合的模块。如果不先建立这个架构，后续的裁切标记、页面重排、Step & Repeat 都需要各自独立实现，会产生大量重复代码，后期维护成本极高。</div>
+</div>
+<div class="why-item">
+<div class="q q-p1">3</div>
+<div class="text"><strong>P1 功能依赖 Action List：</strong>裁切标记、页面重排、Step & Repeat 都是"动作"，天然适合 Action List 架构。有了统一的 Action 基础设施，每个新功能只需实现一个 Action 类，开发效率高且可测试。</div>
+</div>
+<div class="why-item">
+<div class="q q-p2">4</div>
+<div class="text"><strong>P2 为什么可以延后：</strong>Cut & Stack 是小众场景，大多数用户用不到；旧架构迁移是技术债务，不影响新功能的正常使用，可以在功能稳定后逐步推进，每次迁移一个模块。</div>
+</div>
+</div>
+
+<div class="timeline-hint">
+<span>P0：1-2 周</span>
+<span>P1：3-4 周</span>
+<span>P2：5-8 周</span>
+<span>总计：约 2-3 个月</span>
+</div>
+
+<footer>大诚重命名工具 · 印前工作流解决方案 · 2026</footer>
+</body>
+</html>

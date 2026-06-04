@@ -132,6 +132,16 @@ namespace WindowsFormsApp3.Models
         /// </summary>
         public CopyMode CopyMode { get; set; }
 
+	/// <summary>
+	/// 一式类型（联/份）
+	/// </summary>
+	public CopyType CopyType { get; set; }
+
+	/// <summary>
+	/// 份数（一式几份）
+	/// </summary>
+	public int DuplicateCount { get; set; }
+
         /// <summary>
         /// 排版材料类型 (FlatSheet/RollMaterial)
         /// </summary>

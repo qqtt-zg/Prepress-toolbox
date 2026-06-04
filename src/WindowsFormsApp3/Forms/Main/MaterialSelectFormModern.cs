@@ -215,6 +215,7 @@ namespace WindowsFormsApp3
         private bool _isDuplicateLayoutEnabled = false;
         private int _copyCount = 2;
         private CopyMode _copyMode = CopyMode.AutoByColumn;
+        private CopyType _copyType = CopyType.Layout;
 
         // 预设右键菜单
         private System.Windows.Forms.ContextMenuStrip _presetContextMenu;
@@ -666,6 +667,13 @@ namespace WindowsFormsApp3
             {
                 copyModeComboBox.SelectedIndex = (int)_copyMode;
                 copyModeComboBox.Enabled = _isDuplicateLayoutEnabled;
+            }
+
+            // 初始化一式类型控件（联/份）
+            if (copyTypeComboBox != null)
+            {
+                copyTypeComboBox.SelectedIndex = (int)_copyType;
+                copyTypeComboBox.Enabled = _isDuplicateLayoutEnabled;
             }
 
             // 旋转角度标签点击事件（用于切换强制旋转）
@@ -4764,6 +4772,7 @@ namespace WindowsFormsApp3
                         IsDualCopy = _isDuplicateLayoutEnabled,
                         CopyCount = _copyCount,
                         CopyMode = _copyMode,
+                        CopyType = _copyType,
                         EnableImposition = enableImpositionCheckbox?.Checked == true,
                         ExportPath = SelectedExportPath ?? "",
                         RoundRadius = RoundRadius,
@@ -5090,6 +5099,16 @@ namespace WindowsFormsApp3
                     if (copyModeComboBox != null)
                     {
                         copyModeComboBox.SelectedIndex = (int)_copyMode;
+                    }
+                }
+
+                // 加载一式类型（联/份）
+                if (!ignoreOptions.HasFlag(PresetIgnoreOptions.CopyType))
+                {
+                    _copyType = preset.CopyType;
+                    if (copyTypeComboBox != null)
+                    {
+                        copyTypeComboBox.SelectedIndex = (int)_copyType;
                     }
                 }
 
@@ -7245,7 +7264,25 @@ namespace WindowsFormsApp3
             return _copyMode;
         }
 
-/// <summary>
+        /// <summary>
+        /// 获取一式类型（联/份）
+        /// </summary>
+        /// <returns>一式类型</returns>
+        public CopyType GetCopyType()
+        {
+            return _copyType;
+        }
+
+        /// <summary>
+        /// 获取一式N份份数
+        /// </summary>
+        /// <returns>份数（如果未选择份模式则返回0）</returns>
+        public int GetDuplicateCount()
+        {
+            return _copyType == CopyType.Duplicate ? _copyCount : 0;
+        }
+
+        /// <summary>
         /// 获取布局计算的行数
         /// </summary>
         /// <returns>行数，如果未计算则返回0</returns>
@@ -7339,6 +7376,10 @@ namespace WindowsFormsApp3
                 AppSettings.Set("LastCopyMode", (int)_copyMode);
                 LogHelper.Debug($"[MaterialSelectFormModern] 保存倍数方向: {_copyMode}");
 
+                // 保存一式类型设置（联/份）
+                AppSettings.Set("LastCopyType", (int)_copyType);
+                LogHelper.Debug($"[MaterialSelectFormModern] 保存一式类型: {_copyType}");
+
                 // 保存设置到文件
                 AppSettings.Save();
                 LogHelper.Debug("[MaterialSelectFormModern] 排版控件状态已保存到AppSettings");
@@ -7420,6 +7461,29 @@ namespace WindowsFormsApp3
                     LogHelper.Debug($"[MaterialSelectFormModern] 恢复倍数方向: {_copyMode}");
                 }
 
+                // 恢复一式类型设置（联/份）
+                var copyTypeSetting = AppSettings.Get("LastCopyType") as int?;
+                if (copyTypeSetting.HasValue)
+                {
+                    _copyType = (CopyType)copyTypeSetting.Value;
+                    if (copyTypeComboBox != null)
+                    {
+                        copyTypeComboBox.SelectedIndex = (int)_copyType;
+                    }
+                    LogHelper.Debug($"[MaterialSelectFormModern] 恢复一式类型: {_copyType}");
+                }
+
+                // 如果一式N联模式已启用且为联模式，自动将联数填入数量字段
+                // 份模式不自动填入数量，由用户手动输入
+                if (_isDuplicateLayoutEnabled && AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
+                {
+                    if (_copyType == CopyType.Layout)
+                    {
+                        quantityTextBox.Text = _copyCount.ToString();
+                    }
+                    // 份模式不自动填入
+                }
+
                 LogHelper.Debug("[MaterialSelectFormModern] 排版控件状态已从AppSettings恢复");
             }
             catch (Exception ex)
@@ -7446,6 +7510,10 @@ namespace WindowsFormsApp3
                 if (copyModeComboBox != null)
                 {
                     copyModeComboBox.Enabled = _isDuplicateLayoutEnabled;
+                }
+                if (copyTypeComboBox != null)
+                {
+                    copyTypeComboBox.Enabled = _isDuplicateLayoutEnabled;
                 }
 
                 if (_isDuplicateLayoutEnabled)
@@ -7490,8 +7558,8 @@ namespace WindowsFormsApp3
                 {
                     LogHelper.Info("[MaterialSelectFormModern] 一式N联模式已取消，恢复标准布局计算");
 
-                    // 恢复数量为1
-                    if (quantityTextBox != null)
+                    // 联模式恢复数量为1，份模式不清空（保留用户输入的数量）
+                    if (quantityTextBox != null && _copyType == CopyType.Layout)
                     {
                         quantityTextBox.Text = "1";
                     }
@@ -7578,6 +7646,46 @@ namespace WindowsFormsApp3
             catch (Exception ex)
             {
                 LogHelper.Error($"[MaterialSelectFormModern] 倍数方向选择改变事件处理错误: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// 一式类型下拉框选择改变事件处理（联/份）
+        /// </summary>
+        private void CopyTypeComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (copyTypeComboBox != null)
+                {
+                    _copyType = (CopyType)copyTypeComboBox.SelectedIndex;
+                    string typeDesc = _copyType == CopyType.Layout ? "联" : "份";
+                    LogHelper.Debug($"[MaterialSelectFormModern] 一式类型已更改: {typeDesc}");
+
+                    // 保存设置
+                    AppSettings.Set("LastCopyType", (int)_copyType);
+
+                    // 如果一式N联模式已启用且为联模式，自动将联数填入数量字段
+                    // 份模式不自动填入数量，由用户手动输入
+                    if (_isDuplicateLayoutEnabled && AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
+                    {
+                        if (_copyType == CopyType.Layout)
+                        {
+                            quantityTextBox.Text = _copyCount.ToString();
+                        }
+                        // 份模式不自动填入
+                    }
+
+                    // 如果一式N联模式已启用，重新计算布局
+                    if (_isDuplicateLayoutEnabled && enableImpositionCheckbox?.Checked == true)
+                    {
+                        Task.Run(async () => await CalculateDuplicateLayout());
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[MaterialSelectFormModern] 一式类型选择改变事件处理错误: {ex.Message}", ex);
             }
         }
 

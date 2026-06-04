@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>当前开发状态图 - 大诚重命名工具</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei",sans-serif;background:#f0f2f5;min-height:100vh;padding:30px}
+.back{display:inline-block;margin-bottom:20px;color:#1890ff;text-decoration:none;font-size:0.9em}
+.back:hover{text-decoration:underline}
+h1{text-align:center;font-size:1.8em;color:#222;margin-bottom:8px}
+.center-sub{text-align:center;color:#888;margin-bottom:30px;font-size:0.95em}
+.board{display:flex;gap:20px;justify-content:center;flex-wrap:wrap}
+.column{flex:1;min-width:300px;max-width:400px;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);overflow:hidden}
+.col-header{padding:16px 20px;font-size:1.1em;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
+.col-header .count{background:rgba(255,255,255,0.3);border-radius:12px;padding:2px 10px;font-size:0.8em;margin-left:auto}
+.done .col-header{background:#52c41a}
+.wip .col-header{background:#1890ff}
+.todo .col-header{background:#8c8c8c}
+.card-list{padding:12px 16px}
+.item{background:#fafafa;border-left:4px solid #e8e8e8;border-radius:6px;padding:12px 14px;margin-bottom:10px;transition:transform .2s}
+.item:hover{transform:translateX(4px)}
+.done .item{border-left-color:#52c41a;background:#f6ffed}
+.wip .item{border-left-color:#1890ff;background:#e6f7ff}
+.todo .item{border-left-color:#d9d9d9}
+.item h3{font-size:0.95em;color:#333;margin-bottom:4px}
+.item p{font-size:0.82em;color:#888;line-height:1.5}
+.badge{display:inline-block;font-size:0.7em;padding:2px 8px;border-radius:10px;margin-top:6px}
+.badge-done{background:#f6ffed;color:#52c41a;border:1px solid #b7eb8f}
+.badge-wip{background:#e6f7ff;color:#1890ff;border:1px solid #91d5ff}
+.badge-plan{background:#fff7e6;color:#fa8c16;border:1px solid #ffd591}
+.stats{display:flex;justify-content:center;gap:40px;margin-bottom:30px}
+.stat-box{text-align:center}
+.stat-num{font-size:2em;font-weight:700}
+.stat-label{font-size:0.85em;color:#888}
+.stat-done .stat-num{color:#52c41a}
+.stat-wip .stat-num{color:#1890ff}
+.stat-todo .stat-num{color:#8c8c8c}
+footer{text-align:center;margin-top:30px;color:#aaa;font-size:0.8em}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; 返回导航</a>
+<h1>当前开发状态图</h1>
+<p class="center-sub">大诚重命名工具 · 功能模块进度看板</p>
+
+<div class="stats">
+<div class="stat-box stat-done"><div class="stat-num">8</div><div class="stat-label">已完成</div></div>
+<div class="stat-box stat-wip"><div class="stat-num">3</div><div class="stat-label">开发中</div></div>
+<div class="stat-box stat-todo"><div class="stat-num">5</div><div class="stat-label">未开始</div></div>
+</div>
+
+<div class="board">
+<!-- 已完成 -->
+<div class="column done">
+<div class="col-header">&#x2705; 已完成 <span class="count">8</span></div>
+<div class="card-list">
+<div class="item"><h3>主界面框架 (MainShellForm)</h3><p>左侧导航 + 右侧内容区，支持侧边栏折叠、系统托盘、全局热键</p><span class="badge badge-done">v1.0</span></div>
+<div class="item"><h3>文件重命名面板</h3><p>输入目录 → 正则 → 监控 → 手动/批量模式 → Excel导入匹配 → 执行重命名</p><span class="badge badge-done">核心功能</span></div>
+<div class="item"><h3>PDF拆分功能</h3><p>支持PDF/Excel/CSV拖放，页面范围预览，带进度和取消的执行</p><span class="badge badge-done">独立模块</span></div>
+<div class="item"><h3>材料选择对话框</h3><p>预设管理、一式N联、卷筒旋转、序号搜索、导出路径、出血设置</p><span class="badge badge-done">多功能</span></div>
+<div class="item"><h3>骑马订拼版</h3><p>Saddle Stitch 拼版实现，带PDF预览</p><span class="badge badge-done">排版模块</span></div>
+<div class="item"><h3>Excel导入与匹配</h3><p>EPPlus读写，双正则系统(文件名生成+Excel匹配)，数据匹配链路完整</p><span class="badge badge-done">数据链路</span></div>
+<div class="item"><h3>数据库面板</h3><p>数据库管理界面，支持数据浏览和查询</p><span class="badge badge-done">独立模块</span></div>
+<div class="item"><h3>预设管理系统</h3><p>材料选择预设持久化，颜色模式保存，预设应用与加载</p><span class="badge badge-done">配置管理</span></div>
+</div>
+</div>
+
+<!-- 开发中 -->
+<div class="column wip">
+<div class="col-header">&#x1F6E0; 开发中 <span class="count">3</span></div>
+<div class="card-list">
+<div class="item"><h3>N-Up 多合一拼版</h3><p>多页面拼合到单张，支持自定义行列数和间距</p><span class="badge badge-wip">排版扩展</span></div>
+<div class="item"><h3>Action List 动作列表</h3><p>参考 PitStop Pro，模块化PDF处理动作链</p><span class="badge badge-wip">核心架构</span></div>
+<div class="item"><h3>工作台面板优化</h3><p>ImpositionWorkspacePanel 功能按钮完善，Tab预览控件集成</p><span class="badge badge-wip">UI优化</span></div>
+</div>
+</div>
+
+<!-- 未开始 -->
+<div class="column todo">
+<div class="col-header">&#x1F4DD; 未开始 / 仅设计 <span class="count">5</span></div>
+<div class="card-list">
+<div class="item"><h3>裁切标记生成</h3><p>Cut Marks，输出印刷裁切对位标记</p><span class="badge badge-plan">待排期</span></div>
+<div class="item"><h3>页面重排 (Shuffle)</h3><p>自定义页面顺序重新排列PDF页面</p><span class="badge badge-plan">待排期</span></div>
+<div class="item"><h3>Step & Repeat</h3><p>单个图案重复排列，适用于标签/包装</p><span class="badge badge-plan">待排期</span></div>
+<div class="item"><h3>Cut & Stack</h3><p>按堆叠方式分切排列，适用于大批量印刷</p><span class="badge badge-plan">待排期</span></div>
+<div class="item"><h3>旧架构迁移</h3><p>Form1单体窗体逐步迁移到 MainShellForm + Panel 架构</p><span class="badge badge-plan">技术债务</span></div>
+</div>
+</div>
+</div>
+
+<footer>大诚重命名工具 · 印前工作流解决方案 · 2026</footer>
+</body>
+</html>

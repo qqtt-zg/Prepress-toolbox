@@ -185,6 +185,16 @@ namespace WindowsFormsApp3.Models
         public int CopyCount { get; set; }
 
         /// <summary>
+        /// 一式类型（联/份）
+        /// </summary>
+        public CopyType CopyType { get; set; }
+
+        /// <summary>
+        /// 份数（一式几份，仅当CopyType为Duplicate时有效）
+        /// </summary>
+        public int DuplicateCount { get; set; }
+
+        /// <summary>
         /// 构造函数
         /// </summary>
         public PdfProcessingOptions()
@@ -207,6 +217,8 @@ namespace WindowsFormsApp3.Models
             LayoutQuantity = 0;
             RotationAngle = 0;
             CopyCount = 0;
+            CopyType = CopyType.Layout;
+            DuplicateCount = 2;
         }
 
         /// <summary>

@@ -411,7 +411,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this._fileTable.RowHeadersWidth = 30;
             this._fileTable.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing;
             this._fileTable.RowTemplate.Height = 36;
-            this._fileTable.Size = new System.Drawing.Size(946, 406);
+            this._fileTable.Size = new System.Drawing.Size(946, 380);
             this._fileTable.StateCommon.Background.Color1 = System.Drawing.Color.White;
             this._fileTable.StateCommon.BackStyle = Krypton.Toolkit.PaletteBackStyle.GridBackgroundList;
             this._fileTable.StateCommon.DataCell.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
@@ -573,7 +573,7 @@ namespace WindowsFormsApp3.Forms.Panels
             // 
             this._statusPanel.Controls.Add(this._statusFlowPanel);
             this._statusPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this._statusPanel.Location = new System.Drawing.Point(0, 516);
+            this._statusPanel.Location = new System.Drawing.Point(0, 490);
             this._statusPanel.Name = "_statusPanel";
             this._statusPanel.Padding = new System.Windows.Forms.Padding(10, 5, 10, 5);
             this._statusPanel.Size = new System.Drawing.Size(946, 30);
@@ -631,7 +631,7 @@ namespace WindowsFormsApp3.Forms.Panels
             this.Controls.Add(this._statusPanel);
             this.Controls.Add(this._topControlPanel);
             this.Name = "FileRenamePanel";
-            this.Size = new System.Drawing.Size(946, 546);
+            this.Size = new System.Drawing.Size(946, 520);
             this._topControlPanel.ResumeLayout(false);
             this._layoutPanel.ResumeLayout(false);
             this._layoutPanel.PerformLayout();

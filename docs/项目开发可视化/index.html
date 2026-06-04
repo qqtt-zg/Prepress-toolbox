@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大诚重命名工具 - 项目可视化导航</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei",sans-serif;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);min-height:100vh;display:flex;align-items:center;justify-content:center;color:#fff}
+.container{text-align:center;max-width:900px;padding:40px}
+h1{font-size:2.4em;margin-bottom:10px;background:linear-gradient(90deg,#f7971e,#ffd200);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{color:#aaa;margin-bottom:50px;font-size:1.1em}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.grid .card:last-child:nth-child(odd){grid-column:1 / -1;max-width:438px;margin:0 auto;width:100%}
+.card{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:36px 28px;text-decoration:none;color:#fff;transition:all .3s;backdrop-filter:blur(10px)}
+.card:hover{transform:translateY(-6px);background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.25);box-shadow:0 12px 40px rgba(0,0,0,0.4)}
+.card .icon{font-size:2.6em;margin-bottom:16px}
+.card h2{font-size:1.3em;margin-bottom:8px}
+.card p{color:#999;font-size:0.9em;line-height:1.6}
+.tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75em;margin-top:12px}
+.tag-status{background:rgba(76,175,80,0.2);color:#81c784}
+.tag-roadmap{background:rgba(33,150,243,0.2);color:#64b5f6}
+.tag-report{background:rgba(156,39,176,0.2);color:#ce93d8}
+.tag-flow{background:rgba(255,152,0,0.2);color:#ffb74d}
+footer{margin-top:50px;color:#555;font-size:0.85em}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>大诚重命名工具</h1>
+<p class="subtitle">项目开发状态可视化 · Prepress Toolbox</p>
+<div class="grid">
+<a class="card" href="当前开发状态图.html">
+<div class="icon">&#x1F4CB;</div>
+<h2>当前开发状态图</h2>
+<p>三列看板：已完成 / 开发中 / 未开始，一目了然当前进度</p>
+<span class="tag tag-status">状态总览</span>
+</a>
+<a class="card" href="后续开发排期图.html">
+<div class="icon">&#x1F4C5;</div>
+<h2>后续开发排期图</h2>
+<p>P0 / P1 / P2 优先级路线图，明确开发顺序</p>
+<span class="tag tag-roadmap">排期规划</span>
+</a>
+<a class="card" href="项目现状横版汇报页.html">
+<div class="icon">&#x1F4CA;</div>
+<h2>项目现状汇报页</h2>
+<p>深色主题横版演示页，适合汇报和展示</p>
+<span class="tag tag-report">汇报展示</span>
+</a>
+<a class="card" href="后续开发箭头流程图.html">
+<div class="icon">&#x1F504;</div>
+<h2>后续开发箭头流程图</h2>
+<p>展示 P0→P1→P2 开发顺序的依赖关系和原因</p>
+<span class="tag tag-flow">依赖分析</span>
+</a>
+<a class="card" href="Obsidian知识库图谱.html">
+<div class="icon">&#x1F578;</div>
+<h2>Obsidian知识库图谱</h2>
+<p>图形化理解知识库主线、模块关系、调研来源和代码入口</p>
+<span class="tag tag-report">知识图谱</span>
+</a>
+</div>
+<footer>大诚重命名工具 · 印前工作流解决方案 · 2026</footer>
+</div>
+</body>
+</html>
