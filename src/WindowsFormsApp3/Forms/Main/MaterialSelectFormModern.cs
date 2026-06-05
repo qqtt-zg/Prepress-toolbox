@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -1217,6 +1217,21 @@ namespace WindowsFormsApp3
                         if (radiusTextBox != null) radiusTextBox.Visible = false;
                         break;
                     case ShapeType.Special: // 异形
+                        // 校验最后一页是否可提取裁切路径
+                        if (!string.IsNullOrEmpty(CurrentFileName) && File.Exists(CurrentFileName))
+                        {
+                            bool canExtract = PdfTools.CanExtractCutPathFromLastPage(CurrentFileName);
+                            if (!canExtract)
+                            {
+                                AntdUI.Message.warn(this.FindForm(), "异形校验失败：最后一页无法提取裁切路径，请检查点源文件", autoClose: 5);
+                                LogHelper.Warn("异形校验失败：最后一页裁切路径不可用，文件: " + CurrentFileName);
+                                // 重置形状为默认值
+                                SelectedShape = ShapeType.RightAngle;
+                                _isShapeExplicitlySelected = false;
+                                UpdateShapeButtonStates(-1);
+                                return;
+                            }
+                        }
                         SelectedShape = ShapeType.Special;
                         RoundRadius = 0; // 异形的圆角半径始终为0
                         _isShapeExplicitlySelected = true; // 标记为用户明确选择

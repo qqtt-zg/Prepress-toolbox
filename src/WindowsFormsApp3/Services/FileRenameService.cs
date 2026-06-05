@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Windows.Forms;
 using WindowsFormsApp3.Models;
@@ -1044,34 +1044,6 @@ namespace WindowsFormsApp3.Services
                     return true;
                 }
 
-                // 步骤1：页面重排和坐标统一处理（在图层过滤检查完成后执行）
-                // 处理流程：原始文件 → 页面重排
-                LogHelper.Debug($"=== 步骤1：开始页面重排 ===");
-                LogHelper.Debug($"页面重排前文件页数: {GetPdfPageCount(tempFileInfo.FullPath)}");
-
-                Dictionary<int, PdfTools.PageTransformInfo> transformMap;
-                bool setPageBoxesSuccess = PdfTools.AdvancedPageReorganizer.ExecuteAdvancedReorganization(tempFileInfo.FullPath, out transformMap);
-
-                LogHelper.Debug($"页面重排后文件页数: {GetPdfPageCount(tempFileInfo.FullPath)}");
-
-                if (setPageBoxesSuccess)
-                {
-                    LogHelper.Debug($"✓ 页面统一处理成功: {tempFileInfo.FullPath}");
-                }
-                else
-                {
-                    LogHelper.Debug($"✗ 页面统一处理失败: {tempFileInfo.FullPath}");
-                    tempFileInfo.ErrorMessage = "页面统一处理失败";
-                    return false;
-                }
-
-                // 步骤1.5：一式N联模式页面复制（在页面重排完成后执行，仅联模式需要）
-                // 联模式在步骤2.6复制，份模式在步骤4复制
-                // if (pdfOptions.CopyType == CopyType.Layout && pdfOptions.CopyCount > 1)
-                // {
-                //     // 联模式的复制在步骤2.6执行
-                // }
-
                 //步骤2：标识页插入（在页面重排完成后执行）
                 // 处理流程：页面重排 → 添加标识页
                 if (pdfOptions.AddIdentifierPage)
@@ -1099,13 +1071,20 @@ namespace WindowsFormsApp3.Services
                     }
                 }
 
-                // 步骤2.5：折手模式空白页插入（在标识页后或页面重排后执行）
+                // 步骤2.5：折手模式空白页插入（在标识页后执行）
                 if (pdfOptions.LayoutMode == LayoutMode.Folding && pdfOptions.LayoutQuantity > 0)
                 {
                     LogHelper.Debug($"=== 步骤2.5：折手模式空白页处理 ===");
                     int? currentPageCountNullable = GetPdfPageCount(tempFileInfo.FullPath);
                     int currentPageCount = currentPageCountNullable ?? 0;
                     LogHelper.Debug($"当前页数: {currentPageCount}, 布局数量: {pdfOptions.LayoutQuantity}");
+
+                    // 异形形状：最后一页是模板页（含裁切路径），需要特殊处理
+                    // 1. 计算空白页时排除模板页（currentPageCount - 1）
+                    // 2. 空白页插入到模板页之前（倒数第二页之后），保持模板页在最后
+                    bool isSpecialShape = pdfOptions.AddPdfLayers && pdfOptions.ShapeType == ShapeType.Special;
+                    int countForCalculation = isSpecialShape ? Math.Max(currentPageCount - 1, 1) : currentPageCount;
+                    int insertPos = isSpecialShape ? currentPageCount - 1 : -1;
 
                     // 获取排版服务
                     var impositionService = ServiceLocator.Instance.GetService<IImpositionService>();
@@ -1116,7 +1095,7 @@ namespace WindowsFormsApp3.Services
 
                     // 计算需要的空白页数量（支持一式N联）
                     var blankPageResult = impositionService.CalculateBlankPageInsertionAsync(
-                        currentPageCount,
+                        countForCalculation,
                         pdfOptions.LayoutQuantity,
                         pdfOptions.LayoutMode,
                         pdfOptions.CopyCount).GetAwaiter().GetResult();
@@ -1125,17 +1104,17 @@ namespace WindowsFormsApp3.Services
 
                     if (blankPagesNeeded > 0)
                     {
-                        // 在最后一页之后插入空白页（尺寸为首页尺寸）
+                        string insertDesc = isSpecialShape ? "模板页之前" : "最后一页之后";
                         bool blankPageSuccess = PdfTools.InsertIdentifierPage(
                             tempFileInfo.FullPath,
                             "",  // 空白页
                             12f,
-                            -1,  // 最后一页之后
-                            blankPagesNeeded);  // 插入多页
+                            insertPos,
+                            blankPagesNeeded);
 
                         if (blankPageSuccess)
                         {
-                            LogHelper.Debug($"✓ 成功在最后一页之后添加{blankPagesNeeded}个空白页，补足至布局数量的倍数");
+                            LogHelper.Debug($"✓ 成功在{insertDesc}添加{blankPagesNeeded}个空白页，补足至布局数量的倍数");
                             LogHelper.Debug($"空白页插入后文件页数: {GetPdfPageCount(tempFileInfo.FullPath)}");
                         }
                         else

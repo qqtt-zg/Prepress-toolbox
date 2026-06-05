@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Reflection;
 using Spire.Pdf;
@@ -94,6 +94,27 @@ namespace WindowsFormsApp3.Utils
         /// <param name="shapeType">形状类型</param>
         /// <param name="roundRadius">圆角半径（仅用于圆角矩形）</param>
         /// <returns>是否成功添加图层</returns>
+        /// <summary>
+        /// 检测PDF文件最后一页是否有可提取的裁切路径
+        /// </summary>
+        public static bool CanExtractCutPathFromLastPage(string filePath)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath)) return false;
+                using (var reader = new iText.Kernel.Pdf.PdfReader(filePath))
+                using (var doc = new iText.Kernel.Pdf.PdfDocument(reader))
+                {
+                    if (doc.GetNumberOfPages() < 2) return false;
+                    var lastPage = doc.GetPage(doc.GetNumberOfPages());
+                    float[] bounds;
+                    byte[] pathBytes = ExtractAndConvertCutPath(lastPage, doc, out bounds);
+                    return pathBytes != null && pathBytes.Length > 0;
+                }
+            }
+            catch (Exception ex) { LogHelper.Debug("CanExtractCutPathFromLastPage 异常: " + ex.Message); return false; }
+        }
+
         public static bool AddDotsAddCounterLayer(string filePath, string finalDimensions, ShapeType shapeType, double roundRadius = 0)
         {
             LogHelper.Debug($"AddDotsAddCounterLayer调用（枚举版本），参数: filePath={filePath}, shapeType={shapeType}, roundRadius={roundRadius}");
@@ -349,6 +370,126 @@ namespace WindowsFormsApp3.Utils
         /// 处理异形PDF文件逻辑（使用iText 7实现）
         /// </summary>
         /// <param name="filePath">PDF文件路径</param>
+        /// <summary>
+        /// 从PDF页面中提取裁切路径，并将坐标通过cm逆变换转换到页面坐标系
+        /// </summary>
+        private static byte[] ExtractAndConvertCutPath(iText.Kernel.Pdf.PdfPage page, iText.Kernel.Pdf.PdfDocument doc, out float[] pageBounds)
+        {
+            pageBounds = null;
+            try
+            {
+                iText.Kernel.Pdf.PdfDictionary pageDict = page.GetPdfObject();
+                iText.Kernel.Pdf.PdfObject contents = pageDict.Get(iText.Kernel.Pdf.PdfName.Contents);
+                byte[] contentBytes = null;
+                if (contents is iText.Kernel.Pdf.PdfStream singleStream)
+                    contentBytes = singleStream.GetBytes();
+                else if (contents is iText.Kernel.Pdf.PdfArray arr)
+                {
+                    using (var ms = new System.IO.MemoryStream())
+                    {
+                        for (int j = 0; j < arr.Size(); j++)
+                        {
+                            var obj = arr.Get(j);
+                            iText.Kernel.Pdf.PdfStream cs = obj is iText.Kernel.Pdf.PdfStream s ? s :
+                                (obj is iText.Kernel.Pdf.PdfIndirectReference indRef && indRef.GetRefersTo() is iText.Kernel.Pdf.PdfStream indS) ? indS : null;
+                            if (cs != null) { byte[] csBytes = cs.GetBytes(); ms.Write(csBytes, 0, csBytes.Length); }
+                        }
+                        contentBytes = ms.ToArray();
+                    }
+                }
+                if (contentBytes == null || contentBytes.Length == 0) { LogHelper.Debug("ExtractAndConvertCutPath: 内容流为空"); return null; }
+                string content = System.Text.Encoding.ASCII.GetString(contentBytes);
+                if (!content.Contains(" m\n") && !content.Contains(" m\r") && !content.Contains(" c\n") && !content.Contains(" c\r"))
+                { LogHelper.Debug("ExtractAndConvertCutPath: 无路径操作符"); return null; }
+                string[] contentLines = content.Split(new[] { "\n", "\r\n", "\r" }, StringSplitOptions.None);
+                float cmTx = 0, cmTy = 0; int pathColorLine = -1;
+                for (int li = 0; li < contentLines.Length; li++)
+                {
+                    string line = contentLines[li].Trim();
+                    if (string.IsNullOrEmpty(line)) continue;
+                    if (line.EndsWith(" cm"))
+                    {
+                        string[] parts = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (parts.Length >= 7)
+                        {
+                            float.TryParse(parts[4], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float e);
+                            float.TryParse(parts[5], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float f);
+                            cmTx += e; cmTy += f;
+                        }
+                    }
+                    if (line.EndsWith(" K") && pathColorLine < 0)
+                    {
+                        bool hasW = false, hasM = false;
+                        for (int j = li + 1; j < Math.Min(li + 3, contentLines.Length); j++)
+                        { string next = contentLines[j].Trim(); if (next.EndsWith(" w")) hasW = true; if (next.EndsWith(" m")) hasM = true; }
+                        if (hasW && hasM) pathColorLine = li;
+                    }
+                }
+                if (pathColorLine < 0) { LogHelper.Debug("ExtractAndConvertCutPath: 未找到K w m组合"); return null; }
+                string colorLine = "", widthLine = ""; int pathStartLine = -1;
+                for (int li = pathColorLine; li < contentLines.Length; li++)
+                {
+                    string line = contentLines[li].Trim();
+                    if (line.EndsWith(" K")) { colorLine = line; continue; }
+                    if (line.EndsWith(" w")) { widthLine = line; continue; }
+                    if (line.EndsWith(" m") || line.EndsWith(" c")) { pathStartLine = li; break; }
+                }
+                if (pathStartLine < 0) return null;
+                var pathLineList = new System.Collections.Generic.List<string>();
+                float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+                for (int li = pathStartLine; li < contentLines.Length; li++)
+                {
+                    string line = contentLines[li].Trim();
+                    if (string.IsNullOrEmpty(line)) continue;
+                    if (line.EndsWith(" m") || line.EndsWith(" c") || line.EndsWith(" l") || line == "h")
+                    { string converted = ConvertLineCoords(line, cmTx, cmTy); pathLineList.Add(converted); UpdateBounds(converted, ref minX, ref minY, ref maxX, ref maxY); }
+                    else if (line == "S" || line == "s" || line == "f" || line == "f*" || line == "B" || line == "B*")
+                    { pathLineList.Add(line); break; }
+                    else break;
+                }
+                if (pathLineList.Count == 0) return null;
+                pageBounds = new float[] { minX, minY, maxX, maxY };
+                using (var ms = new System.IO.MemoryStream())
+                {
+                    ms.Write(System.Text.Encoding.ASCII.GetBytes("q\n"), 0, 2);
+                    byte[] colorBytes = System.Text.Encoding.ASCII.GetBytes(colorLine + "\n"); ms.Write(colorBytes, 0, colorBytes.Length);
+                    byte[] widthBytes = System.Text.Encoding.ASCII.GetBytes(widthLine + "\n"); ms.Write(widthBytes, 0, widthBytes.Length);
+                    foreach (string pl in pathLineList) { byte[] plBytes = System.Text.Encoding.ASCII.GetBytes(pl + "\n"); ms.Write(plBytes, 0, plBytes.Length); }
+                    ms.Write(System.Text.Encoding.ASCII.GetBytes("Q\n"), 0, 2);
+                    LogHelper.Debug("ExtractAndConvertCutPath: cm偏移=(" + cmTx + "," + cmTy + "), 路径行=" + pathLineList.Count + ", 边界=(" + minX + "," + minY + ")-(" + maxX + "," + maxY + ")");
+                    return ms.ToArray();
+                }
+            }
+            catch (Exception ex) { LogHelper.Debug("ExtractAndConvertCutPath 异常: " + ex.Message); return null; }
+        }
+
+        private static string ConvertLineCoords(string line, float cmTx, float cmTy)
+        {
+            string[] parts = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            string op = parts[parts.Length - 1];
+            if (op == "h") return line;
+            var nums = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < parts.Length - 1; i++)
+            {
+                if (float.TryParse(parts[i], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float val))
+                { if (i % 2 == 0) val += cmTx; else val += cmTy; nums.Add(val.ToString(System.Globalization.CultureInfo.InvariantCulture)); }
+                else nums.Add(parts[i]);
+            }
+            return string.Join(" ", nums) + " " + op;
+        }
+
+        private static void UpdateBounds(string line, ref float minX, ref float minY, ref float maxX, ref float maxY)
+        {
+            string[] parts = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            string op = parts[parts.Length - 1];
+            if (op == "h") return;
+            for (int i = 0; i < parts.Length - 1; i++)
+            {
+                if (float.TryParse(parts[i], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float val))
+                { if (i % 2 == 0) { if (val < minX) minX = val; if (val > maxX) maxX = val; } else { if (val < minY) minY = val; if (val > maxY) maxY = val; } }
+            }
+        }
+
         /// <returns>是否处理成功</returns>
         public static bool ProcessSpecialShapePdf(string filePath)
         {
@@ -419,6 +560,17 @@ namespace WindowsFormsApp3.Utils
                     // 获取最后一页的尺寸
                     iText.Kernel.Geom.Rectangle lastPageSize = lastPage.GetCropBox() ?? lastPage.GetMediaBox();
 
+
+                    // 提取最后一页的裁切路径并转换坐标到页面坐标系
+                    float[] cutPathBounds;
+                    byte[] convertedCutPath = ExtractAndConvertCutPath(lastPage, document, out cutPathBounds);
+                    if (convertedCutPath == null || convertedCutPath.Length == 0)
+                    {
+                        LogHelper.Debug("无法提取裁切路径，跳过异形处理");
+                        return false;
+                    }
+                    LogHelper.Debug("裁切路径提取成功: " + convertedCutPath.Length + " 字节");
+
                     // 为文档的所有页面添加模板内容和出血线
                     for (int i = 1; i <= document.GetNumberOfPages(); i++)
                     {
@@ -438,31 +590,25 @@ namespace WindowsFormsApp3.Utils
                         float centerY = (float)((currentPageSize.GetHeight() - lastPageSize.GetHeight()) / 2);
                         LogHelper.Debug("第" + i + "页居中位置: X=" + centerX + ", Y=" + centerY);
 
-                        // 1. 在Dots_AddCounter图层上绘制最后一页的模板内容
-                        iText.Kernel.Pdf.Canvas.PdfCanvas addCounterCanvas = new iText.Kernel.Pdf.Canvas.PdfCanvas(currentPage.NewContentStreamAfter(), currentPage.GetResources(), document);
-
-                        // 设置图层
-                        addCounterCanvas.BeginLayer(addCounterLayer);
-
-                        // 保存当前画布状态
-                        addCounterCanvas.SaveState();
-
-                        // 移动到居中位置
-                        addCounterCanvas.ConcatMatrix(1, 0, 0, 1, centerX, centerY);
-
-                        // 创建表单XObject来包含最后一页的内容
-                        iText.Kernel.Pdf.Xobject.PdfFormXObject template = lastPage.CopyAsFormXObject(document);
-
-                        // 绘制最后一页的内容作为模板（居中绘制）
-                        addCounterCanvas.AddXObject(template);
-
-                        // 恢复画布状态
-                        addCounterCanvas.RestoreState();
-
-                        // 结束图层
-                        addCounterCanvas.EndLayer();
-
-                        addCounterCanvas.Release();
+                        // 1. 在Dots_AddCounter图层上写入转换到页面坐标系的裁切路径
+                        {
+                            if (convertedCutPath != null && convertedCutPath.Length > 0)
+                            {
+                                iText.Kernel.Pdf.Canvas.PdfCanvas addCounterCanvas = new iText.Kernel.Pdf.Canvas.PdfCanvas(currentPage.NewContentStreamAfter(), currentPage.GetResources(), document);
+                                addCounterCanvas.BeginLayer(addCounterLayer);
+                                iText.Kernel.Pdf.PdfStream contentStream = addCounterCanvas.GetContentStream();
+                                string bdcLine = System.Text.Encoding.ASCII.GetString(contentStream.GetBytes()).Trim();
+                                using (var ms = new System.IO.MemoryStream())
+                                {
+                                    ms.Write(System.Text.Encoding.ASCII.GetBytes(bdcLine + "\n"), 0, bdcLine.Length + 1);
+                                    ms.Write(convertedCutPath, 0, convertedCutPath.Length);
+                                    contentStream.SetData(ms.ToArray());
+                                }
+                                addCounterCanvas.EndLayer();
+                                addCounterCanvas.Release();
+                                LogHelper.Debug("第" + i + "页 Dots_AddCounter 图层写入完成");
+                            }
+                        }
 
                         // 2. 在Dots_L_B_出血线图层上绘制与页面CropBox尺寸相同的矩形
                         // 由于间接引用重排已经统一了所有页面框和坐标系统，直接在统一坐标系上绘制即可
