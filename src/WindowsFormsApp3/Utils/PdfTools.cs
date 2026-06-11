@@ -417,20 +417,23 @@ namespace WindowsFormsApp3.Utils
                             cmTx += e; cmTy += f;
                         }
                     }
-                    if (line.EndsWith(" K") && pathColorLine < 0)
+                    // 支持CMYK(K)、RGB(RG)、灰度(G)、CS+SCN(命名颜色空间)等描边颜色操作符
+                    if ((line.EndsWith(" K") || line.EndsWith(" RG") || line.EndsWith(" G") || (line.Contains(" CS") && line.EndsWith(" SCN"))) && pathColorLine < 0)
                     {
+                        // 在颜色行前后各6行范围内搜索 w 和 m 操作符
+                        // 某些PDF中 w 可能在颜色行之前（如 CS+SCN 模式）
                         bool hasW = false, hasM = false;
-                        for (int j = li + 1; j < Math.Min(li + 3, contentLines.Length); j++)
+                        for (int j = Math.Max(0, li - 6); j < Math.Min(li + 6, contentLines.Length); j++)
                         { string next = contentLines[j].Trim(); if (next.EndsWith(" w")) hasW = true; if (next.EndsWith(" m")) hasM = true; }
                         if (hasW && hasM) pathColorLine = li;
                     }
                 }
-                if (pathColorLine < 0) { LogHelper.Debug("ExtractAndConvertCutPath: 未找到K w m组合"); return null; }
+                if (pathColorLine < 0) { LogHelper.Debug("ExtractAndConvertCutPath: 未找到颜色(K/RG/G/CS+SCN)+w+m组合"); return null; }
                 string colorLine = "", widthLine = ""; int pathStartLine = -1;
                 for (int li = pathColorLine; li < contentLines.Length; li++)
                 {
                     string line = contentLines[li].Trim();
-                    if (line.EndsWith(" K")) { colorLine = line; continue; }
+                    if (line.EndsWith(" K") || line.EndsWith(" RG") || line.EndsWith(" G") || (line.Contains(" CS") && line.EndsWith(" SCN"))) { colorLine = line; continue; }
                     if (line.EndsWith(" w")) { widthLine = line; continue; }
                     if (line.EndsWith(" m") || line.EndsWith(" c")) { pathStartLine = li; break; }
                 }
@@ -451,9 +454,9 @@ namespace WindowsFormsApp3.Utils
                 pageBounds = new float[] { minX, minY, maxX, maxY };
                 using (var ms = new System.IO.MemoryStream())
                 {
-                    ms.Write(System.Text.Encoding.ASCII.GetBytes("q\n"), 0, 2);
-                    byte[] colorBytes = System.Text.Encoding.ASCII.GetBytes(colorLine + "\n"); ms.Write(colorBytes, 0, colorBytes.Length);
-                    byte[] widthBytes = System.Text.Encoding.ASCII.GetBytes(widthLine + "\n"); ms.Write(widthBytes, 0, widthBytes.Length);
+                    // 统一为标准裁切路径样式：红色描边，线宽0.01pt
+                    byte[] colorBytes = System.Text.Encoding.ASCII.GetBytes("1 0 0 RG\n"); ms.Write(colorBytes, 0, colorBytes.Length);
+                    byte[] widthBytes = System.Text.Encoding.ASCII.GetBytes("0.01 w\n"); ms.Write(widthBytes, 0, widthBytes.Length);
                     foreach (string pl in pathLineList) { byte[] plBytes = System.Text.Encoding.ASCII.GetBytes(pl + "\n"); ms.Write(plBytes, 0, plBytes.Length); }
                     ms.Write(System.Text.Encoding.ASCII.GetBytes("Q\n"), 0, 2);
                     LogHelper.Debug("ExtractAndConvertCutPath: cm偏移=(" + cmTx + "," + cmTy + "), 路径行=" + pathLineList.Count + ", 边界=(" + minX + "," + minY + ")-(" + maxX + "," + maxY + ")");
@@ -561,6 +564,11 @@ namespace WindowsFormsApp3.Utils
                     iText.Kernel.Geom.Rectangle lastPageSize = lastPage.GetCropBox() ?? lastPage.GetMediaBox();
 
 
+                    // 获取模板页的CropBox原点，用于坐标偏移计算
+                    float templateCropLeft = (float)(lastPageSize.GetLeft());
+                    float templateCropBottom = (float)(lastPageSize.GetBottom());
+                    LogHelper.Debug("模板页CropBox原点: (" + templateCropLeft + ", " + templateCropBottom + ")");
+                    
                     // 提取最后一页的裁切路径并转换坐标到页面坐标系
                     float[] cutPathBounds;
                     byte[] convertedCutPath = ExtractAndConvertCutPath(lastPage, document, out cutPathBounds);
@@ -590,12 +598,33 @@ namespace WindowsFormsApp3.Utils
                         float centerY = (float)((currentPageSize.GetHeight() - lastPageSize.GetHeight()) / 2);
                         LogHelper.Debug("第" + i + "页居中位置: X=" + centerX + ", Y=" + centerY);
 
-                        // 1. 在Dots_AddCounter图层上写入转换到页面坐标系的裁切路径
+                        // 1. 先创建出血线画布（在内容流中排在前面，视觉上在底层）
+                        {
+                            float bleedOffsetX = (float)currentPageSize.GetLeft() - templateCropLeft;
+                            float bleedOffsetY = (float)currentPageSize.GetBottom() - templateCropBottom;
+                            iText.Kernel.Pdf.Canvas.PdfCanvas bleedCanvas = new iText.Kernel.Pdf.Canvas.PdfCanvas(currentPage.NewContentStreamAfter(), currentPage.GetResources(), document);
+                            bleedCanvas.BeginLayer(bleedLayer);
+                            bleedCanvas.ConcatMatrix(1, 0, 0, 1, bleedOffsetX, bleedOffsetY);
+                            bleedCanvas.SetLineWidth(0.01f);
+                            bleedCanvas.SetStrokeColor(ColorConstants.GREEN);
+                            bleedCanvas.Rectangle((float)lastPageSize.GetLeft(), (float)lastPageSize.GetBottom(), (float)lastPageSize.GetWidth(), (float)lastPageSize.GetHeight());
+                            bleedCanvas.Stroke();
+                            bleedCanvas.EndLayer();
+                            bleedCanvas.Release();
+                        }
+                        
+                        // 2. 再创建裁切路径画布（在内容流中排在后面，视觉上在最上层）
                         {
                             if (convertedCutPath != null && convertedCutPath.Length > 0)
                             {
                                 iText.Kernel.Pdf.Canvas.PdfCanvas addCounterCanvas = new iText.Kernel.Pdf.Canvas.PdfCanvas(currentPage.NewContentStreamAfter(), currentPage.GetResources(), document);
                                 addCounterCanvas.BeginLayer(addCounterLayer);
+                                // 计算裁切路径的坐标偏移：模板页与当前页的CropBox原点差
+                                float offsetX = (float)currentPageSize.GetLeft() - templateCropLeft;
+                                float offsetY = (float)currentPageSize.GetBottom() - templateCropBottom;
+                                LogHelper.Debug("第" + i + "页裁切路径偏移: (" + offsetX + ", " + offsetY + ")");
+                                // 应用坐标偏移
+                                addCounterCanvas.ConcatMatrix(1, 0, 0, 1, offsetX, offsetY);
                                 iText.Kernel.Pdf.PdfStream contentStream = addCounterCanvas.GetContentStream();
                                 string bdcLine = System.Text.Encoding.ASCII.GetString(contentStream.GetBytes()).Trim();
                                 using (var ms = new System.IO.MemoryStream())
@@ -610,45 +639,6 @@ namespace WindowsFormsApp3.Utils
                             }
                         }
 
-                        // 2. 在Dots_L_B_出血线图层上绘制与页面CropBox尺寸相同的矩形
-                        // 由于间接引用重排已经统一了所有页面框和坐标系统，直接在统一坐标系上绘制即可
-                        iText.Kernel.Pdf.Canvas.PdfCanvas bleedLayerCanvas = new iText.Kernel.Pdf.Canvas.PdfCanvas(currentPage.NewContentStreamAfter(), currentPage.GetResources(), document);
-
-                        // 设置图层
-                        bleedLayerCanvas.BeginLayer(bleedLayer);
-
-                        // 创建绿色描边的笔，粗细为0.01pt
-                        bleedLayerCanvas.SetLineWidth(0.01f);
-                        bleedLayerCanvas.SetStrokeColor(ColorConstants.GREEN);
-
-                        // 获取CropBox的实际坐标位置
-                        iText.Kernel.Geom.Rectangle cropBox = currentPage.GetCropBox() ?? currentPage.GetMediaBox();
-                        if (cropBox != null)
-                        {
-                            // 计算出血线的实际位置和尺寸
-                            float bleedX = (float)cropBox.GetLeft();
-                            float bleedY = (float)cropBox.GetBottom();
-                            float bleedWidth = (float)cropBox.GetWidth();
-                            float bleedHeight = (float)cropBox.GetHeight();
-
-                            LogHelper.Debug("第" + i + "页出血线矩形: 位置=(" + bleedX + ", " + bleedY + "), 尺寸=" + bleedWidth + "x" + bleedHeight);
-
-                            // 在CropBox的实际位置绘制出血线矩形
-                            bleedLayerCanvas.Rectangle(bleedX, bleedY, bleedWidth, bleedHeight);
-                            bleedLayerCanvas.Stroke();
-                        }
-                        else
-                        {
-                            // 如果无法获取CropBox，则使用默认方法绘制
-                            LogHelper.Debug("第" + i + "页无法获取CropBox，使用默认绘制方法");
-                            bleedLayerCanvas.Rectangle(0, 0, (float)currentPageSize.GetWidth(), (float)currentPageSize.GetHeight());
-                            bleedLayerCanvas.Stroke();
-                        }
-
-                        // 结束图层
-                        bleedLayerCanvas.EndLayer();
-
-                        bleedLayerCanvas.Release();
 
                         // 恢复当前页面的原始旋转状态
                         currentPage.SetRotation(originalCurrentPageRotation);
