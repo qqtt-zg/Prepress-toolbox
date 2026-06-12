@@ -454,6 +454,7 @@ namespace WindowsFormsApp3.Utils
                 pageBounds = new float[] { minX, minY, maxX, maxY };
                 using (var ms = new System.IO.MemoryStream())
                 {
+                    ms.Write(System.Text.Encoding.ASCII.GetBytes("q\n"), 0, 2);
                     // 统一为标准裁切路径样式：红色描边，线宽0.01pt
                     byte[] colorBytes = System.Text.Encoding.ASCII.GetBytes("1 0 0 RG\n"); ms.Write(colorBytes, 0, colorBytes.Length);
                     byte[] widthBytes = System.Text.Encoding.ASCII.GetBytes("0.01 w\n"); ms.Write(widthBytes, 0, widthBytes.Length);
@@ -569,7 +570,7 @@ namespace WindowsFormsApp3.Utils
                     float templateCropBottom = (float)(lastPageSize.GetBottom());
                     LogHelper.Debug("模板页CropBox原点: (" + templateCropLeft + ", " + templateCropBottom + ")");
                     
-                    // 提取最后一页的裁切路径并转换坐标到页面坐标系
+                    // 提取最后一页的裁切路径（坐标已在可视区域空间中）
                     float[] cutPathBounds;
                     byte[] convertedCutPath = ExtractAndConvertCutPath(lastPage, document, out cutPathBounds);
                     if (convertedCutPath == null || convertedCutPath.Length == 0)
@@ -577,8 +578,6 @@ namespace WindowsFormsApp3.Utils
                         LogHelper.Debug("无法提取裁切路径，跳过异形处理");
                         return false;
                     }
-                    LogHelper.Debug("裁切路径提取成功: " + convertedCutPath.Length + " 字节");
-
                     // 为文档的所有页面添加模板内容和出血线
                     for (int i = 1; i <= document.GetNumberOfPages(); i++)
                     {
@@ -600,8 +599,9 @@ namespace WindowsFormsApp3.Utils
 
                         // 1. 先创建出血线画布（在内容流中排在前面，视觉上在底层）
                         {
-                            float bleedOffsetX = (float)currentPageSize.GetLeft() - templateCropLeft;
-                            float bleedOffsetY = (float)currentPageSize.GetBottom() - templateCropBottom;
+                            // 出血线偏移（ConcatMatrix在BDC内可能不生效，需验证）
+                            float bleedOffsetX = (float)(currentPageSize.GetLeft() - templateCropLeft + centerX);
+                            float bleedOffsetY = (float)(currentPageSize.GetBottom() - templateCropBottom + centerY);
                             iText.Kernel.Pdf.Canvas.PdfCanvas bleedCanvas = new iText.Kernel.Pdf.Canvas.PdfCanvas(currentPage.NewContentStreamAfter(), currentPage.GetResources(), document);
                             bleedCanvas.BeginLayer(bleedLayer);
                             bleedCanvas.ConcatMatrix(1, 0, 0, 1, bleedOffsetX, bleedOffsetY);
@@ -613,22 +613,17 @@ namespace WindowsFormsApp3.Utils
                             bleedCanvas.Release();
                         }
                         
-                        // 2. 再创建裁切路径画布（在内容流中排在后面，视觉上在最上层）
+                        // 2. 创建裁切路径画布（坐标已在CropBox空间中，无需ConcatMatrix偏移）
                         {
                             if (convertedCutPath != null && convertedCutPath.Length > 0)
                             {
                                 iText.Kernel.Pdf.Canvas.PdfCanvas addCounterCanvas = new iText.Kernel.Pdf.Canvas.PdfCanvas(currentPage.NewContentStreamAfter(), currentPage.GetResources(), document);
                                 addCounterCanvas.BeginLayer(addCounterLayer);
-                                // 计算裁切路径的坐标偏移：模板页与当前页的CropBox原点差
-                                float offsetX = (float)currentPageSize.GetLeft() - templateCropLeft;
-                                float offsetY = (float)currentPageSize.GetBottom() - templateCropBottom;
-                                LogHelper.Debug("第" + i + "页裁切路径偏移: (" + offsetX + ", " + offsetY + ")");
-                                // 应用坐标偏移
-                                addCounterCanvas.ConcatMatrix(1, 0, 0, 1, offsetX, offsetY);
                                 iText.Kernel.Pdf.PdfStream contentStream = addCounterCanvas.GetContentStream();
                                 string bdcLine = System.Text.Encoding.ASCII.GetString(contentStream.GetBytes()).Trim();
                                 using (var ms = new System.IO.MemoryStream())
                                 {
+                                    // 写入BDC标记和裁切路径
                                     ms.Write(System.Text.Encoding.ASCII.GetBytes(bdcLine + "\n"), 0, bdcLine.Length + 1);
                                     ms.Write(convertedCutPath, 0, convertedCutPath.Length);
                                     contentStream.SetData(ms.ToArray());
