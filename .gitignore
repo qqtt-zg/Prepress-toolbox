@@ -105,3 +105,12 @@ omc/
 .sisyphus/
 .trae/
 .vscode/
+
+# 临时文件和缓存
+*.db
+*.csx
+*.log
+Thumbs.db
+temp_analysis/
+TestResults/
+analyze_tool/
