@@ -4101,6 +4101,7 @@ namespace WindowsFormsApp3
                 int.TryParse(SerialNumber, out startSerial);
 
                 bool addedAny = false;
+                var addedItems = new List<BatchFileItem>();
                 foreach (var filePath in filePaths)
                 {
                     if (string.IsNullOrWhiteSpace(filePath)) continue;
@@ -4134,13 +4135,14 @@ namespace WindowsFormsApp3
                     };
 
                     _batchItems.Add(item);
+                    addedItems.Add(item);
                     addedAny = true;
                 }
 
                 if (addedAny)
                 {
                     UpdateBatchOrderNumbers();
-                    RebuildProcessGroups();
+                    AddPendingItemsToLinkedGroup(addedItems);
                     RefreshGroupSummaryHeader();
                     RenderGroupCards();
                     dgvBatchFiles?.Refresh();
@@ -4194,7 +4196,10 @@ namespace WindowsFormsApp3
                 {
                     EnsureCurrentFileInBatchList();
                     UpdateBatchOrderNumbers();
-                    RebuildProcessGroups();
+                    if (_processGroups.Count == 0)
+                    {
+                        RebuildProcessGroups();
+                    }
                     RefreshGroupSummaryHeader();
                     RenderGroupCards();
 
@@ -6383,7 +6388,9 @@ namespace WindowsFormsApp3
                 }
 
                 // 输入框及左侧列表面板保留原生/专属右键行为，避免全局预设菜单拦截。
-                if ((_rowsInput != null && _rowsInput.Bounds.Contains(clientPoint)) ||
+                Control messageTarget = Control.FromHandle(m.WParam);
+                if (IsPresetContextMenuSuppressed(messageTarget, isKeyboardInvocation) ||
+                    (_rowsInput != null && _rowsInput.Bounds.Contains(clientPoint)) ||
                     (_columnsInput != null && _columnsInput.Bounds.Contains(clientPoint)) ||
                     (pnlFileList != null && pnlFileList.Visible && pnlFileList.Bounds.Contains(clientPoint)))
                 {
@@ -6401,6 +6408,29 @@ namespace WindowsFormsApp3
             }
 
             base.WndProc(ref m);
+        }
+
+        /// <summary>
+        /// 左侧文件列表及其动态子控件使用专属交互，不允许全局预设菜单覆盖。
+        /// </summary>
+        public bool IsPresetContextMenuSuppressed(Control messageTarget, bool isKeyboardInvocation)
+        {
+            if (pnlFileList == null || !pnlFileList.Visible) return false;
+
+            bool targetIsInLeftPanel = messageTarget != null &&
+                (ReferenceEquals(messageTarget, pnlFileList) || pnlFileList.Contains(messageTarget));
+            return ShouldSuppressPresetContextMenu(
+                targetIsInLeftPanel,
+                isKeyboardInvocation,
+                pnlFileList.ContainsFocus);
+        }
+
+        public static bool ShouldSuppressPresetContextMenu(
+            bool targetIsInLeftPanel,
+            bool isKeyboardInvocation,
+            bool leftPanelContainsFocus)
+        {
+            return targetIsInLeftPanel || (isKeyboardInvocation && leftPanelContainsFocus);
         }
 
         /// <summary>
@@ -10689,9 +10719,9 @@ namespace WindowsFormsApp3
 
             if (isSelected)
             {
-                // 选中状态：保持边框高亮，但调整背景
+                // 选中状态：AntdUI 的 Primary 按钮使用主题主色绘制背景，文字不能继续使用同一个主色。
                 btn.DefaultBack = theme.BackActive;
-                btn.ForeColor = theme.Primary;
+                btn.ForeColor = GetReadableThemeTextColor(theme.Primary, theme.TextPrimary);
             }
             else
             {

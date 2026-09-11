@@ -2,15 +2,15 @@
 ; 应用程序基本信息
 AppName=大诚重命名工具
 AppId={{D5F3E9B0-FEAT-ADD-PERF-MONITOR-FORM}}
-AppVersion=2.6.2
-AppVerName=大诚重命名工具 v2.6.2
+AppVersion=2.6.3
+AppVerName=大诚重命名工具 v2.6.3
 AppPublisher=大诚软件
 AppPublisherURL=
 AppSupportURL=
 AppUpdatesURL=
 AppCopyright=Copyright (C) 2026 大诚软件
 ; 版本更新说明
-AppComments=V2.6.2更新内容：全面迁移右键菜单与对话框至AntdUI现代交互体系，支持主题实时适配与持久化列配置；完善批量排版工作台、文件处理流水线与性能监控；左侧待处理工作台全面适配应用主题；
+AppComments=V2.6.3更新内容：修复监控文件进入后锁定分组状态丢失的问题；支持未锁定联动分组之间拖动文件，并禁止锁定分组拖入拖出；恢复左侧列表对全局预设右键菜单的屏蔽；优化浅色主题按钮文字可读性；
 
 ; 默认安装目录
 DefaultDirName={autopf}\大诚重命名工具
@@ -19,7 +19,7 @@ DefaultGroupName=大诚重命名工具
 ; 输出设置
 ; 注意：文件名包含版本号，确保每次版本更新都会生成不同的文件名，从而保留旧版本的安装包
 ; 请确保在更新版本号时同步更新此处的文件名版本号
-OutputBaseFilename=大诚重命名工具_v2.6.2_安装包
+OutputBaseFilename=大诚重命名工具_v2.6.3_安装包
 OutputDir=.\安装包
 ; SetupIconFile=dc.ico
 

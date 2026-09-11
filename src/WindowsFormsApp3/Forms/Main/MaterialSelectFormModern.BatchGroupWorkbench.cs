@@ -27,8 +27,74 @@ namespace WindowsFormsApp3
         private bool _isBatchLayoutUpdating = false;
         private bool _batchLayoutRefreshRequested = false;
 
+        private sealed class GroupDragPayload
+        {
+            public string SourceGroupId { get; set; }
+            public List<string> FilePaths { get; set; } = new List<string>();
+        }
+
         private List<BatchProcessGroup> _processGroups = new List<BatchProcessGroup>();
         public List<BatchProcessGroup> ProcessGroups => _processGroups;
+
+        /// <summary>
+        /// 将监控目录新增文件增量加入联动组，绝不重建或修改锁定组。
+        /// </summary>
+        public void AddPendingItemsToLinkedGroup(IEnumerable<BatchFileItem> pendingItems)
+        {
+            var items = pendingItems?.Where(item => item != null).ToList() ?? new List<BatchFileItem>();
+            if (items.Count == 0) return;
+
+            var targetGroup = _processGroups.FirstOrDefault(group => !group.IsLocked && !group.IsPreserveGroup);
+            if (targetGroup == null)
+            {
+                targetGroup = CreateLinkedProcessGroup();
+                _processGroups.Add(targetGroup);
+            }
+
+            foreach (var item in items)
+            {
+                ApplyGroupValues(item, targetGroup);
+                item.IsLocked = false;
+                item.IsPreserveJob = false;
+                targetGroup.Items.Add(item);
+            }
+        }
+
+        private BatchProcessGroup CreateLinkedProcessGroup()
+        {
+            return new BatchProcessGroup
+            {
+                GroupId = Guid.NewGuid().ToString("N"),
+                GroupName = $"【{ToChineseNumber(_processGroups.Count + 1)}组】",
+                IsPreserveGroup = false,
+                IsLocked = false,
+                Material = SelectedMaterial ?? "未指派材料",
+                Process = FixedField ?? "",
+                ColorMode = string.IsNullOrEmpty(ColorMode) ? "彩色" : ColorMode,
+                FilmType = FilmType ?? "",
+                MaterialType = (rollMaterialRadioButton != null && rollMaterialRadioButton.Checked) ? "卷装" : "平张",
+                LayoutPattern = (foldingLayoutRadioButton != null && foldingLayoutRadioButton.Checked) ? "折手" : "连拼",
+                Shape = SelectedShape.ToString(),
+                RoundRadius = RoundRadius.ToString(),
+                ImpositionMode = "",
+                ExportPath = SelectedExportPath ?? ""
+            };
+        }
+
+        private static void ApplyGroupValues(BatchFileItem item, BatchProcessGroup group)
+        {
+            item.GroupId = group.GroupId;
+            item.GroupName = group.GroupName;
+            item.Material = group.Material;
+            item.Process = group.Process;
+            item.ColorMode = group.ColorMode;
+            item.FilmType = group.FilmType;
+            item.MaterialType = group.MaterialType;
+            item.LayoutPattern = group.LayoutPattern;
+            item.Shape = group.Shape;
+            item.RoundRadius = group.RoundRadius;
+            item.ExportPath = group.ExportPath;
+        }
 
         /// <summary>
         /// 将阿拉伯数字转为中文数字，用于组别名：一组、二组……
@@ -857,6 +923,7 @@ namespace WindowsFormsApp3
                 AllowUserToDeleteRows = false,
                 AllowUserToResizeRows = false,
                 AutoGenerateColumns = false,
+                AllowDrop = true,
                 SelectionMode = DataGridViewSelectionMode.CellSelect,
                 MultiSelect = true,
                 Font = new Font("Microsoft YaHei UI", 8.5F),
@@ -920,6 +987,67 @@ namespace WindowsFormsApp3
 
             var bindingList = new BindingList<BatchFileItem>(grp.Items);
             dgv.DataSource = bindingList;
+
+            Rectangle dragBox = Rectangle.Empty;
+            dgv.MouseDown += (s, e) =>
+            {
+                dragBox = Rectangle.Empty;
+                if (e.Button != MouseButtons.Left || grp.IsLocked) return;
+
+                var hit = dgv.HitTest(e.X, e.Y);
+                if (hit.RowIndex < 0 || hit.RowIndex >= bindingList.Count) return;
+
+                if (!dgv.Rows[hit.RowIndex].Selected &&
+                    !dgv.Rows[hit.RowIndex].Cells.Cast<DataGridViewCell>().Any(cell => cell.Selected))
+                {
+                    dgv.ClearSelection();
+                    dgv.Rows[hit.RowIndex].Cells[Math.Max(0, hit.ColumnIndex)].Selected = true;
+                }
+
+                Size dragSize = SystemInformation.DragSize;
+                dragBox = new Rectangle(
+                    e.X - dragSize.Width / 2,
+                    e.Y - dragSize.Height / 2,
+                    dragSize.Width,
+                    dragSize.Height);
+            };
+
+            dgv.MouseMove += (s, e) =>
+            {
+                if ((e.Button & MouseButtons.Left) != MouseButtons.Left ||
+                    dragBox == Rectangle.Empty || dragBox.Contains(e.Location) || grp.IsLocked)
+                {
+                    return;
+                }
+
+                var selectedPaths = GetSelectedItemsFromGroupGrid(dgv, bindingList)
+                    .Select(item => item.FilePath)
+                    .Where(path => !string.IsNullOrWhiteSpace(path))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                dragBox = Rectangle.Empty;
+                if (selectedPaths.Count == 0) return;
+
+                dgv.DoDragDrop(new GroupDragPayload
+                {
+                    SourceGroupId = grp.GroupId,
+                    FilePaths = selectedPaths
+                }, DragDropEffects.Move);
+            };
+
+            dgv.DragEnter += (s, e) =>
+            {
+                e.Effect = CanAcceptGroupDrop(e.Data, grp) ? DragDropEffects.Move : DragDropEffects.None;
+            };
+            dgv.DragOver += (s, e) =>
+            {
+                e.Effect = CanAcceptGroupDrop(e.Data, grp) ? DragDropEffects.Move : DragDropEffects.None;
+            };
+            dgv.DragDrop += (s, e) =>
+            {
+                if (!(e.Data?.GetData(typeof(GroupDragPayload)) is GroupDragPayload payload)) return;
+                TryMoveFilesBetweenGroups(payload.SourceGroupId, grp.GroupId, payload.FilePaths);
+            };
 
             int totalHeight = dgv.ColumnHeadersHeight + grp.Items.Count * dgv.RowTemplate.Height + 2;
             dgv.Height = Math.Max(26, totalHeight);
@@ -1045,6 +1173,39 @@ namespace WindowsFormsApp3
             return dgv;
         }
 
+        private static List<BatchFileItem> GetSelectedItemsFromGroupGrid(
+            DataGridView dgv,
+            BindingList<BatchFileItem> items)
+        {
+            var rowIndices = new HashSet<int>();
+            foreach (DataGridViewCell cell in dgv.SelectedCells)
+            {
+                if (cell.RowIndex >= 0 && cell.RowIndex < items.Count)
+                {
+                    rowIndices.Add(cell.RowIndex);
+                }
+            }
+            foreach (DataGridViewRow row in dgv.SelectedRows)
+            {
+                if (row.Index >= 0 && row.Index < items.Count)
+                {
+                    rowIndices.Add(row.Index);
+                }
+            }
+
+            return rowIndices.OrderBy(index => index).Select(index => items[index]).ToList();
+        }
+
+        private bool CanAcceptGroupDrop(IDataObject data, BatchProcessGroup targetGroup)
+        {
+            if (targetGroup == null || targetGroup.IsLocked || targetGroup.IsPreserveGroup || data == null) return false;
+            if (!(data.GetData(typeof(GroupDragPayload)) is GroupDragPayload payload)) return false;
+
+            var sourceGroup = _processGroups.FirstOrDefault(group => group.GroupId == payload.SourceGroupId);
+            return sourceGroup != null && !sourceGroup.IsLocked && !sourceGroup.IsPreserveGroup &&
+                sourceGroup.GroupId != targetGroup.GroupId;
+        }
+
         public List<BatchFileItem> GetSelectedBatchItems()
         {
             var selectedList = new List<BatchFileItem>();
@@ -1152,62 +1313,92 @@ namespace WindowsFormsApp3
             {
                 var selectedItems = GetSelectedBatchItems();
                 if (selectedItems.Count == 0) return;
-
-                foreach (var sel in selectedItems)
-                {
-                    foreach (var g in _processGroups)
-                    {
-                        g.Items.RemoveAll(i => i.FilePath == sel.FilePath);
-                    }
-
-                    sel.GroupId = targetGroup.GroupId;
-                    sel.GroupName = targetGroup.GroupName;
-                    sel.Material = targetGroup.Material;
-                    sel.Process = targetGroup.Process;
-                    sel.ColorMode = targetGroup.ColorMode;
-                    sel.FilmType = targetGroup.FilmType;
-                    sel.MaterialType = targetGroup.MaterialType;
-                    sel.LayoutPattern = targetGroup.LayoutPattern;
-                    sel.Shape = targetGroup.Shape;
-                    sel.RoundRadius = targetGroup.RoundRadius;
-                    sel.ExportPath = targetGroup.ExportPath;
-                    sel.IsLocked = targetGroup.IsLocked;
-                    sel.IsSelected = false; // 移动后重置选择
-
-                    targetGroup.Items.Add(sel);
-
-                    var globalItem = _batchItems.FirstOrDefault(b => b.FilePath == sel.FilePath);
-                    if (globalItem != null)
-                    {
-                        globalItem.GroupId = sel.GroupId;
-                        globalItem.GroupName = sel.GroupName;
-                        globalItem.Material = sel.Material;
-                        globalItem.Process = sel.Process;
-                        globalItem.ColorMode = sel.ColorMode;
-                        globalItem.FilmType = sel.FilmType;
-                        globalItem.MaterialType = sel.MaterialType;
-                        globalItem.LayoutPattern = sel.LayoutPattern;
-                        globalItem.Shape = sel.Shape;
-                        globalItem.RoundRadius = sel.RoundRadius;
-                        globalItem.ExportPath = sel.ExportPath;
-                        globalItem.IsLocked = sel.IsLocked;
-                        globalItem.IsSelected = false;
-                    }
-                }
-
-                if (_processGroups.Count > 1)
-                {
-                    _processGroups.RemoveAll(g => g.Items.Count == 0);
-                }
-
-                RefreshGroupSummaryHeader();
-                RenderGroupCards();
-                dgvBatchFiles?.Refresh();
+                string sourceGroupId = selectedItems.Select(item => item.GroupId).Distinct().SingleOrDefault();
+                if (string.IsNullOrEmpty(sourceGroupId)) return;
+                TryMoveFilesBetweenGroups(sourceGroupId, targetGroup.GroupId, selectedItems.Select(item => item.FilePath));
             }
             catch (Exception ex)
             {
                 LogHelper.Error($"[MoveSelectedFilesToGroup] 移动文件到分组失败: {ex.Message}", ex);
             }
+        }
+
+        /// <summary>
+        /// 在两个未锁定联动组之间原子移动文件；任何校验失败均不修改集合。
+        /// </summary>
+        public bool TryMoveFilesBetweenGroups(
+            string sourceGroupId,
+            string targetGroupId,
+            IEnumerable<string> filePaths)
+        {
+            var paths = filePaths?
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList() ?? new List<string>();
+            if (paths.Count == 0 || string.IsNullOrEmpty(sourceGroupId) || string.IsNullOrEmpty(targetGroupId))
+            {
+                return false;
+            }
+
+            var sourceGroup = _processGroups.FirstOrDefault(group => group.GroupId == sourceGroupId);
+            var targetGroup = _processGroups.FirstOrDefault(group => group.GroupId == targetGroupId);
+            if (sourceGroup == null || targetGroup == null || sourceGroup == targetGroup ||
+                sourceGroup.IsLocked || targetGroup.IsLocked ||
+                sourceGroup.IsPreserveGroup || targetGroup.IsPreserveGroup)
+            {
+                return false;
+            }
+
+            var movingItems = new List<Tuple<BatchFileItem, BatchFileItem>>();
+            foreach (string path in paths)
+            {
+                var matches = sourceGroup.Items
+                    .Where(item => string.Equals(item.FilePath, path, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                var globalMatches = _batchItems
+                    .Where(item => string.Equals(item.FilePath, path, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                var groupMatches = _processGroups
+                    .SelectMany(group => group.Items.Select(item => new { Group = group, Item = item }))
+                    .Where(entry => string.Equals(entry.Item.FilePath, path, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                if (matches.Count != 1 || globalMatches.Count != 1 ||
+                    groupMatches.Count != 1 || !ReferenceEquals(groupMatches[0].Group, sourceGroup) ||
+                    !string.Equals(matches[0].GroupId, sourceGroupId, StringComparison.Ordinal) ||
+                    !string.Equals(globalMatches[0].GroupId, sourceGroupId, StringComparison.Ordinal) ||
+                    targetGroup.Items.Any(item => string.Equals(item.FilePath, path, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return false;
+                }
+                movingItems.Add(Tuple.Create(matches[0], globalMatches[0]));
+            }
+
+            foreach (var pair in movingItems)
+            {
+                var item = pair.Item1;
+                var globalItem = pair.Item2;
+                sourceGroup.Items.Remove(item);
+                ApplyGroupValues(item, targetGroup);
+                item.IsLocked = false;
+                item.IsSelected = false;
+                if (!ReferenceEquals(item, globalItem))
+                {
+                    ApplyGroupValues(globalItem, targetGroup);
+                    globalItem.IsLocked = false;
+                    globalItem.IsSelected = false;
+                }
+                targetGroup.Items.Add(item);
+            }
+
+            if (_processGroups.Count > 1 && sourceGroup.Items.Count == 0)
+            {
+                _processGroups.Remove(sourceGroup);
+            }
+
+            RefreshGroupSummaryHeader();
+            RenderGroupCards();
+            dgvBatchFiles?.Refresh();
+            return true;
         }
 
         public void CreateGroupFromSelectedFiles()
@@ -1375,10 +1566,28 @@ namespace WindowsFormsApp3
                 _batchItems.Add(item);
             }
             UpdateBatchOrderNumbers();
-            RebuildProcessGroups();
+            ReorderExistingGroupItems();
             RefreshGroupSummaryHeader();
             RenderGroupCards();
             dgvBatchFiles?.Refresh();
+        }
+
+        private void ReorderExistingGroupItems()
+        {
+            var orderByPath = _batchItems
+                .Select((item, index) => new { item.FilePath, Index = index })
+                .Where(entry => !string.IsNullOrWhiteSpace(entry.FilePath))
+                .GroupBy(entry => entry.FilePath, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First().Index, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var group in _processGroups)
+            {
+                group.Items = group.Items
+                    .OrderBy(item => orderByPath.TryGetValue(item.FilePath ?? string.Empty, out int index)
+                        ? index
+                        : int.MaxValue)
+                    .ToList();
+            }
         }
 
         public void SortBatchFilesByDimension(bool ascending = true)
@@ -1422,7 +1631,7 @@ namespace WindowsFormsApp3
                 }
 
                 UpdateBatchOrderNumbers();
-                RebuildProcessGroups();
+                ReorderExistingGroupItems();
                 RefreshGroupSummaryHeader();
                 RenderGroupCards();
                 dgvBatchFiles?.Refresh();

@@ -114,6 +114,36 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
+        [Fact]
+        public void ApplyTheme_ShouldKeepPrimaryBatchToolbarTextReadableInLightTheme()
+        {
+            var lightTheme = CreateTheme(
+                background: Color.FromArgb(248, 249, 250),
+                surface: Color.White,
+                surfaceLight: Color.White,
+                backHover: Color.FromArgb(245, 247, 250),
+                backActive: Color.FromArgb(230, 240, 255),
+                textPrimary: Color.FromArgb(33, 37, 41),
+                textSecondary: Color.FromArgb(108, 117, 125));
+
+            using (var form = CreateForm())
+            {
+                var handle = form.Handle;
+                form.SetPendingFiles(new[] { @"C:\test\ThemeJob_54x84.pdf" });
+
+                form.ApplyTheme(lightTheme);
+
+                var newGroupButton = GetField<AntdUI.Button>(form, "btnNewGroupDirect");
+
+                Assert.Equal(AntdUI.TTypeMini.Primary, newGroupButton.Type);
+                Assert.True(newGroupButton.ForeColor.HasValue, "主按钮必须设置文字颜色");
+                var textColor = newGroupButton.ForeColor.Value;
+                Assert.True(
+                    GetContrastRatio(lightTheme.Primary, textColor) >= 4.5D,
+                    $"浅色主题主按钮文字与主色背景的对比度不足: {GetContrastRatio(lightTheme.Primary, textColor):F2}");
+            }
+        }
+
         private static MaterialSelectFormModern CreateForm()
         {
             return new MaterialSelectFormModern(
@@ -171,6 +201,29 @@ namespace WindowsFormsApp3.Tests.Forms
                 .Controls
                 .OfType<DataGridView>()
                 .Single();
+        }
+
+        private static double GetContrastRatio(Color first, Color second)
+        {
+            double firstLuminance = GetRelativeLuminance(first);
+            double secondLuminance = GetRelativeLuminance(second);
+            return (Math.Max(firstLuminance, secondLuminance) + 0.05D) /
+                   (Math.Min(firstLuminance, secondLuminance) + 0.05D);
+        }
+
+        private static double GetRelativeLuminance(Color color)
+        {
+            double ConvertChannel(int channel)
+            {
+                double value = channel / 255D;
+                return value <= 0.03928D
+                    ? value / 12.92D
+                    : Math.Pow((value + 0.055D) / 1.055D, 2.4D);
+            }
+
+            return 0.2126D * ConvertChannel(color.R) +
+                   0.7152D * ConvertChannel(color.G) +
+                   0.0722D * ConvertChannel(color.B);
         }
 
         private static T GetField<T>(object instance, string fieldName)

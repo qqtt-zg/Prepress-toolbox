@@ -190,6 +190,346 @@ namespace WindowsFormsApp3.Tests.Forms
         }
 
         [Fact]
+        public void AppendPendingFiles_ShouldPreserveLockedGroupAndUseUnlockedLinkedGroup()
+        {
+            using (var form = CreateGroupTestForm())
+            {
+                var handle = form.Handle;
+                form.SetPendingFiles(new[] { @"C:\test\Locked.pdf", @"C:\test\Linked.pdf" });
+                var items = form.BatchFileItems;
+                var lockedItem = items[0];
+                var linkedItem = items[1];
+                var lockedGroup = CreateGroup("locked", true, lockedItem);
+                var linkedGroup = CreateGroup("linked", false, linkedItem);
+                form.ProcessGroups.Clear();
+                form.ProcessGroups.Add(lockedGroup);
+                form.ProcessGroups.Add(linkedGroup);
+
+                form.AppendPendingFile(@"C:\test\New&MT-PET.pdf");
+
+                Assert.True(lockedGroup.IsLocked);
+                Assert.Single(lockedGroup.Items);
+                Assert.Same(lockedItem, lockedGroup.Items[0]);
+                Assert.Equal("locked", lockedItem.GroupId);
+                Assert.Equal(2, linkedGroup.Items.Count);
+                Assert.Contains(linkedGroup.Items, item => item.FileName == "New&MT-PET.pdf");
+                Assert.All(linkedGroup.Items, item => Assert.Equal("linked", item.GroupId));
+            }
+        }
+
+        [Fact]
+        public void AppendPendingFiles_ShouldCreateUnlockedFallbackWhenNoLinkedGroupExists()
+        {
+            using (var form = CreateGroupTestForm())
+            {
+                var handle = form.Handle;
+                form.SetPendingFiles(new[] { @"C:\test\Locked.pdf" });
+                var lockedItem = form.BatchFileItems[0];
+                var lockedGroup = CreateGroup("locked", true, lockedItem);
+                form.ProcessGroups.Clear();
+                form.ProcessGroups.Add(lockedGroup);
+
+                form.AppendPendingFile(@"C:\test\New.pdf");
+
+                Assert.Equal(2, form.ProcessGroups.Count);
+                Assert.Same(lockedGroup, form.ProcessGroups[0]);
+                Assert.Single(lockedGroup.Items);
+                var fallback = form.ProcessGroups[1];
+                Assert.False(fallback.IsLocked);
+                Assert.False(fallback.IsPreserveGroup);
+                Assert.Single(fallback.Items);
+                Assert.Equal("New.pdf", fallback.Items[0].FileName);
+                Assert.Equal(fallback.GroupId, fallback.Items[0].GroupId);
+                Assert.Equal(form.SelectedMaterial ?? "未指派材料", fallback.Material);
+                Assert.Equal(form.FixedField ?? "", fallback.Process);
+                Assert.Equal(string.IsNullOrEmpty(form.ColorMode) ? "彩色" : form.ColorMode, fallback.ColorMode);
+                Assert.Equal(form.FilmType ?? "", fallback.FilmType);
+                Assert.Equal(form.SelectedShape.ToString(), fallback.Shape);
+                Assert.Equal(form.RoundRadius.ToString(), fallback.RoundRadius);
+                Assert.Equal(form.SelectedExportPath ?? "", fallback.ExportPath);
+            }
+        }
+
+        [Fact]
+        public void AppendPendingFiles_ShouldUseFirstEligibleGroupInDisplayOrder()
+        {
+            using (var form = CreateGroupTestForm())
+            {
+                var handle = form.Handle;
+                form.SetPendingFiles(new[] { @"C:\test\A.pdf", @"C:\test\B.pdf" });
+                var items = form.BatchFileItems;
+                var first = CreateGroup("first", false, items[0]);
+                var second = CreateGroup("second", false, items[1]);
+                form.ProcessGroups.Clear();
+                form.ProcessGroups.Add(first);
+                form.ProcessGroups.Add(second);
+
+                form.AppendPendingFile(@"C:\test\New.pdf");
+
+                Assert.Equal(2, first.Items.Count);
+                Assert.Single(second.Items);
+                Assert.Contains(first.Items, item => item.FileName == "New.pdf");
+            }
+        }
+
+        [Fact]
+        public void TryMoveFilesBetweenGroups_ShouldMoveOnlyBetweenUnlockedGroups()
+        {
+            using (var form = CreateGroupTestForm())
+            {
+                var handle = form.Handle;
+                form.SetPendingFiles(new[] { @"C:\test\A.pdf", @"C:\test\B.pdf" });
+                var items = form.BatchFileItems;
+                var source = CreateGroup("source", false, items[0]);
+                var target = CreateGroup("target", false, items[1]);
+                form.ProcessGroups.Clear();
+                form.ProcessGroups.Add(source);
+                form.ProcessGroups.Add(target);
+
+                bool moved = form.TryMoveFilesBetweenGroups("source", "target", new[] { items[0].FilePath });
+
+                Assert.True(moved);
+                Assert.DoesNotContain(source, form.ProcessGroups);
+                Assert.Equal(2, target.Items.Count);
+                Assert.Equal("target", items[0].GroupId);
+                Assert.Equal(target.Material, items[0].Material);
+            }
+        }
+
+        [Theory]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        public void TryMoveFilesBetweenGroups_ShouldRejectLockedEndpointsAtomically(
+            bool sourceLocked,
+            bool targetLocked)
+        {
+            using (var form = CreateGroupTestForm())
+            {
+                var handle = form.Handle;
+                form.SetPendingFiles(new[] { @"C:\test\A.pdf", @"C:\test\B.pdf" });
+                var items = form.BatchFileItems;
+                var source = CreateGroup("source", sourceLocked, items[0]);
+                var target = CreateGroup("target", targetLocked, items[1]);
+                form.ProcessGroups.Clear();
+                form.ProcessGroups.Add(source);
+                form.ProcessGroups.Add(target);
+
+                bool moved = form.TryMoveFilesBetweenGroups("source", "target", new[] { items[0].FilePath });
+
+                Assert.False(moved);
+                Assert.Single(source.Items);
+                Assert.Single(target.Items);
+                Assert.Equal("source", items[0].GroupId);
+                Assert.Equal("target", items[1].GroupId);
+            }
+        }
+
+        [Theory]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        public void TryMoveFilesBetweenGroups_ShouldRejectPreserveEndpoints(
+            bool sourcePreserve,
+            bool targetPreserve)
+        {
+            using (var form = CreateGroupTestForm())
+            {
+                var handle = form.Handle;
+                form.SetPendingFiles(new[] { @"C:\test\A.pdf", @"C:\test\B.pdf" });
+                var items = form.BatchFileItems;
+                var source = CreateGroup("source", false, items[0]);
+                var target = CreateGroup("target", false, items[1]);
+                source.IsPreserveGroup = sourcePreserve;
+                target.IsPreserveGroup = targetPreserve;
+                form.ProcessGroups.Clear();
+                form.ProcessGroups.Add(source);
+                form.ProcessGroups.Add(target);
+
+                bool moved = form.TryMoveFilesBetweenGroups("source", "target", new[] { items[0].FilePath });
+
+                Assert.False(moved);
+                Assert.Single(source.Items);
+                Assert.Single(target.Items);
+            }
+        }
+
+        [Fact]
+        public void TryMoveFilesBetweenGroups_ShouldRejectDuplicateOwnershipWithoutPartialMutation()
+        {
+            using (var form = CreateGroupTestForm())
+            {
+                var handle = form.Handle;
+                form.SetPendingFiles(new[] { @"C:\test\A.pdf", @"C:\test\B.pdf" });
+                var items = form.BatchFileItems;
+                var source = CreateGroup("source", false, items[0]);
+                var target = CreateGroup("target", false, items[1]);
+                var duplicateOwner = CreateGroup("duplicate", false, items[0]);
+                items[0].GroupId = "source";
+                form.ProcessGroups.Clear();
+                form.ProcessGroups.Add(source);
+                form.ProcessGroups.Add(target);
+                form.ProcessGroups.Add(duplicateOwner);
+
+                bool moved = form.TryMoveFilesBetweenGroups("source", "target", new[] { items[0].FilePath });
+
+                Assert.False(moved);
+                Assert.Single(source.Items);
+                Assert.Single(target.Items);
+                Assert.Single(duplicateOwner.Items);
+                Assert.Equal("source", items[0].GroupId);
+            }
+        }
+
+        [Fact]
+        public void SortBatchFilesByFileName_ShouldPreserveGroupsAndLocks()
+        {
+            using (var form = CreateGroupTestForm())
+            {
+                var handle = form.Handle;
+                form.SetPendingFiles(new[] { @"C:\test\Z.pdf", @"C:\test\A.pdf", @"C:\test\M.pdf" });
+                var items = form.BatchFileItems;
+                var lockedGroup = CreateGroup("locked", true, items[0], items[1]);
+                var linkedGroup = CreateGroup("linked", false, items[2]);
+                form.ProcessGroups.Clear();
+                form.ProcessGroups.Add(lockedGroup);
+                form.ProcessGroups.Add(linkedGroup);
+
+                form.SortBatchFilesByFileName(true);
+
+                Assert.Same(lockedGroup, form.ProcessGroups[0]);
+                Assert.Same(linkedGroup, form.ProcessGroups[1]);
+                Assert.True(lockedGroup.IsLocked);
+                Assert.Equal(new[] { "A.pdf", "Z.pdf" }, lockedGroup.Items.Select(item => item.FileName));
+                Assert.Equal(new[] { "A.pdf", "M.pdf", "Z.pdf" }, form.BatchFileItems.Select(item => item.FileName));
+                Assert.Equal(new[] { 1, 2, 3 }, form.BatchFileItems.Select(item => item.Index));
+            }
+        }
+
+        [Fact]
+        public void QuantityAndDimensionSorting_ShouldPreserveGroupIdentityAndOrderingProjection()
+        {
+            using (var form = CreateGroupTestForm())
+            {
+                var handle = form.Handle;
+                form.SetPendingFiles(new[] { @"C:\test\A.pdf", @"C:\test\B.pdf", @"C:\test\C.pdf" });
+                var items = form.BatchFileItems;
+                items[0].Quantity = "30";
+                items[1].Quantity = "10";
+                items[2].Quantity = "20";
+                items[0].Dimensions = "30×30";
+                items[1].Dimensions = "10×10";
+                items[2].Dimensions = "20×20";
+                var lockedGroup = CreateGroup("locked", true, items[0], items[1]);
+                var linkedGroup = CreateGroup("linked", false, items[2]);
+                form.ProcessGroups.Clear();
+                form.ProcessGroups.Add(lockedGroup);
+                form.ProcessGroups.Add(linkedGroup);
+
+                form.SortBatchFilesByQuantity(true);
+                Assert.Equal(new[] { "B.pdf", "A.pdf" }, lockedGroup.Items.Select(item => item.FileName));
+                Assert.Equal(new[] { "B.pdf", "C.pdf", "A.pdf" }, form.BatchFileItems.Select(item => item.FileName));
+
+                form.SortBatchFilesByDimension(false);
+                Assert.Equal(new[] { "A.pdf", "B.pdf" }, lockedGroup.Items.Select(item => item.FileName));
+                Assert.Equal(new[] { "A.pdf", "C.pdf", "B.pdf" }, form.BatchFileItems.Select(item => item.FileName));
+                Assert.Same(lockedGroup, form.ProcessGroups[0]);
+                Assert.Same(linkedGroup, form.ProcessGroups[1]);
+                Assert.True(lockedGroup.IsLocked);
+            }
+        }
+
+        [Fact]
+        public void ToggleBatchFileListPanel_ShouldNotRebuildExistingGroups()
+        {
+            using (var form = CreateGroupTestForm())
+            {
+                var handle = form.Handle;
+                form.SetPendingFiles(new[] { @"C:\test\A.pdf" });
+                var item = form.BatchFileItems[0];
+                var lockedGroup = CreateGroup("locked", true, item);
+                form.ProcessGroups.Clear();
+                form.ProcessGroups.Add(lockedGroup);
+
+                form.ToggleBatchFileListPanel(true);
+                form.ToggleBatchFileListPanel(false);
+                form.ToggleBatchFileListPanel(true);
+
+                Assert.Single(form.ProcessGroups);
+                Assert.Same(lockedGroup, form.ProcessGroups[0]);
+                Assert.True(lockedGroup.IsLocked);
+                Assert.Same(item, lockedGroup.Items[0]);
+            }
+        }
+
+        [Fact]
+        public void PresetContextMenu_ShouldBeSuppressedForDynamicLeftPanelDescendant()
+        {
+            using (var form = CreateGroupTestForm())
+            {
+                var handle = form.Handle;
+                form.SetPendingFiles(new[] { @"C:\test\A.pdf" });
+                form.ToggleBatchFileListPanel(true);
+                var leftPanel = form.Controls.Find("pnlFileList", true).Single();
+                var dynamicContainer = leftPanel.Controls.Find("pnlCardsContainer", true).Single();
+
+                Assert.True(form.IsPresetContextMenuSuppressed(dynamicContainer, false));
+                Assert.True(form.IsPresetContextMenuSuppressed(dynamicContainer, true));
+                Assert.False(form.IsPresetContextMenuSuppressed(form, false));
+                Assert.True(MaterialSelectFormModern.ShouldSuppressPresetContextMenu(false, true, true));
+                Assert.False(MaterialSelectFormModern.ShouldSuppressPresetContextMenu(false, true, false));
+            }
+        }
+
+        [Fact]
+        public void ShouldSuppressPresetContextMenu_ShouldHandleKeyboardFocusPath()
+        {
+            Assert.True(MaterialSelectFormModern.ShouldSuppressPresetContextMenu(false, true, true));
+            Assert.False(MaterialSelectFormModern.ShouldSuppressPresetContextMenu(false, true, false));
+            Assert.True(MaterialSelectFormModern.ShouldSuppressPresetContextMenu(true, false, false));
+        }
+
+        private static MaterialSelectFormModern CreateGroupTestForm()
+        {
+            return new MaterialSelectFormModern(
+                materials: new List<string> { "PET" },
+                fileName: @"C:\test\Initial.pdf",
+                regexResult: "Initial",
+                opacity: 1.0,
+                width: "54",
+                height: "84",
+                excelData: null,
+                searchColumnIndex: -1,
+                returnColumnIndex: -1,
+                serialColumnIndex: -1,
+                newColumnIndex: -1,
+                serialNumber: "1");
+        }
+
+        private static BatchProcessGroup CreateGroup(
+            string groupId,
+            bool isLocked,
+            params BatchFileItem[] items)
+        {
+            var group = new BatchProcessGroup
+            {
+                GroupId = groupId,
+                GroupName = groupId,
+                IsLocked = isLocked,
+                Material = groupId + "-material",
+                Process = groupId + "-process",
+                Items = items.ToList()
+            };
+            foreach (var item in items)
+            {
+                item.GroupId = group.GroupId;
+                item.GroupName = group.GroupName;
+                item.IsLocked = isLocked;
+                item.Material = group.Material;
+                item.Process = group.Process;
+            }
+            return group;
+        }
+
+        [Fact]
         public void MoveBatchItem_ShouldReorderItems_AndUpdateIndexAndOrderNumbers()
         {
             using (var form = new MaterialSelectFormModern(
