@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>大诚印前工具箱 · 材料选择框终版一体化工作台 (V4 官方定稿)</title>
+  <title>大诚印前工具箱 · 材料选择框一体化工作台 (V5 重构基准)</title>
   <style>
     :root {
       --bg: #eaedf2;
@@ -20,6 +20,19 @@
       --warning: #faad14;
       --danger: #ff4d4f;
       --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", sans-serif;
+
+      /* V5 实施尺寸契约：WinForms ClientSize，禁止按窗体外框尺寸换算 */
+      --station-width: 360px;
+      --batch-width: 520px;
+      --workbench-width: 880px;
+      --collapsed-client-height: 508px;
+      --preview-height: 245px;
+      --expanded-client-height: 753px;
+      --station-inset-x: 10px;
+      --station-inset-y: 6px;
+      --station-gap: 5px;
+      --titlebar-height: 26px;
+      --collapsebar-height: 16px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -72,6 +85,22 @@
       font-size: 12px;
       color: var(--text-secondary);
       margin-top: 4px;
+    }
+    .implementation-contract {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 11px;
+      color: #45505c;
+    }
+    .implementation-contract strong {
+      flex: 0 0 auto;
+      color: #0958d9;
+      background: #e6f4ff;
+      border: 1px solid #91caff;
+      border-radius: 3px;
+      padding: 1px 6px;
     }
 
     .controls-toolbar {
@@ -133,20 +162,25 @@
     .v4-workbench-wrapper {
       display: flex;
       align-items: stretch;
+      width: var(--workbench-width);
+      height: var(--collapsed-client-height);
       background: #ffffff;
       border-radius: 6px;
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
-      border: 1px solid #b0bac5;
+      border: 0;
+      outline: 1px solid #b0bac5;
       overflow: hidden;
       position: relative;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
+    .v4-workbench-wrapper.single-station { width: var(--station-width); }
+    .v4-workbench-wrapper.preview-expanded { height: var(--expanded-client-height); }
 
     /* ==========================================================================
-       左侧：待处理文件列表工作台 (宽度 520px · 严格还原 C# 源码)
+       左侧：现有待处理列表（宽度 520px · 复用当前 C# 组件，仅适配窗体高度）
        ========================================================================== */
     .v4-left-panel {
-      width: 520px;
+      width: var(--batch-width);
       background: #f8f9fa;
       border-right: 1px solid #d4dbe4;
       display: flex;
@@ -181,25 +215,6 @@
       align-items: center;
       gap: 6px;
     }
-    .v4-batch-fold-btn {
-      border: none;
-      background: transparent;
-      color: #64748b;
-      font-size: 11px;
-      cursor: pointer;
-      padding: 3px 8px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      font-weight: 600;
-      transition: all 0.15s;
-    }
-    .v4-batch-fold-btn:hover {
-      color: var(--primary);
-      background: #e2e8f0;
-    }
-
     /* 流式卡片组容器 (pnlCardsContainer · AutoScroll · 灰底 #f5f7fa) */
     .v4-cards-container {
       flex: 1;
@@ -430,18 +445,20 @@
     }
 
     /* ==========================================================================
-       右侧：颠覆性流水线工位 V4 (宽度 360px 固定)
+       右侧：V5 流水线工位（宽度 360px 固定）
        ========================================================================== */
     .v4-right-station {
-      width: 360px;
+      width: var(--station-width);
       background: #ffffff;
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
+      height: 100%;
     }
 
     .win-titlebar {
-      height: 26px;
+      flex-shrink: 0;
+      height: var(--titlebar-height);
       padding: 0 8px;
       background: #f8fafc;
       border-bottom: 1px solid var(--border-light);
@@ -468,29 +485,30 @@
     }
 
     .v4-container {
-      padding: 6px 10px;
+      padding: 6px var(--station-inset-x) 6px;
       display: flex;
       flex-direction: column;
       gap: 5px;
+      min-height: 0;
+      overflow: visible;
+      flex-shrink: 0;
+      background: #ffffff;
     }
+    .v4-container > * { flex-shrink: 0; }
+    .v4-craft-matrix,
+    .v4-param-pod,
+    .robust-imposition-card,
+    .action-bar-compact { margin-top: 0; }
 
-    /* 常用材料区 */
-    .mat-header-row {
+    /* 常用材料卡片 (独立白底细线框卡片封装) */
+    .mat-card-wrapper {
+      background: #ffffff;
+      border: 1px solid #d4dbe4;
+      border-radius: 4px;
+      padding: 6px 6px;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 11px;
-      color: var(--text-secondary);
-      margin-bottom: 2px;
+      flex-direction: column;
     }
-    .mat-clean-btn {
-      color: var(--danger);
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      font-size: 10px;
-    }
-    .mat-clean-btn:hover { text-decoration: underline; }
 
     .materials-grid-compact {
       display: grid;
@@ -501,7 +519,7 @@
       height: 26px;
       font-size: 11px;
       border: 1px solid var(--border);
-      background: #fff;
+      background: #ffffff;
       border-radius: 3px;
       cursor: pointer;
       padding: 0 2px;
@@ -531,12 +549,12 @@
       cursor: pointer;
     }
 
-    /* 独立全宽输出路径栏 */
+    /* 独立全宽输出路径栏 (白底+细线框) */
     .path-standalone-bar {
       display: flex;
       align-items: center;
-      height: 27px;
-      background: #f4f7fa;
+      height: 25px;
+      background: #ffffff;
       border: 1px solid #d4dbe4;
       border-radius: 4px;
       padding: 0 8px;
@@ -561,17 +579,17 @@
       border-radius: 3px;
       padding: 1px 6px;
       font-size: 11px;
-      height: 21px;
-      line-height: 19px;
+      height: 20px;
+      line-height: 18px;
     }
     .btn-standalone-browse {
-      height: 21px;
+      height: 20px;
       padding: 0 8px;
       border: 1px solid #b8c4d1;
       background: #fff;
       border-radius: 3px;
       cursor: pointer;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 500;
       color: #333d47;
       display: inline-flex;
@@ -586,21 +604,21 @@
       background: #f0f7ff;
     }
 
-    /* 全宽工艺开关矩阵 */
+    /* 全宽工艺开关矩阵 (白底+细线框) */
     .v4-craft-matrix {
       display: flex;
       flex-direction: column;
-      gap: 5px;
-      background: #fbfcfd;
-      border: 1px solid var(--border-light);
+      gap: 3px;
+      background: #ffffff;
+      border: 1px solid #d4dbe4;
       border-radius: 4px;
-      padding: 6px 8px;
+      padding: 4px 6px;
     }
     .v4-craft-row {
       display: flex;
       align-items: center;
       gap: 6px;
-      height: 25px;
+      height: 23px;
     }
     .v4-craft-lbl {
       font-size: 11px;
@@ -612,15 +630,15 @@
     .btn-segmented-group {
       display: flex;
       width: 100%;
-      height: 25px;
+      height: 23px;
     }
     .btn-segmented-sm {
       flex: 1;
-      height: 25px;
+      height: 23px;
       border: 1px solid var(--border);
       border-right: none;
       background: #fff;
-      font-size: 11px;
+      font-size: 10.5px;
       cursor: pointer;
       color: var(--text);
       display: flex;
@@ -672,22 +690,21 @@
       box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.25);
     }
 
-    /* 极简工单参数舱 (2×2 空间绝对均分) */
+    /* 极简工单参数舱 (白底+细线框) */
     .v4-param-pod {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6px 10px;
+      gap: 3px 6px;
       background: #ffffff;
       border: 1px solid #d4dbe4;
       border-radius: 4px;
-      padding: 6px 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      padding: 4px 6px;
     }
     .v4-pod-cell {
       display: flex;
       align-items: center;
       gap: 4px;
-      height: 25px;
+      height: 23px;
       min-width: 0;
     }
     .v4-pod-cell-lbl {
@@ -702,7 +719,7 @@
     .join-group {
       display: flex;
       align-items: center;
-      height: 24px;
+      height: 23px;
       flex: 1;
       min-width: 0;
       width: 100%;
@@ -793,15 +810,15 @@
     .btn-search-suffix:hover { color: var(--primary); background: #f0f7ff; }
     .btn-search-suffix.active { color: var(--primary); background: #e6f4ff; font-weight: bold; }
 
-    /* 排版参数与 6 宫格看板 */
+    /* 排版参数与 6 宫格看板 (白底+细线框) */
     .robust-imposition-card {
-      background: #f7f9fb;
-      border: 1px solid var(--border-light);
+      background: #ffffff;
+      border: 1px solid #d4dbe4;
       border-radius: 4px;
       padding: 4px 6px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
     }
     .impo-config-row {
       display: flex;
@@ -841,15 +858,15 @@
       font-weight: 700;
     }
 
-    /* 单尺寸纯净 6 宫格看板 */
+    /* 单尺寸纯净 6 宫格看板 (白底+细线框) */
     .metrics-pills-pure {
       display: grid;
       grid-template-columns: 48px 48px 40px 1fr 48px 50px;
       gap: 3px;
-      background: #fff;
-      padding: 4px 5px;
+      background: #ffffff;
+      padding: 3px 4px;
       border-radius: 4px;
-      border: 1px solid #dbe2ea;
+      border: 1px solid #d8e0ea;
       text-align: center;
       align-items: center;
     }
@@ -873,32 +890,22 @@
       line-height: 1.25;
       margin-top: 1px;
       white-space: nowrap;
-      cursor: pointer;
+      cursor: default;
       font-family: Consolas, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-    .metrics-pills-pure .metric-pill strong:hover {
+    .metrics-pills-pure .metric-pill[onclick] strong {
+      cursor: pointer;
+    }
+    .metrics-pills-pure .metric-pill[onclick] strong:hover {
       opacity: 0.8;
       text-decoration: underline;
     }
 
-    /* 快捷预设胶囊栏 */
-    .preset-capsules-bar {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      overflow-x: auto;
-      padding: 3px 2px;
-      background: #f8fafc;
-      border: 1px solid var(--border-light);
-      border-radius: 4px;
-      scrollbar-width: none;
-    }
-    .preset-capsules-bar::-webkit-scrollbar { display: none; }
     .btn-preset-pill {
       height: 23px;
-      padding: 0 10px;
-      border-radius: 12px;
-      font-size: 10.5px;
+      padding: 0 8px;
+      border-radius: 3px;
+      font-size: 11px;
       font-weight: 500;
       border: 1px solid #d3dbe4;
       background: #fff;
@@ -924,19 +931,126 @@
       box-shadow: 0 1px 3px rgba(22, 119, 255, 0.12);
     }
 
-    /* 底部操作行 */
+    /* V5 快捷方案导航卡：上行只选分组，下行才选具体预设 (白底+细线框) */
+    .preset-browser {
+      min-height: 55px;
+      margin: 0;
+      padding: 2px 6px 3px;
+      border: 1px solid #d4dbe4;
+      border-radius: 4px;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .preset-nav-row,
+    .preset-choice-row {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .preset-nav-row { height: 22px; }
+    .preset-choice-row { padding-top: 1px; }
+    .preset-groups,
+    .preset-choices {
+      min-width: 0;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+    /* 对应当前代码 AntdUI.Tabs + Tabs.StyleLine（不干胶 / 书籍标签页）。 */
+    .preset-groups {
+      gap: 0;
+      overflow: hidden;
+      border-bottom: 1px solid #e2e8f0;
+      align-self: stretch;
+    }
+    .btn-preset-group {
+      height: 22px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 0;
+      color: var(--text-secondary);
+      background: transparent;
+      font: 500 11px var(--font-family);
+      cursor: pointer;
+      white-space: nowrap;
+      position: relative;
+    }
+    .btn-preset-group em {
+      margin-left: 2px;
+      color: var(--text-muted);
+      font-size: 8px;
+      font-style: normal;
+      font-weight: 600;
+    }
+    .btn-preset-group:hover { color: var(--primary); background: transparent; }
+    .btn-preset-group.active {
+      color: var(--primary);
+      background: transparent;
+      font-weight: 700;
+    }
+    .btn-preset-group.active::after {
+      content: '';
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: 0;
+      height: 2px;
+      border-radius: 2px 2px 0 0;
+      background: var(--primary);
+    }
+    .preset-choices .btn-preset-pill {
+      height: 22px;
+      padding: 0 7px;
+      font-size: 10.5px;
+      background: #ffffff;
+      border-color: #ccd5e0;
+      flex-shrink: 0;
+    }
+    .preset-choices .btn-preset-pill:hover {
+      border-color: var(--primary);
+      background: #f0f7ff;
+    }
+    .preset-choices .btn-preset-pill.active {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: #0958d9;
+      box-shadow: none;
+    }
+    .preset-choices .btn-preset-pill.active::before { content: '✓'; }
+    .btn-preset-manage {
+      border: 0;
+      background: transparent;
+      color: var(--primary);
+      font: 500 10.5px var(--font-family);
+      cursor: pointer;
+      padding: 0;
+      flex: 0 0 auto;
+    }
+
+    /* 底部操作行：左侧范围控制，右侧决策提交，消除腰斩割裂感 */
     .action-bar-compact {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-top: 2px;
+      height: 28px;
+      padding-top: 3px;
       border-top: 1px solid var(--border-light);
+      min-width: 0;
+      flex-shrink: 0;
     }
+    .action-buttons-right { display: flex; gap: 4px; flex-shrink: 0; }
     .btn-action-sm {
-      height: 26px;
-      padding: 0 12px;
+      height: 24px;
+      padding: 0 10px;
       border-radius: 3px;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 600;
       cursor: pointer;
       border: 1px solid var(--border);
@@ -947,6 +1061,9 @@
       border-color: var(--primary);
       color: #fff;
     }
+    .btn-action-current { width: 80px; padding: 0; }
+    .btn-action-cancel { width: 46px; padding: 0; }
+    .btn-action-confirm { width: 112px; padding: 0; }
     .btn-action-sm.ghost {
       border-color: #d9d9d9;
       color: #555;
@@ -954,7 +1071,9 @@
 
     /* 折叠与预览面板 */
     .collapse-bar {
-      height: 16px;
+      margin-top: 0;
+      flex-shrink: 0;
+      height: var(--collapsebar-height);
       background: #f0f2f5;
       border-top: 1px solid var(--border-light);
       display: flex;
@@ -965,6 +1084,7 @@
       color: var(--text-muted);
       cursor: pointer;
       user-select: none;
+      transition: background 0.15s ease, color 0.15s ease;
     }
     .collapse-bar:hover {
       background: #e6f4ff;
@@ -972,14 +1092,15 @@
     }
 
     .preview-panel {
+      flex-shrink: 0;
       background: #23272e;
-      height: 245px;
+      height: var(--preview-height);
       display: flex;
       flex-direction: column;
       color: #abb2bf;
       border-top: 1px solid #3d4450;
       overflow: hidden;
-      transition: height 0.25s ease;
+      transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
     }
     .preview-panel.collapsed {
@@ -1212,22 +1333,120 @@
       color: #fff;
     }
 
-    /* 标尺辅助 */
-    .ruler {
-      margin-left: 12px;
-      width: 28px;
-      border-left: 2px dashed #9aa4b2;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+    /* 标尺辅助：展现自 0 到 753px 的全景空间，直观指示窗口高度向下展开 */
+    .ruler-station {
+      margin-left: 16px;
+      width: 140px;
+      height: 753px;
+      position: relative;
       pointer-events: none;
-      font-family: Consolas, monospace;
-      font-size: 10px;
-      color: #606a77;
-      padding-left: 4px;
+      user-select: none;
+      font-family: Consolas, -apple-system, BlinkMacSystemFont, "Segoe UI", monospace;
+      flex-shrink: 0;
     }
-    .ruler-mark-base { border-top: 1px solid #1677ff; width: 100%; color: #1677ff; font-weight: bold; }
-    .ruler-mark-preview { border-top: 1px dashed #ff4d4f; width: 100%; color: #cf1322; }
+    .ruler-axis {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 1px;
+      border-left: 2px dashed #b0bac5;
+    }
+    .ruler-mark-num {
+      position: absolute;
+      left: 6px;
+      font-size: 10px;
+      color: #8c95a3;
+      line-height: 1;
+    }
+    .ruler-anchor {
+      position: absolute;
+      left: 0;
+      right: 0;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+    }
+    .ruler-anchor-line {
+      width: 12px;
+      height: 1px;
+      flex-shrink: 0;
+    }
+    .ruler-anchor-text {
+      margin-left: 6px;
+      font-size: 10.5px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .base-anchor .ruler-anchor-line {
+      border-top: 2px solid #1677ff;
+    }
+    .base-anchor .ruler-anchor-text {
+      color: #1677ff;
+    }
+    .preview-anchor .ruler-anchor-line {
+      border-top: 2px dashed #ff4d4f;
+    }
+    .preview-anchor .ruler-anchor-text {
+      color: #cf1322;
+    }
+    .ruler-tracker {
+      position: absolute;
+      left: -2px;
+      right: 0;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      transition: top 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 2;
+    }
+    .ruler-tracker-bar {
+      width: 16px;
+      height: 2px;
+      background: #52c41a;
+      flex-shrink: 0;
+      box-shadow: 0 0 4px rgba(82, 196, 26, 0.6);
+    }
+    .ruler-tracker-badge {
+      margin-left: 6px;
+      background: #52c41a;
+      color: #ffffff;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      white-space: nowrap;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+      transition: background 0.25s ease;
+    }
+
+    /* 技术栈标注模式 (点击顶部复选框可一键切换显示) */
+    .show-tech-tags [data-tech] {
+      position: relative;
+    }
+    .show-tech-tags [data-tech]::after {
+      content: attr(data-tech);
+      position: absolute;
+      top: -7px;
+      right: 4px;
+      background: #0958d9;
+      color: #ffffff;
+      font-size: 8px;
+      font-family: Consolas, -apple-system, BlinkMacSystemFont, "Segoe UI", monospace;
+      padding: 0 4px;
+      border-radius: 2px;
+      line-height: 14px;
+      height: 14px;
+      z-index: 100;
+      pointer-events: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      white-space: nowrap;
+    }
+    .show-tech-tags [data-tech-lib="winforms"]::after { background: #531dab; }
+    .show-tech-tags [data-tech-lib="custom"]::after { background: #d46b08; }
+    .show-tech-tags [data-tech-lib="pdfium"]::after { background: #cf1322; }
   </style>
 </head>
 <body>
@@ -1236,19 +1455,23 @@
   <header class="header">
     <div class="header-title">
       <h1>
-        材料选择框终版一体化工作台
-        <span class="badge-status">方案 V4 定稿效果</span>
+        材料选择框一体化工作台
+        <span class="badge-status">V5 重构基准</span>
       </h1>
-      <p>展开总宽 880px (左侧待处理工作台 520px + 右侧颠覆性流水线工位 360px) · 常态高 345px</p>
+      <p id="sizeContract">客户区尺寸：批量 880×508px / 单款 360×508px；PDF 预览展开方向为增加窗口高度向下展示 (+245px 至 753px)。</p>
+      <div class="implementation-contract">
+        <strong>实施边界</strong>
+        <span>左侧沿用现有批量列表，仅随窗口高度适配；唯一切换入口为现有“批量处理”按钮；预设分组沿用当前“不干胶 / 书籍”的线型标签页；预设支持右键管理/另存（原型交互特性，界面不添加多余备注文本）；排版看板尺寸由文件自动识别解析，不可修改；右侧才是 V5 重构范围。</span>
+      </div>
     </div>
 
     <div class="controls-toolbar">
-      <button type="button" class="btn-action-tool" id="btnHeaderToggleLeft" onclick="toggleV4LeftPanel()">
-        ◀ 折叠左侧列表 (切为360px单工位)
-      </button>
-
+      <label class="switch-label" style="background: #f9f0ff; border: 1px solid #d3adf7; color: #531dab; font-weight: 600;">
+        <input type="checkbox" id="toggleTechStack" onchange="document.body.classList.toggle('show-tech-tags', this.checked)">
+        🏷️ 标注 UI 库技术栈 (AntdUI / WinForms / GDI+)
+      </label>
       <label class="switch-label">
-        <input type="checkbox" id="togglePreview" checked onchange="handleTogglePreview(this.checked)">
+        <input type="checkbox" id="togglePreview" onchange="handleTogglePreview(this.checked)">
         展开底部 PDF 预览 (+245px)
       </label>
     </div>
@@ -1256,18 +1479,15 @@
 
   <!-- 主展示舞台 -->
   <main class="stage">
-    <div style="display: flex; align-items: stretch;">
+    <div style="display: flex; align-items: flex-start;">
       <div class="v4-workbench-wrapper" id="v4WorkbenchWin">
-        <!-- ==================== 【左侧批量排版工作台】 (100% 严格还原当前 C# 代码架构 · 宽 520px) ==================== -->
-        <div class="v4-left-panel" id="v4LeftBatchPanel">
+        <!-- 左侧区域是既有 pnlFileList 的视觉占位：V5 不重构其卡片、表格、锁定、排序或批量业务逻辑。 -->
+        <div class="v4-left-panel" id="v4LeftBatchPanel" data-tech="WinForms Panel + DataGridView + GDI+自绘头卡片" data-tech-lib="custom">
           <!-- 1. 顶部状态标题栏 (pnlTopBatchHeader · 高 36px) -->
           <div class="v4-batch-header">
             <div class="v4-batch-title">
               <span id="v4LblBatchTitle">待处理 (4款 · 2组)</span>
             </div>
-            <button type="button" class="v4-batch-fold-btn" onclick="toggleV4LeftPanel()" title="折叠左侧待处理列表">
-              ◀ 收起列表
-            </button>
           </div>
 
           <!-- 2. 流式卡片组容器 (pnlCardsContainer · AutoScroll · 灰底 #f5f7fa) -->
@@ -1403,14 +1623,11 @@
           </div>
         </div>
 
-        <!-- ==================== 【右侧颠覆性流水线工位】 (宽度 360px 固定) ==================== -->
+        <!-- 右侧是 V5 的唯一 UI 重构范围；所有尺寸以 :root 的 V5 实施尺寸契约为准。 -->
         <div class="v4-right-station" id="v4RightStation">
           <!-- 标题栏 (26px) -->
-          <div class="win-titlebar">
-            <div style="display: flex; align-items: center; gap: 6px; overflow: hidden;">
-              <button type="button" class="btn-standalone-browse" id="btnToggleLeftFold" onclick="toggleV4LeftPanel()" style="height: 20px; font-size: 10px; padding: 0 5px;" title="点击展开/折叠左侧待处理列表">
-                ◀ 待处理列表
-              </button>
+          <div class="win-titlebar" data-tech="WinForms Panel + AntdUI.Label">
+            <div style="display: flex; align-items: center; overflow: hidden;">
               <span class="win-title" id="v4ActiveFileName">铭牌_A款_80×45mm.pdf</span>
             </div>
             <button class="pin-btn" title="窗口置顶">📌</button>
@@ -1418,15 +1635,8 @@
 
           <!-- 主体内容容器 -->
           <div class="v4-container">
-            <!-- 1. 常用材料区 (4列紧凑 + 状态展示 + ×一键清除) -->
-            <div>
-              <div class="mat-header-row">
-                <span>常用材料 <span style="color: var(--text-muted); font-size: 10px;">(4列紧凑)</span></span>
-                <div>
-                  <span id="matStatusTextV4" style="color: var(--primary); font-weight: 600; font-size: 10px;">已选: PET哑光</span>
-                  <button class="mat-clean-btn" onclick="clearMatV4()" title="清空材料选择">× 清除</button>
-                </div>
-              </div>
+            <!-- 1. 常用材料区 (独立白底线框卡片 · 4列紧凑) -->
+            <div class="mat-card-wrapper" data-tech="AntdUI.Button (4×4网格) + AntdUI.Select">
               <div class="materials-grid-compact" id="matGridV4">
                 <button class="btn-mat-compact" onclick="selectMatV4(this)">PET</button>
                 <button class="btn-mat-compact" onclick="selectMatV4(this)">PP</button>
@@ -1452,7 +1662,7 @@
             </div>
 
             <!-- 2. 【已确认可用部件 2 · 独立全宽输出路径栏】(27px，保持100%不变) -->
-            <div class="path-standalone-bar">
+            <div class="path-standalone-bar" data-tech="WinForms Panel + AntdUI.Input + ToolStripDropDown(TreeView)">
               <span class="path-standalone-lbl">输出:</span>
               <span class="path-standalone-val" id="v4PathDisplay" title="当前目标输出目录">D:\生产输出\今日输出</span>
               <button class="btn-standalone-browse" onclick="toggleV4PathDropdown()">📂 切换目录 ▾</button>
@@ -1474,7 +1684,7 @@
             </div>
 
             <!-- 3. 【全宽工艺开关矩阵】(满宽340px，80px大按钮彻底不挤，圆角原地无缝切换R) -->
-            <div class="v4-craft-matrix">
+            <div class="v4-craft-matrix" data-tech="AntdUI.Segmented (覆膜/形状) + 复合圆角面板">
               <!-- 覆膜整行全宽展开 -->
               <div class="v4-craft-row">
                 <span class="v4-craft-lbl">覆膜</span>
@@ -1506,7 +1716,7 @@
             </div>
 
             <!-- 4. 【极简工单舱 · 4大区域空间均等分配 (订单 / 序号 / 数量 / 一式N联 2×2 绝对均分)】 -->
-            <div class="v4-param-pod">
+            <div class="v4-param-pod" data-tech="WinForms TableLayoutPanel + AntdUI.Input/Select/Checkbox">
               <!-- 象限 1 (左上 50%): 订单 -->
               <div class="v4-pod-cell">
                 <span class="v4-pod-cell-lbl">订单</span>
@@ -1555,7 +1765,7 @@
             </div>
 
             <!-- 5. 【已确认可用部件 1 · 纯净 6 宫格大字排版看板】 -->
-            <div class="robust-imposition-card" style="margin-top: 2px;">
+            <div class="robust-imposition-card" style="margin-top: 2px;" data-tech="WinForms Panel + AntdUI.Checkbox/Segmented + 6宫格看板">
               <div class="impo-config-row">
                 <label style="font-weight: 600; display: flex; align-items: center; gap: 3px; font-size: 11px;">
                   <input type="checkbox" checked> 启用自动排版计算
@@ -1595,9 +1805,9 @@
                   <strong id="v4RotationVal" style="color: #722ed1;">0°</strong>
                 </div>
 
-                <!-- 4. 纯净尺寸 (仅标“尺寸”，弹性自适应宽，字号12px加粗等宽，100%完整) -->
-                <div class="metric-pill" onclick="promptV4Dimensions()" style="background: #f0f7ff; border-radius: 3px; border: 1px solid #91caff; padding: 2px 2px;" title="成品尺寸 (点击可微调)">
-                  <span style="color: #0958d9; font-weight: bold;">尺寸</span>
+                <!-- 4. 纯净尺寸 (PDF自动解析识别，不可修改，无额外底色边框) -->
+                <div class="metric-pill" title="成品尺寸 (PDF自动解析，不可修改)">
+                  <span>尺寸</span>
                   <strong id="v4DimensionVal" style="color: #0958d9;">75×15</strong>
                 </div>
 
@@ -1614,42 +1824,49 @@
                 </div>
               </div>
 
-              <!-- 页面框异常阻断预检模拟按钮 (界面0占用) -->
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 2px 1px;">
-                <span style="font-size: 9px; color: #52c41a;">🛡️ 智能预检防御就绪：页面框异常即弹窗阻断</span>
-                <button type="button" style="background: #fffbe6; border: 1px solid #ffe58f; border-radius: 3px; font-size: 9.5px; color: #ad6800; font-weight: bold; cursor: pointer; padding: 1px 6px;" onclick="openPageBoxModal()">
-                  ⚠️ 模拟：触发页面框异常警告弹窗
-                </button>
+            </div>
+
+            <!-- 6. 快捷预设方案导航栏 (紧随排版看板之后，完成工艺与参数配置闭环) -->
+            <div class="preset-browser" id="presetBrowserV5" data-tech="AntdUI.Tabs(StyleLine) + FlowLayoutPanel + ContextMenuStrip">
+              <div class="preset-nav-row">
+                <div class="preset-groups">
+                  <button class="btn-preset-group active" type="button" onclick="selectPresetGroup('标签', this)">标签 <em>3</em></button>
+                  <button class="btn-preset-group" type="button" onclick="selectPresetGroup('不干胶', this)">不干胶 <em>2</em></button>
+                  <button class="btn-preset-group" type="button" onclick="selectPresetGroup('卷装', this)">卷装 <em>1</em></button>
+                  <button class="btn-preset-group" type="button" onclick="showToast('⚙️ 打开全部预设分组与排序管理')">更多 ▾</button>
+                </div>
+                <button class="btn-preset-manage" type="button" onclick="showToast('⚙️ 打开预设分组管理：新建分组、排序、改名与归类')">管理</button>
+              </div>
+              <div class="preset-choice-row">
+                <div class="preset-choices" id="presetChoicesV5">
+                  <button type="button" class="btn-preset-pill active" data-preset-group="标签" onclick="applyPresetV4('铭牌75×15', this, '标签')" oncontextmenu="handlePresetContextMenu(event, '★ 铭牌75×15')">铭牌75×15</button>
+                  <button type="button" class="btn-preset-pill" data-preset-group="标签" onclick="applyPresetV4('PET平张连拼', this, '标签')" oncontextmenu="handlePresetContextMenu(event, 'PET平张')">PET 平张</button>
+                  <button type="button" class="btn-preset-pill" data-preset-group="标签" onclick="applyPresetV4('透明PET', this, '标签')">透明 PET</button>
+                  <button type="button" class="btn-preset-pill" data-preset-group="不干胶" style="display:none" onclick="applyPresetV4('圆角不干胶', this, '不干胶')" oncontextmenu="handlePresetContextMenu(event, '圆角不干胶')">圆角不干胶</button>
+                  <button type="button" class="btn-preset-pill" data-preset-group="不干胶" style="display:none" onclick="applyPresetV4('哑膜不干胶', this, '不干胶')" oncontextmenu="handlePresetContextMenu(event, '哑膜不干胶')">哑膜不干胶</button>
+                  <button type="button" class="btn-preset-pill" data-preset-group="卷装" style="display:none" onclick="applyPresetV4('卷装折手', this, '卷装')" oncontextmenu="handlePresetContextMenu(event, '卷装折手')">卷装折手</button>
+                </div>
               </div>
             </div>
 
-            <!-- 6. 【纯净快捷预设胶囊栏】(去标题、去齿轮，纯净预设平铺，右键呼出完整管理菜单) -->
-            <div class="preset-capsules-bar" oncontextmenu="handlePresetContextMenu(event, '全局')">
-              <button type="button" class="btn-preset-pill active" onclick="applyPresetV4('铭牌75×15', this)" oncontextmenu="handlePresetContextMenu(event, '★ 铭牌75×15')">★ 铭牌75×15</button>
-              <button type="button" class="btn-preset-pill" onclick="applyPresetV4('PET平张连拼', this)" oncontextmenu="handlePresetContextMenu(event, 'PET平张')">PET平张</button>
-              <button type="button" class="btn-preset-pill" onclick="applyPresetV4('圆角不干胶', this)" oncontextmenu="handlePresetContextMenu(event, '圆角不干胶')">圆角不干胶</button>
-              <button type="button" class="btn-preset-pill" onclick="applyPresetV4('卷装折手', this)" oncontextmenu="handlePresetContextMenu(event, '卷装折手')">卷装折手</button>
-            </div>
-
-            <!-- 7. 底部操作栏 (28px - 纯净专注操作，去除了多余的新建预设按钮，右键预设即可管理) -->
-            <div class="action-bar-compact">
-              <span style="font-size: 10px; color: var(--text-muted); line-height: 1; user-select: none;">💡 预设支持右键管理/另存</span>
-              <div style="display: flex; gap: 6px;">
-                <button class="btn-action-sm ghost" id="v4BtnSingleApply" onclick="applyOnlyCurrentFile()">仅处理当前款</button>
-                <button class="btn-action-sm ghost" onclick="showToast('已取消本次操作')">取消</button>
-                <button class="btn-action-sm primary" id="v4BtnMainConfirm" onclick="confirmBatchOrSingle()">批量处理全部 (4款)</button>
+            <!-- 7. 底部操作栏：左侧处理范围切换，右侧终审决策提交，彻底消除腰斩与割裂感 -->
+            <div class="action-bar-compact" data-tech="WinForms Panel + AntdUI.Button (Ghost/Primary)">
+              <button class="btn-action-sm ghost btn-action-current" id="v4BtnScopeToggle" onclick="toggleV4LeftPanel()" title="切换仅处理当前款 / 批量处理">仅处理当前款</button>
+              <div class="action-buttons-right">
+                <button class="btn-action-sm ghost btn-action-cancel" onclick="showToast('已取消本次操作')">取消</button>
+                <button class="btn-action-sm primary btn-action-confirm" id="v4BtnMainConfirm" onclick="confirmBatchOrSingle()">确认并继续</button>
               </div>
             </div>
           </div>
 
           <!-- 折叠预览控制条 -->
-          <div class="collapse-bar" onclick="toggleLocalPreview('winV4')">
+          <div class="collapse-bar" onclick="toggleLocalPreview('winV4')" data-tech="WinForms Panel / AntdUI.Button (16px 折叠条)">
             <span>页码: 1/1</span>
-            <span id="txtArrowV4">▲ 点击展开预览 (+245px)</span>
+            <span id="txtArrowV4">▼ 点击展开预览 (+245px)</span>
           </div>
 
           <!-- 可折叠 PDF 预览 (展开真实 245px 网格拼版图) -->
-          <div class="preview-panel collapsed" id="previewV4">
+          <div class="preview-panel collapsed" id="previewV4" data-tech="PdfiumViewer / PdfPreviewControl (真实PDF预览)" data-tech-lib="pdfium">
             <div class="preview-toolbar-inner">
               <span>📄 拼版版面: 80×45mm (5行×3列 / 共15拼)</span>
               <span>100% 页面适配</span>
@@ -1680,18 +1897,32 @@
         </div>
       </div>
 
-      <!-- 右侧像素刻度标尺 -->
-      <div class="ruler">
-        <span style="top:0;">0</span>
-        <span class="ruler-mark-base" style="position:absolute; top:345px;">345</span>
-        <span class="ruler-mark-preview" style="position:absolute; bottom:0;">590</span>
+      <!-- 右侧像素刻度标尺 (固定 753px 全高空间，直观展示 508px 常态折叠与 753px 向下展开) -->
+      <div class="ruler-station" id="rulerStation">
+        <div class="ruler-axis"></div>
+        <span class="ruler-mark-num" style="top: 0;">0</span>
+        <!-- 508px 常态折叠基准底线 -->
+        <div class="ruler-anchor base-anchor" style="top: 508px;">
+          <span class="ruler-anchor-line"></span>
+          <span class="ruler-anchor-text">508 常态折叠</span>
+        </div>
+        <!-- 753px 展开预览扩展底线 (+245px) -->
+        <div class="ruler-anchor preview-anchor" style="top: 753px;">
+          <span class="ruler-anchor-line"></span>
+          <span class="ruler-anchor-text">753 预览展开 (+245)</span>
+        </div>
+        <!-- 窗口底边动态跟踪游标 -->
+        <div class="ruler-tracker" id="rulerTracker" style="top: 508px;">
+          <span class="ruler-tracker-bar"></span>
+          <span class="ruler-tracker-badge" id="rulerTrackerBadge">当前 508px</span>
+        </div>
       </div>
     </div>
   </main>
 
   <script>
     // =========================================================================
-    // 方案 V4 一体化双联工作台：交互逻辑
+    // V5 一体化工作台：范围切换只使用底部“仅处理当前款 / 批量处理”同一个按钮。
     // =========================================================================
     let isV4LeftPanelExpanded = true;
     const mockFilesData = {
@@ -1705,27 +1936,24 @@
     // 切换左侧待处理列表的展开与折叠
     function toggleV4LeftPanel() {
       const panel = document.getElementById('v4LeftBatchPanel');
-      const btnFold = document.getElementById('btnToggleLeftFold');
-      const btnHeader = document.getElementById('btnHeaderToggleLeft');
+      const btnScope = document.getElementById('v4BtnScopeToggle');
       const btnMain = document.getElementById('v4BtnMainConfirm');
-      const btnSingle = document.getElementById('v4BtnSingleApply');
+      const workbench = document.getElementById('v4WorkbenchWin');
 
       if (!panel) return;
       isV4LeftPanelExpanded = !isV4LeftPanelExpanded;
 
       if (isV4LeftPanelExpanded) {
         panel.classList.remove('collapsed');
-        if (btnFold) btnFold.textContent = '◀ 待处理列表';
-        if (btnHeader) btnHeader.textContent = '◀ 折叠左侧列表 (切为360px单工位)';
-        if (btnMain) btnMain.textContent = '批量处理全部 (4款)';
-        if (btnSingle) btnSingle.style.display = 'inline-block';
+        if (workbench) workbench.classList.remove('single-station');
+        if (btnScope) btnScope.textContent = '仅处理当前款';
+        if (btnMain) btnMain.textContent = '确认并继续';
         showToast('📂 已展开左侧待处理列表工作台 (多款批量排版模式)');
       } else {
         panel.classList.add('collapsed');
-        if (btnFold) btnFold.textContent = '▶ 展开待处理列表 (4)';
-        if (btnHeader) btnHeader.textContent = '▶ 展开左侧列表 (切为880px工作台)';
+        if (workbench) workbench.classList.add('single-station');
+        if (btnScope) btnScope.textContent = '批量处理';
         if (btnMain) btnMain.textContent = '确认并继续';
-        if (btnSingle) btnSingle.style.display = 'none';
         showToast('📁 已折叠左侧列表，切换为 360px 纯净单工位模式');
       }
     }
@@ -1887,17 +2115,20 @@
     function selectMatV4(btn) {
       document.querySelectorAll('#matGridV4 .btn-mat-compact').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      document.getElementById('matStatusTextV4').textContent = '已选: ' + btn.textContent.trim();
+      const el = document.getElementById('matStatusTextV4');
+      if (el) el.textContent = '已选: ' + btn.textContent.trim();
     }
     function selectDropdownMatV4(val) {
       if (val && !val.includes('更多材料')) {
         document.querySelectorAll('#matGridV4 .btn-mat-compact').forEach(b => b.classList.remove('active'));
-        document.getElementById('matStatusTextV4').textContent = '已选: ' + val;
+        const el = document.getElementById('matStatusTextV4');
+        if (el) el.textContent = '已选: ' + val;
       }
     }
     function clearMatV4() {
       document.querySelectorAll('#matGridV4 .btn-mat-compact').forEach(b => b.classList.remove('active'));
-      document.getElementById('matStatusTextV4').textContent = '未选择材料';
+      const el = document.getElementById('matStatusTextV4');
+      if (el) el.textContent = '未选择材料';
     }
 
     // 形状分段与圆角原地切换
@@ -1980,10 +2211,26 @@
       }
     }
 
+    // 尺寸契约：常态折叠客户区 508px，展开 PDF 预览向下增加 245px 达到 753px。
+    window.addEventListener('load', () => {
+      // 默认确保初始为常态折叠状态
+      handleTogglePreview(false);
+    });
+
     // 预设按钮一键加载
-    function applyPresetV4(presetName, btn) {
+    function selectPresetGroup(groupName, button) {
+      if (groupName === '更多') return;
+      document.querySelectorAll('#presetBrowserV5 .btn-preset-group').forEach(b => b.classList.remove('active'));
+      button.classList.add('active');
+      document.querySelectorAll('#presetChoicesV5 .btn-preset-pill').forEach(b => {
+        b.style.display = b.dataset.presetGroup === groupName ? 'inline-flex' : 'none';
+      });
+      showToast(`📂 正在浏览预设分组：<b>${groupName}</b>（浏览不改变当前工单）`);
+    }
+
+    function applyPresetV4(presetName, btn, groupName) {
       if (btn) {
-        btn.parentElement.querySelectorAll('.btn-preset-pill').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('#presetChoicesV5 .btn-preset-pill').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
       }
 
@@ -2011,6 +2258,8 @@
         const bleed = document.getElementById('v4BleedVal');
         if (bleed) bleed.textContent = '2.0mm';
         showToast('⚡ 已一键应用预设 <b>[卷装折手]</b>：卷装折手 · 一式2联 · 100×60mm');
+      } else {
+        showToast(`⚡ 已一键应用预设 <b>[${presetName}]</b>`);
       }
     }
 
@@ -2050,26 +2299,51 @@
       if (menu) menu.style.display = 'none';
     });
 
-    // 预览展开/折叠
+    // 预览展开/折叠：增加窗口高度向下展示 (+245px)
     function handleTogglePreview(isExpanded) {
       const p = document.getElementById('previewV4');
       const a = document.getElementById('txtArrowV4');
-      if (!p || !a) return;
+      const workbench = document.getElementById('v4WorkbenchWin');
+      const chk = document.getElementById('togglePreview');
+      const tracker = document.getElementById('rulerTracker');
+      const trackerBadge = document.getElementById('rulerTrackerBadge');
+      if (!p || !a || !workbench) return;
+
+      // 清除可能残留的内联 height，完全交由 CSS 尺寸契约与 preview-expanded 类控制
+      workbench.style.removeProperty('height');
+
+      if (chk && chk.checked !== isExpanded) {
+        chk.checked = isExpanded;
+      }
+
       if (isExpanded) {
         p.classList.remove('collapsed');
-        a.textContent = '▼ 点击折叠预览';
+        workbench.classList.add('preview-expanded');
+        a.textContent = '▲ 点击折叠预览';
+        if (tracker) tracker.style.top = '753px';
+        if (trackerBadge) {
+          trackerBadge.textContent = '当前 753px (已向下展开+245)';
+          trackerBadge.style.background = '#1677ff';
+        }
+        showToast('📄 窗口高度已向下增加 245px 展现 PDF 预览 (753px)');
       } else {
         p.classList.add('collapsed');
-        a.textContent = '▲ 点击展开预览 (+245px)';
+        workbench.classList.remove('preview-expanded');
+        a.textContent = '▼ 点击展开预览 (+245px)';
+        if (tracker) tracker.style.top = '508px';
+        if (trackerBadge) {
+          trackerBadge.textContent = '当前 508px (常态折叠)';
+          trackerBadge.style.background = '#52c41a';
+        }
+        showToast('📁 预览面板已收起折叠，窗口恢复 508px 常态高度');
       }
     }
 
     function toggleLocalPreview(winId) {
       const chk = document.getElementById('togglePreview');
-      if (chk) {
-        chk.checked = !chk.checked;
-        handleTogglePreview(chk.checked);
-      }
+      const shouldExpand = chk ? !chk.checked : !document.getElementById('v4WorkbenchWin').classList.contains('preview-expanded');
+      if (chk) chk.checked = shouldExpand;
+      handleTogglePreview(shouldExpand);
     }
 
     // 页面框异常弹窗
