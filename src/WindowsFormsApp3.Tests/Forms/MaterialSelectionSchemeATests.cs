@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using WindowsFormsApp3.Models;
 using Xunit;
@@ -9,6 +10,9 @@ namespace WindowsFormsApp3.Tests.Forms
 {
     public class MaterialSelectionSchemeATests
     {
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern bool SetDllDirectory(string pathName);
+
         public MaterialSelectionSchemeATests()
         {
             if (!WindowsFormsApp3.Utils.AppSettings.IsInitialized)
@@ -16,6 +20,47 @@ namespace WindowsFormsApp3.Tests.Forms
                 WindowsFormsApp3.Utils.AppSettings.Initialize(new WindowsFormsApp3.Services.FileLogger(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "MaterialSelectionSchemeATests")));
             }
         }
+
+        [Fact]
+        public void PageCountColumn_ShouldBindToRealPageCount_AndBeReadOnly()
+        {
+            using var column = MaterialSelectFormModern.CreatePageCountColumn(45);
+
+            Assert.Equal(nameof(BatchFileItem.PageCount), column.DataPropertyName);
+            Assert.Equal("页数", column.HeaderText);
+            Assert.Equal(45, column.Width);
+            Assert.True(column.ReadOnly);
+        }
+
+        [Fact]
+        public void ResolveActualPageCount_ShouldReadEveryPageFromThePdf()
+        {
+            var pdfPath = System.IO.Path.Combine(
+                System.IO.Path.GetTempPath(),
+                $"material-page-count-{Guid.NewGuid():N}.pdf");
+
+            try
+            {
+                SetDllDirectory(System.IO.Path.Combine(AppContext.BaseDirectory, "x64"));
+                using (var writer = new iText.Kernel.Pdf.PdfWriter(pdfPath))
+                using (var document = new iText.Kernel.Pdf.PdfDocument(writer))
+                {
+                    document.AddNewPage();
+                    document.AddNewPage();
+                    document.AddNewPage();
+                }
+
+                Assert.Equal(3, MaterialSelectFormModern.ResolveActualPageCount(pdfPath));
+            }
+            finally
+            {
+                if (System.IO.File.Exists(pdfPath))
+                {
+                    System.IO.File.Delete(pdfPath);
+                }
+            }
+        }
+
         [Fact]
         public void ExtractOrderNumberByRegex_ShouldMatchFullFileName_WithExtension_ConsistentWithMainShell()
         {
@@ -617,8 +662,9 @@ namespace WindowsFormsApp3.Tests.Forms
             var dt = new System.Data.DataTable();
             dt.Columns.Add("ModelName", typeof(string));
             dt.Columns.Add("Qty", typeof(string));
-            dt.Rows.Add("ItemA", "888");
-            dt.Rows.Add("ItemB", "999");
+            dt.Columns.Add("Serial", typeof(string));
+            dt.Rows.Add("ItemA", "888", "A-008");
+            dt.Rows.Add("ItemB", "999", "B-009");
 
             using (var form = new MaterialSelectFormModern(
                 materials: new List<string> { "PET" },
@@ -630,7 +676,7 @@ namespace WindowsFormsApp3.Tests.Forms
                 excelData: dt,
                 searchColumnIndex: 0,
                 returnColumnIndex: 1,
-                serialColumnIndex: -1,
+                serialColumnIndex: 2,
                 newColumnIndex: -1,
                 serialNumber: "1"))
             {
@@ -645,11 +691,49 @@ namespace WindowsFormsApp3.Tests.Forms
                 Assert.Equal(3, form.BatchFileItems.Count);
                 // ItemA 命中 Excel 第一行 -> 888
                 Assert.Equal("888", form.BatchFileItems[0].Quantity);
+                Assert.Equal("A-008", form.BatchFileItems[0].SerialNumber);
                 // ItemB 命中 Excel 第二行 -> 999
                 Assert.Equal("999", form.BatchFileItems[1].Quantity);
+                Assert.Equal("B-009", form.BatchFileItems[1].SerialNumber);
                 // ItemC 未在 Excel 命中 -> 独立默认 1
                 Assert.Equal("1", form.BatchFileItems[2].Quantity);
+                Assert.Equal("3", form.BatchFileItems[2].SerialNumber);
             }
+        }
+
+        [Fact]
+        public void ResolveAllExcelMatchData_WhenOneFileMatchesMultipleRows_ShouldReturnEachQuantityInExcelOrder()
+        {
+            var dt = new System.Data.DataTable();
+            dt.Columns.Add("ModelName", typeof(string));
+            dt.Columns.Add("Qty", typeof(string));
+            dt.Columns.Add("Serial", typeof(string));
+            dt.Rows.Add("ItemA", "100", "A-001");
+            dt.Rows.Add("ItemA", "200", "A-002");
+
+            var results = MaterialSelectFormModern.ResolveAllExcelMatchData(
+                dt, 0, 1, 2, "Job_ItemA_Label.pdf");
+
+            Assert.Equal(2, results.Count);
+            Assert.Equal(new[] { "100", "200" }, results.Select(item => item.Quantity));
+            Assert.Equal(new[] { "A-001", "A-002" }, results.Select(item => item.SerialNumber));
+            Assert.Equal(new[] { 0, 1 }, results.Select(item => item.RowIndex));
+        }
+
+        [Fact]
+        public void ResolveExcelMatchData_ShouldReturnSerialNumberFromMatchedRow()
+        {
+            var dt = new System.Data.DataTable();
+            dt.Columns.Add("ModelName", typeof(string));
+            dt.Columns.Add("Qty", typeof(string));
+            dt.Columns.Add("Serial", typeof(string));
+            dt.Rows.Add("ItemA", "888", " A-008 ");
+
+            ExcelMatchData result = MaterialSelectFormModern.ResolveExcelMatchData(dt, 0, 1, 2, "Job_ItemA_Label.pdf");
+
+            Assert.True(result.HasMatch);
+            Assert.Equal("888", result.Quantity);
+            Assert.Equal("A-008", result.SerialNumber);
         }
 
 

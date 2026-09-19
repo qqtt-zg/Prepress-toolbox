@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>材料选择框右侧功能按钮优化方案</title>
+  <style>
+    :root {
+      --canvas: #e9edf2;
+      --surface: #ffffff;
+      --surface-subtle: #f6f8fa;
+      --ink: #20252b;
+      --muted: #6b737c;
+      --line: #d9dee5;
+      --line-strong: #c4cad2;
+      --primary: #1677ff;
+      --primary-soft: #eaf3ff;
+      --success: #16805b;
+      --warning: #b76e00;
+      --danger: #c43d45;
+      --shadow: 0 18px 44px rgba(39, 49, 61, 0.17);
+      --font: "Microsoft YaHei UI", "PingFang SC", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(34, 44, 55, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(34, 44, 55, 0.035) 1px, transparent 1px),
+        var(--canvas);
+      background-size: 24px 24px;
+      font-family: var(--font);
+      letter-spacing: 0;
+    }
+
+    button, input, select { font: inherit; letter-spacing: 0; }
+
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 28px auto 48px;
+    }
+
+    .page-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 18px;
+    }
+
+    .eyebrow {
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    h1 { margin: 0; font-size: 25px; line-height: 1.25; }
+    .subtitle { margin: 7px 0 0; color: var(--muted); font-size: 13px; }
+
+    .view-switch {
+      display: flex;
+      padding: 3px;
+      border: 1px solid var(--line-strong);
+      background: var(--surface);
+      border-radius: 7px;
+    }
+
+    .view-switch button {
+      height: 30px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 4px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .view-switch button.active { color: #fff; background: #30363d; }
+
+    .stage {
+      display: grid;
+      grid-template-columns: minmax(620px, 1fr) 300px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .window {
+      display: grid;
+      grid-template-columns: minmax(330px, 1fr) 400px;
+      min-height: 660px;
+      overflow: hidden;
+      border: 1px solid #aeb6c0;
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .batch-pane {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      border-right: 1px solid var(--line-strong);
+      background: #f4f6f8;
+    }
+
+    .batch-head, .form-titlebar {
+      height: 42px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .batch-head { padding: 0 14px; justify-content: space-between; }
+    .batch-title { font-size: 13px; font-weight: 700; }
+    .count { color: var(--muted); font-size: 12px; }
+
+    .batch-tools { display: flex; gap: 6px; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+    .tiny-btn { height: 28px; padding: 0 10px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: #414850; }
+
+    .file-table { width: 100%; border-collapse: collapse; font-size: 12px; background: white; }
+    .file-table th { height: 31px; text-align: left; padding: 0 9px; color: var(--muted); background: #eef1f4; border-bottom: 1px solid var(--line); font-weight: 600; }
+    .file-table td { height: 38px; padding: 0 9px; border-bottom: 1px solid #edf0f3; }
+    .file-table tr.selected td { color: #0b5fc4; background: #eaf3ff; }
+    .dot { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: #a9b1ba; }
+    .selected .dot { background: var(--primary); }
+
+    .batch-summary { margin-top: auto; padding: 12px 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; line-height: 1.7; }
+
+    .form-pane { position: relative; min-width: 0; background: #fff; }
+    .form-titlebar { padding-left: 14px; font-size: 13px; font-weight: 700; }
+    .title-file { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pin { margin-left: auto; width: 38px; height: 41px; border: 0; border-left: 1px solid var(--line); background: transparent; color: var(--primary); cursor: pointer; font-size: 15px; }
+
+    .form-scroll { padding: 0 16px 68px; }
+    .section { padding: 10px 0; border-bottom: 1px solid #e8ebef; }
+    .section:last-of-type { border-bottom: 0; }
+
+    .section-head { display: flex; align-items: center; min-height: 24px; margin-bottom: 7px; }
+    .section-title { font-size: 12px; font-weight: 700; color: #39414a; }
+    .selection-status { margin-left: auto; font-size: 11px; color: var(--muted); }
+    .selection-status strong { color: var(--primary); font-weight: 700; }
+
+    .material-layout { display: block; }
+    .material-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+
+    .material {
+      height: 31px;
+      min-width: 0;
+      padding: 0 5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      background: #fff;
+      color: #333a42;
+      cursor: pointer;
+      transition: border-color .15s, background-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .material:hover { border-color: #78adf3; background: #f7fbff; }
+    .material.selected { border-color: var(--primary); color: #0c62ca; background: var(--primary-soft); box-shadow: inset 0 0 0 1px var(--primary); font-weight: 700; }
+
+    .material-actions { display: flex; gap: 5px; margin-left: 7px; }
+    .icon-btn {
+      width: 29px;
+      height: 27px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      background: #fff;
+      color: #4c555f;
+      cursor: pointer;
+      transition: .15s;
+    }
+    .icon-btn:hover { border-color: var(--primary); color: var(--primary); background: #f5f9ff; }
+    .icon-btn.danger:hover { border-color: #e09499; color: var(--danger); background: #fff7f7; }
+    .icon-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+    .path-picker { position: relative; }
+    .path-caption { display: flex; align-items: center; gap: 7px; min-height: 24px; margin-bottom: 6px; }
+    .path-caption > label { color: #39414a; font-size: 12px; font-weight: 700; }
+    .path-current { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11px; }
+    .path-buttons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) 31px; gap: 6px; }
+    .path-chip {
+      height: 31px;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 0 7px;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      color: #414a54;
+      background: #fff;
+      cursor: pointer;
+      font-size: 11px;
+    }
+    .path-chip:hover { border-color: #78adf3; color: #0b62c9; }
+    .path-chip.active { border-color: var(--primary); color: #0b62c9; background: var(--primary-soft); box-shadow: inset 0 0 0 1px var(--primary); font-weight: 700; }
+    .path-tree {
+      position: absolute;
+      z-index: 6;
+      left: 0;
+      right: 0;
+      top: 65px;
+      display: none;
+      padding: 7px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #fff;
+      box-shadow: 0 12px 28px rgba(32,40,50,.18);
+    }
+    .path-tree.open { display: block; animation: pop .14s ease-out; }
+    .path-node { width: 100%; height: 28px; padding: 0 8px; border: 0; border-radius: 4px; text-align: left; color: #414a54; background: transparent; cursor: pointer; font-size: 12px; }
+    .path-node:hover, .path-node.active { color: #0b62c9; background: var(--primary-soft); }
+    .path-node.child { padding-left: 25px; }
+
+    .field-row { display: grid; grid-template-columns: 64px 1fr 72px; align-items: center; gap: 8px; margin-bottom: 9px; }
+    .field-row:last-child { margin-bottom: 0; }
+    .field-row label { color: #525a63; font-size: 12px; }
+    .control { height: 32px; width: 100%; border: 1px solid var(--line-strong); border-radius: 5px; background: #fff; color: #2f363e; padding: 0 9px; outline: none; }
+    .control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(22,119,255,.12); }
+
+    .segmented { display: flex; height: 32px; }
+    .segmented button { flex: 1; border: 1px solid var(--line-strong); border-right: 0; background: #fff; color: #4f5862; cursor: pointer; }
+    .segmented button:first-child { border-radius: 5px 0 0 5px; }
+    .segmented button:last-child { border-right: 1px solid var(--line-strong); border-radius: 0 5px 5px 0; }
+    .segmented button.active { color: #0b62c9; border-color: var(--primary); background: var(--primary-soft); box-shadow: inset 0 0 0 1px var(--primary); }
+
+    .option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .option-block { min-width: 0; }
+    .option-label { margin-bottom: 6px; color: var(--muted); font-size: 11px; }
+
+    .layout-line { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; }
+    .check { display: flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 12px; }
+    .check input { accent-color: var(--primary); }
+
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; border: 1px solid var(--line); background: var(--line); border-radius: 5px; overflow: hidden; }
+    .metric { padding: 7px 6px; text-align: center; background: var(--surface-subtle); }
+    .metric span { display: block; color: var(--muted); font-size: 10px; }
+    .metric strong { display: block; margin-top: 2px; font-size: 12px; color: #343b43; }
+    .metric:nth-child(1) strong { color: var(--primary); }
+    .metric:nth-child(2) strong { color: var(--success); }
+    .metric:nth-child(3) strong { color: var(--warning); }
+
+    .preset-row { display: flex; gap: 7px; }
+    .preset { flex: 1; height: 28px; border: 1px solid var(--line); border-radius: 5px; color: #4e5660; background: #fff; font-size: 11px; }
+
+    .action-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 58px; display: grid; grid-template-columns: 1fr 68px 90px; gap: 7px; align-items: center; padding: 9px 16px; border-top: 1px solid var(--line-strong); background: rgba(255,255,255,.97); }
+    .btn { height: 34px; border-radius: 5px; cursor: pointer; font-weight: 700; font-size: 12px; }
+    .btn-secondary { border: 1px solid var(--line-strong); background: #fff; color: #46505a; }
+    .btn-primary { border: 1px solid var(--primary); background: var(--primary); color: #fff; }
+    .batch-hint { font-size: 11px; color: var(--muted); line-height: 1.45; }
+    .batch-hint strong { display: block; color: var(--ink); font-size: 12px; }
+
+    .notes { padding: 4px 0; }
+    .note-kicker { color: var(--primary); font-size: 11px; font-weight: 700; }
+    .notes h2 { margin: 6px 0 14px; font-size: 18px; }
+    .note { padding: 13px 0; border-top: 1px solid #cfd5dc; }
+    .note b { display: block; margin-bottom: 5px; font-size: 13px; }
+    .note p { margin: 0; color: #5f6872; font-size: 12px; line-height: 1.65; }
+    .code-ref { margin-top: 18px; padding: 12px; border-left: 3px solid #39414a; background: rgba(255,255,255,.58); color: #57606a; font-family: Consolas, monospace; font-size: 11px; line-height: 1.6; }
+
+    .popover {
+      position: absolute;
+      z-index: 5;
+      top: 73px;
+      right: 16px;
+      width: 250px;
+      display: none;
+      padding: 10px;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      background: #fff;
+      box-shadow: 0 12px 30px rgba(32,40,50,.2);
+    }
+    .popover.open { display: block; animation: pop .14s ease-out; }
+    @keyframes pop { from { opacity: 0; transform: translateY(-4px); } }
+    .search { width: 100%; height: 32px; border: 1px solid var(--line-strong); border-radius: 5px; padding: 0 9px; outline: none; }
+    .more-list { display: grid; gap: 4px; margin-top: 8px; max-height: 150px; overflow: auto; }
+    .more-item { height: 31px; padding: 0 8px; border: 0; border-radius: 4px; text-align: left; background: transparent; color: #39414a; cursor: pointer; }
+    .more-item:hover { background: var(--primary-soft); color: #0b62c9; }
+
+    .toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 12px); padding: 10px 15px; border-radius: 5px; color: #fff; background: #30363d; box-shadow: 0 8px 22px rgba(0,0,0,.2); opacity: 0; pointer-events: none; transition: .2s; font-size: 12px; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    .legacy .material-grid { grid-template-columns: repeat(4, 1fr); }
+    .legacy .material-actions { display: none; }
+    .legacy .selection-status { display: none; }
+    .legacy .material:nth-child(n+13) { display: none; }
+    .legacy .legacy-more { display: block; }
+    .legacy-more { display: none; height: 31px; border: 1px solid var(--line-strong); border-radius: 5px; background: #fff; color: #555d66; }
+
+    @media (max-width: 960px) {
+      .stage { grid-template-columns: 1fr; }
+      .notes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 16px; }
+      .notes h2, .note-kicker, .code-ref { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 760px) {
+      .page { width: min(100% - 16px, 520px); margin-top: 12px; }
+      .page-head { align-items: flex-start; flex-direction: column; gap: 12px; }
+      .window { grid-template-columns: 1fr; }
+      .batch-pane { display: none; }
+      .form-pane { width: 100%; }
+      .notes { grid-template-columns: 1fr; }
+      .stage { gap: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="page-head">
+      <div>
+        <div class="eyebrow">PREPRESS TOOLBOX · UI PROTOTYPE</div>
+        <h1>材料选择框右侧操作区</h1>
+        <p class="subtitle">基于 MaterialSelectFormModern 的 400px 右侧录入区重排，交互逻辑保持可映射。</p>
+      </div>
+      <div class="view-switch" aria-label="方案切换">
+        <button type="button" data-view="legacy">当前布局</button>
+        <button type="button" class="active" data-view="optimized">优化布局</button>
+      </div>
+    </header>
+
+    <div class="stage">
+      <section class="window" id="mockWindow" aria-label="材料选择窗口示意">
+        <aside class="batch-pane">
+          <div class="batch-head"><span class="batch-title">待处理文件</span><span class="count">4 项</span></div>
+          <div class="batch-tools">
+            <button class="tiny-btn">上移</button><button class="tiny-btn">下移</button><button class="tiny-btn">新建分组</button>
+          </div>
+          <table class="file-table">
+            <thead><tr><th>文件名</th><th>数量</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr class="selected"><td><span class="dot"></span>铭牌_A款.pdf</td><td>500</td><td>编辑中</td></tr>
+              <tr><td><span class="dot"></span>铭牌_B款.pdf</td><td>300</td><td>待处理</td></tr>
+              <tr><td><span class="dot"></span>警示贴_圆形.pdf</td><td>1,000</td><td>待处理</td></tr>
+              <tr><td><span class="dot"></span>设备标签.pdf</td><td>200</td><td>待处理</td></tr>
+            </tbody>
+          </table>
+          <div class="batch-summary">当前分组：默认组<br>选择右侧参数后，可确认当前文件或应用到全部。</div>
+        </aside>
+
+        <section class="form-pane">
+          <div class="form-titlebar">
+            <span class="title-file">铭牌_A款_80×45mm.pdf</span>
+            <button class="pin" title="保持窗口置顶" aria-label="保持窗口置顶">⌖</button>
+          </div>
+
+          <div class="form-scroll">
+            <section class="section material-section">
+              <div class="section-head">
+                <span class="section-title">常用材料</span>
+                <span class="selection-status">已选：<strong id="selectedName">PET 哑光</strong></span>
+                <div class="material-actions">
+                  <button class="icon-btn" id="moreButton" title="搜索或选择更多材料" aria-label="搜索或选择更多材料">
+                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+                  </button>
+                  <button class="icon-btn danger" id="clearButton" title="清除材料选择" aria-label="清除材料选择">
+                    <svg viewBox="0 0 24 24"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m9 10 .5 8"></path><path d="m15 10-.5 8"></path><path d="M6 6l1 15h10l1-15"></path></svg>
+                  </button>
+                  <button class="icon-btn" id="manageButton" title="管理材料列表" aria-label="管理材料列表">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.15.37.36.7.6 1 .28.3.66.42 1.1.42H21v4h-.09c-.44 0-.82.13-1.1.42-.24.29-.45.62-.6 1Z"></path></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="material-layout">
+                <div class="material-grid" id="materialGrid">
+                  <button class="material">PET</button><button class="material">PP</button><button class="material">PVC</button>
+                  <button class="material">PET 环保</button><button class="material">PET 透明</button><button class="material selected">PET 哑光</button>
+                  <button class="material">PET 镭射</button><button class="material">PET 磨砂</button><button class="material">PET 金色</button>
+                  <button class="material">PET 银色</button><button class="material">PET 白色</button><button class="material">PET 红色</button>
+                  <button class="material">PET 蓝色</button><button class="material">PET 绿色</button><button class="material">PP 环保</button>
+                  <button class="legacy-more" id="legacyMore">更多材料⌄</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="section path-picker">
+              <div class="path-caption">
+                <label>目标路径</label>
+                <span class="path-current" id="pathText">D:\生产文件\今日输出</span>
+                <button class="icon-btn" id="browseButton" title="浏览其他文件夹" aria-label="浏览其他文件夹">
+                  <svg viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"></path><path d="M12 13h6"></path><path d="M15 10v6"></path></svg>
+                </button>
+              </div>
+              <div class="path-buttons" aria-label="快捷目标目录">
+                <button class="path-chip active">今日输出</button>
+                <button class="path-chip">不干胶</button>
+                <button class="path-chip">书籍</button>
+                <button class="path-chip">返工文件</button>
+                <button class="icon-btn" id="pathButton" type="button" title="展开完整目录树" aria-label="展开完整目录树" aria-expanded="false">
+                  <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg>
+                </button>
+              </div>
+              <div class="path-tree" id="pathTree">
+                <button class="path-node">▾ D:\生产文件</button>
+                <button class="path-node child active">今日输出</button>
+                <button class="path-node child">不干胶</button>
+                <button class="path-node child">书籍</button>
+                <button class="path-node">▸ E:\客户文件</button>
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="section-head"><span class="section-title">工单信息</span></div>
+              <div class="field-row"><label for="order">订单号</label><input class="control" id="order" value="DC260915-08"><button class="tiny-btn">无</button></div>
+              <div class="field-row"><label for="quantity">数量</label><input class="control" id="quantity" value="500"><input class="control" value="+1" aria-label="增量"></div>
+              <div class="field-row"><label for="serial">序号</label><input class="control" id="serial" value="A08"><label class="check"><input type="checkbox"> 搜索</label></div>
+              <div class="field-row"><label for="size">尺寸</label><input class="control" id="size" value="80 × 45 mm"><select class="control" aria-label="出血"><option>出血 2</option></select></div>
+            </section>
+
+            <section class="section">
+              <div class="section-head"><span class="section-title">加工选项</span></div>
+              <div class="option-grid">
+                <div class="option-block"><div class="option-label">覆膜</div><div class="segmented"><button>光膜</button><button class="active">哑膜</button><button>不过膜</button></div></div>
+                <div class="option-block"><div class="option-label">形状</div><div class="segmented"><button class="active">直角</button><button>圆形</button><button>异形</button></div></div>
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="section-head"><span class="section-title">排版</span><label class="check" style="margin-left:auto"><input type="checkbox" checked> 启用排版</label></div>
+              <div class="option-grid" style="margin-bottom:10px">
+                <div class="option-block"><div class="option-label">材料类型</div><div class="segmented"><button class="active">平张</button><button>卷装</button></div></div>
+                <div class="option-block"><div class="option-label">排版模式</div><div class="segmented"><button class="active">连拼</button><button>折手</button></div></div>
+              </div>
+              <div class="metrics"><div class="metric"><span>行数</span><strong>5</strong></div><div class="metric"><span>列数</span><strong>3</strong></div><div class="metric"><span>布局数量</span><strong>15</strong></div><div class="metric"><span>旋转</span><strong>0°</strong></div></div>
+            </section>
+
+            <section class="section"><div class="preset-row"><button class="preset">铭牌常用</button><button class="preset">PET 平张</button><button class="preset">新增预设</button></div></section>
+          </div>
+
+          <div class="popover" id="materialPopover">
+            <input class="search" id="materialSearch" placeholder="搜索全部材料…">
+            <div class="more-list" id="moreList">
+              <button class="more-item">铜版纸 157g</button><button class="more-item">合成纸</button><button class="more-item">亮银龙</button><button class="more-item">透明龙</button><button class="more-item">可移不干胶</button>
+            </div>
+          </div>
+
+          <footer class="action-bar">
+            <div class="batch-hint"><strong>当前：单文件确认</strong>展开左侧列表时可批量应用</div>
+            <button class="btn btn-secondary">取消</button>
+            <button class="btn btn-primary" id="confirmButton">确认并继续</button>
+          </footer>
+        </section>
+      </section>
+
+      <aside class="notes">
+        <div class="note-kicker">布局结论</div>
+        <h2>让“选择”和“管理”分开站队</h2>
+        <div class="note"><b>01 · 保留四列，减少高度</b><p>15 个材料仍是一键选择，继续采用真实界面的四列密度；搜索、清除、管理提升到标题行，不额外占用材料网格。</p></div>
+        <div class="note"><b>02 · 树节点投影成快捷按钮</b><p>当前分支的高频子目录常驻显示，可保持一键切换；完整树收进末尾溢出按钮。相比 144×286 的树，常态只占约 61px 高度。</p></div>
+        <div class="note"><b>03 · 取消操作显性化</b><p>真实代码当前支持再次点击、下拉“取消选择”和双击下拉三种取消路径。原型保留再次点击，同时提供固定清除按钮。</p></div>
+        <div class="note"><b>04 · 主操作栏缩至 58px</b><p>确认与取消固定在底部，避免预设数量和预览展开打乱位置；相较上一版进一步减少 14px 固定高度。</p></div>
+        <div class="code-ref">Designer: 400px right pane<br>tabs1: 400 × 183<br>materialButton*: 75 × 32<br>folderTreeView: 144 × 286<br>runtime: first 15 buttons + overflow dropdown</div>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const mockWindow = document.getElementById('mockWindow');
+    const selectedName = document.getElementById('selectedName');
+    const materialGrid = document.getElementById('materialGrid');
+    const popover = document.getElementById('materialPopover');
+    const moreButton = document.getElementById('moreButton');
+    const search = document.getElementById('materialSearch');
+    const toast = document.getElementById('toast');
+    const pathButton = document.getElementById('pathButton');
+    const pathTree = document.getElementById('pathTree');
+    const pathText = document.getElementById('pathText');
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove('show'), 1600);
+    }
+
+    function selectMaterial(button) {
+      const wasSelected = button.classList.contains('selected');
+      materialGrid.querySelectorAll('.material').forEach(item => item.classList.remove('selected'));
+      if (wasSelected) {
+        selectedName.textContent = '未选择';
+        selectedName.style.color = 'var(--muted)';
+      } else {
+        button.classList.add('selected');
+        selectedName.textContent = button.textContent.trim();
+        selectedName.style.color = '';
+      }
+    }
+
+    materialGrid.querySelectorAll('.material').forEach(button => button.addEventListener('click', () => selectMaterial(button)));
+
+    moreButton.addEventListener('click', event => {
+      event.stopPropagation();
+      popover.classList.toggle('open');
+      if (popover.classList.contains('open')) setTimeout(() => search.focus(), 0);
+    });
+
+    document.getElementById('legacyMore').addEventListener('click', event => {
+      event.stopPropagation();
+      popover.classList.toggle('open');
+    });
+
+    document.getElementById('clearButton').addEventListener('click', () => {
+      materialGrid.querySelectorAll('.material').forEach(item => item.classList.remove('selected'));
+      selectedName.textContent = '未选择';
+      selectedName.style.color = 'var(--muted)';
+      showToast('已清除材料选择');
+    });
+
+    document.getElementById('manageButton').addEventListener('click', () => showToast('打开材料管理窗口'));
+    document.getElementById('browseButton').addEventListener('click', () => showToast('打开系统文件夹选择器'));
+    document.getElementById('confirmButton').addEventListener('click', () => showToast(`已确认：${selectedName.textContent}`));
+
+    pathButton.addEventListener('click', event => {
+      event.stopPropagation();
+      const isOpen = pathTree.classList.toggle('open');
+      pathButton.setAttribute('aria-expanded', String(isOpen));
+      popover.classList.remove('open');
+    });
+
+    document.querySelectorAll('.path-chip').forEach(button => button.addEventListener('click', () => {
+      document.querySelectorAll('.path-chip').forEach(item => item.classList.remove('active'));
+      button.classList.add('active');
+      pathText.textContent = `D:\\生产文件\\${button.textContent.trim()}`;
+      pathTree.classList.remove('open');
+      pathButton.setAttribute('aria-expanded', 'false');
+    }));
+
+    document.querySelectorAll('.path-node').forEach(button => button.addEventListener('click', event => {
+      event.stopPropagation();
+      if (!button.classList.contains('child')) return;
+      document.querySelectorAll('.path-node').forEach(item => item.classList.remove('active'));
+      button.classList.add('active');
+      document.querySelectorAll('.path-chip').forEach(item => item.classList.toggle('active', item.textContent.trim() === button.textContent.trim()));
+      pathText.textContent = `D:\\生产文件\\${button.textContent.trim()}`;
+      pathTree.classList.remove('open');
+      pathButton.setAttribute('aria-expanded', 'false');
+    }));
+
+    document.querySelectorAll('.more-item').forEach(button => button.addEventListener('click', () => {
+      materialGrid.querySelectorAll('.material').forEach(item => item.classList.remove('selected'));
+      selectedName.textContent = button.textContent.trim();
+      selectedName.style.color = '';
+      popover.classList.remove('open');
+    }));
+
+    search.addEventListener('input', () => {
+      const query = search.value.trim().toLowerCase();
+      document.querySelectorAll('.more-item').forEach(item => {
+        item.hidden = !item.textContent.toLowerCase().includes(query);
+      });
+    });
+
+    document.querySelectorAll('.segmented').forEach(group => group.addEventListener('click', event => {
+      if (event.target.tagName !== 'BUTTON') return;
+      group.querySelectorAll('button').forEach(button => button.classList.remove('active'));
+      event.target.classList.add('active');
+    }));
+
+    document.querySelectorAll('.view-switch button').forEach(button => button.addEventListener('click', () => {
+      document.querySelectorAll('.view-switch button').forEach(item => item.classList.remove('active'));
+      button.classList.add('active');
+      mockWindow.classList.toggle('legacy', button.dataset.view === 'legacy');
+      popover.classList.remove('open');
+      pathTree.classList.remove('open');
+    }));
+
+    document.addEventListener('click', event => {
+      if (!popover.contains(event.target)) popover.classList.remove('open');
+      if (!pathTree.contains(event.target)) {
+        pathTree.classList.remove('open');
+        pathButton.setAttribute('aria-expanded', 'false');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>高级灰配色样本册 · 大诚重命名工具</title>
+  <style>
+    :root {
+      --bg: #f3f2ef;
+      --surface: #fbfaf7;
+      --fg: #222321;
+      --muted: #73756f;
+      --border: #d9d8d2;
+      --accent: #4c6572;
+
+      --graphite-bg: #ececea;
+      --graphite-surface: #f8f8f6;
+      --graphite-fg: #252624;
+      --graphite-muted: #747670;
+      --graphite-border: #d3d4cf;
+      --graphite-primary: #52646d;
+      --graphite-hover: #e2e5e5;
+      --graphite-active: #d3dadd;
+
+      --warm-bg: #efede8;
+      --warm-surface: #faf8f3;
+      --warm-fg: #2b2925;
+      --warm-muted: #7c776e;
+      --warm-border: #d9d4ca;
+      --warm-primary: #7a6655;
+      --warm-hover: #e9e3da;
+      --warm-active: #ddd4c7;
+
+      --blue-bg: #e9edef;
+      --blue-surface: #f7f9f9;
+      --blue-fg: #22292c;
+      --blue-muted: #68757b;
+      --blue-border: #ccd4d7;
+      --blue-primary: #486979;
+      --blue-hover: #dee6e9;
+      --blue-active: #ccdadd;
+
+      --green-bg: #eaede9;
+      --green-surface: #f8faf7;
+      --green-fg: #252a26;
+      --green-muted: #6d776f;
+      --green-border: #cfd6d0;
+      --green-primary: #526f5d;
+      --green-hover: #dfe7e1;
+      --green-active: #cfdbd2;
+
+      --ink-bg: #e8e9e9;
+      --ink-surface: #f6f7f7;
+      --ink-fg: #202426;
+      --ink-muted: #687074;
+      --ink-border: #cbd0d2;
+      --ink-primary: #3f5964;
+      --ink-hover: #dce2e4;
+      --ink-active: #cbd6da;
+
+      --dark-bg: #292b2d;
+      --dark-surface: #34373a;
+      --dark-fg: #eceeed;
+      --dark-muted: #adb2b3;
+      --dark-border: #4a4e51;
+      --dark-primary: #7794a0;
+      --dark-hover: #3e4346;
+      --dark-active: #4b555a;
+
+      --accent-soft: color-mix(in oklch, var(--accent) 14%, transparent);
+      --fg-soft: color-mix(in oklch, var(--fg) 6%, transparent);
+      --font-display: 'Iowan Old Style', 'Songti SC', 'STSong', Georgia, serif;
+      --font-body: 'Microsoft YaHei UI', 'Segoe UI', system-ui, sans-serif;
+      --font-mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+      --radius: 10px;
+      --radius-lg: 18px;
+      --container: 1240px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-body);
+      line-height: 1.55;
+      text-rendering: optimizeLegibility;
+      transition: background .25s ease, color .25s ease;
+    }
+    button { font: inherit; }
+    .container { max-width: var(--container); margin: 0 auto; padding: 0 32px; }
+    .topnav {
+      position: sticky; top: 0; z-index: 10;
+      background: color-mix(in oklch, var(--bg) 88%, transparent);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .topnav-inner { min-height: 62px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+    .top-meta { font: 12px var(--font-mono); color: var(--muted); letter-spacing: .05em; }
+    .hero { padding: 86px 0 62px; border-bottom: 1px solid var(--border); }
+    .hero-grid { display: grid; grid-template-columns: 1.25fr .75fr; gap: 72px; align-items: end; }
+    .eyebrow { margin: 0 0 18px; color: var(--accent); font: 12px var(--font-mono); letter-spacing: .12em; }
+    h1, h2 { font-family: var(--font-display); margin: 0; letter-spacing: -.025em; }
+    h1 { max-width: 760px; font-size: clamp(48px, 6vw, 82px); line-height: .98; }
+    h2 { font-size: clamp(30px, 4vw, 46px); line-height: 1.08; }
+    .lead { margin: 0; color: var(--muted); font-size: 17px; max-width: 44ch; }
+    .section { padding: 66px 0; border-bottom: 1px solid var(--border); }
+    .section-head { display: flex; align-items: end; justify-content: space-between; gap: 32px; margin-bottom: 38px; }
+    .section-note { max-width: 48ch; margin: 0; color: var(--muted); font-size: 14px; }
+    .palette-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+    .palette-card {
+      position: relative; overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: 0 12px 36px color-mix(in oklch, var(--fg) 7%, transparent);
+      cursor: pointer;
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .palette-card:hover { transform: translateY(-3px); box-shadow: 0 18px 44px color-mix(in oklch, var(--fg) 11%, transparent); }
+    .palette-card[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 3px; }
+    .swatch-stage { height: 172px; padding: 18px; background: var(--p-bg); color: var(--p-fg); }
+    .mini-window { height: 100%; border: 1px solid var(--p-border); border-radius: 10px; background: var(--p-surface); overflow: hidden; }
+    .mini-title { height: 28px; border-bottom: 1px solid var(--p-border); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; font-size: 10px; }
+    .mini-pin { width: 16px; height: 16px; border-radius: 5px; background: var(--p-primary); }
+    .mini-body { display: grid; grid-template-columns: 70px 1fr; height: calc(100% - 28px); }
+    .mini-side { background: color-mix(in oklch, var(--p-bg) 75%, var(--p-surface)); border-right: 1px solid var(--p-border); padding: 10px 8px; }
+    .mini-line { height: 5px; background: var(--p-muted); opacity: .34; border-radius: 4px; margin-bottom: 8px; }
+    .mini-main { padding: 12px; }
+    .mini-input { height: 22px; border: 1px solid var(--p-border); border-radius: 5px; margin-bottom: 9px; }
+    .mini-actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .mini-btn { width: 42px; height: 19px; border-radius: 5px; background: var(--p-hover); }
+    .mini-btn.primary { background: var(--p-primary); }
+    .palette-info { padding: 20px; }
+    .palette-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
+    .palette-title strong { font-family: var(--font-display); font-size: 22px; }
+    .palette-title span { color: var(--muted); font: 11px var(--font-mono); }
+    .color-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+    .color-chip { aspect-ratio: 1; border-radius: 7px; border: 1px solid color-mix(in oklch, var(--fg) 10%, transparent); }
+    .card-copy { margin: 14px 0 0; color: var(--muted); font-size: 13px; }
+    .preview-shell { display: grid; grid-template-columns: 1fr 340px; min-height: 560px; border: 1px solid var(--border); border-radius: 22px; overflow: hidden; background: var(--surface); box-shadow: 0 24px 70px color-mix(in oklch, var(--fg) 10%, transparent); }
+    .app-window { background: var(--demo-bg); color: var(--demo-fg); transition: all .22s ease; }
+    .app-titlebar { height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; background: var(--demo-surface); border-bottom: 1px solid var(--demo-border); }
+    .app-title { font-size: 13px; font-weight: 700; }
+    .pin-button { border: 0; border-radius: 7px; width: 30px; height: 28px; background: var(--demo-primary); color: var(--demo-surface); }
+    .app-layout { display: grid; grid-template-columns: 210px 1fr; min-height: 512px; }
+    .file-list { padding: 16px; background: color-mix(in oklch, var(--demo-bg) 78%, var(--demo-surface)); border-right: 1px solid var(--demo-border); }
+    .panel-label { color: var(--demo-muted); font: 10px var(--font-mono); letter-spacing: .08em; margin-bottom: 12px; }
+    .file-row { display: grid; grid-template-columns: 1fr 34px; gap: 8px; padding: 9px 10px; margin-bottom: 6px; border: 1px solid transparent; border-radius: 7px; font-size: 12px; }
+    .file-row.active { background: var(--demo-active); border-color: var(--demo-border); }
+    .page { text-align: right; color: var(--demo-muted); font-family: var(--font-mono); }
+    .form-area { padding: 28px; }
+    .form-title { font: 30px var(--font-display); margin-bottom: 24px; }
+    .field { margin-bottom: 17px; }
+    .field label { display: block; color: var(--demo-muted); font-size: 12px; margin-bottom: 6px; }
+    .input { width: 100%; height: 38px; border: 1px solid var(--demo-border); background: var(--demo-surface); color: var(--demo-fg); border-radius: 8px; padding: 0 12px; }
+    .button-row { display: flex; justify-content: flex-end; gap: 9px; margin-top: 28px; }
+    .demo-btn { border: 1px solid var(--demo-border); padding: 9px 18px; border-radius: 8px; background: var(--demo-surface); color: var(--demo-fg); }
+    .demo-btn.primary { border-color: var(--demo-primary); background: var(--demo-primary); color: var(--demo-surface); }
+    .token-panel { padding: 26px; border-left: 1px solid var(--border); background: var(--surface); }
+    .token-panel h3 { margin: 0 0 6px; font-family: var(--font-display); font-size: 25px; }
+    .token-panel > p { margin: 0 0 24px; color: var(--muted); font-size: 13px; }
+    .token-list { display: grid; gap: 10px; }
+    .token { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 10px; padding-bottom: 9px; border-bottom: 1px solid var(--border); }
+    .token-dot { width: 24px; height: 24px; border-radius: 7px; border: 1px solid var(--border); }
+    .token-name { font-size: 12px; }
+    .token-value { color: var(--muted); font: 11px var(--font-mono); }
+    .copy-all { width: 100%; margin-top: 22px; border: 0; border-radius: 9px; padding: 11px 14px; background: var(--fg); color: var(--surface); cursor: pointer; }
+    .usage-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .usage { border-top: 1px solid var(--fg); padding-top: 18px; }
+    .usage strong { display: block; margin-bottom: 6px; }
+    .usage p { color: var(--muted); margin: 0; font-size: 14px; }
+    footer { padding: 34px 0 50px; color: var(--muted); font-size: 12px; }
+    @media (max-width: 980px) {
+      .hero-grid, .preview-shell { grid-template-columns: 1fr; }
+      .palette-grid, .usage-grid { grid-template-columns: repeat(2, 1fr); }
+      .token-panel { border-left: 0; border-top: 1px solid var(--border); }
+    }
+    @media (max-width: 640px) {
+      .container { padding: 0 18px; }
+      .palette-grid, .usage-grid { grid-template-columns: 1fr; }
+      .app-layout { grid-template-columns: 140px 1fr; }
+      .hero { padding-top: 58px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topnav">
+    <div class="container topnav-inner">
+      <span class="brand">Grey Systems</span>
+      <span class="top-meta">ANTDUI · WINFORMS · COLOR STUDY 01</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" data-od-id="hero">
+      <div class="container hero-grid">
+        <div>
+          <p class="eyebrow">高级灰不是没有颜色，而是控制颜色</p>
+          <h1>六套可以直接落进软件里的灰。</h1>
+        </div>
+        <p class="lead">每套都覆盖背景、表面、文字、边框、主色和交互状态。点击任一方案，在下方模拟材料选择窗口中实时查看。</p>
+      </div>
+    </section>
+
+    <section class="section" data-od-id="palettes">
+      <div class="container">
+        <div class="section-head">
+          <h2>Palette index</h2>
+          <p class="section-note">冷灰更专业，暖灰更耐看，绿灰适合长时间工作，暗灰适合低照度环境。主色都刻意降低了饱和度。</p>
+        </div>
+        <div class="palette-grid" id="paletteGrid"></div>
+      </div>
+    </section>
+
+    <section class="section" data-od-id="software-preview">
+      <div class="container">
+        <div class="section-head">
+          <h2>Software preview</h2>
+          <p class="section-note">模拟当前软件中的标题栏、左侧文件列表、输入框、次按钮和主按钮，帮助判断实际层级与可读性。</p>
+        </div>
+        <div class="preview-shell">
+          <div class="app-window" id="appWindow">
+            <div class="app-titlebar"><span class="app-title">材料选择 · A3标签订单.pdf</span><button class="pin-button" aria-label="置顶">⌖</button></div>
+            <div class="app-layout">
+              <aside class="file-list">
+                <div class="panel-label">待处理 · 4款</div>
+                <div class="file-row active"><span>A3标签订单.pdf</span><span class="page">12</span></div>
+                <div class="file-row"><span>透明膜_圆角.pdf</span><span class="page">2</span></div>
+                <div class="file-row"><span>铭牌_银色.pdf</span><span class="page">6</span></div>
+                <div class="file-row"><span>批次说明.pdf</span><span class="page">1</span></div>
+              </aside>
+              <div class="form-area">
+                <div class="panel-label">MATERIAL PARAMETERS</div>
+                <div class="form-title">PET 哑光</div>
+                <div class="field"><label>订单号</label><input class="input" value="DC-2026-0912" readonly /></div>
+                <div class="field"><label>数量</label><input class="input" value="500" readonly /></div>
+                <div class="field"><label>尺寸</label><input class="input" value="210 × 297 mm" readonly /></div>
+                <div class="button-row"><button class="demo-btn">取消</button><button class="demo-btn primary">确认应用</button></div>
+              </div>
+            </div>
+          </div>
+          <aside class="token-panel">
+            <h3 id="activeName">石墨灰</h3>
+            <p id="activeDescription">通用、克制，适合主界面和高密度表格。</p>
+            <div class="token-list" id="tokenList"></div>
+            <button class="copy-all" id="copyAll">复制 ThemeDefinition 色值</button>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" data-od-id="usage">
+      <div class="container">
+        <div class="section-head"><h2>落地原则</h2></div>
+        <div class="usage-grid">
+          <div class="usage"><strong>背景不使用纯白</strong><p>页面背景与内容表面至少保持一个明度层级，长时间操作更舒适。</p></div>
+          <div class="usage"><strong>主色只承担动作</strong><p>把低饱和主色留给确认、选中和焦点，不用于大面积装饰。</p></div>
+          <div class="usage"><strong>边框比阴影可靠</strong><p>数据密集型桌面软件优先使用细边框建立层级，阴影只留给浮层。</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="container">大诚重命名工具 · 高级灰主题研究 · 色值可映射至 ThemeDefinition 与 AntdUiThemeBridge</div></footer>
+
+  <script>
+    const palettes = [
+      { id: 'graphite', name: '石墨灰', code: '01 / GRAPHITE', desc: '通用、克制，适合主界面和高密度表格。' },
+      { id: 'warm', name: '暖岩灰', code: '02 / WARM STONE', desc: '温和耐看，适合长时间使用和印前工作环境。' },
+      { id: 'blue', name: '雾蓝灰', code: '03 / MIST BLUE', desc: '理性而不冰冷，适合 PDF、数据与工具型界面。' },
+      { id: 'green', name: '鼠尾草灰', code: '04 / SAGE GREY', desc: '低疲劳、轻自然，适合护眼主题的现代版本。' },
+      { id: 'ink', name: '墨钢灰', code: '05 / INK STEEL', desc: '更利落、更工业，适合专业生产控制界面。' },
+      { id: 'dark', name: '夜航灰', code: '06 / NIGHT SHIFT', desc: '低照度暗色方案，层级清晰但不过分漆黑。' }
+    ];
+    const keys = ['bg', 'surface', 'fg', 'muted', 'border', 'primary', 'hover', 'active'];
+    const labels = { bg: 'Background', surface: 'Surface', fg: 'TextPrimary', muted: 'TextSecondary', border: 'Border', primary: 'Primary', hover: 'BackHover', active: 'BackActive' };
+    const root = getComputedStyle(document.documentElement);
+    const value = (id, key) => root.getPropertyValue(`--${id}-${key}`).trim();
+    const paletteGrid = document.getElementById('paletteGrid');
+
+    palettes.forEach((palette, index) => {
+      const card = document.createElement('article');
+      card.className = 'palette-card';
+      card.tabIndex = 0;
+      card.setAttribute('role', 'button');
+      card.setAttribute('aria-pressed', index === 0 ? 'true' : 'false');
+      keys.forEach(key => card.style.setProperty(`--p-${key}`, value(palette.id, key)));
+      card.innerHTML = `
+        <div class="swatch-stage">
+          <div class="mini-window">
+            <div class="mini-title"><span>材料选择</span><span class="mini-pin"></span></div>
+            <div class="mini-body"><div class="mini-side"><div class="mini-line"></div><div class="mini-line"></div><div class="mini-line"></div></div><div class="mini-main"><div class="mini-input"></div><div class="mini-input"></div><div class="mini-actions"><span class="mini-btn"></span><span class="mini-btn primary"></span></div></div></div>
+          </div>
+        </div>
+        <div class="palette-info">
+          <div class="palette-title"><strong>${palette.name}</strong><span>${palette.code}</span></div>
+          <div class="color-row">${['bg','surface','fg','border','primary','active'].map(key => `<span class="color-chip" style="background:var(--p-${key})" title="${labels[key]} ${value(palette.id, key)}"></span>`).join('')}</div>
+          <p class="card-copy">${palette.desc}</p>
+        </div>`;
+      const activate = () => activatePalette(palette, card);
+      card.addEventListener('click', activate);
+      card.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activate(); } });
+      paletteGrid.appendChild(card);
+    });
+
+    function activatePalette(palette, card) {
+      document.querySelectorAll('.palette-card').forEach(item => item.setAttribute('aria-pressed', String(item === card)));
+      keys.forEach(key => document.documentElement.style.setProperty(`--demo-${key}`, value(palette.id, key)));
+      document.getElementById('activeName').textContent = palette.name;
+      document.getElementById('activeDescription').textContent = palette.desc;
+      renderTokens(palette.id);
+    }
+
+    function renderTokens(id) {
+      document.getElementById('tokenList').innerHTML = keys.map(key => `
+        <div class="token">
+          <span class="token-dot" style="background:${value(id, key)}"></span>
+          <span class="token-name">${labels[key]}</span>
+          <span class="token-value">${value(id, key).toUpperCase()}</span>
+        </div>`).join('');
+      document.getElementById('copyAll').dataset.palette = id;
+    }
+
+    document.getElementById('copyAll').addEventListener('click', async event => {
+      const id = event.currentTarget.dataset.palette;
+      const lines = keys.map(key => `${labels[key]} = ColorTranslator.FromHtml("${value(id, key).toUpperCase()}")`);
+      await navigator.clipboard.writeText(lines.join(',\n'));
+      const old = event.currentTarget.textContent;
+      event.currentTarget.textContent = '已复制';
+      setTimeout(() => event.currentTarget.textContent = old, 1200);
+    });
+
+    const first = palettes[0];
+    activatePalette(first, document.querySelector('.palette-card'));
+  </script>
+</body>
+</html>

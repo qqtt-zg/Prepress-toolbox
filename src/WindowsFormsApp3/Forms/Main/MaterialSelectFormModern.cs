@@ -136,6 +136,9 @@ namespace WindowsFormsApp3
         private const int MAX_PREVIEW_HEIGHT = 245; // 预览最大高度（匹配设计器设置） // 预览最大高度（调整填满底部）
         private string _cachedPdfPath; // 缓存的 PDF 路径（用于检查是否为新文件）
         private string _pendingPdfToLoad; // 待加载的PDF文件路径（用于窗体加载完成后）
+        private System.Windows.Forms.Timer _batchPreviewDebounceTimer;
+        private string _requestedBatchPreviewPath;
+        private bool _isBatchPreviewLoading;
         private const string PREVIEW_STATE_KEY = "PdfPreviewExpanded"; // 注册表键名
 
         // 延迟初始化相关字段
@@ -252,9 +255,12 @@ namespace WindowsFormsApp3
         private AntdUI.Button btnMoveUp;
         private AntdUI.Button btnMoveDown;
         private AntdUI.Button btnNewGroupDirect;
+        private AntdUI.Button btnDeleteBatchRows;
         private AntdUI.Label lblBatchTitle;
         private System.Windows.Forms.Label lblBatchHelp;
         private BindingList<BatchFileItem> _batchItems = new BindingList<BatchFileItem>();
+        private string _batchMonitorDirectory;
+        private bool _isCancellingBatchItems;
         private bool _isBatchPanelExpanded = false;
         private ThemeDefinition _activeTheme;
         private const int BATCH_PANEL_WIDTH = 520;
@@ -318,8 +324,7 @@ namespace WindowsFormsApp3
         {
             InitializeComponent();
 
-            // 始终在最前端显示
-            TopMost = true;
+            ApplySavedTopMostPreference();
 
             // 设置窗口图标
             string iconPath = GetIconPath();
@@ -897,8 +902,7 @@ namespace WindowsFormsApp3
         {
             InitializeComponent();
 
-            // 始终在最前端显示
-            TopMost = true;
+            ApplySavedTopMostPreference();
 
             // 🔧 关键修复：添加预定位调用，确保无视觉跳跃且位置记忆正常
             PrePositionWindow();
@@ -3801,9 +3805,21 @@ namespace WindowsFormsApp3
                     WaveSize = 0
                 };
                 btnNewGroupDirect.Click += (s, e) => CreateGroupFromSelectedFiles();
+                btnDeleteBatchRows = new AntdUI.Button
+                {
+                    Text = "删除行",
+                    Location = new Point(236, 5),
+                    Size = new Size(72, 28),
+                    Font = new Font("Microsoft YaHei UI", 8.5F, FontStyle.Bold),
+                    Type = AntdUI.TTypeMini.Error,
+                    BorderWidth = 1F,
+                    WaveSize = 0
+                };
+                btnDeleteBatchRows.Click += async (s, e) => await CancelSelectedBatchItemsAsync();
                 pnlBottomToolbar.Controls.Add(btnMoveUp);
                 pnlBottomToolbar.Controls.Add(btnMoveDown);
                 pnlBottomToolbar.Controls.Add(btnNewGroupDirect);
+                pnlBottomToolbar.Controls.Add(btnDeleteBatchRows);
 
                 // 3. 最底部帮助提示栏
                 var bottomHelpPanel = new System.Windows.Forms.Panel
@@ -3814,7 +3830,7 @@ namespace WindowsFormsApp3
                 };
                 lblBatchHelp = new System.Windows.Forms.Label
                 {
-                    Text = "点击序号列选中整行，支持 Ctrl/Shift 多选；点击列头排序；右键数量列提取数量",
+                    Text = "点击序号列选中整行；Delete 删除并移入“取消处理”；未匹配行优先置顶",
                     Font = new Font("Microsoft YaHei UI", 8F),
                     ForeColor = Color.DimGray,
                     Dock = DockStyle.Fill,
@@ -3852,7 +3868,7 @@ namespace WindowsFormsApp3
 
                 var colIndex = new DataGridViewTextBoxColumn
                 {
-                    DataPropertyName = "Index",
+                    DataPropertyName = nameof(BatchFileItem.SerialNumber),
                     HeaderText = "序号",
                     Width = 45,
                     ReadOnly = true,
@@ -3880,11 +3896,13 @@ namespace WindowsFormsApp3
                     Width = 65,
                     ReadOnly = false
                 };
+                var colPageCount = CreatePageCountColumn(55);
 
                 dgvBatchFiles.Columns.Add(colIndex);
                 dgvBatchFiles.Columns.Add(colFileName);
                 dgvBatchFiles.Columns.Add(colOrder);
                 dgvBatchFiles.Columns.Add(colQty);
+                dgvBatchFiles.Columns.Add(colPageCount);
 
                 dgvBatchFiles.DataSource = _batchItems;
                 dgvBatchFiles.AllowDrop = true;
@@ -3894,6 +3912,9 @@ namespace WindowsFormsApp3
                 dgvBatchFiles.DragOver += DgvBatchFiles_DragOver;
                 dgvBatchFiles.DragDrop += DgvBatchFiles_DragDrop;
                 dgvBatchFiles.CellMouseDown += DgvBatchFiles_CellMouseDown;
+                dgvBatchFiles.CellClick += DgvBatchFiles_CellClick;
+                dgvBatchFiles.CellFormatting += DgvBatchFiles_CellFormatting;
+                dgvBatchFiles.ColumnHeaderMouseClick += DgvBatchFiles_ColumnHeaderMouseClick;
 
                 dgvBatchFiles.Visible = false;
                 pnlFileList.Controls.Add(pnlCardsContainer);
@@ -3971,15 +3992,19 @@ namespace WindowsFormsApp3
             {
                 if (_batchItems.Count == 0 && !string.IsNullOrEmpty(CurrentFileName))
                 {
+                    ExcelMatchData excelMatch = MatchExcelDataForFile(Path.GetFileName(CurrentFileName));
                     string itemDimensions = ResolveFileDimensions(CurrentFileName, Path.GetFileName(CurrentFileName), out double rw, out double rh);
                     _batchItems.Add(new BatchFileItem
                     {
                         Index = 1,
                         FilePath = CurrentFileName,
                         FileName = Path.GetFileName(CurrentFileName),
+                        PageCount = ResolveActualPageCount(CurrentFileName),
                         OrderNumber = orderNumberTextBox?.Text ?? "",
                         Quantity = !string.IsNullOrEmpty(quantityTextBox?.Text) ? quantityTextBox.Text : "1",
                         SerialNumber = SerialNumber ?? "1",
+                        IsExcelMatched = excelMatch.HasMatch,
+                        ExcelRowIndex = excelMatch.RowIndex,
                         Dimensions = itemDimensions,
                         RawPdfWidth = rw,
                         RawPdfHeight = rh,
@@ -4022,36 +4047,44 @@ namespace WindowsFormsApp3
                 }
 
                 _batchItems.Clear();
+                CaptureBatchMonitorDirectory(list);
                 int startSerial = 1;
-                int.TryParse(SerialNumber, out startSerial);
+                if (!int.TryParse(SerialNumber, out startSerial) || startSerial < 1)
+                {
+                    startSerial = 1;
+                }
 
                 for (int i = 0; i < list.Count; i++)
                 {
                     string filePath = list[i];
                     string fileName = Path.GetFileName(filePath);
-
-                    // 提取数量：优先 Excel 匹配，其次正则匹配 -(\d+)pcs
-                    string quantity = MatchQuantityForFile(fileName);
-                    if (string.IsNullOrEmpty(quantity))
+                    string itemDimensions = ResolveFileDimensions(filePath, fileName, out double rw, out double rh);
+                    var excelMatches = MatchAllExcelDataForFile(fileName);
+                    if (excelMatches.Count == 0)
                     {
-                        quantity = "1";
+                        excelMatches.Add(new ExcelMatchData());
                     }
 
-                    string itemDimensions = ResolveFileDimensions(filePath, fileName, out double rw, out double rh);
-                    var item = new BatchFileItem
+                    foreach (var excelMatch in excelMatches)
                     {
-                        Index = i + 1,
-                        FilePath = filePath,
-                        FileName = fileName,
-                        Quantity = quantity,
-                        SerialNumber = (startSerial + i).ToString(),
-                        Dimensions = itemDimensions,
-                        RawPdfWidth = rw,
-                        RawPdfHeight = rh,
-                        Shape = SelectedShape.ToString()
-                    };
-
-                    _batchItems.Add(item);
+                        _batchItems.Add(new BatchFileItem
+                        {
+                            Index = _batchItems.Count + 1,
+                            FilePath = filePath,
+                            FileName = fileName,
+                            PageCount = ResolveActualPageCount(filePath),
+                            Quantity = string.IsNullOrEmpty(excelMatch.Quantity) ? "1" : excelMatch.Quantity,
+                            SerialNumber = !string.IsNullOrWhiteSpace(excelMatch.SerialNumber)
+                                ? excelMatch.SerialNumber
+                                : (startSerial + i).ToString(),
+                            IsExcelMatched = excelMatch.HasMatch,
+                            ExcelRowIndex = excelMatch.RowIndex,
+                            Dimensions = itemDimensions,
+                            RawPdfWidth = rw,
+                            RawPdfHeight = rh,
+                            Shape = SelectedShape.ToString()
+                        });
+                    }
                 }
 
                 UpdateBatchOrderNumbers();
@@ -4098,10 +4131,17 @@ namespace WindowsFormsApp3
             try
             {
                 int startSerial = 1;
-                int.TryParse(SerialNumber, out startSerial);
+                if (!int.TryParse(SerialNumber, out startSerial) || startSerial < 1)
+                {
+                    startSerial = 1;
+                }
 
                 bool addedAny = false;
                 var addedItems = new List<BatchFileItem>();
+                if (string.IsNullOrWhiteSpace(_batchMonitorDirectory))
+                {
+                    CaptureBatchMonitorDirectory(filePaths);
+                }
                 foreach (var filePath in filePaths)
                 {
                     if (string.IsNullOrWhiteSpace(filePath)) continue;
@@ -4113,29 +4153,40 @@ namespace WindowsFormsApp3
                     }
 
                     string fileName = Path.GetFileName(filePath);
-                    string quantity = MatchQuantityForFile(fileName);
-                    if (string.IsNullOrEmpty(quantity))
+                    var excelMatches = MatchAllExcelDataForFile(fileName);
+                    if (excelMatches.Count == 0)
                     {
-                        quantity = "1";
+                        excelMatches.Add(new ExcelMatchData());
                     }
 
-                    int newIndex = _batchItems.Count + 1;
                     string itemDimensions = ResolveFileDimensions(filePath, fileName, out double rw, out double rh);
-                    var item = new BatchFileItem
+                    string fallbackSerialNumber = (startSerial + _batchItems
+                        .Select(x => x.FilePath)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Count()).ToString();
+                    foreach (var excelMatch in excelMatches)
                     {
-                        Index = newIndex,
-                        FilePath = filePath,
-                        FileName = fileName,
-                        Quantity = quantity,
-                        SerialNumber = (startSerial + newIndex - 1).ToString(),
-                        Dimensions = itemDimensions,
-                        RawPdfWidth = rw,
-                        RawPdfHeight = rh,
-                        Shape = SelectedShape.ToString()
-                    };
+                        var item = new BatchFileItem
+                        {
+                            Index = _batchItems.Count + 1,
+                            FilePath = filePath,
+                            FileName = fileName,
+                            PageCount = ResolveActualPageCount(filePath),
+                            Quantity = string.IsNullOrEmpty(excelMatch.Quantity) ? "1" : excelMatch.Quantity,
+                            SerialNumber = !string.IsNullOrWhiteSpace(excelMatch.SerialNumber)
+                                ? excelMatch.SerialNumber
+                                : fallbackSerialNumber,
+                            IsExcelMatched = excelMatch.HasMatch,
+                            ExcelRowIndex = excelMatch.RowIndex,
+                            Dimensions = itemDimensions,
+                            RawPdfWidth = rw,
+                            RawPdfHeight = rh,
+                            Shape = SelectedShape.ToString()
+                        };
 
-                    _batchItems.Add(item);
-                    addedItems.Add(item);
+                        _batchItems.Add(item);
+                        addedItems.Add(item);
+                    }
                     addedAny = true;
                 }
 
@@ -4154,25 +4205,282 @@ namespace WindowsFormsApp3
             }
         }
 
-        private string MatchQuantityForFile(string fileName)
+        internal static DataGridViewTextBoxColumn CreatePageCountColumn(int width)
         {
-            if (string.IsNullOrWhiteSpace(fileName)) return "";
+            return new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(BatchFileItem.PageCount),
+                HeaderText = "页数",
+                Width = width,
+                ReadOnly = true,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Alignment = DataGridViewContentAlignment.MiddleCenter,
+                    NullValue = string.Empty
+                }
+            };
+        }
+
+        internal static int? ResolveActualPageCount(string filePath)
+        {
+            return WindowsFormsApp3.Controls.PdfiumPdfPreviewControl.GetPdfPageCount(filePath);
+        }
+
+        private void DgvBatchFiles_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.RowIndex < _batchItems.Count)
+            {
+                QueueBatchFilePreview(_batchItems[e.RowIndex]?.FilePath);
+            }
+        }
+
+        private void QueueBatchFilePreview(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath) ||
+                !Path.GetExtension(filePath).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            _requestedBatchPreviewPath = filePath;
+            _pendingPdfToLoad = filePath;
+
+            // 选择左侧文件仅更新待预览文件；预览由用户手动展开，不能因选中行自动打开。
+            if (!ShouldLoadSelectedBatchPreview(_isPreviewExpanded))
+            {
+                return;
+            }
+
+            if (_batchPreviewDebounceTimer == null)
+            {
+                _batchPreviewDebounceTimer = new System.Windows.Forms.Timer { Interval = 150 };
+                _batchPreviewDebounceTimer.Tick += BatchPreviewDebounceTimer_Tick;
+            }
+
+            _batchPreviewDebounceTimer.Stop();
+            if (!_isBatchPreviewLoading)
+            {
+                _batchPreviewDebounceTimer.Start();
+            }
+        }
+
+        internal static bool ShouldLoadSelectedBatchPreview(bool isPreviewExpanded)
+        {
+            return isPreviewExpanded;
+        }
+
+        private async void BatchPreviewDebounceTimer_Tick(object sender, EventArgs e)
+        {
+            _batchPreviewDebounceTimer?.Stop();
+            if (_isBatchPreviewLoading || string.IsNullOrWhiteSpace(_requestedBatchPreviewPath))
+            {
+                return;
+            }
+
+            var loadingPath = _requestedBatchPreviewPath;
+            _isBatchPreviewLoading = true;
+            try
+            {
+                await LoadPdfPreviewAsync(loadingPath);
+                if (string.Equals(_pendingPdfToLoad, loadingPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    _pendingPdfToLoad = null;
+                }
+            }
+            finally
+            {
+                _isBatchPreviewLoading = false;
+                if (!string.Equals(_requestedBatchPreviewPath, loadingPath, StringComparison.OrdinalIgnoreCase) &&
+                    !IsDisposed)
+                {
+                    _batchPreviewDebounceTimer?.Start();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 按文件名匹配 Excel 行，并同时返回数量与序号，避免批量列表丢失匹配行的序号。
+        /// </summary>
+        private ExcelMatchData MatchExcelDataForFile(string fileName)
+        {
+            return MatchAllExcelDataForFile(fileName).FirstOrDefault() ?? new ExcelMatchData();
+        }
+
+        private List<ExcelMatchData> MatchAllExcelDataForFile(string fileName)
+        {
+            return ResolveAllExcelMatchData(
+                _excelData,
+                _searchColumnIndex,
+                _returnColumnIndex,
+                _serialColumnIndex,
+                fileName);
+        }
+
+        internal static ExcelMatchData ResolveExcelMatchData(
+            DataTable excelData,
+            int searchColumnIndex,
+            int returnColumnIndex,
+            int serialColumnIndex,
+            string fileName)
+        {
+            return ResolveAllExcelMatchData(
+                excelData,
+                searchColumnIndex,
+                returnColumnIndex,
+                serialColumnIndex,
+                fileName).FirstOrDefault() ?? new ExcelMatchData();
+        }
+
+        internal static List<ExcelMatchData> ResolveAllExcelMatchData(
+            DataTable excelData,
+            int searchColumnIndex,
+            int returnColumnIndex,
+            int serialColumnIndex,
+            string fileName)
+        {
+            var results = new List<ExcelMatchData>();
+            if (string.IsNullOrWhiteSpace(fileName)) return results;
 
             // 仅保留 Excel 表格数据匹配；未匹配到的文件统一独立保持默认值 "1"（文件名提取迁移至右键菜单由用户主动调用）
-            if (_excelData != null && _searchColumnIndex >= 0 && _returnColumnIndex >= 0)
+            if (excelData != null &&
+                searchColumnIndex >= 0 && searchColumnIndex < excelData.Columns.Count &&
+                returnColumnIndex >= 0 && returnColumnIndex < excelData.Columns.Count)
             {
                 string pureName = Path.GetFileNameWithoutExtension(fileName);
-                foreach (DataRow row in _excelData.Rows)
+                foreach (DataRow row in excelData.Rows)
                 {
-                    string searchVal = row[_searchColumnIndex]?.ToString() ?? "";
+                    string searchVal = row[searchColumnIndex]?.ToString() ?? "";
                     if (!string.IsNullOrEmpty(searchVal) && pureName.IndexOf(searchVal, StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        return row[_returnColumnIndex]?.ToString() ?? "";
+                        var result = new ExcelMatchData
+                        {
+                            RowIndex = excelData.Rows.IndexOf(row),
+                            Quantity = row[returnColumnIndex]?.ToString() ?? ""
+                        };
+                        if (serialColumnIndex >= 0 && serialColumnIndex < excelData.Columns.Count)
+                        {
+                            result.SerialNumber = row[serialColumnIndex]?.ToString()?.Trim() ?? "";
+                        }
+                        results.Add(result);
                     }
                 }
             }
 
-            return "";
+            return results;
+        }
+
+        private bool IsExcelMatchingActive =>
+            _excelData != null &&
+            _searchColumnIndex >= 0 && _searchColumnIndex < _excelData.Columns.Count &&
+            _returnColumnIndex >= 0 && _returnColumnIndex < _excelData.Columns.Count;
+
+        private void CaptureBatchMonitorDirectory(IEnumerable<string> filePaths)
+        {
+            var directories = (filePaths ?? Enumerable.Empty<string>())
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Select(path => Path.GetDirectoryName(Path.GetFullPath(path)))
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            _batchMonitorDirectory = directories.Count == 1 ? directories[0] : null;
+        }
+
+        private void DgvBatchFiles_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.RowIndex >= _batchItems.Count) return;
+            ApplyBatchMatchStatusStyle(dgvBatchFiles, e, _batchItems[e.RowIndex]);
+        }
+
+        private void DgvBatchFiles_ColumnHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.ColumnIndex < 0 || e.ColumnIndex >= dgvBatchFiles.Columns.Count) return;
+            string propertyName = dgvBatchFiles.Columns[e.ColumnIndex].DataPropertyName;
+            SortBatchFilesByProperty(propertyName, GetNextBatchSortDirection(propertyName));
+        }
+
+        private async Task CancelSelectedBatchItemsAsync()
+        {
+            if (_isCancellingBatchItems) return;
+            _isCancellingBatchItems = true;
+            if (btnDeleteBatchRows != null) btnDeleteBatchRows.Enabled = false;
+            try
+            {
+                List<BatchFileItem> selectedItems = GetSelectedBatchItems();
+                if (selectedItems.Count == 0)
+                {
+                    AntdUI.Message.warn(this.FindForm(), "请先选择要删除的文件行", autoClose: 3);
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(_batchMonitorDirectory))
+                {
+                    AntdUI.Message.warn(this.FindForm(), "无法确定唯一的监控目录，未执行删除", autoClose: 4);
+                    return;
+                }
+
+                DialogResult confirmation = AntdUiModalRenderer.Show(new ModalRequest(
+                    this,
+                    "取消处理文件",
+                    $"确定删除选中的 {selectedItems.Count} 行吗？\n文件将移动到监控目录下的“取消处理”文件夹。",
+                    new[]
+                    {
+                        new ModalButtonSpec("move", "删除并移动", DialogResult.Yes, AntdUI.TTypeMini.Error)
+                        {
+                            IsDefault = true
+                        },
+                        new ModalButtonSpec("cancel", "取消", DialogResult.Cancel, AntdUI.TTypeMini.Default)
+                        {
+                            IsCancel = true
+                        }
+                    })
+                {
+                    Icon = AntdUI.TType.Warn
+                });
+                if (confirmation != DialogResult.Yes) return;
+
+                _realPdfPreviewControl?.ClosePdf();
+                var service = new CancelledFileService();
+                List<CancelledFileMoveResult> moveResults = await Task.Run(() => selectedItems
+                    .Select(item => service.MoveToCancelledFolder(item.FilePath, _batchMonitorDirectory))
+                    .ToList());
+
+                var movedPaths = new HashSet<string>(
+                    moveResults.Where(result => result.Success).Select(result => result.SourcePath),
+                    StringComparer.OrdinalIgnoreCase);
+                BatchFileItemCollectionService.RemoveByPaths(_batchItems, _processGroups, movedPaths);
+
+                UpdateBatchOrderNumbers();
+                ReorderExistingGroupItems();
+                RefreshGroupSummaryHeader();
+                RenderGroupCards();
+                dgvBatchFiles?.Refresh();
+
+                foreach (CancelledFileMoveResult failedResult in moveResults.Where(result => !result.Success))
+                {
+                    LogHelper.Warn($"[取消处理] 文件移动失败: {failedResult.SourcePath}, 原因: {failedResult.ErrorMessage}");
+                }
+
+                int failedCount = moveResults.Count(result => !result.Success);
+                if (failedCount > 0)
+                {
+                    AntdUI.Message.warn(this.FindForm(), $"已取消 {movedPaths.Count} 个文件，另有 {failedCount} 个移动失败并保留在列表中", autoClose: 5);
+                }
+                else if (_batchItems.Count > 0)
+                {
+                    QueueBatchFilePreview(_batchItems[0].FilePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[取消处理] 删除行失败: {ex.Message}", ex);
+                AntdUI.Message.warn(this.FindForm(), "取消处理失败，文件已保留，请查看日志", autoClose: 5);
+            }
+            finally
+            {
+                _isCancellingBatchItems = false;
+                if (btnDeleteBatchRows != null) btnDeleteBatchRows.Enabled = true;
+            }
         }
 
         /// <summary>
@@ -4594,7 +4902,13 @@ namespace WindowsFormsApp3
         /// </summary>
         private void DgvBatchFiles_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Control && e.KeyCode == Keys.V)
+            if (e.KeyCode == Keys.Delete)
+            {
+                _ = CancelSelectedBatchItemsAsync();
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+            }
+            else if (e.Control && e.KeyCode == Keys.V)
             {
                 PasteQuantitiesFromClipboard();
                 e.Handled = true;
@@ -4667,10 +4981,10 @@ namespace WindowsFormsApp3
             if (e.Button == MouseButtons.Left)
             {
                 var hit = dgvBatchFiles.HitTest(e.X, e.Y);
-                // ✅ 仅在点击【序号】列（Index 列）时触发拖拽排序，保证数量列等其它单元格可以正常多选/编辑
+                // 仅在点击序号列时触发拖拽排序，保证数量列等其它单元格可以正常多选/编辑。
                 if (hit.RowIndex >= 0 && hit.RowIndex < _batchItems.Count &&
                     hit.ColumnIndex >= 0 && hit.ColumnIndex < dgvBatchFiles.Columns.Count &&
-                    dgvBatchFiles.Columns[hit.ColumnIndex].DataPropertyName == "Index")
+                    dgvBatchFiles.Columns[hit.ColumnIndex].DataPropertyName == nameof(BatchFileItem.SerialNumber))
                 {
                     _rowIndexFromMouseDown = hit.RowIndex;
                     Size dragSize = SystemInformation.DragSize;
@@ -4753,78 +5067,48 @@ namespace WindowsFormsApp3
             _batchItems.Insert(targetIndex, item);
 
             UpdateBatchOrderNumbers();
-            dgvBatchFiles?.ClearSelection();
-            if (dgvBatchFiles != null && dgvBatchFiles.Rows.Count > targetIndex)
-            {
-                dgvBatchFiles.Rows[targetIndex].Cells[0].Selected = true;
-            }
+            ReorderExistingGroupItems();
+            RefreshGroupSummaryHeader();
+            RenderGroupCards();
+            dgvBatchFiles?.Refresh();
         }
 
         private void BtnMoveUp_Click(object sender, EventArgs e)
         {
-            try
-            {
-                int rowIndex = -1;
-                if (dgvBatchFiles.CurrentCell != null)
-                {
-                    rowIndex = dgvBatchFiles.CurrentCell.RowIndex;
-                }
-                else if (dgvBatchFiles.SelectedRows.Count > 0)
-                {
-                    rowIndex = dgvBatchFiles.SelectedRows[0].Index;
-                }
-
-                if (rowIndex > 0 && rowIndex < _batchItems.Count)
-                {
-                    var item = _batchItems[rowIndex];
-                    _batchItems.RemoveAt(rowIndex);
-                    _batchItems.Insert(rowIndex - 1, item);
-
-                    UpdateBatchOrderNumbers();
-                    dgvBatchFiles.ClearSelection();
-                    if (dgvBatchFiles.Rows.Count > rowIndex - 1)
-                    {
-                        dgvBatchFiles.Rows[rowIndex - 1].Cells[0].Selected = true;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                LogHelper.Error($"[MaterialSelectFormModern] 上移失败: {ex.Message}", ex);
-            }
+            MoveSelectedBatchItems(-1);
         }
 
         private void BtnMoveDown_Click(object sender, EventArgs e)
         {
+            MoveSelectedBatchItems(1);
+        }
+
+        private void MoveSelectedBatchItems(int offset)
+        {
             try
             {
-                int rowIndex = -1;
-                if (dgvBatchFiles.CurrentCell != null)
+                List<BatchFileItem> selectedItems = GetSelectedBatchItems();
+                if (selectedItems.Count == 0)
                 {
-                    rowIndex = dgvBatchFiles.CurrentCell.RowIndex;
-                }
-                else if (dgvBatchFiles.SelectedRows.Count > 0)
-                {
-                    rowIndex = dgvBatchFiles.SelectedRows[0].Index;
+                    AntdUI.Message.warn(this.FindForm(), "请先选择要移动的文件行", autoClose: 3);
+                    return;
                 }
 
-                if (rowIndex >= 0 && rowIndex < _batchItems.Count - 1)
-                {
-                    var item = _batchItems[rowIndex];
-                    _batchItems.RemoveAt(rowIndex);
-                    _batchItems.Insert(rowIndex + 1, item);
+                bool moved = BatchFileItemCollectionService.MoveByOffset(
+                    _batchItems,
+                    selectedItems.Select(item => item.FilePath),
+                    offset);
+                if (!moved) return;
 
-                    UpdateBatchOrderNumbers();
-                    dgvBatchFiles.ClearSelection();
-                    if (dgvBatchFiles.Rows.Count > rowIndex + 1)
-                    {
-                        dgvBatchFiles.Rows[rowIndex + 1].Cells[0].Selected = true;
-                    }
-                }
+                UpdateBatchOrderNumbers();
+                ReorderExistingGroupItems();
+                RefreshGroupSummaryHeader();
+                RenderGroupCards();
+                dgvBatchFiles?.Refresh();
             }
             catch (Exception ex)
             {
-                LogHelper.Error($"[MaterialSelectFormModern] 下移失败: {ex.Message}", ex);
+                LogHelper.Error($"[MaterialSelectFormModern] 移动文件行失败: {ex.Message}", ex);
             }
         }
 
@@ -5116,6 +5400,47 @@ namespace WindowsFormsApp3
             };
         }
 
+        private void ApplySavedTopMostPreference()
+        {
+            ApplyTopMostState(AppSettings.MaterialFormTopMost, false);
+        }
+
+        private void PinTopMostButton_Click(object sender, EventArgs e)
+        {
+            ToggleTopMost();
+        }
+
+        internal void ToggleTopMost()
+        {
+            ApplyTopMostState(!TopMost, true);
+        }
+
+        private void ApplyTopMostState(bool isTopMost, bool persist)
+        {
+            TopMost = isTopMost;
+            if (pinTopMostButton != null)
+            {
+                pinTopMostButton.Type = isTopMost
+                    ? AntdUI.TTypeMini.Primary
+                    : AntdUI.TTypeMini.Default;
+                pinTopMostButton.Text = "📌";
+                folderTreeViewToolTip?.SetToolTip(
+                    pinTopMostButton,
+                    GetTopMostToolTip(isTopMost));
+            }
+
+            if (persist)
+            {
+                AppSettings.MaterialFormTopMost = isTopMost;
+                AppSettings.CommitChanges();
+            }
+        }
+
+        internal static string GetTopMostToolTip(bool isTopMost)
+        {
+            return isTopMost ? "取消置顶" : "置顶窗口";
+        }
+
         /// <summary>
         /// 设置订单号输入框焦点
         /// </summary>
@@ -5347,8 +5672,8 @@ namespace WindowsFormsApp3
         /// </summary>
         private void MaterialSelectFormModern_Shown(object sender, EventArgs e)
         {
-            // 确保窗体始终在最前端显示
-            TopMost = true;
+            // 按用户上次选择恢复置顶状态，首次使用默认置顶。
+            ApplySavedTopMostPreference();
             this.Activate();
 
             // 🔧 强制重新加载预设按钮，确保它们在窗体显示后可见
@@ -5402,6 +5727,9 @@ namespace WindowsFormsApp3
             try
             {
                 // ✅ 关闭PDF预览，释放文件句柄
+                _batchPreviewDebounceTimer?.Stop();
+                _batchPreviewDebounceTimer?.Dispose();
+                _batchPreviewDebounceTimer = null;
                 PdfPreview?.ClosePdf();
                 LogHelper.Debug("[MaterialSelectFormModern] 已关闭PDF预览，释放文件句柄");
                 
@@ -10691,6 +11019,11 @@ namespace WindowsFormsApp3
                 previewCollapseButton.DefaultBack = theme.Surface;
                 previewCollapseButton.ForeColor = theme.TextPrimary;
                 previewCollapseButton.DefaultBorderColor = theme.Border;
+            }
+
+            if (pinTopMostButton != null)
+            {
+                ApplyThemeToMaterialButton(pinTopMostButton, theme, isDark);
             }
 
             // 订单号模式按钮

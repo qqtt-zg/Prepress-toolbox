@@ -283,6 +283,15 @@ namespace WindowsFormsApp3.Utils
             set => SetValue("MaterialEnableSerialSearchCheckbox", value);
         }
 
+        /// <summary>
+        /// 材料选择窗口是否保持置顶，首次使用默认开启。
+        /// </summary>
+        public static bool MaterialFormTopMost
+        {
+            get => GetValue<bool>("MaterialFormTopMost", true);
+            set => SetValue("MaterialFormTopMost", value);
+        }
+
         // 主题设置
         public static string CurrentThemeName
         {

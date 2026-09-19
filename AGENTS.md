@@ -11,7 +11,7 @@
 # Restore dependencies
 dotnet restore WindowsFormsApp3.sln
 
-# Build (Debug/Release) - Safe to run frequently
+# 选择一种配置；通常使用 Debug，发布任务验证 Release
 dotnet build WindowsFormsApp3.sln -c Debug
 dotnet build WindowsFormsApp3.sln -c Release
 ```
@@ -21,7 +21,7 @@ dotnet build WindowsFormsApp3.sln -c Release
 **Location**: `src/WindowsFormsApp3.Tests/`
 
 ```bash
-# Run ALL tests (Essential before PR)
+# Run all tests for broad behavioral impact or an explicit full-suite requirement
 dotnet test src/WindowsFormsApp3.Tests/WindowsFormsApp3.Tests.csproj
 
 # Run a SPECIFIC test file (Fast feedback loop)
@@ -78,13 +78,13 @@ This project uses multiple PDF libraries. **Use the right one for the job**:
 
 ## 3. Operational Rules for Agents
 
-1.  **No Blind Commits**: Always run `dotnet build` before confirming a task is done.
+1.  **Verification**: For changes that can affect compilation or runtime behavior, run the smallest relevant build or test before completion. Documentation-only and read-only tasks do not require a build. Prefer affected tests during implementation; run all tests for broad behavioral impact or an explicit full-suite requirement. Documentation-only PRs need content, relevant link, and diff checks.
 2.  **Atomic Changes**: Don't mix refactoring with bug fixes.
 3.  **Error Handling**:
     - **UI Layer**: Show user-friendly messages (via `MessageBox` or Toast).
     - **Service Layer**: Throw exceptions or return `Result<T>` pattern. Log errors via `LogHelper`.
 4.  **Async/Await**:
-    - UI runs on Main Thread. Use `async/await` for ALL I/O (File, DB, PDF processing).
+    - UI runs on Main Thread. Use asynchronous APIs for potentially blocking I/O on UI execution paths. Do not expand a scoped change solely to convert unrelated legacy synchronous code.
     - **Never** use `.Result` or `.Wait()` (Deadlock risk). Use `await`.
 5.  **Path Handling**:
     - Windows paths are messy. Always use `Path.Combine()`.
@@ -92,14 +92,14 @@ This project uses multiple PDF libraries. **Use the right one for the job**:
 6.  **Dependency Injection**:
     - Prefer Constructor Injection.
     - If impossible (Legacy Forms), use `ServiceLocator.Instance.GetService<T>()`.
-    - Register new services in `Program.cs`.
+    - Register application-wide injected services in `Program.cs`. Local helpers and test-only services do not need registration.
 
 ## 4. Git Workflow
 - **Commit Messages**: `type: subject`
-  - `feat: add PDF split function`
-  - `fix: resolve crash on large files`
-  - `refactor: optimize import logic`
-  - `docs: update README`
+  - `feat: 添加 PDF 拆分功能`
+  - `fix: 修复大文件处理崩溃`
+  - `refactor: 优化导入逻辑`
+  - `docs: 更新 README`
 - **Scope**: Keep changes focused. If you see unrelated messy code, note it but don't fix it unless asked (or use a separate PR).
 
 ## 5. Directory Map

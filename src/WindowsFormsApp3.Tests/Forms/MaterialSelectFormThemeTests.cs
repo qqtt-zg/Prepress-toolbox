@@ -23,7 +23,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Fact]
+        [StaFact]
         public void ApplyTheme_ShouldThemeTheEntireExistingBatchWorkbench()
         {
             var theme = CreateTheme(
@@ -72,7 +72,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Fact]
+        [StaFact]
         public void ApplyTheme_ShouldRecolorExistingAndNewBatchCardsAfterThemeSwitch()
         {
             var darkTheme = CreateTheme(
@@ -114,7 +114,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Fact]
+        [StaFact]
         public void ApplyTheme_ShouldKeepPrimaryBatchToolbarTextReadableInLightTheme()
         {
             var lightTheme = CreateTheme(
@@ -141,6 +141,32 @@ namespace WindowsFormsApp3.Tests.Forms
                 Assert.True(
                     GetContrastRatio(lightTheme.Primary, textColor) >= 4.5D,
                     $"浅色主题主按钮文字与主色背景的对比度不足: {GetContrastRatio(lightTheme.Primary, textColor):F2}");
+            }
+        }
+
+        [StaFact]
+        public void TopMostButton_ShouldDefaultToSavedChoice_AndToggleIt()
+        {
+            var previous = WindowsFormsApp3.Utils.AppSettings.MaterialFormTopMost;
+            try
+            {
+                WindowsFormsApp3.Utils.AppSettings.MaterialFormTopMost = false;
+                using (var form = CreateForm())
+                {
+                    Assert.False(form.TopMost);
+                    Assert.Equal("置顶窗口", MaterialSelectFormModern.GetTopMostToolTip(form.TopMost));
+
+                    form.ToggleTopMost();
+
+                    Assert.True(form.TopMost);
+                    Assert.True(WindowsFormsApp3.Utils.AppSettings.MaterialFormTopMost);
+                    Assert.Equal("取消置顶", MaterialSelectFormModern.GetTopMostToolTip(form.TopMost));
+                }
+            }
+            finally
+            {
+                WindowsFormsApp3.Utils.AppSettings.MaterialFormTopMost = previous;
+                WindowsFormsApp3.Utils.AppSettings.CommitChanges();
             }
         }
 

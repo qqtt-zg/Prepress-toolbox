@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>大诚工具箱 · 统一作业工作台方案</title>
+  <style>
+    :root {
+      --bg: #e9edef;
+      --surface: #ffffff;
+      --fg: #1c2529;
+      --muted: #6f7a7f;
+      --border: #d7dee1;
+      --accent: #2d6676;
+      --dark: #20282b;
+      --dark-fg: #eef2f1;
+      --soft: #e1ecef;
+      --soft-2: #f4f6f6;
+      --success: #4e7664;
+      --warning: #a77b32;
+      --danger: #9e5151;
+      --selected: #d8e8ec;
+      --preview: #31383b;
+      --paper: #f7f4ec;
+      --font-display: 'Iowan Old Style', 'Songti SC', Georgia, serif;
+      --font-body: 'Microsoft YaHei UI', 'Segoe UI', system-ui, sans-serif;
+      --font-mono: 'Cascadia Mono', Consolas, monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); overflow: hidden; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .prototype { height: 100vh; min-height: 680px; display: grid; grid-template-columns: 76px 1fr; background: var(--surface); }
+    .rail { display: flex; flex-direction: column; align-items: center; padding: 14px 8px 10px; background: var(--dark); color: var(--dark-fg); }
+    .mark { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid color-mix(in oklch, var(--dark-fg) 24%, transparent); border-radius: 13px; font: 700 15px var(--font-mono); margin-bottom: 26px; }
+    .rail-nav { width: 100%; display: grid; gap: 7px; }
+    .rail-button { min-height: 57px; display: grid; place-items: center; gap: 3px; border: 0; border-radius: 10px; background: transparent; color: color-mix(in oklch, var(--dark-fg) 60%, transparent); font-size: 9px; }
+    .rail-button.active { background: color-mix(in oklch, var(--dark-fg) 12%, transparent); color: var(--dark-fg); }
+    .rail-button svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+    .rail-spacer { flex: 1; }
+    .version { color: color-mix(in oklch, var(--dark-fg) 46%, transparent); font: 9px var(--font-mono); }
+    .screen { min-width: 0; min-height: 0; display: none; }
+    .screen.active { display: grid; animation: reveal .2s ease both; }
+    @keyframes reveal { from { opacity: .25; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+    .inbox-screen { grid-template-rows: 66px 66px 1fr 34px; }
+    .topbar { display: grid; grid-template-columns: minmax(320px, 1fr) auto; gap: 18px; align-items: center; padding: 11px 18px; border-bottom: 1px solid var(--border); }
+    .source { display: grid; grid-template-columns: minmax(250px, 1fr) 130px auto; gap: 8px; }
+    .field { height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: var(--soft-2); border: 1px solid var(--border); border-radius: 9px; color: var(--muted); font-size: 11px; }
+    .field.path { color: var(--fg); font-family: var(--font-mono); }
+    .tools { display: flex; align-items: center; gap: 7px; }
+    .icon-button { height: 38px; min-width: 38px; padding: 0 11px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--fg); font-size: 11px; }
+    .icon-button:hover { border-color: var(--accent); background: var(--soft); }
+    .monitor { display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 12px; border: 1px solid color-mix(in oklch, var(--success) 40%, var(--border)); border-radius: 9px; background: color-mix(in oklch, var(--success) 10%, var(--surface)); color: var(--success); font-size: 11px; }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 4px color-mix(in oklch, var(--success) 14%, transparent); }
+    .queuebar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 10px 18px; background: var(--soft-2); border-bottom: 1px solid var(--border); }
+    .queue-title h1 { margin: 0; font: 600 19px var(--font-display); }
+    .queue-title span { color: var(--muted); font-size: 10px; }
+    .filters { display: flex; gap: 6px; }
+    .filter { padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--muted); font-size: 10px; }
+    .filter.active { border-color: var(--accent); background: var(--soft); color: var(--accent); }
+    .queue-main { min-height: 0; display: grid; grid-template-columns: 1fr 270px; }
+    .table-wrap { min-width: 0; overflow: auto; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 11px; }
+    thead { position: sticky; top: 0; z-index: 2; }
+    th { height: 36px; padding: 0 8px; background: var(--surface); border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 500; text-align: left; }
+    td { height: 39px; padding: 0 8px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    th:nth-child(1), td:nth-child(1) { width: 34px; text-align: center; }
+    th:nth-child(2), td:nth-child(2) { width: 42px; text-align: center; }
+    th:nth-child(3), td:nth-child(3) { width: 29%; }
+    th:nth-child(4), td:nth-child(4) { width: 22%; }
+    th:nth-child(n+5), td:nth-child(n+5) { width: 68px; text-align: center; }
+    tbody tr:hover { background: color-mix(in oklch, var(--soft) 70%, transparent); }
+    tbody tr.checked { background: color-mix(in oklch, var(--selected) 68%, transparent); }
+    .checkbox { width: 14px; height: 14px; accent-color: var(--accent); }
+    .state { display: inline-flex; align-items: center; gap: 5px; }
+    .state::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+    .state.wait::before { background: var(--warning); }
+    .summary { padding: 18px; background: var(--soft-2); border-left: 1px solid var(--border); }
+    .summary-label { color: var(--muted); font: 9px var(--font-mono); letter-spacing: .1em; }
+    .summary-count { margin: 7px 0 18px; font: 600 46px/1 var(--font-display); }
+    .summary-list { display: grid; gap: 9px; }
+    .summary-row { display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border); font-size: 11px; }
+    .summary-row span:first-child { color: var(--muted); }
+    .open-workbench { width: 100%; height: 46px; margin-top: 22px; border: 0; border-radius: 10px; background: var(--accent); color: var(--surface); font-weight: 700; }
+    .open-workbench:hover, .execute:hover { filter: brightness(.92); }
+    .statusbar { display: flex; align-items: center; justify-content: space-between; padding: 0 12px; background: var(--soft-2); border-top: 1px solid var(--border); color: var(--muted); font: 10px var(--font-mono); }
+    .workbench-screen { grid-template-rows: 58px 1fr 66px; background: var(--soft-2); }
+    .workbench-head { display: flex; align-items: center; justify-content: space-between; padding: 0 18px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .workbench-title { display: flex; align-items: baseline; gap: 12px; }
+    .workbench-title h1 { margin: 0; font: 600 20px var(--font-display); }
+    .workbench-title span { color: var(--muted); font-size: 10px; }
+    .top-actions { display: flex; gap: 7px; }
+    .small-button { height: 32px; padding: 0 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--fg); font-size: 10px; }
+    .workbench-main { min-height: 0; display: grid; grid-template-columns: 330px 380px 1fr; gap: 10px; padding: 10px; }
+    .pane { min-height: 0; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: 11px; }
+    .pane-head { height: 43px; display: flex; align-items: center; justify-content: space-between; padding: 0 13px; border-bottom: 1px solid var(--border); }
+    .pane-head strong { font-size: 12px; }
+    .pane-head span { color: var(--muted); font-size: 9px; }
+    .group-list { height: calc(100% - 43px); overflow: auto; padding: 9px; background: var(--soft-2); }
+    .group-card { margin-bottom: 9px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); overflow: hidden; }
+    .group-head { display: flex; align-items: center; justify-content: space-between; padding: 9px 10px; background: var(--soft); font-size: 10px; }
+    .group-head b { font-size: 11px; }
+    .lock { color: var(--accent); font-family: var(--font-mono); }
+    .file-item { display: grid; grid-template-columns: 1fr 38px; gap: 6px; align-items: center; padding: 8px 10px; border-top: 1px solid var(--border); font-size: 10px; }
+    .file-item.active { background: var(--selected); }
+    .page-count { text-align: right; color: var(--muted); font-family: var(--font-mono); }
+    .form-pane { overflow: auto; }
+    .form-body { padding: 13px; }
+    .form-section { margin-bottom: 16px; }
+    .form-section-title { margin-bottom: 8px; color: var(--muted); font: 9px var(--font-mono); letter-spacing: .08em; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .control { min-width: 0; }
+    .control label { display: block; margin-bottom: 4px; color: var(--muted); font-size: 9px; }
+    .input { width: 100%; height: 33px; padding: 0 9px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--fg); font-size: 10px; }
+    .choice-row { display: flex; gap: 6px; }
+    .choice { flex: 1; height: 31px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--muted); font-size: 10px; }
+    .choice.active { background: var(--selected); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+    .preview-pane { display: grid; grid-template-rows: 43px 1fr 42px; background: var(--preview); }
+    .preview-pane .pane-head { color: var(--dark-fg); border-color: color-mix(in oklch, var(--dark-fg) 14%, transparent); }
+    .pdf-stage { display: grid; place-items: center; padding: 20px; }
+    .pdf-page { width: min(72%, 400px); aspect-ratio: 210/297; padding: 26px; background: var(--paper); box-shadow: 0 18px 38px color-mix(in oklch, var(--dark) 45%, transparent); color: var(--dark); }
+    .pdf-code { font: 700 24px var(--font-mono); margin-bottom: 24px; }
+    .pdf-rule { height: 1px; background: color-mix(in oklch, var(--dark) 25%, transparent); margin: 10px 0; }
+    .pdf-line { height: 6px; margin: 9px 0; background: color-mix(in oklch, var(--dark) 18%, transparent); }
+    .preview-foot { display: flex; align-items: center; justify-content: center; gap: 18px; border-top: 1px solid color-mix(in oklch, var(--dark-fg) 14%, transparent); color: color-mix(in oklch, var(--dark-fg) 70%, transparent); font: 10px var(--font-mono); }
+    .workbench-foot { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding: 9px 18px; background: var(--surface); border-top: 1px solid var(--border); }
+    .run-summary strong { display: block; font-size: 12px; }
+    .run-summary span { color: var(--muted); font-size: 10px; }
+    .foot-actions { display: flex; gap: 8px; }
+    .back { height: 40px; padding: 0 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--fg); }
+    .execute { height: 40px; min-width: 180px; padding: 0 18px; border: 0; border-radius: 9px; background: var(--accent); color: var(--surface); font-weight: 700; }
+    @media (max-width: 1050px) {
+      body { overflow: auto; }
+      .prototype { min-height: 100vh; height: auto; grid-template-columns: 62px 1fr; }
+      .workbench-main { grid-template-columns: 280px 1fr; }
+      .preview-pane { grid-column: 1 / -1; min-height: 520px; }
+      .queue-main { grid-template-columns: 1fr; }
+      .summary { border-left: 0; border-top: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+  <main class="prototype">
+    <aside class="rail" data-od-id="global-navigation">
+      <div class="mark">DC</div>
+      <nav class="rail-nav">
+        <button class="rail-button active" data-screen="inbox"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg>任务</button>
+        <button class="rail-button"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg>数据</button>
+        <button class="rail-button"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>工具</button>
+        <button class="rail-button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>设置</button>
+      </nav>
+      <div class="rail-spacer"></div><span class="version">v2.6.3</span>
+    </aside>
+
+    <section class="screen inbox-screen active" id="inboxScreen" data-od-id="task-inbox">
+      <header class="topbar">
+        <div class="source"><div class="field path">C:\Users\admin\Desktop\转存</div><div class="field">保留所有⌄</div><button class="icon-button">选择文件夹</button></div>
+        <div class="tools"><button class="icon-button">导入数据</button><button class="icon-button">导出</button><button class="monitor"><i class="live-dot"></i>监控中</button></div>
+      </header>
+      <div class="queuebar"><div class="queue-title"><h1>待处理任务</h1><span>主界面只负责收件、匹配与状态管理</span></div><div class="filters"><button class="filter active">全部 14</button><button class="filter">待配置 5</button><button class="filter">已就绪 9</button><button class="filter">失败 0</button></div></div>
+      <div class="queue-main">
+        <div class="table-wrap"><table><thead><tr><th><input class="checkbox" type="checkbox" checked></th><th>#</th><th>原文件名</th><th>正则结果</th><th>订单</th><th>数量</th><th>尺寸</th><th>页数</th><th>状态</th></tr></thead><tbody id="taskRows"></tbody></table></div>
+        <aside class="summary"><span class="summary-label">SELECTION</span><div class="summary-count" id="selectedCount">5</div><div class="summary-list"><div class="summary-row"><span>处理范围</span><b>所选任务</b></div><div class="summary-row"><span>总页数</span><b id="selectedPages">171</b></div><div class="summary-row"><span>数据状态</span><b>4 已匹配</b></div><div class="summary-row"><span>处理参数</span><b>待配置</b></div></div><button class="open-workbench" id="openWorkbench">配置并处理 · 5</button></aside>
+      </div>
+      <footer class="statusbar"><span>监控目录稳定 · 14 个文件已收集</span><span>新文件行为：仅加入待处理队列</span></footer>
+    </section>
+
+    <section class="screen workbench-screen" id="workbenchScreen" data-od-id="job-workbench">
+      <header class="workbench-head"><div class="workbench-title"><h1>作业工作台</h1><span>5 款 · 2 个工艺组 · 共 171 页</span></div><div class="top-actions"><button class="small-button">加载预设</button><button class="small-button">保存方案</button><button class="small-button">置顶⌖</button></div></header>
+      <div class="workbench-main">
+        <section class="pane" data-od-id="process-groups"><header class="pane-head"><strong>工艺分组</strong><span>拖动文件调整分组</span></header><div class="group-list"><article class="group-card"><div class="group-head"><b>一组 · PET 哑光</b><span class="lock">LOCK</span></div><div class="file-item active"><span>321 HYS000038 150张.pdf</span><span class="page-count">150p</span></div><div class="file-item"><span>322 HYS000039 150张.pdf</span><span class="page-count">1p</span></div></article><article class="group-card"><div class="group-head"><b>二组 · 银色铭牌</b><span>联动</span></div><div class="file-item"><span>323 HYS000040 150张.pdf</span><span class="page-count">6p</span></div><div class="file-item"><span>469 HYS001806 100张.pdf</span><span class="page-count">13p</span></div><div class="file-item"><span>472 HYS001101 60张.pdf</span><span class="page-count">1p</span></div></article><button class="small-button" style="width:100%">＋ 新建工艺组</button></div></section>
+        <section class="pane form-pane" data-od-id="job-parameters"><header class="pane-head"><strong>组参数 · 一组</strong><span>修改同步到未锁定文件</span></header><div class="form-body"><div class="form-section"><div class="form-section-title">IDENTITY</div><div class="form-grid"><div class="control"><label>订单号</label><input class="input" value="321"></div><div class="control"><label>数量</label><input class="input" value="150"></div></div></div><div class="form-section"><div class="form-section-title">MATERIAL</div><div class="form-grid"><div class="control"><label>材料</label><input class="input" value="PET 哑光"></div><div class="control"><label>工艺</label><input class="input" value="黑白光膜"></div></div></div><div class="form-section"><div class="form-section-title">OUTPUT MODE</div><div class="choice-row"><button class="choice active">复制</button><button class="choice">移动</button></div></div><div class="form-section"><div class="form-section-title">IMPOSITION</div><div class="choice-row"><button class="choice active">平张</button><button class="choice">卷装</button></div><div class="choice-row" style="margin-top:7px"><button class="choice active">连拼</button><button class="choice">折手</button></div></div><div class="form-section"><div class="form-grid"><div class="control"><label>尺寸</label><input class="input" value="65 × 40 mm"></div><div class="control"><label>出血</label><input class="input" value="2 mm"></div><div class="control"><label>形状</label><input class="input" value="直角"></div><div class="control"><label>输出目录</label><input class="input" value="A3\A4"></div></div></div></div></section>
+        <section class="pane preview-pane" data-od-id="pdf-preview"><header class="pane-head"><strong>PDF 预览</strong><span>321 HYS000038 · 第 1 / 150 页</span></header><div class="pdf-stage"><div class="pdf-page"><div class="pdf-code">DC / 321</div><div class="pdf-line"></div><div class="pdf-line" style="width:72%"></div><div class="pdf-rule"></div><div class="pdf-line" style="width:46%"></div><div class="pdf-line" style="width:84%"></div></div></div><footer class="preview-foot"><span>−</span><span>78%</span><span>＋</span><span>适应页面</span></footer></section>
+      </div>
+      <footer class="workbench-foot"><div class="run-summary"><strong>执行前检查：5 款文件均可读取</strong><span>目标名称已预留 · 输出目录有效 · 当前批次不会包含后来进入的文件</span></div><div class="foot-actions"><button class="back" id="backToInbox">返回任务列表</button><button class="execute">执行所选 5 款</button></div></footer>
+    </section>
+  </main>
+  <script>
+    const tasks = [
+      {n:7,file:'321 HYS000038 150张 MGB-514 ME款.pdf',regex:'321 HYS000038 150张',order:'321',qty:'1',size:'65×40',pages:150,status:'待配置'},
+      {n:8,file:'322 HYS000039 150张 MGB-514 ECM-1.pdf',regex:'322 HYS000039 150张',order:'322',qty:'190',size:'55×40',pages:1,status:'待配置'},
+      {n:9,file:'323 HYS000040 150张 MGB-514 ME款.pdf',regex:'323 HYS000040 150张',order:'323',qty:'1',size:'105×74',pages:6,status:'已就绪'},
+      {n:10,file:'324 HYS001741 150张 MGB-514 GCP1040.pdf',regex:'324 HYS001741 150张',order:'324',qty:'1',size:'28×5',pages:1,status:'已就绪'},
+      {n:11,file:'325 HYS000013 650张 MGB-514 年份贴.pdf',regex:'325 HYS000013 650张',order:'325',qty:'650',size:'20×4',pages:1,status:'待配置'},
+      {n:12,file:'5.430.181006BC-430WS.HC.02-13.pdf',regex:'5.430.181006BC-430WS',order:'1199-1',qty:'66',size:'297×105',pages:1,status:'已就绪'},
+      {n:13,file:'5.365.245021JC-365WD.HC.02-06.pdf',regex:'5.365.245021JC-365WD',order:'1199-2',qty:'10',size:'82×32',pages:1,status:'待配置'},
+      {n:14,file:'469 HYS001806 100张 STL-062 742028.pdf',regex:'469 HYS001806 100张',order:'469',qty:'100',size:'65×40',pages:13,status:'已就绪'},
+      {n:15,file:'472 HYS001101 60张 STL-062 746096.pdf',regex:'472 HYS001101 60张',order:'472',qty:'1',size:'80×50',pages:1,status:'待配置'},
+      {n:16,file:'HYS002487 20张 HED-176 10L炸筛.pdf',regex:'HYS002487 20张',order:'1188-1',qty:'20',size:'8×4',pages:1,status:'已就绪'},
+      {n:17,file:'HYS002487 50张 HED-177 10L炸筛.pdf',regex:'HYS002487 50张',order:'1188-2',qty:'50',size:'8×4',pages:1,status:'已就绪'},
+      {n:18,file:'HYS002487 60张 HED-179 10L炸筛.pdf',regex:'HYS002487 60张',order:'1188-3',qty:'60',size:'8×4',pages:1,status:'已就绪'},
+      {n:19,file:'HYS002487 100张 HED-188 10L炸筛.pdf',regex:'HYS002487 100张',order:'1188-4',qty:'100',size:'8×4',pages:1,status:'已就绪'},
+      {n:20,file:'HYS002487 120张 HED-178 10L炸筛.pdf',regex:'HYS002487 120张',order:'1188-5',qty:'120',size:'8×4',pages:1,status:'已就绪'}
+    ];
+    const tbody = document.getElementById('taskRows');
+    const initiallySelected = new Set([0, 1, 2, 7, 8]);
+    tbody.innerHTML = tasks.map((task,index) => `<tr class="${initiallySelected.has(index) ? 'checked' : ''}"><td><input class="checkbox task-check" type="checkbox" ${initiallySelected.has(index) ? 'checked' : ''}></td><td>${task.n}</td><td>${task.file}</td><td>${task.regex}</td><td>${task.order}</td><td>${task.qty}</td><td>${task.size}</td><td>${task.pages}</td><td><span class="state ${task.status === '待配置' ? 'wait' : ''}">${task.status}</span></td></tr>`).join('');
+    function updateSelection() {
+      const checks = [...document.querySelectorAll('.task-check')];
+      const selected = checks.map((check,index) => check.checked ? tasks[index] : null).filter(Boolean);
+      document.getElementById('selectedCount').textContent = selected.length;
+      document.getElementById('selectedPages').textContent = selected.reduce((sum,item) => sum + item.pages, 0);
+      document.getElementById('openWorkbench').textContent = `配置并处理 · ${selected.length}`;
+      checks.forEach(check => check.closest('tr').classList.toggle('checked', check.checked));
+    }
+    document.querySelectorAll('.task-check').forEach(check => check.addEventListener('change', updateSelection));
+    const inbox = document.getElementById('inboxScreen');
+    const workbench = document.getElementById('workbenchScreen');
+    document.getElementById('openWorkbench').addEventListener('click', () => { inbox.classList.remove('active'); workbench.classList.add('active'); });
+    document.getElementById('backToInbox').addEventListener('click', () => { workbench.classList.remove('active'); inbox.classList.add('active'); });
+  </script>
+</body>
+</html>

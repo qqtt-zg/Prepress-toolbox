@@ -36,7 +36,9 @@ namespace WindowsFormsApp3
         {
             this.components = new System.ComponentModel.Container();
             AntdUI.Tabs.StyleLine styleLine1 = new AntdUI.Tabs.StyleLine();
+            this.titleBarPanel = new System.Windows.Forms.Panel();
             this.fileNameLabel = new AntdUI.Label();
+            this.pinTopMostButton = new AntdUI.Button();
             this.fileNameSeparator = new System.Windows.Forms.Panel();
             this.orderNumberLabel = new AntdUI.Label();
             this.orderNumberTextBox = new AntdUI.Input();
@@ -106,6 +108,7 @@ namespace WindowsFormsApp3
             this.label1 = new AntdUI.Label();
             this.presetButtonsPanel = new System.Windows.Forms.FlowLayoutPanel();
             this.copyCountNumericUpDown = new System.Windows.Forms.NumericUpDown();
+            this.titleBarPanel.SuspendLayout();
             this.tabs1.SuspendLayout();
             this.tabPage3.SuspendLayout();
             this.materialTypeGroupBox.SuspendLayout();
@@ -114,18 +117,44 @@ namespace WindowsFormsApp3
             ((System.ComponentModel.ISupportInitialize)(this.copyCountNumericUpDown)).BeginInit();
             this.SuspendLayout();
             // 
+            // titleBarPanel
+            //
+            this.titleBarPanel.BackColor = System.Drawing.Color.Transparent;
+            this.titleBarPanel.Controls.Add(this.fileNameLabel);
+            this.titleBarPanel.Controls.Add(this.pinTopMostButton);
+            this.titleBarPanel.Dock = System.Windows.Forms.DockStyle.Top;
+            this.titleBarPanel.Location = new System.Drawing.Point(2, 2);
+            this.titleBarPanel.Name = "titleBarPanel";
+            this.titleBarPanel.Size = new System.Drawing.Size(396, 28);
+            this.titleBarPanel.TabIndex = 0;
+            //
             // fileNameLabel
             // 
             this.fileNameLabel.BackColor = System.Drawing.Color.Transparent;
-            this.fileNameLabel.Dock = System.Windows.Forms.DockStyle.Top;
+            this.fileNameLabel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.fileNameLabel.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.fileNameLabel.Location = new System.Drawing.Point(2, 2);
+            this.fileNameLabel.Location = new System.Drawing.Point(0, 0);
             this.fileNameLabel.Margin = new System.Windows.Forms.Padding(0, 0, 0, 6);
             this.fileNameLabel.Name = "fileNameLabel";
             this.fileNameLabel.Padding = new System.Windows.Forms.Padding(8, 4, 8, 6);
-            this.fileNameLabel.Size = new System.Drawing.Size(396, 28);
+            this.fileNameLabel.Size = new System.Drawing.Size(366, 28);
             this.fileNameLabel.TabIndex = 0;
             this.fileNameLabel.Text = "材料选择";
+            //
+            // pinTopMostButton
+            //
+            this.pinTopMostButton.BorderWidth = 0F;
+            this.pinTopMostButton.Dock = System.Windows.Forms.DockStyle.Right;
+            this.pinTopMostButton.Font = new System.Drawing.Font("Segoe UI Emoji", 9F);
+            this.pinTopMostButton.Location = new System.Drawing.Point(366, 0);
+            this.pinTopMostButton.Name = "pinTopMostButton";
+            this.pinTopMostButton.Radius = 6;
+            this.pinTopMostButton.Size = new System.Drawing.Size(30, 28);
+            this.pinTopMostButton.TabIndex = 1;
+            this.pinTopMostButton.TabStop = false;
+            this.pinTopMostButton.Text = "📌";
+            this.pinTopMostButton.WaveSize = 0;
+            this.pinTopMostButton.Click += new System.EventHandler(this.PinTopMostButton_Click);
             // 
             // fileNameSeparator
             // 
@@ -957,7 +986,7 @@ namespace WindowsFormsApp3
             this.ClientSize = new System.Drawing.Size(400, 918);
             this.Controls.Add(this.copyCountNumericUpDown);
             this.Controls.Add(this.fileNameSeparator);
-            this.Controls.Add(this.fileNameLabel);
+            this.Controls.Add(this.titleBarPanel);
             this.Controls.Add(this.presetButtonsPanel);
             this.Controls.Add(this.btnApplyToAll);
             this.Controls.Add(this.confirmButton);
@@ -1007,6 +1036,7 @@ namespace WindowsFormsApp3
             this.Name = "MaterialSelectFormModern";
             this.Padding = new System.Windows.Forms.Padding(2);
             this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
+            this.titleBarPanel.ResumeLayout(false);
             this.tabs1.ResumeLayout(false);
             this.tabPage3.ResumeLayout(false);
             this.materialTypeGroupBox.ResumeLayout(false);
@@ -1022,7 +1052,9 @@ namespace WindowsFormsApp3
         // 控件声明
 
         // 文件名显示控件
+        private System.Windows.Forms.Panel titleBarPanel;
         private AntdUI.Label fileNameLabel;
+        private AntdUI.Button pinTopMostButton;
         private System.Windows.Forms.Panel fileNameSeparator;
 
         // 基本信息控件

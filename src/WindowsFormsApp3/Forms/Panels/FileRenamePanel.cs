@@ -1171,10 +1171,17 @@ namespace WindowsFormsApp3.Forms.Panels
 
                 
 
-                // 每次打开都按当前列状态创建清单，并贴近实际右键位置。
-                _columnHeaderPopup?.Show(
-                    e.ColumnIndex,
-                    ContextMenuRequest.GetMouseInvocationLocation(e.X, e.Y));
+                var columnIndex = e.ColumnIndex;
+                var mouseScreenLocation = Cursor.Position;
+
+                // 等 DataGridView 完成本次鼠标消息的列头状态重绘后再打开弹层，避免两次绘制相互覆盖而闪烁。
+                BeginInvoke(new Action(() =>
+                {
+                    if (!IsDisposed && IsHandleCreated)
+                    {
+                        _columnHeaderPopup?.ShowAtScreenLocation(columnIndex, mouseScreenLocation);
+                    }
+                }));
 
             }
 

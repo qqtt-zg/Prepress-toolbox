@@ -55,6 +55,36 @@ namespace WindowsFormsApp3.Controls
         public int PageCount => _pdfDocument?.PageCount ?? 0;
 
         /// <summary>
+        /// 使用与右侧预览完全相同的 Pdfium 引擎读取页数。
+        /// </summary>
+        public static int? GetPdfPageCount(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath) ||
+                !Path.GetExtension(filePath).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            try
+            {
+                using (var stream = new FileStream(
+                    filePath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.ReadWrite | FileShare.Delete))
+                using (var document = PdfDocument.Load(stream))
+                {
+                    return document.PageCount;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[PdfiumPdfPreviewControl] 获取PDF页数失败: {filePath}, {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
         /// 当前缩放级别
         /// </summary>
         public double Zoom

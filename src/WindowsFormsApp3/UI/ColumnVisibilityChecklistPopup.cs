@@ -15,16 +15,14 @@ namespace WindowsFormsApp3.UI
         private const int PopupWidth = 280;
         private const int RowHeight = 30;
         private const int FooterHeight = 42;
-        private const int MaxListHeight = 300;
         private const int PopupPadding = 8;
         private const int ButtonWidth = 88;
         private const int PopupShadow = 8;
-        internal const int PopoverRadius = 8;
-        internal const int PopoverGap = 4;
 
         private readonly DataGridView _grid;
         private readonly Action _saveSettings;
         private readonly Action _restoreDefaults;
+        private ToolStripDropDown _activeDropDown;
 
         public ColumnVisibilityChecklistPopup(
             DataGridView grid,
@@ -39,7 +37,7 @@ namespace WindowsFormsApp3.UI
         /// <summary>
         /// 在列头下方显示清单。勾选项不会关闭弹层，便于连续调整多列。
         /// </summary>
-        public void Show(int columnIndex, Point mouseLocation)
+        public void ShowAtScreenLocation(int columnIndex, Point mouseScreenLocation)
         {
             if (columnIndex < 0 || columnIndex >= _grid.Columns.Count)
             {
@@ -48,40 +46,75 @@ namespace WindowsFormsApp3.UI
 
             var dpiScale = GetDpiScale(_grid);
             var content = CreateContent(dpiScale);
-            var popupSize = new Size(
-                content.Width + ScaleDimension(PopupShadow * 2, dpiScale),
-                content.Height + ScaleDimension(PopupShadow * 2, dpiScale));
-            var mouseScreen = _grid.PointToScreen(mouseLocation);
-            var anchor = GetMouseAnchor(mouseScreen, popupSize);
-            var workingArea = Screen.FromPoint(anchor).WorkingArea;
-            anchor = ClampAnchorToWorkingArea(anchor, popupSize, workingArea);
+            _activeDropDown?.Close(ToolStripDropDownCloseReason.CloseCalled);
 
-            var config = new AntdUI.Popover.Config(_grid, content)
+            var dropDown = CreateDropDown(content);
+            _activeDropDown = dropDown;
+            dropDown.Closed += (sender, args) =>
             {
-                // CustomPoint 已经是屏幕坐标；不再同时设置 Offset，避免相对坐标被重复叠加。
-                CustomPoint = new Rectangle(anchor, new Size(1, 1)),
-                ArrowSize = 0,
-                ArrowAlign = AntdUI.TAlign.Bottom,
-                // Popover 外壳会按 Config.Control 的 DPI 自行缩放；这里必须传逻辑值。
-                Radius = PopoverRadius,
-                Padding = Size.Empty,
-                Gap = PopoverGap,
-                Focus = true,
-                // 内容尺寸已按目标屏幕 DPI 计算，避免 Popover 再次缩放一遍。
-                Dpi = 1F
+                if (ReferenceEquals(_activeDropDown, dropDown))
+                {
+                    _activeDropDown = null;
+                }
+
+                // Closed 回调发生时 ToolStripManager 仍可能继续访问此对象，必须等当前消息处理完再释放。
+                if (!_grid.IsDisposed && _grid.IsHandleCreated)
+                {
+                    ScheduleDropDownDisposal(
+                        dropDown,
+                        action => _grid.BeginInvoke(action));
+                }
             };
 
-            AntdUI.Popover.open(config);
+            var workingArea = Screen.FromPoint(mouseScreenLocation).WorkingArea;
+            var location = ClampTopLeftToWorkingArea(mouseScreenLocation, dropDown.Size, workingArea);
+            dropDown.Show(location);
         }
 
-        /// <summary>
-        /// Popover 使用中心锚点；将其换算为菜单左上角贴近鼠标的位置。
-        /// </summary>
-        internal static Point GetMouseAnchor(Point mouseScreenLocation, Size popupSize)
+        internal static void ScheduleDropDownDisposal(
+            ToolStripDropDown dropDown,
+            Action<Action> schedule)
         {
-            return new Point(
-                mouseScreenLocation.X + popupSize.Width / 2,
-                mouseScreenLocation.Y);
+            if (dropDown == null)
+            {
+                throw new ArgumentNullException(nameof(dropDown));
+            }
+
+            if (schedule == null)
+            {
+                throw new ArgumentNullException(nameof(schedule));
+            }
+
+            schedule(() =>
+            {
+                if (!dropDown.IsDisposed)
+                {
+                    dropDown.Dispose();
+                }
+            });
+        }
+
+        internal static ToolStripDropDown CreateDropDown(Control content)
+        {
+            var host = new ToolStripControlHost(content)
+            {
+                AutoSize = false,
+                Size = content.Size,
+                Margin = Padding.Empty,
+                Padding = Padding.Empty
+            };
+            var dropDown = new BorderlessToolStripDropDown
+            {
+                AutoSize = false,
+                Padding = Padding.Empty,
+                Margin = Padding.Empty,
+                BackColor = content.BackColor,
+                DropShadowEnabled = false,
+                Renderer = new BorderlessToolStripRenderer()
+            };
+            dropDown.Items.Add(host);
+            dropDown.Size = dropDown.GetPreferredSize(Size.Empty);
+            return dropDown;
         }
 
         private Control CreateContent(float dpiScale)
@@ -90,29 +123,36 @@ namespace WindowsFormsApp3.UI
             var popupWidth = ScaleDimension(PopupWidth, dpiScale);
             var rowHeight = ScaleDimension(RowHeight, dpiScale);
             var footerHeight = ScaleDimension(FooterHeight, dpiScale);
-            var listHeight = Math.Min(
-                ScaleDimension(MaxListHeight, dpiScale),
-                Math.Max(rowHeight, _grid.Columns.Count * rowHeight));
+            var popupPadding = ScaleDimension(PopupPadding, dpiScale);
+            var popupShadow = ScaleDimension(PopupShadow, dpiScale);
+            var listHeight = CalculateListHeight(_grid.Columns.Count, rowHeight);
+            var surfaceColor = tokens?.Surface ?? SystemColors.Window;
             var content = new AntdUI.Panel
             {
-                Size = new Size(popupWidth, listHeight + footerHeight),
+                Size = new Size(
+                    popupWidth,
+                    CalculateContentHeight(listHeight, footerHeight, popupPadding, popupShadow)),
                 Radius = ScaleDimension(8, dpiScale),
-                Shadow = ScaleDimension(PopupShadow, dpiScale),
-                Padding = new Padding(ScaleDimension(PopupPadding, dpiScale)),
-                Back = tokens?.Surface ?? SystemColors.Window,
+                Shadow = popupShadow,
+                Padding = new Padding(popupPadding),
+                Back = surfaceColor,
+                BackColor = surfaceColor,
                 ForeColor = tokens?.Foreground ?? SystemColors.WindowText,
-                AutoContainerBgTransparent = true
+                // 保持内容背景不透明，避免弹层首次绘制时短暂透出下方表格。
+                AutoContainerBgTransparent = false
             };
+            content.SuspendLayout();
 
             var list = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                AutoScroll = true,
+                AutoScroll = false,
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents = false,
                 BackColor = tokens?.Surface ?? SystemColors.Window,
-                Padding = new Padding(0, 0, 0, ScaleDimension(4, dpiScale))
+                Padding = Padding.Empty
             };
+            list.SuspendLayout();
 
             foreach (DataGridViewColumn column in _grid.Columns)
             {
@@ -123,6 +163,7 @@ namespace WindowsFormsApp3.UI
                     AutoCheck = true,
                     AutoSize = false,
                     Size = new Size(popupWidth - ScaleDimension(40, dpiScale), rowHeight),
+                    Margin = Padding.Empty,
                     Tag = column.Name,
                     TextAlign = ContentAlignment.MiddleLeft,
                     ForeColor = tokens?.Foreground ?? SystemColors.WindowText,
@@ -185,7 +226,24 @@ namespace WindowsFormsApp3.UI
 
             content.Controls.Add(list);
             content.Controls.Add(footer);
+            list.ResumeLayout(false);
+            content.ResumeLayout(true);
+            content.PerformLayout();
             return content;
+        }
+
+        internal static int CalculateListHeight(int columnCount, int rowHeight)
+        {
+            return Math.Max(rowHeight, Math.Max(0, columnCount) * rowHeight);
+        }
+
+        internal static int CalculateContentHeight(
+            int listHeight,
+            int footerHeight,
+            int popupPadding,
+            int popupShadow)
+        {
+            return listHeight + footerHeight + popupPadding * 2 + popupShadow * 2;
         }
 
         internal static float GetDpiScale(Control control)
@@ -205,22 +263,21 @@ namespace WindowsFormsApp3.UI
         }
 
         /// <summary>
-        /// 将气泡锚点限制在工作区内。X 轴按气泡宽度预留中心对齐空间，Y 轴交给 AntdUI 根据箭头方向上下翻转。
+        /// 将下拉菜单左上角限制在屏幕工作区内。
         /// </summary>
-        internal static Point ClampAnchorToWorkingArea(Point anchor, Size popupSize, Rectangle workingArea)
+        internal static Point ClampTopLeftToWorkingArea(Point location, Size popupSize, Rectangle workingArea)
         {
             if (workingArea.Width <= 0 || workingArea.Height <= 0)
             {
-                return anchor;
+                return location;
             }
 
-            var halfWidth = popupSize.Width / 2;
             var x = workingArea.Width <= popupSize.Width
-                ? workingArea.Left + workingArea.Width / 2
-                : Math.Max(
-                    workingArea.Left + halfWidth,
-                    Math.Min(workingArea.Right - (popupSize.Width - halfWidth), anchor.X));
-            var y = Math.Max(workingArea.Top, Math.Min(workingArea.Bottom, anchor.Y));
+                ? workingArea.Left
+                : Math.Max(workingArea.Left, Math.Min(workingArea.Right - popupSize.Width, location.X));
+            var y = workingArea.Height <= popupSize.Height
+                ? workingArea.Top
+                : Math.Max(workingArea.Top, Math.Min(workingArea.Bottom - popupSize.Height, location.Y));
             return new Point(x, y);
         }
 
@@ -254,6 +311,52 @@ namespace WindowsFormsApp3.UI
             }
 
             return AntdUiThemeBridge.CurrentTokens;
+        }
+
+        /// <summary>
+        /// ToolStripDropDown 默认会绘制一圈灰色菜单边框，此渲染器只取消该边框。
+        /// </summary>
+        internal sealed class BorderlessToolStripRenderer : ToolStripProfessionalRenderer
+        {
+            protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+            {
+                using (var brush = new SolidBrush(e.ToolStrip.BackColor))
+                {
+                    e.Graphics.FillRectangle(brush, e.AffectedBounds);
+                }
+            }
+
+            protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
+            {
+                // 内容面板自身负责圆角和阴影，外层无需重复绘制边框。
+            }
+        }
+
+        internal sealed class BorderlessToolStripDropDown : ToolStripDropDown
+        {
+            private const int WindowStyleBorder = 0x00800000;
+            private const int ExtendedStyleClientEdge = 0x00000200;
+
+            protected override CreateParams CreateParams
+            {
+                get
+                {
+                    var createParams = base.CreateParams;
+                    createParams.Style &= ~WindowStyleBorder;
+                    createParams.ExStyle &= ~ExtendedStyleClientEdge;
+                    return createParams;
+                }
+            }
+
+            internal bool HasNativeBorder
+            {
+                get
+                {
+                    var createParams = CreateParams;
+                    return (createParams.Style & WindowStyleBorder) != 0 ||
+                        (createParams.ExStyle & ExtendedStyleClientEdge) != 0;
+                }
+            }
         }
     }
 }

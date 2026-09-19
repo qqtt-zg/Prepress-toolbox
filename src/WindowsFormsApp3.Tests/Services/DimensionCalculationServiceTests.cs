@@ -260,5 +260,25 @@ namespace WindowsFormsApp3.Tests.Services
                 // 忽略清理错误
             }
         }
+
+        [Fact]
+        public void TestITextSharpPageSize()
+        {
+            string pdfPath = @"C:\Users\admin\Desktop\徳佰仕75x15.pdf";
+            var reader = new iTextSharp.text.pdf.PdfReader(pdfPath);
+            var size = reader.GetPageSize(1);
+            var sizeWithRot = reader.GetPageSizeWithRotation(1);
+            var crop = reader.GetCropBox(1);
+            var boxDict = reader.GetPageN(1);
+            reader.Close();
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"iTextSharp GetPageSize(1): {size.Width:F2} x {size.Height:F2} pt -> {size.Width/72.0*25.4:F2} x {size.Height/72.0*25.4:F2} mm");
+            sb.AppendLine($"iTextSharp GetPageSizeWithRotation(1): {sizeWithRot.Width:F2} x {sizeWithRot.Height:F2} pt -> {sizeWithRot.Width/72.0*25.4:F2} x {sizeWithRot.Height/72.0*25.4:F2} mm");
+            if (crop != null)
+                sb.AppendLine($"iTextSharp GetCropBox(1): {crop.Width:F2} x {crop.Height:F2} pt -> {crop.Width/72.0*25.4:F2} x {crop.Height/72.0*25.4:F2} mm");
+
+            Assert.True(false, "\n" + sb.ToString());
+        }
     }
 }

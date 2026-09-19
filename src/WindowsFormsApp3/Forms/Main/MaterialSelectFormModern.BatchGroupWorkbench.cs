@@ -21,11 +21,10 @@ namespace WindowsFormsApp3
     /// </summary>
     public partial class MaterialSelectFormModern
     {
-        private bool _isDimSortAsc = true;
-        private bool _isFileNameSortAsc = true;
-        private bool _isQtySortAsc = true;
+        private readonly Dictionary<string, bool> _batchSortDirections = new Dictionary<string, bool>(StringComparer.Ordinal);
         private bool _isBatchLayoutUpdating = false;
         private bool _batchLayoutRefreshRequested = false;
+        private bool _isRenderingGroupCards;
 
         private sealed class GroupDragPayload
         {
@@ -820,11 +819,13 @@ namespace WindowsFormsApp3
 
             try
             {
+                _isRenderingGroupCards = true;
                 pnlCardsContainer.SuspendLayout();
                 pnlCardsContainer.Controls.Clear();
 
                 if (_processGroups == null || _processGroups.Count == 0)
                 {
+                    _isRenderingGroupCards = false;
                     pnlCardsContainer.ResumeLayout(true);
                     return;
                 }
@@ -888,10 +889,13 @@ namespace WindowsFormsApp3
                     currentTop += cardPanel.Height + 10;
                 }
 
+                _isRenderingGroupCards = false;
                 pnlCardsContainer.ResumeLayout(true);
             }
             catch (Exception ex)
             {
+                _isRenderingGroupCards = false;
+                pnlCardsContainer.ResumeLayout(true);
                 LogHelper.Error($"[RenderGroupCards] 渲染工艺分组卡片失败: {ex.Message}", ex);
             }
         }
@@ -934,8 +938,8 @@ namespace WindowsFormsApp3
 
             var colIndex = new DataGridViewTextBoxColumn
             {
-                DataPropertyName = "Index",
-                HeaderText = "#",
+                DataPropertyName = nameof(BatchFileItem.SerialNumber),
+                HeaderText = "序号",
                 Width = 32,
                 ReadOnly = true,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
@@ -962,6 +966,7 @@ namespace WindowsFormsApp3
                 Width = 55,
                 ReadOnly = false
             };
+            var colPageCount = CreatePageCountColumn(45);
             var colDim = new DataGridViewTextBoxColumn
             {
                 DataPropertyName = "Dimensions",
@@ -982,27 +987,49 @@ namespace WindowsFormsApp3
             dgv.Columns.Add(colFileName);
             dgv.Columns.Add(colOrder);
             dgv.Columns.Add(colQty);
+            dgv.Columns.Add(colPageCount);
             dgv.Columns.Add(colDim);
             dgv.Columns.Add(colLayout);
 
             var bindingList = new BindingList<BatchFileItem>(grp.Items);
             dgv.DataSource = bindingList;
+            RestoreBatchGridSelection(dgv, bindingList);
+            dgv.SelectionChanged += (s, e) =>
+            {
+                if (!_isRenderingGroupCards)
+                {
+                    SyncBatchGridSelectionState(dgv, bindingList);
+                }
+            };
 
             Rectangle dragBox = Rectangle.Empty;
             dgv.MouseDown += (s, e) =>
             {
                 dragBox = Rectangle.Empty;
-                if (e.Button != MouseButtons.Left || grp.IsLocked) return;
+                if (e.Button != MouseButtons.Left) return;
 
                 var hit = dgv.HitTest(e.X, e.Y);
-                if (hit.RowIndex < 0 || hit.RowIndex >= bindingList.Count) return;
+                if (hit.RowIndex < 0 || hit.RowIndex >= bindingList.Count ||
+                    hit.ColumnIndex < 0 || hit.ColumnIndex >= dgv.Columns.Count) return;
 
-                if (!dgv.Rows[hit.RowIndex].Selected &&
-                    !dgv.Rows[hit.RowIndex].Cells.Cast<DataGridViewCell>().Any(cell => cell.Selected))
+                bool keepMultiSelection = (ModifierKeys & Keys.Control) == Keys.Control ||
+                                           (ModifierKeys & Keys.Shift) == Keys.Shift;
+                if (!keepMultiSelection)
+                {
+                    ClearSelectionsOutsideGrid(dgv);
+                }
+
+                DataGridViewCell clickedCell = dgv.Rows[hit.RowIndex].Cells[hit.ColumnIndex];
+                if (!keepMultiSelection && !clickedCell.Selected)
                 {
                     dgv.ClearSelection();
-                    dgv.Rows[hit.RowIndex].Cells[Math.Max(0, hit.ColumnIndex)].Selected = true;
+                    dgv.CurrentCell = clickedCell;
+                    clickedCell.Selected = true;
                 }
+
+                // 普通列只负责选择/编辑，只有序号列允许启动拖拽。
+                if (grp.IsLocked ||
+                    dgv.Columns[hit.ColumnIndex].DataPropertyName != nameof(BatchFileItem.SerialNumber)) return;
 
                 Size dragSize = SystemInformation.DragSize;
                 dragBox = new Rectangle(
@@ -1046,6 +1073,26 @@ namespace WindowsFormsApp3
             dgv.DragDrop += (s, e) =>
             {
                 if (!(e.Data?.GetData(typeof(GroupDragPayload)) is GroupDragPayload payload)) return;
+                if (payload.SourceGroupId == grp.GroupId)
+                {
+                    Point clientPoint = dgv.PointToClient(new Point(e.X, e.Y));
+                    int targetRowIndex = dgv.HitTest(clientPoint.X, clientPoint.Y).RowIndex;
+                    if (targetRowIndex < 0)
+                    {
+                        targetRowIndex = bindingList.Count - 1;
+                    }
+                    if (targetRowIndex < 0 || targetRowIndex >= bindingList.Count) return;
+
+                    string sourcePath = payload.FilePaths.FirstOrDefault();
+                    string targetPath = bindingList[targetRowIndex]?.FilePath;
+                    int sourceIndex = _batchItems.ToList().FindIndex(item =>
+                        string.Equals(item.FilePath, sourcePath, StringComparison.OrdinalIgnoreCase));
+                    int targetIndex = _batchItems.ToList().FindIndex(item =>
+                        string.Equals(item.FilePath, targetPath, StringComparison.OrdinalIgnoreCase));
+                    MoveBatchItem(sourceIndex, targetIndex);
+                    return;
+                }
+
                 TryMoveFilesBetweenGroups(payload.SourceGroupId, grp.GroupId, payload.FilePaths);
             };
 
@@ -1062,19 +1109,37 @@ namespace WindowsFormsApp3
 
             dgv.CellClick += (s, e) =>
             {
-                if (e.RowIndex >= 0 && e.ColumnIndex >= 0 && dgv.Columns[e.ColumnIndex].DataPropertyName == "Index")
+                if (e.RowIndex >= 0 && e.RowIndex < bindingList.Count)
+                {
+                    QueueBatchFilePreview(bindingList[e.RowIndex]?.FilePath);
+                }
+
+                if (e.RowIndex >= 0 && e.ColumnIndex >= 0 &&
+                    dgv.Columns[e.ColumnIndex].DataPropertyName == nameof(BatchFileItem.SerialNumber))
                 {
                     bool keepMultiSelection = (ModifierKeys & Keys.Control) == Keys.Control ||
                                                (ModifierKeys & Keys.Shift) == Keys.Shift;
                     if (!keepMultiSelection)
                     {
-                        dgv.ClearSelection();
+                        ClearSelectionsOutsideGrid(dgv);
                     }
-                    dgv.Rows[e.RowIndex].Selected = true;
-                    if (dgv.CurrentCell != null && dgv.CurrentCell.RowIndex != e.RowIndex)
-                    {
-                        dgv.CurrentCell = dgv.Rows[e.RowIndex].Cells[e.ColumnIndex];
-                    }
+                    SelectBatchGridRow(dgv, e.RowIndex, keepMultiSelection);
+                }
+            };
+
+            dgv.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode == Keys.Delete)
+                {
+                    _ = CancelSelectedBatchItemsAsync();
+                    e.Handled = true;
+                    e.SuppressKeyPress = true;
+                }
+                else if (e.Control && e.KeyCode == Keys.V)
+                {
+                    PasteQuantitiesFromClipboard();
+                    e.Handled = true;
+                    e.SuppressKeyPress = true;
                 }
             };
 
@@ -1117,21 +1182,7 @@ namespace WindowsFormsApp3
                 if (e.ColumnIndex >= 0 && e.ColumnIndex < dgv.Columns.Count)
                 {
                     string prop = dgv.Columns[e.ColumnIndex].DataPropertyName;
-                    if (prop == "Dimensions")
-                    {
-                        SortBatchFilesByDimension(_isDimSortAsc);
-                        _isDimSortAsc = !_isDimSortAsc;
-                    }
-                    else if (prop == "FileName")
-                    {
-                        SortBatchFilesByFileName(_isFileNameSortAsc);
-                        _isFileNameSortAsc = !_isFileNameSortAsc;
-                    }
-                    else if (prop == "Quantity")
-                    {
-                        SortBatchFilesByQuantity(_isQtySortAsc);
-                        _isQtySortAsc = !_isQtySortAsc;
-                    }
+                    SortBatchFilesByProperty(prop, GetNextBatchSortDirection(prop));
                 }
             };
 
@@ -1166,6 +1217,8 @@ namespace WindowsFormsApp3
                             : GetReadableThemeTextColor(background, theme.AccentColor2);
                         e.CellStyle.Font = new Font("Microsoft YaHei UI", 8.5F, FontStyle.Bold);
                     }
+
+                    ApplyBatchMatchStatusStyle(dgv, e, item);
                 }
                 catch { }
             };
@@ -1196,14 +1249,74 @@ namespace WindowsFormsApp3
             return rowIndices.OrderBy(index => index).Select(index => items[index]).ToList();
         }
 
+        internal static void SelectBatchGridRow(DataGridView dgv, int rowIndex, bool keepExistingSelection)
+        {
+            if (dgv == null || rowIndex < 0 || rowIndex >= dgv.Rows.Count) return;
+            if (!keepExistingSelection)
+            {
+                dgv.ClearSelection();
+            }
+
+            if (dgv.Rows[rowIndex].Cells.Count > 0)
+            {
+                dgv.CurrentCell = dgv.Rows[rowIndex].Cells[0];
+            }
+            foreach (DataGridViewCell cell in dgv.Rows[rowIndex].Cells)
+            {
+                cell.Selected = true;
+            }
+        }
+
+        internal static void SyncBatchGridSelectionState(
+            DataGridView dgv,
+            BindingList<BatchFileItem> items)
+        {
+            if (dgv == null || items == null) return;
+            for (int rowIndex = 0; rowIndex < items.Count && rowIndex < dgv.Rows.Count; rowIndex++)
+            {
+                DataGridViewRow row = dgv.Rows[rowIndex];
+                items[rowIndex].IsSelected = row.Selected ||
+                    row.Cells.Cast<DataGridViewCell>().Any(cell => cell.Selected);
+            }
+        }
+
+        internal static void RestoreBatchGridSelection(
+            DataGridView dgv,
+            BindingList<BatchFileItem> items)
+        {
+            if (dgv == null || items == null) return;
+            dgv.ClearSelection();
+            for (int rowIndex = 0; rowIndex < items.Count && rowIndex < dgv.Rows.Count; rowIndex++)
+            {
+                if (items[rowIndex].IsSelected)
+                {
+                    SelectBatchGridRow(dgv, rowIndex, true);
+                }
+            }
+        }
+
+        private void ClearSelectionsOutsideGrid(DataGridView activeGrid)
+        {
+            if (pnlCardsContainer == null) return;
+            foreach (DataGridView grid in pnlCardsContainer.Controls
+                .Cast<Control>()
+                .OfType<Panel>()
+                .SelectMany(panel => panel.Controls.Cast<Control>().OfType<DataGridView>()))
+            {
+                if (!ReferenceEquals(grid, activeGrid))
+                {
+                    grid.ClearSelection();
+                }
+            }
+        }
+
         private bool CanAcceptGroupDrop(IDataObject data, BatchProcessGroup targetGroup)
         {
             if (targetGroup == null || targetGroup.IsLocked || targetGroup.IsPreserveGroup || data == null) return false;
             if (!(data.GetData(typeof(GroupDragPayload)) is GroupDragPayload payload)) return false;
 
             var sourceGroup = _processGroups.FirstOrDefault(group => group.GroupId == payload.SourceGroupId);
-            return sourceGroup != null && !sourceGroup.IsLocked && !sourceGroup.IsPreserveGroup &&
-                sourceGroup.GroupId != targetGroup.GroupId;
+            return sourceGroup != null && !sourceGroup.IsLocked && !sourceGroup.IsPreserveGroup;
         }
 
         public List<BatchFileItem> GetSelectedBatchItems()
@@ -1251,6 +1364,11 @@ namespace WindowsFormsApp3
                             }
                         }
                     }
+                }
+
+                if (selectedList.Count == 0)
+                {
+                    selectedList.AddRange(_batchItems.Where(item => item.IsSelected));
                 }
 
                 if (selectedList.Count == 0)
@@ -1532,11 +1650,7 @@ namespace WindowsFormsApp3
         /// </summary>
         public void SortBatchFilesByFileName(bool ascending = true)
         {
-            if (_batchItems == null || _batchItems.Count == 0) return;
-            var sorted = ascending
-                ? _batchItems.OrderBy(x => x.FileName, StringComparer.OrdinalIgnoreCase).ToList()
-                : _batchItems.OrderByDescending(x => x.FileName, StringComparer.OrdinalIgnoreCase).ToList();
-            ReapplyBatchSortOrder(sorted);
+            SortBatchFilesByProperty(nameof(BatchFileItem.FileName), ascending);
         }
 
         /// <summary>
@@ -1544,18 +1658,21 @@ namespace WindowsFormsApp3
         /// </summary>
         public void SortBatchFilesByQuantity(bool ascending = true)
         {
-            if (_batchItems == null || _batchItems.Count == 0) return;
-            var sorted = ascending
-                ? _batchItems.OrderBy(x => ParseQuantityForSort(x.Quantity))
-                    .ThenBy(x => x.FileName, StringComparer.OrdinalIgnoreCase).ToList()
-                : _batchItems.OrderByDescending(x => ParseQuantityForSort(x.Quantity))
-                    .ThenBy(x => x.FileName, StringComparer.OrdinalIgnoreCase).ToList();
-            ReapplyBatchSortOrder(sorted);
+            SortBatchFilesByProperty(nameof(BatchFileItem.Quantity), ascending);
         }
 
-        private static long ParseQuantityForSort(string quantity)
+        public void SortBatchFilesByProperty(string propertyName, bool ascending = true)
         {
-            return long.TryParse(quantity, out long value) ? value : long.MinValue;
+            if (_batchItems == null || _batchItems.Count == 0) return;
+            ReapplyBatchSortOrder(BatchFileItemSortService.Sort(_batchItems, propertyName, ascending));
+        }
+
+        private bool GetNextBatchSortDirection(string propertyName)
+        {
+            if (string.IsNullOrWhiteSpace(propertyName)) propertyName = nameof(BatchFileItem.Index);
+            bool ascending = !_batchSortDirections.TryGetValue(propertyName, out bool nextDirection) || nextDirection;
+            _batchSortDirections[propertyName] = !ascending;
+            return ascending;
         }
 
         private void ReapplyBatchSortOrder(List<BatchFileItem> sorted)
@@ -1592,54 +1709,27 @@ namespace WindowsFormsApp3
 
         public void SortBatchFilesByDimension(bool ascending = true)
         {
-            try
-            {
-                if (_batchItems == null || _batchItems.Count == 0) return;
+            SortBatchFilesByProperty(nameof(BatchFileItem.Dimensions), ascending);
+        }
 
-                double GetDimensionArea(string dimStr)
-                {
-                    if (string.IsNullOrWhiteSpace(dimStr)) return 0;
-                    var match = Regex.Match(dimStr, @"([0-9]+(?:\.[0-9]+)?)\s*[xX*×]\s*([0-9]+(?:\.[0-9]+)?)");
-                    if (match.Success)
-                    {
-                        double.TryParse(match.Groups[1].Value, out double w);
-                        double.TryParse(match.Groups[2].Value, out double h);
-                        return w * h;
-                    }
-                    return 0;
-                }
+        private void ApplyBatchMatchStatusStyle(
+            DataGridView dgv,
+            DataGridViewCellFormattingEventArgs e,
+            BatchFileItem item)
+        {
+            if (!IsExcelMatchingActive || item == null || item.IsExcelMatched) return;
 
-                double GetDimensionWidth(string dimStr)
-                {
-                    if (string.IsNullOrWhiteSpace(dimStr)) return 0;
-                    var match = Regex.Match(dimStr, @"([0-9]+(?:\.[0-9]+)?)\s*[xX*×]\s*([0-9]+(?:\.[0-9]+)?)");
-                    if (match.Success && double.TryParse(match.Groups[1].Value, out double w))
-                    {
-                        return w;
-                    }
-                    return 0;
-                }
-
-                var sorted = ascending
-                    ? _batchItems.OrderBy(x => GetDimensionArea(x.Dimensions)).ThenBy(x => GetDimensionWidth(x.Dimensions)).ThenBy(x => x.FileName, StringComparer.OrdinalIgnoreCase).ToList()
-                    : _batchItems.OrderByDescending(x => GetDimensionArea(x.Dimensions)).ThenByDescending(x => GetDimensionWidth(x.Dimensions)).ThenBy(x => x.FileName, StringComparer.OrdinalIgnoreCase).ToList();
-
-                _batchItems.Clear();
-                foreach (var item in sorted)
-                {
-                    _batchItems.Add(item);
-                }
-
-                UpdateBatchOrderNumbers();
-                ReorderExistingGroupItems();
-                RefreshGroupSummaryHeader();
-                RenderGroupCards();
-                dgvBatchFiles?.Refresh();
-            }
-            catch (Exception ex)
-            {
-                LogHelper.Error($"[SortBatchFilesByDimension] 按尺寸排序失败: {ex.Message}", ex);
-            }
+            ThemeDefinition theme = _activeTheme;
+            Color background = theme == null
+                ? Color.FromArgb(255, 235, 238)
+                : BlendThemeColor(theme.SurfaceLight, theme.Error, 24);
+            e.CellStyle.BackColor = background;
+            e.CellStyle.SelectionBackColor = theme == null
+                ? Color.FromArgb(255, 205, 210)
+                : BlendThemeColor(theme.SurfaceLight, theme.Error, 45);
+            e.CellStyle.ForeColor = GetReadableThemeTextColor(background, theme?.Error ?? Color.FromArgb(198, 40, 40));
+            e.CellStyle.SelectionForeColor = e.CellStyle.ForeColor;
+            dgv.Rows[e.RowIndex].HeaderCell.ToolTipText = "未匹配到 Excel 数据";
         }
     }
 }

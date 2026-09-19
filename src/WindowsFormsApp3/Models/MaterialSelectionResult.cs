@@ -18,9 +18,12 @@ namespace WindowsFormsApp3.Models
         public string GroupName { get; set; } = "";
         public string FilePath { get; set; }
         public string FileName { get; set; }
+        public int? PageCount { get; set; }
         public string OrderNumber { get; set; }
         public string Quantity { get; set; }
         public string SerialNumber { get; set; }
+        public bool IsExcelMatched { get; set; }
+        public int ExcelRowIndex { get; set; } = -1;
         public string RegexResult { get; set; }
         public string Dimensions { get; set; }
         public string Shape { get; set; }

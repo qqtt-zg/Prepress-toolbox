@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>大诚工具箱 · 主界面与材料选择一体化工作台</title>
+  <style>
+    :root {
+      --bg: #eef2f5;
+      --surface: #ffffff;
+      --panel: #f8fafc;
+      --panel-2: #f1f5f9;
+      --border: #cbd5e1;
+      --border-subtle: #e2e8f0;
+      --fg: #0f172a;
+      --muted: #64748b;
+      --primary: #1677ff;
+      --primary-hover: #4096ff;
+      --primary-bg: #e6f4ff;
+      --success: #52c41a;
+      --warning: #faad14;
+      --danger: #ff4d4f;
+      --dark: #1e293b;
+      --sidebar: #f1f5f9;
+      --font-base: 'Microsoft YaHei UI', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'Cascadia Mono', Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-base); background: var(--bg); color: var(--fg); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+    
+    /* 顶部通用导航与状态条 */
+    header.app-header { height: 48px; background: #fff; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; flex-shrink: 0; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; color: var(--dark); }
+    .brand-logo { width: 28px; height: 28px; background: var(--primary); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 800; }
+    .header-center { display: flex; align-items: center; gap: 10px; }
+    .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: #f6ffed; border: 1px solid #b7eb8f; border-radius: 20px; font-size: 12px; color: #389e0d; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #52c41a; box-shadow: 0 0 0 2px rgba(82,196,26,0.2); }
+    .window-controls { display: flex; gap: 12px; font-size: 12px; color: var(--muted); align-items: center; }
+
+    /* 主工作台整体架构 */
+    .app-body { flex: 1; display: flex; overflow: hidden; }
+
+    /* 极窄功能栏 */
+    nav.app-rail { width: 58px; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; flex-shrink: 0; }
+    .rail-btn { width: 42px; height: 42px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: none; background: transparent; color: var(--muted); cursor: pointer; gap: 2px; font-size: 10px; }
+    .rail-btn:hover { background: rgba(0,0,0,0.04); color: var(--fg); }
+    .rail-btn.active { background: #fff; color: var(--primary); font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .rail-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+    .rail-bottom { margin-top: auto; font-size: 10px; color: #94a3b8; }
+
+    /* 中间：主界面数据表格与批处理管理 */
+    section.main-stage { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #fff; border-right: 1px solid var(--border); }
+    
+    /* 路径监控栏 */
+    .toolbar-row { padding: 9px 16px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #fff; flex-wrap: wrap; }
+    .path-box { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 320px; }
+    .input-text { height: 32px; padding: 0 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; width: 100%; outline: none; transition: border-color 0.2s; font-family: var(--font-mono); }
+    .input-text:focus { border-color: var(--primary); }
+    .btn { height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--fg); font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; transition: all 0.15s; }
+    .btn:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+    .btn-success { background: #f6ffed; border-color: #b7eb8f; color: #389e0d; }
+    .btn-success:hover { background: #d9f7be; }
+    .btn-action { background: #f8fafc; font-weight: 500; }
+    .btn-action.active { background: var(--primary-bg); border-color: var(--primary); color: var(--primary); font-weight: 600; }
+    .toggle-active { border-color: var(--primary) !important; background: var(--primary-bg) !important; color: var(--primary) !important; font-weight: 600; }
+
+    /* 批处理快捷按钮组 */
+    .action-group { display: flex; align-items: center; gap: 8px; }
+
+    /* 过滤与统计行 */
+    .filter-bar { padding: 8px 16px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+    .filter-pills { display: flex; gap: 6px; }
+    .pill { padding: 3px 10px; border-radius: 12px; background: #fff; border: 1px solid var(--border); cursor: pointer; color: var(--muted); }
+    .pill.active { background: var(--primary-bg); border-color: var(--primary); color: var(--primary); font-weight: 600; }
+    .table-stats { color: var(--muted); display: flex; align-items: center; gap: 12px; }
+    .table-stats strong { color: var(--fg); }
+
+    /* 数据表格 */
+    .grid-container { flex: 1; overflow: auto; background: #fff; }
+    table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+    thead th { position: sticky; top: 0; background: #f8fafc; color: #475569; font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border-subtle); white-space: nowrap; z-index: 2; }
+    tbody td { padding: 7px 10px; border-bottom: 1px solid var(--border-subtle); border-right: 1px solid #f1f5f9; color: var(--fg); white-space: nowrap; }
+    tbody tr:hover { background: #f8fafc; cursor: pointer; }
+    tbody tr.selected { background: #e6f4ff !important; }
+    tbody tr.selected td { border-color: #d0e7fb; }
+    .cell-tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+    .tag-blue { background: #e6f4ff; color: #0958d9; }
+    .tag-gold { background: #fffbe6; color: #d46b08; }
+    .tag-gray { background: #f5f5f5; color: #595959; }
+
+    /* 表格底部状态提示 */
+    .grid-footer { height: 38px; border-top: 1px solid var(--border); background: var(--panel); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-size: 11px; flex-shrink: 0; }
+
+    /* 右侧：内嵌式材料与工艺面板 */
+    aside.material-deck { width: 440px; background: #fff; display: flex; flex-direction: column; flex-shrink: 0; transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
+    aside.material-deck.collapsed { width: 0; border: none; overflow: hidden; }
+    
+    .deck-header { height: 46px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 14px; background: var(--panel); }
+    .deck-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--dark); }
+    .deck-tools { display: flex; align-items: center; gap: 6px; }
+    .tool-icon-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: 4px; background: transparent; cursor: pointer; color: var(--muted); font-size: 13px; }
+    .tool-icon-btn:hover { background: #e2e8f0; color: var(--fg); }
+    .tool-icon-btn.active { color: var(--primary); background: #e6f4ff; border-color: #b5d5f5; }
+
+    /* 作用对象反馈卡片 */
+    .target-card { margin: 12px 14px 0; padding: 10px 12px; background: #f0f7ff; border: 1px solid #c8e1fa; border-radius: 6px; font-size: 11px; }
+    .target-title { font-weight: 700; color: #00479e; display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .target-desc { color: #3b5978; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* 面板滚轮内容区 */
+    .deck-content { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* 表单控件 */
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 12px; font-weight: 600; color: #475569; display: flex; justify-content: space-between; align-items: center; }
+    .form-row { display: flex; gap: 8px; }
+    .col-half { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+
+    /* 材料选择矩阵按键 */
+    .material-matrix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .mat-btn { height: 32px; font-size: 12px; border: 1px solid var(--border); border-radius: 4px; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+    .mat-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .mat-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
+
+    /* 单选选项药丸条 */
+    .radio-pills { display: flex; background: var(--panel-2); padding: 3px; border-radius: 6px; gap: 4px; }
+    .pill-opt { flex: 1; text-align: center; padding: 5px 0; font-size: 11px; border-radius: 4px; cursor: pointer; border: none; background: transparent; color: var(--muted); }
+    .pill-opt.active { background: #fff; color: var(--fg); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+    /* 折叠子卡片：PDF预览与拼版 */
+    .sub-card { border: 1px solid var(--border-subtle); border-radius: 6px; background: #fff; overflow: hidden; }
+    .sub-card-header { padding: 8px 10px; background: var(--panel); border-bottom: 1px solid var(--border-subtle); font-size: 12px; font-weight: 600; display: flex; justify-content: space-between; cursor: pointer; }
+    .sub-card-body { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+
+    /* 迷你 PDF 视窗 */
+    .pdf-preview-box { height: 125px; background: #334155; border-radius: 4px; display: flex; align-items: center; justify-content: center; position: relative; color: #fff; }
+    .pdf-sheet { width: 140px; height: 90px; background: #fdfbf7; border-radius: 2px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); padding: 8px; display: flex; flex-direction: column; justify-content: space-between; color: #222; }
+    .pdf-sheet-head { font-size: 10px; font-weight: 700; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; }
+    .pdf-sheet-body { font-size: 9px; color: #64748b; }
+
+    /* 面板底部操作条 */
+    .deck-footer { padding: 12px 14px; border-top: 1px solid var(--border); background: var(--panel); display: flex; gap: 8px; }
+    .deck-footer .btn { flex: 1; height: 38px; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+  <!-- 顶部状态栏 -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-logo">DC</div>
+      <span>大诚印前工具箱</span>
+      <span style="font-size:11px; color:#64748b; font-weight:400;">v2.6.4 · 主界面与材料选择一体化</span>
+    </div>
+    <div class="header-center">
+      <div class="status-badge">
+        <div class="status-dot"></div>
+        <span>正在监控：C:\Users\admin\Desktop\转存 (保留所有)</span>
+      </div>
+    </div>
+    <div class="window-controls">
+      <span>预设配置: 默认 (标签/标牌)</span>
+      <span>|</span>
+      <span style="cursor:pointer;">恢复原始</span>
+    </div>
+  </header>
+
+  <!-- 工作区布局 -->
+  <div class="app-body">
+    <!-- 极窄导航 -->
+    <nav class="app-rail">
+      <button class="rail-btn active" title="首页文件处理"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg><span>首页</span></button>
+      <button class="rail-btn" title="材料库数据库"><svg viewBox="0 0 24 24"><path d="M4 4h16v6H4zm0 10h16v6H4z"/></svg><span>数据库</span></button>
+      <button class="rail-btn" title="PDF拆分工具"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>拆分</span></button>
+      <button class="rail-btn" title="系统设置"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>设置</span></button>
+      <div class="rail-bottom">v2.6.4</div>
+    </nav>
+
+    <!-- 中间：主界面数据与管理 -->
+    <section class="main-stage">
+      <!-- 监控与基础操作栏 -->
+      <div class="toolbar-row">
+        <div class="path-box">
+          <input class="input-text" value="C:\Users\admin\Desktop\转存" />
+          <button class="btn">选择文件夹</button>
+          <button class="btn btn-success">停止监控</button>
+        </div>
+        <div class="action-group">
+          <button class="btn">保存配置</button>
+          <button class="btn btn-success">导入表格</button>
+          <button class="btn">应用数据</button>
+          <button class="btn">导出表格</button>
+        </div>
+      </div>
+
+      <!-- 模式与主操作条 -->
+      <div class="toolbar-row" style="background:#fafcff;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:12px; font-weight:600; color:#475569;">输出模式：</span>
+          <button class="btn btn-action" id="btnModeCopy">复制模式</button>
+          <button class="btn btn-action active" id="btnModeMove">移动模式</button>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px;">
+          <!-- 核心功能结合点：将原弹窗形式的材料选择框升级为常驻/开关式的右侧工作台按钮 -->
+          <button class="btn toggle-active" id="toggleDeckBtn">
+            <svg style="width:14px; height:14px; fill:currentColor; margin-right:2px;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/><path d="M7 10h10v2H7zm0-4h10v2H7zm0 8h7v2H7z"/></svg>
+            材料选择与工艺面板 (已展开)
+          </button>
+          <button class="btn btn-primary" style="min-width:110px;">开始更改 (执行)</button>
+        </div>
+      </div>
+
+      <!-- 任务筛选与统计 -->
+      <div class="filter-bar">
+        <div class="filter-pills">
+          <span class="pill active">全部文件 (14)</span>
+          <span class="pill">待分配材料 (5)</span>
+          <span class="pill">已就绪 (9)</span>
+        </div>
+        <div class="table-stats">
+          <span>已勾选: <strong id="checkedCount" style="color:var(--primary);">5</strong> / 14 款</span>
+          <span>总计页数: <strong id="checkedPages">171</strong> 页</span>
+        </div>
+      </div>
+
+      <!-- 文件数据表格 -->
+      <div class="grid-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:38px; text-align:center;"><input type="checkbox" id="checkAll" checked /></th>
+              <th style="width:45px; text-align:center;">序号</th>
+              <th>原文件名</th>
+              <th>正则结果</th>
+              <th style="width:70px;">订单号</th>
+              <th style="width:50px;">数量</th>
+              <th style="width:75px;">尺寸</th>
+              <th style="width:90px;">材料</th>
+              <th style="width:65px;">工艺</th>
+              <th style="width:50px; text-align:center;">页数</th>
+              <th style="width:60px;">排版</th>
+            </tr>
+          </thead>
+          <tbody id="taskTableBody">
+            <!-- JS 填充 -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 状态底部信息 -->
+      <div class="grid-footer">
+        <span style="color:var(--muted);">命名规则: &ID-订单号_&MT-材料_&DN-数量_&DP-工艺_&CU-正则结果_&MK-尺寸</span>
+        <span style="color:#389e0d; font-weight:600;">● 准备就绪 (右侧面板配置将直接作用于当前选中的文件)</span>
+      </div>
+    </section>
+
+    <!-- 右侧：内嵌一体化材料选择与工艺配置工作台 -->
+    <aside class="material-deck" id="materialDeck">
+      <div class="deck-header">
+        <div class="deck-title">
+          <svg style="width:16px;height:16px;fill:var(--primary);" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+          <span>材料选择与工艺配置</span>
+        </div>
+        <div class="deck-tools">
+          <button class="tool-icon-btn active" title="固定面板不自动收起">📌</button>
+          <button class="tool-icon-btn" id="collapseDeckBtn" title="收起面板">✕</button>
+        </div>
+      </div>
+
+      <!-- 当前选中反馈卡片 -->
+      <div class="target-card">
+        <div class="target-title">
+          <span>作用范围 (当前批次)</span>
+          <span style="background:#1677ff; color:#fff; border-radius:10px; padding:1px 6px; font-size:10px;">共 5 款文件</span>
+        </div>
+        <div class="target-desc" id="targetDesc">321 HYS000038 150张 等5个文件 (总计171页)</div>
+      </div>
+
+      <div class="deck-content">
+        <!-- 订单号与数量 -->
+        <div class="form-group">
+          <div class="form-row">
+            <div class="col-half">
+              <label class="form-label">订单号</label>
+              <input class="input-text" value="321" />
+            </div>
+            <div class="col-half">
+              <label class="form-label">数量 / 步进增加</label>
+              <div style="display:flex; gap:4px;">
+                <input class="input-text" value="150" style="flex:2;" />
+                <input class="input-text" value="+0" title="每款文件自动步增" style="flex:1; text-align:center; font-family:var(--font-mono);" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 经典材料选择按键矩阵 -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>材料选择 (Material)</span>
+            <span style="font-weight:400; color:var(--primary); cursor:pointer; font-size:11px;">管理预设</span>
+          </div>
+          <div class="material-matrix">
+            <button class="mat-btn active">PET 哑光</button>
+            <button class="mat-btn">黑白光膜</button>
+            <button class="mat-btn">银色铭牌</button>
+            <button class="mat-btn">透明龙</button>
+            <button class="mat-btn">合成纸</button>
+            <button class="mat-btn">消银龙</button>
+            <button class="mat-btn">易碎纸</button>
+            <button class="mat-btn">牛皮纸</button>
+            <button class="mat-btn">拉丝金</button>
+          </div>
+        </div>
+
+        <!-- 表面工艺 -->
+        <div class="form-group">
+          <label class="form-label">表面工艺 (Finish)</label>
+          <div class="radio-pills">
+            <button class="pill-opt active">光膜</button>
+            <button class="pill-opt">哑膜</button>
+            <button class="pill-opt">黑白光膜</button>
+            <button class="pill-opt">无工艺</button>
+          </div>
+        </div>
+
+        <!-- 形状与出血 -->
+        <div class="form-group">
+          <div class="form-row">
+            <div class="col-half">
+              <label class="form-label">形状模式</label>
+              <div class="radio-pills">
+                <button class="pill-opt active">直角</button>
+                <button class="pill-opt">圆角</button>
+                <button class="pill-opt">圆形</button>
+                <button class="pill-opt">异形</button>
+              </div>
+            </div>
+            <div class="col-half">
+              <label class="form-label">出血 (mm)</label>
+              <input class="input-text" value="2.0" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 拼版与排版模式 -->
+        <div class="sub-card">
+          <div class="sub-card-header">
+            <span>排版模式与卷平装</span>
+            <span style="color:var(--primary); font-size:11px;">展开参数 ▼</span>
+          </div>
+          <div class="sub-card-body">
+            <div class="radio-pills">
+              <button class="pill-opt active">平张</button>
+              <button class="pill-opt">卷装</button>
+              <button class="pill-opt">连拼</button>
+              <button class="pill-opt">折手</button>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:4px;">
+              <span>PDF规格: 65 × 40 mm</span>
+              <span>建议排列: 3行 × 6列 (18拼)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 真实 PDF 实时预览 -->
+        <div class="sub-card">
+          <div class="sub-card-header">
+            <span>所选文件真实 PDF 预览</span>
+            <span style="font-size:11px; color:var(--muted);">第 1 / 150 页</span>
+          </div>
+          <div class="sub-card-body" style="padding:8px;">
+            <div class="pdf-preview-box">
+              <div class="pdf-sheet">
+                <div class="pdf-sheet-head">321 HYS000038 · 150张</div>
+                <div class="pdf-sheet-body">
+                  <div>尺寸: 65x40mm</div>
+                  <div style="margin-top:4px; height:1px; background:#e2e8f0;"></div>
+                  <div style="font-size:8px; color:#94a3b8; margin-top:6px;">PdfiumViewer 实时渲染</div>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:8px; color:#64748b;">
+                  <span>P1</span><span>100%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部动作确认条 -->
+      <div class="deck-footer">
+        <button class="btn" id="btnSyncOnly">应用到选中文件 (5)</button>
+        <button class="btn btn-primary" id="btnApplyAndSave">应用并保存预设</button>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    // 模拟数据源
+    const taskData = [
+      { n: 7, file: '321 HYS000038 150张 MGB-514 ME款.pdf', regex: '321 HYS000038 150张', order: '321', qty: '150', size: '65x40', mat: 'PET 哑光', craft: '光膜', pages: 150, imp: '平张', checked: true },
+      { n: 8, file: '322 HYS000039 150张 MGB-514 ECM-1.pdf', regex: '322 HYS000039 150张', order: '322', qty: '150', size: '55x40', mat: 'PET 哑光', craft: '光膜', pages: 1, imp: '平张', checked: true },
+      { n: 9, file: '323 HYS000040 150张 MGB-514 ME款.pdf', regex: '323 HYS000040 150张', order: '323', qty: '150', size: '105x74', mat: 'PET 哑光', craft: '光膜', pages: 6, imp: '平张', checked: true },
+      { n: 10, file: '324 HYS001741 150张 MGB-514 GCP1040.pdf', regex: '324 HYS001741 150张', order: '324', qty: '150', size: '28x5', mat: 'PET 哑光', craft: '光膜', pages: 1, imp: '平张', checked: true },
+      { n: 11, file: '325 HYS000013 650张 MGB-514 年份贴.pdf', regex: '325 HYS000013 650张', order: '325', qty: '650', size: '20x4', mat: 'PET 哑光', craft: '光膜', pages: 1, imp: '平张', checked: true },
+      { n: 12, file: '5.430.181006BC-430WS.HC.02-13.pdf', regex: '5.430.181006BC', order: '1199-1', qty: '66', size: '297x105', mat: '银色铭牌', craft: '哑膜', pages: 1, imp: '卷装', checked: false },
+      { n: 13, file: '5.365.245021JC-365WD.HC.02-06.pdf', regex: '5.365.245021JC', order: '1199-2', qty: '10', size: '82x32', mat: '消银龙', craft: '无工艺', pages: 1, imp: '卷装', checked: false },
+      { n: 14, file: '469 HYS001806 100张 STL-062 742028.pdf', regex: '469 HYS001806 100张', order: '469', qty: '100', size: '65x40', mat: '透明龙', craft: '黑白光膜', pages: 13, imp: '平张', checked: false },
+      { n: 15, file: '472 HYS001101 60张 STL-062 746096.pdf', regex: '472 HYS001101 60张', order: '472', qty: '60', size: '80x50', mat: '合成纸', craft: '光膜', pages: 1, imp: '平张', checked: false },
+      { n: 16, file: 'HYS002487 20张 HED-176 10L炸筛.pdf', regex: 'HYS002487 20张', order: '1188-1', qty: '20', size: '8x4', mat: '黑白光膜', craft: '光膜', pages: 1, imp: '平张', checked: false }
+    ];
+
+    const tbody = document.getElementById('taskTableBody');
+    const checkedCountEl = document.getElementById('checkedCount');
+    const checkedPagesEl = document.getElementById('checkedPages');
+    const targetDescEl = document.getElementById('targetDesc');
+    const materialDeck = document.getElementById('materialDeck');
+    const toggleDeckBtn = document.getElementById('toggleDeckBtn');
+    const collapseDeckBtn = document.getElementById('collapseDeckBtn');
+
+    function renderTable() {
+      tbody.innerHTML = taskData.map((t, idx) => `
+        <tr class="${t.checked ? 'selected' : ''}" data-idx="${idx}">
+          <td style="text-align:center;"><input type="checkbox" class="row-chk" ${t.checked ? 'checked' : ''} data-idx="${idx}" /></td>
+          <td style="text-align:center;">${t.n}</td>
+          <td title="${t.file}">${t.file}</td>
+          <td>${t.regex}</td>
+          <td>${t.order}</td>
+          <td>${t.qty}</td>
+          <td>${t.size}</td>
+          <td><span class="cell-tag tag-blue">${t.mat}</span></td>
+          <td><span class="cell-tag tag-gold">${t.craft}</span></td>
+          <td style="text-align:center;"><strong>${t.pages}</strong></td>
+          <td><span class="cell-tag tag-gray">${t.imp}</span></td>
+        </tr>
+      `).join('');
+      updateStats();
+    }
+
+    function updateStats() {
+      const checkedItems = taskData.filter(t => t.checked);
+      checkedCountEl.textContent = checkedItems.length;
+      const totalPages = checkedItems.reduce((sum, item) => sum + item.pages, 0);
+      checkedPagesEl.textContent = totalPages;
+      if (checkedItems.length > 0) {
+        targetDescEl.textContent = `${checkedItems[0].file.substring(0, 18)}... 等 ${checkedItems.length} 个文件 (共 ${totalPages} 页)`;
+      } else {
+        targetDescEl.textContent = '未选中任何文件';
+      }
+    }
+
+    // 勾选与整行联动
+    tbody.addEventListener('click', (e) => {
+      const tr = e.target.closest('tr');
+      if (!tr) return;
+      const idx = parseInt(tr.dataset.idx, 10);
+      if (e.target.classList.contains('row-chk')) {
+        taskData[idx].checked = e.target.checked;
+      } else {
+        taskData[idx].checked = !taskData[idx].checked;
+      }
+      renderTable();
+    });
+
+    // 展开/收起材料工艺侧栏
+    let deckOpen = true;
+    function toggleDeck() {
+      deckOpen = !deckOpen;
+      if (deckOpen) {
+        materialDeck.classList.remove('collapsed');
+        toggleDeckBtn.classList.add('toggle-active');
+        toggleDeckBtn.innerHTML = `
+          <svg style="width:14px; height:14px; fill:currentColor; margin-right:2px;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/><path d="M7 10h10v2H7zm0-4h10v2H7zm0 8h7v2H7z"/></svg>
+          材料选择与工艺面板 (已展开)
+        `;
+      } else {
+        materialDeck.classList.add('collapsed');
+        toggleDeckBtn.classList.remove('toggle-active');
+        toggleDeckBtn.innerHTML = `
+          <svg style="width:14px; height:14px; fill:currentColor; margin-right:2px;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/><path d="M7 10h10v2H7zm0-4h10v2H7zm0 8h7v2H7z"/></svg>
+          材料选择与工艺面板 (点击展开)
+        `;
+      }
+    }
+
+    toggleDeckBtn.addEventListener('click', toggleDeck);
+    collapseDeckBtn.addEventListener('click', toggleDeck);
+
+    // 材料矩阵选择按键效果
+    document.querySelectorAll('.mat-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.mat-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // 胶囊单选
+    document.querySelectorAll('.radio-pills').forEach(group => {
+      group.addEventListener('click', (e) => {
+        if (e.target.classList.contains('pill-opt')) {
+          group.querySelectorAll('.pill-opt').forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+        }
+      });
+    });
+
+    renderTable();
+  </script>
+</body>
+</html>

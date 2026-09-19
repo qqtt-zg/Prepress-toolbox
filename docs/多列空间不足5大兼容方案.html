@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>大诚印前工具箱 · 多列数据窄屏空间不足 5 大兼容方案演示</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel-bg: #1e293b;
+      --surface: #ffffff;
+      --panel: #f8fafc;
+      --panel-2: #f1f5f9;
+      --border: #cbd5e1;
+      --border-subtle: #e2e8f0;
+      --fg: #0f172a;
+      --muted: #64748b;
+      --primary: #1677ff;
+      --primary-hover: #4096ff;
+      --primary-bg: #e6f4ff;
+      --success: #52c41a;
+      --warning: #faad14;
+      --danger: #ff4d4f;
+      --font-base: 'Microsoft YaHei UI', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'Cascadia Mono', Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-base); background: var(--bg); color: var(--fg); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+    /* 顶部切换导航 */
+    header.scheme-selector {
+      height: 52px; background: #0b1120; border-bottom: 1px solid #334155;
+      display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0;
+    }
+    .brand { color: #f8fafc; font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+    .brand-tag { background: var(--primary); color: #fff; width: 22px; height: 22px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
+    .nav-tabs { display: flex; gap: 6px; background: #1e293b; padding: 4px; border-radius: 8px; }
+    .nav-btn {
+      padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+      color: #94a3b8; border: none; background: transparent; transition: all 0.2s;
+    }
+    .nav-btn.active { background: var(--primary); color: #fff; box-shadow: 0 2px 6px rgba(22,119,255,0.4); }
+    .nav-btn:hover:not(.active) { color: #f1f5f9; background: rgba(255,255,255,0.05); }
+
+    /* 模拟主视区 */
+    main.stage-canvas {
+      flex: 1; position: relative; overflow: hidden; background: #182234;
+      background-image: radial-gradient(#2a3952 1px, transparent 1px);
+      background-size: 24px 24px; padding: 24px; display: flex; gap: 24px; align-items: center; justify-content: center;
+    }
+
+    /* 演示窗口固定尺寸：模拟单款时的极窄窗口 (仅 400px ~ 480px) */
+    .demo-window {
+      width: 440px; height: 620px; background: #ffffff; border-radius: 8px;
+      box-shadow: 0 20px 48px rgba(0,0,0,0.5); border: 1px solid #475569;
+      display: flex; flex-direction: column; overflow: hidden; position: relative;
+    }
+    .win-header {
+      height: 38px; background: #f8fafc; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 14px; font-size: 12px; font-weight: 700; color: #1e293b;
+    }
+    .win-badge { font-size: 10px; background: #e2e8f0; color: #475569; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); }
+
+    /* 方案内容展示区 */
+    .scheme-view { flex: 1; display: none; flex-direction: column; min-height: 0; background: #fff; }
+    .scheme-view.active { display: flex; }
+
+    /* 表格基础通用样式 */
+    .table-container { flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; }
+    table.data-table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; }
+    thead th { position: sticky; top: 0; background: #f1f5f9; color: #475569; font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--border); z-index: 2; white-space: nowrap; }
+    tbody td { padding: 8px 10px; border-bottom: 1px solid var(--border-subtle); color: var(--fg); }
+    tbody tr:hover { background: #f8fafc; cursor: pointer; }
+    tbody tr.selected { background: #e6f4ff !important; }
+
+    /* ================= 方案一特有样式：双行主副卡片流 ================= */
+    .row-card { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; cursor: pointer; transition: background 0.15s; }
+    .row-card:hover { background: #f8fafc; }
+    .row-card.selected { background: #e6f4ff; border-left: 3px solid var(--primary); }
+    .card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+    .card-file { font-weight: 700; font-size: 12px; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .card-bottom { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #64748b; flex-wrap: wrap; }
+    .meta-tag { background: #f1f5f9; padding: 1px 5px; border-radius: 3px; font-family: var(--font-mono); font-size: 10px; border: 1px solid #e2e8f0; }
+
+    /* ================= 方案二特有样式：场景预设胶囊 ================= */
+    .preset-bar { padding: 8px 12px; background: #f8fafc; border-bottom: 1px solid var(--border); display: flex; gap: 6px; }
+    .preset-pill {
+      padding: 4px 10px; border-radius: 20px; font-size: 11px; border: 1px solid var(--border);
+      background: #fff; cursor: pointer; color: var(--muted); font-weight: 600;
+    }
+    .preset-pill.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+    /* ================= 方案三特有样式：合并标签微缩列 ================= */
+    .badge-wrap { display: flex; gap: 4px; flex-wrap: wrap; }
+    .badge-mini { padding: 1px 4px; border-radius: 3px; font-size: 10px; font-weight: 600; }
+    .badge-mat { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .badge-craft { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .badge-imp { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+
+    /* ================= 方案四特有样式：极简索引 + 抽屉详情 ================= */
+    .idx-layout { display: flex; flex: 1; height: 100%; }
+    .idx-list { width: 160px; border-right: 1px solid var(--border); overflow-y: auto; background: #f8fafc; }
+    .idx-item { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; font-size: 11px; cursor: pointer; }
+    .idx-item:hover { background: #edf2f7; }
+    .idx-item.selected { background: #e6f4ff; font-weight: 700; color: var(--primary); border-left: 3px solid var(--primary); }
+    .idx-detail { flex: 1; padding: 12px; overflow-y: auto; font-size: 11px; display: flex; flex-direction: column; gap: 8px; }
+    .prop-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e2e8f0; }
+    .prop-name { color: #64748b; }
+    .prop-val { font-weight: 600; color: #1e293b; font-family: var(--font-mono); }
+
+    /* ================= 方案五特有样式：行内折叠手风琴 ================= */
+    .accordion-row { border-bottom: 1px solid #e2e8f0; }
+    .accordion-head { padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+    .accordion-head:hover { background: #f8fafc; }
+    .accordion-head.active { background: #e6f4ff; }
+    .accordion-body { padding: 8px 12px; background: #f1f5f9; font-size: 11px; display: none; gap: 6px; flex-direction: column; border-top: 1px dashed #cbd5e1; }
+    .accordion-body.open { display: flex; }
+
+    /* 底部操作说明 */
+    footer.desc-banner {
+      position: absolute; bottom: 20px; left: 24px; right: 24px; height: 64px;
+      background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); border: 1px solid #334155;
+      border-radius: 8px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; color: #e2e8f0; font-size: 12px;
+    }
+    .desc-text strong { color: #38bdf8; font-size: 13px; margin-right: 6px; }
+  </style>
+</head>
+<body>
+
+  <!-- 顶部方案切换器 -->
+  <header class="scheme-selector">
+    <div class="brand">
+      <span class="brand-tag">DC</span>
+      <span>窄窗口下多列显示不足的 5 种兼容方案</span>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-btn active" onclick="switchTab(1)">方案1: 双行信息卡片流 ★推荐</button>
+      <button class="nav-btn" onclick="switchTab(2)">方案2: 场景预设列切换</button>
+      <button class="nav-btn" onclick="switchTab(3)">方案3: 属性合并微缩标签</button>
+      <button class="nav-btn" onclick="switchTab(4)">方案4: 左侧极简索引+明细面板</button>
+      <button class="nav-btn" onclick="switchTab(5)">方案5: 手风琴展开行详情</button>
+    </div>
+  </header>
+
+  <!-- 演示舞台 -->
+  <main class="stage-canvas">
+
+    <div class="demo-window">
+      <!-- 窗口标题栏 -->
+      <div class="win-header">
+        <span id="win-title">方案 1: 双行卡片流 (宽度仅 440px)</span>
+        <span class="win-badge">窄屏高密度</span>
+      </div>
+
+      <!-- ================= 方案 1: 双行信息卡片流 ================= -->
+      <div id="view1" class="scheme-view active">
+        <div style="padding:6px 12px; background:#f1f5f9; border-bottom:1px solid var(--border); font-size:11px; color:#64748b;">
+          主行放核心名+页数，副行并排显示所有提炼参数，0 横向滚动条。
+        </div>
+        <div class="table-container" id="cards-container">
+          <!-- JS 动态填充卡片 -->
+        </div>
+      </div>
+
+      <!-- ================= 方案 2: 场景预设列切换 ================= -->
+      <div id="view2" class="scheme-view">
+        <div class="preset-bar">
+          <button class="preset-pill active" onclick="switchPreset(this, 'compact')">录入精简</button>
+          <button class="preset-pill" onclick="switchPreset(this, 'material')">材料工艺</button>
+          <button class="preset-pill" onclick="switchPreset(this, 'imposition')">拼版尺寸</button>
+        </div>
+        <div class="table-container">
+          <table class="data-table" id="preset-table">
+            <thead>
+              <tr id="preset-thead"></tr>
+            </thead>
+            <tbody id="preset-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ================= 方案 3: 属性合并微缩标签 ================= -->
+      <div id="view3" class="scheme-view">
+        <div style="padding:6px 12px; background:#f1f5f9; border-bottom:1px solid var(--border); font-size:11px; color:#64748b;">
+          将“材料、工艺、形状、平卷”4列合并为1列“规格工艺”，用彩色胶囊并排呈现。
+        </div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width:28px;">#</th>
+                <th>文件名</th>
+                <th style="width:50px;">数量</th>
+                <th style="width:160px;">规格工艺 (4合1合并列)</th>
+              </tr>
+            </thead>
+            <tbody id="tag-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ================= 方案 4: 左侧极简索引 + 明细面板 ================= -->
+      <div id="view4" class="scheme-view">
+        <div class="idx-layout">
+          <!-- 极窄索引目录 (仅占 150px) -->
+          <div class="idx-list" id="idx-list-box">
+            <!-- JS 填充 -->
+          </div>
+          <!-- 右侧纵向明细清单 (无需横滚) -->
+          <div class="idx-detail" id="idx-detail-box">
+            <!-- JS 填充 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= 方案 5: 手风琴展开行详情 ================= -->
+      <div id="view5" class="scheme-view">
+        <div style="padding:6px 12px; background:#f1f5f9; border-bottom:1px solid var(--border); font-size:11px; color:#64748b;">
+          点击任意一行展开该文件的 12 项完整提取数据。
+        </div>
+        <div class="table-container" id="accordion-container">
+          <!-- JS 填充 -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 底部解析条 -->
+    <footer class="desc-banner">
+      <div class="desc-text" id="desc-bar">
+        <strong>方案一（双行主副卡片流）：</strong> 最彻底解决窄屏痛点！第一行文件名与页数，第二行放单号、数量、材料、工艺、尺寸，完全不需要横向滚动，小窗体验极佳。
+      </div>
+      <div>
+        <span style="color:#38bdf8; font-family:var(--font-mono); font-size:11px;">100% 避免宽表格折叠截断</span>
+      </div>
+    </footer>
+
+  </main>
+
+  <script>
+    // 模拟包含 12 项完整参数的真实印前文件数据
+    const rawFiles = [
+      { id: 1, name: '321 HYS000038 150张 MGB-514 ME款.pdf', order: '321', qty: '150', size: '65×40', mat: 'PET 哑光', craft: '光膜', shape: '直角', imp: '平张', pages: 150, bleed: '2mm', time: '14:20' },
+      { id: 2, name: '322 HYS000039 150张 MGB-514 ECM-1.pdf', order: '322', qty: '190', size: '55×40', mat: '银色铭牌', craft: '哑膜', shape: '圆角', imp: '平张', pages: 1, bleed: '1.5mm', time: '14:21' },
+      { id: 3, name: '323 HYS000040 150张 MGB-514 ME款.pdf', order: '323', qty: '150', size: '105×74', mat: '黑白光膜', craft: '光膜', shape: '直角', imp: '平张', pages: 6, bleed: '2mm', time: '14:22' },
+      { id: 4, name: '5.430.181006BC-430WS.HC.02-13.pdf', order: '1199-1', qty: '66', size: '297×105', mat: '透明龙', craft: '无工艺', shape: '异形', imp: '卷装', pages: 1, bleed: '2mm', time: '14:25' },
+      { id: 5, name: '1188-1 HYS002487 20张 HED-176 10L炸筛.pdf', order: '1188-1', qty: '20', size: '8×4', mat: '黑白光膜', craft: '光膜', shape: '直角', imp: '平张', pages: 1, bleed: '1mm', time: '14:28' }
+    ];
+
+    let currentSelectedIdx = 0;
+
+    // 方案一：渲染双行卡片
+    function renderScheme1() {
+      const box = document.getElementById('cards-container');
+      box.innerHTML = rawFiles.map((f, i) => `
+        <div class="row-card ${i === currentSelectedIdx ? 'selected' : ''}" onclick="selectS1(${i})">
+          <div class="card-top">
+            <span style="color:#94a3b8; font-family:var(--font-mono); font-size:11px;">#${f.id}</span>
+            <span class="card-file" title="${f.name}">${f.name}</span>
+            <span style="background:#dbeafe; color:#1e40af; font-size:10px; padding:1px 5px; border-radius:10px; font-weight:700;">${f.pages}p</span>
+          </div>
+          <div class="card-bottom">
+            <span class="meta-tag">单号: ${f.order}</span>
+            <span class="meta-tag">数: ${f.qty}</span>
+            <span class="meta-tag" style="background:#e0f2fe; color:#0369a1;">${f.mat}</span>
+            <span class="meta-tag">${f.craft}</span>
+            <span class="meta-tag">${f.size}</span>
+            <span class="meta-tag">${f.imp}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+    function selectS1(i) {
+      currentSelectedIdx = i;
+      renderScheme1();
+    }
+
+    // 方案二：场景预设切换
+    let currentPreset = 'compact';
+    function switchPreset(btn, preset) {
+      document.querySelectorAll('.preset-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentPreset = preset;
+      renderScheme2();
+    }
+    function renderScheme2() {
+      const thead = document.getElementById('preset-thead');
+      const tbody = document.getElementById('preset-tbody');
+      if (currentPreset === 'compact') {
+        thead.innerHTML = `<th>#</th><th>文件名</th><th>订单号</th><th>数量</th><th>页数</th>`;
+        tbody.innerHTML = rawFiles.map(f => `<tr><td>${f.id}</td><td style="max-width:140px; overflow:hidden; text-overflow:ellipsis;" title="${f.name}">${f.name}</td><td>${f.order}</td><td>${f.qty}</td><td><strong>${f.pages}</strong></td></tr>`).join('');
+      } else if (currentPreset === 'material') {
+        thead.innerHTML = `<th>#</th><th>文件名</th><th>材料</th><th>表面工艺</th><th>形状</th>`;
+        tbody.innerHTML = rawFiles.map(f => `<tr><td>${f.id}</td><td style="max-width:140px; overflow:hidden; text-overflow:ellipsis;">${f.name}</td><td><span style="color:#0284c7;font-weight:600;">${f.mat}</span></td><td>${f.craft}</td><td>${f.shape}</td></tr>`).join('');
+      } else {
+        thead.innerHTML = `<th>#</th><th>文件名</th><th>尺寸</th><th>平/卷</th><th>出血</th>`;
+        tbody.innerHTML = rawFiles.map(f => `<tr><td>${f.id}</td><td style="max-width:140px; overflow:hidden; text-overflow:ellipsis;">${f.name}</td><td>${f.size}</td><td>${f.imp}</td><td>${f.bleed}</td></tr>`).join('');
+      }
+    }
+
+    // 方案三：4合1合并属性列
+    function renderScheme3() {
+      const tbody = document.getElementById('tag-tbody');
+      tbody.innerHTML = rawFiles.map(f => `
+        <tr>
+          <td>${f.id}</td>
+          <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis;" title="${f.name}">${f.name}</td>
+          <td><strong>${f.qty}</strong></td>
+          <td>
+            <div class="badge-wrap">
+              <span class="badge-mini badge-mat">${f.mat}</span>
+              <span class="badge-mini badge-craft">${f.craft}</span>
+              <span class="badge-mini badge-imp">${f.imp}</span>
+              <span class="badge-mini badge-imp">${f.shape}</span>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // 方案四：极简目录索引 + 右侧纵向详情
+    function renderScheme4() {
+      const list = document.getElementById('idx-list-box');
+      list.innerHTML = rawFiles.map((f, i) => `
+        <div class="idx-item ${i === currentSelectedIdx ? 'selected' : ''}" onclick="selectS4(${i})">
+          <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">#${f.id} ${f.name.substring(0, 10)}...</div>
+          <div style="color:#64748b; font-size:10px; display:flex; justify-content:space-between;">
+            <span>${f.order}</span>
+            <span>${f.pages}p</span>
+          </div>
+        </div>
+      `).join('');
+
+      const cur = rawFiles[currentSelectedIdx];
+      const detail = document.getElementById('idx-detail-box');
+      detail.innerHTML = `
+        <div style="font-weight:700; font-size:12px; color:var(--primary); margin-bottom:4px; word-break:break-all;">
+          ${cur.name}
+        </div>
+        <div class="prop-row"><span class="prop-name">订单号</span><span class="prop-val">${cur.order}</span></div>
+        <div class="prop-row"><span class="prop-name">生产数量</span><span class="prop-val">${cur.qty} 张</span></div>
+        <div class="prop-row"><span class="prop-name">成品尺寸</span><span class="prop-val">${cur.size} mm</span></div>
+        <div class="prop-row"><span class="prop-name">材料类型</span><span class="prop-val" style="color:#0284c7;">${cur.mat}</span></div>
+        <div class="prop-row"><span class="prop-name">表面工艺</span><span class="prop-val">${cur.craft}</span></div>
+        <div class="prop-row"><span class="prop-name">模切形状</span><span class="prop-val">${cur.shape}</span></div>
+        <div class="prop-row"><span class="prop-name">排版模式</span><span class="prop-val">${cur.imp}</span></div>
+        <div class="prop-row"><span class="prop-name">出血设置</span><span class="prop-val">${cur.bleed}</span></div>
+        <div class="prop-row"><span class="prop-name">真实页数</span><span class="prop-val" style="color:#16a34a;">${cur.pages} 页</span></div>
+        <div class="prop-row"><span class="prop-name">读取时间</span><span class="prop-val">${cur.time}</span></div>
+      `;
+    }
+    function selectS4(i) {
+      currentSelectedIdx = i;
+      renderScheme4();
+    }
+
+    // 方案五：手风琴折叠行
+    let openAccordionIdx = 0;
+    function renderScheme5() {
+      const box = document.getElementById('accordion-container');
+      box.innerHTML = rawFiles.map((f, i) => `
+        <div class="accordion-row">
+          <div class="accordion-head ${i === openAccordionIdx ? 'active' : ''}" onclick="toggleAccordion(${i})">
+            <span style="font-weight:600; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:280px;">
+              #${f.id} ${f.name}
+            </span>
+            <span style="color:#64748b; font-size:10px;">${i === openAccordionIdx ? '收起 ▲' : '详情 ▼'}</span>
+          </div>
+          <div class="accordion-body ${i === openAccordionIdx ? 'open' : ''}">
+            <div style="display:flex; justify-content:space-between;">
+              <span>单号: <strong>${f.order}</strong> | 数量: <strong>${f.qty}</strong></span>
+              <span>页数: <strong>${f.pages}p</strong></span>
+            </div>
+            <div style="display:flex; justify-content:space-between; color:#0284c7;">
+              <span>材料: ${f.mat}</span>
+              <span>工艺: ${f.craft} (${f.shape})</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; color:#64748b;">
+              <span>尺寸: ${f.size} | 出血: ${f.bleed}</span>
+              <span>${f.imp} | ${f.time}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+    function toggleAccordion(i) {
+      openAccordionIdx = (openAccordionIdx === i ? -1 : i);
+      renderScheme5();
+    }
+
+    // 顶栏切换
+    function switchTab(num) {
+      document.querySelectorAll('.nav-btn').forEach((b, idx) => b.classList.toggle('active', idx === num - 1));
+      document.querySelectorAll('.scheme-view').forEach((v, idx) => v.classList.toggle('active', idx === num - 1));
+
+      const titleEl = document.getElementById('win-title');
+      const descEl = document.getElementById('desc-bar');
+      if (num === 1) {
+        titleEl.textContent = '方案 1: 双行卡片流 (宽度仅 440px)';
+        descEl.innerHTML = '<strong>方案一（双行主副卡片流）：</strong> 彻底解决窄屏痛点！第一行显示文件名与总页数，第二行并排呈现单号、数量、材料、工艺、尺寸，完全不需要横向滚动条。';
+      } else if (num === 2) {
+        titleEl.textContent = '方案 2: 场景预设列切换 (宽度仅 440px)';
+        descEl.innerHTML = '<strong>方案二（场景预设列切换）：</strong> 将 12 列拆解为「录入精简」、「材料工艺」、「拼版尺寸」三大场景药丸，在 400px 宽度下仅展示当前关心的 4 列。';
+      } else if (num === 3) {
+        titleEl.textContent = '方案 3: 属性合并微缩标签 (宽度仅 440px)';
+        descEl.innerHTML = '<strong>方案三（属性合并微缩标签）：</strong> 压缩传统独立列，将材料、工艺、形状、卷平装 4 列融合成 1 列带颜色标识的胶囊徽章群。';
+      } else if (num === 4) {
+        titleEl.textContent = '方案 4: 极简索引 + 明细详情面板 (宽度仅 440px)';
+        descEl.innerHTML = '<strong>方案四（极简索引 + 明细详情）：</strong> 左侧 160px 只当目录导航，右侧以纵向表单完整展示 10+ 项属性，完全不占横向空间。';
+      } else if (num === 5) {
+        titleEl.textContent = '方案 5: 手风琴展开行 (宽度仅 440px)';
+        descEl.innerHTML = '<strong>方案五（手风琴展开行）：</strong> 列表常驻单行紧凑模式，点击该行原地展开显示尺寸、出血、材质、数量等完整明细卡片。';
+      }
+    }
+
+    // 初始化所有方案渲染
+    renderScheme1();
+    renderScheme2();
+    renderScheme3();
+    renderScheme4();
+    renderScheme5();
+  </script>
+</body>
+</html>

@@ -1075,7 +1075,8 @@ namespace WindowsFormsApp3.Presenters
                         var matchDataList = MatchExcelData(regexForMatching);
                         if (matchDataList != null && matchDataList.Count > 0)
                         {
-                            var matchData = matchDataList[0];
+                            var matchData = matchDataList.FirstOrDefault(data => data.RowIndex == item.ExcelRowIndex)
+                                ?? matchDataList[0];
                             if (!string.IsNullOrEmpty(matchData.CompositeColumn))
                             {
                                 currentFileInfo.CompositeColumn = matchData.CompositeColumn;

@@ -1,0 +1,4343 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>材料选择框屏幕空间瘦身方案对比 (稳健紧凑型 vs 极致轻量型)</title>
+  <style>
+    :root {
+      --bg: #eaedf2;
+      --card-bg: #ffffff;
+      --border: #d3d9e2;
+      --border-light: #e6ebf1;
+      --text: #1f2429;
+      --text-secondary: #5c6370;
+      --text-muted: #8c95a3;
+      --primary: #1677ff;
+      --primary-hover: #4096ff;
+      --primary-light: #e6f4ff;
+      --success: #52c41a;
+      --warning: #faad14;
+      --danger: #ff4d4f;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 24px;
+      min-height: 100vh;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* 顶部控制栏 */
+    .header {
+      max-width: 1420px;
+      margin: 0 auto 20px;
+      background: var(--card-bg);
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .header-title h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge-reduction {
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+      color: #389e0d;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .header-title p {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .controls-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-group {
+      display: flex;
+      background: #f0f2f5;
+      padding: 3px;
+      border-radius: 6px;
+    }
+
+    .btn-tab {
+      padding: 6px 14px;
+      border: none;
+      background: transparent;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-tab.active {
+      background: #fff;
+      color: var(--primary);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    .switch-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      background: #f0f2f5;
+      border-radius: 6px;
+    }
+
+    .switch-label input {
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    /* 主展示舞台 */
+    .stage {
+      max-width: 1420px;
+      margin: 0 auto;
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    /* 卡片包装 */
+    .mock-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .col-header {
+      text-align: center;
+    }
+
+    .col-title {
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .col-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .height-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: Consolas, monospace;
+    }
+    .tag-origin { background: #fff1f0; color: #cf1322; border: 1px solid #ffa39e; }
+    .tag-robust { background: #e6f4ff; color: #0958d9; border: 1px solid #91caff; }
+    .tag-slim { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
+
+    /* 窗体外壳 - 支持动态横向宽度 */
+    .form-window {
+      width: var(--win-w, 340px);
+      background: #ffffff;
+      border-radius: 6px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      border: 1px solid #b8c1cc;
+      overflow: hidden;
+      position: relative;
+      transition: height 0.25s ease, width 0.25s ease;
+    }
+
+    /* 标尺辅助 */
+    .window-wrapper {
+      position: relative;
+      display: flex;
+    }
+
+    .ruler {
+      position: absolute;
+      right: -36px;
+      top: 0;
+      bottom: 0;
+      width: 28px;
+      border-left: 2px dashed #9aa4b2;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      pointer-events: none;
+      font-family: Consolas, monospace;
+      font-size: 10px;
+      color: #606a77;
+      padding-left: 4px;
+    }
+
+    .ruler-mark-top { top: 0; }
+    .ruler-mark-base { position: absolute; top: var(--base-h); border-top: 1px solid #1677ff; width: 100%; color: #1677ff; font-weight: bold; }
+    .ruler-mark-preview { position: absolute; bottom: 0; border-top: 1px dashed #ff4d4f; width: 100%; color: #cf1322; }
+
+    /* 窗体标题栏 */
+    .win-titlebar {
+      height: 26px;
+      padding: 0 8px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+
+    .win-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #333;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 320px;
+    }
+
+    .pin-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--primary);
+    }
+
+    /* PDF 预览面板 (真实展开 245px) */
+    .preview-panel {
+      background: #23272e;
+      height: 245px;
+      display: flex;
+      flex-direction: column;
+      color: #abb2bf;
+      border-top: 1px solid #3d4450;
+      overflow: hidden;
+      transition: height 0.25s ease;
+      position: relative;
+    }
+    .preview-panel.collapsed {
+      height: 0 !important;
+      border-top: none;
+    }
+
+    .preview-toolbar-inner {
+      height: 24px;
+      background: #1e2227;
+      padding: 0 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #848d9a;
+      border-bottom: 1px solid #333842;
+    }
+
+    .preview-canvas-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      background: #282c34;
+      background-image: radial-gradient(#3e4451 1px, transparent 1px);
+      background-size: 12px 12px;
+    }
+
+    .preview-sheet {
+      width: min(200px, calc(100% - 24px));
+      height: 170px;
+      background: #ffffff;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+      border-radius: 2px;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #abb2bf;
+      position: relative;
+    }
+
+    /* 5行3列模拟排版小格子 */
+    .preview-grid-layout {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      gap: 3px;
+      height: 100%;
+      border: 1px dashed #ff7875;
+      padding: 2px;
+      background: #fff;
+    }
+
+    .preview-item-cell {
+      border: 1px solid #91caff;
+      background: #f0f7ff;
+      border-radius: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      color: #1677ff;
+      font-family: Consolas, monospace;
+    }
+
+    .preview-caption-tag {
+      position: absolute;
+      bottom: 4px;
+      right: 6px;
+      background: rgba(0,0,0,0.65);
+      color: #fff;
+      font-size: 9px;
+      padding: 1px 4px;
+      border-radius: 2px;
+      pointer-events: none;
+    }
+
+    .collapse-bar {
+      height: 16px;
+      background: #f0f2f5;
+      border-top: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 10px;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+    }
+    .collapse-bar:hover {
+      background: #e6f4ff;
+      color: var(--primary);
+    }
+
+    /* ==========================================================================
+       1. 方案 A：稳健紧凑型 (Robust Compact) 核心布局样式
+       ========================================================================== */
+    .robust-container {
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* 材料区：去Tab头，紧凑四列 */
+    .materials-grid-compact {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+    }
+
+    .btn-mat-compact {
+      height: 26px;
+      font-size: 11px;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 3px;
+      cursor: pointer;
+      padding: 0 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .btn-mat-compact:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .btn-mat-compact.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      font-weight: 600;
+    }
+    .select-mat-compact {
+      height: 26px;
+      font-size: 11px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0 4px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    /* 稳健中段：左树右表单 (高度由 286 压至 185) */
+    .robust-mid-split {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 8px;
+      height: 188px;
+    }
+
+    .tree-box-compact {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fbfcfd;
+      padding: 4px;
+      overflow-y: auto;
+      font-size: 11px;
+    }
+    .tree-item-compact {
+      padding: 2px 4px;
+      cursor: pointer;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .tree-item-compact:hover { background: #f0f4f8; }
+    .tree-item-compact.selected { background: #e6f4ff; color: var(--primary); font-weight: 600; }
+
+    .robust-form-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .ctrl-row-compact {
+      display: flex;
+      align-items: center;
+      height: 25px;
+      gap: 4px;
+    }
+    .ctrl-label-sm {
+      width: 42px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .input-compact {
+      height: 24px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0 6px;
+      font-size: 11px;
+      flex: 1;
+      min-width: 0;
+      outline: none;
+    }
+    .input-compact:focus { border-color: var(--primary); }
+
+    .btn-segmented-group {
+      display: flex;
+      width: 100%;
+      height: 24px;
+    }
+    .btn-segmented-sm {
+      flex: 1;
+      height: 24px;
+      border: 1px solid var(--border);
+      border-right: none;
+      background: #fff;
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 0;
+    }
+    .btn-segmented-sm:first-child { border-radius: 3px 0 0 3px; }
+    .btn-segmented-sm:last-child { border-radius: 0 3px 3px 0; border-right: 1px solid var(--border); }
+    .btn-segmented-sm.active {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+      font-weight: 600;
+      z-index: 1;
+    }
+
+    /* 形状按钮原地切换半径组件 (In-place Round Corner Toggle) */
+    .round-inplace-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      width: 100%;
+      height: 100%;
+    }
+    .round-inplace-input {
+      width: 24px;
+      height: 17px;
+      border: 1px solid #1677ff;
+      background: #ffffff;
+      border-radius: 2px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #0958d9;
+      text-align: center;
+      outline: none;
+      font-family: Consolas, monospace;
+      padding: 0;
+      margin: 0 1px;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+    }
+    .round-inplace-input:focus {
+      border-color: #0958d9;
+      background: #fff;
+      box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.25);
+    }
+
+    /* 稳健排版与指标条 */
+    .robust-imposition-card {
+      background: #f7f9fb;
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+      padding: 4px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .impo-config-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+    }
+    /* 微型分段切换按钮 (平张/卷装, 连拼/折手) */
+    .mini-segmented {
+      display: inline-flex;
+      height: 20px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      background: #fff;
+      vertical-align: middle;
+    }
+    .mini-seg-btn {
+      height: 100%;
+      border: none;
+      background: transparent;
+      padding: 0 5px;
+      font-size: 10px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      line-height: 18px;
+      transition: all 0.15s;
+    }
+    .mini-seg-btn + .mini-seg-btn {
+      border-left: 1px solid var(--border-light);
+    }
+    .mini-seg-btn:hover {
+      color: var(--primary);
+    }
+    .mini-seg-btn.active {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .btn-color-tag {
+      height: 20px;
+      padding: 0 6px;
+      border: 1px solid #91caff;
+      background: #e6f4ff;
+      color: #0958d9;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      user-select: none;
+      transition: all 0.15s;
+    }
+    .btn-color-tag:hover {
+      border-color: var(--primary);
+    }
+    .btn-color-tag.bw {
+      border-color: #d9d9d9;
+      background: #f5f5f5;
+      color: #595959;
+    }
+    .metrics-pills-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      background: #fff;
+      padding: 3px 6px;
+      border-radius: 3px;
+      border: 1px solid #e2e7ee;
+      text-align: center;
+      font-size: 10px;
+    }
+    .metrics-pills-row-6 {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 3px;
+      background: #fff;
+      padding: 3px 4px;
+      border-radius: 3px;
+      border: 1px solid #e2e7ee;
+      text-align: center;
+      font-size: 9px;
+    }
+    .metrics-pills-row-7 {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      background: #fff;
+      padding: 3px 2px;
+      border-radius: 3px;
+      border: 1px solid #e2e7ee;
+      text-align: center;
+      font-size: 9px;
+    }
+    .metrics-pills-row-7 .metric-pill span {
+      display: block;
+      color: var(--text-muted);
+      font-size: 9px;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+    .metrics-pills-row-7 .metric-pill strong {
+      display: block;
+      font-size: 10px;
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+    .metrics-pills-row-7 .metric-pill strong:hover {
+      opacity: 0.8;
+      text-decoration: underline;
+    }
+
+    /* 单层双尺寸整合看板 (绝不分两层！5列科学配比：网格5x3、总数15拼、角度0°、双尺寸对照124px、出血2mm) */
+    .metrics-pills-row-5 {
+      display: grid;
+      grid-template-columns: 56px 50px 42px 130px 50px;
+      gap: 3px;
+      background: #fff;
+      padding: 4px 4px;
+      border-radius: 4px;
+      border: 1px solid #dbe2ea;
+      text-align: center;
+      align-items: center;
+    }
+    .metrics-pills-row-5 .metric-pill {
+      min-width: 0;
+      user-select: none;
+    }
+    .metrics-pills-row-5 .metric-pill span {
+      display: block;
+      color: var(--text-muted);
+      font-size: 9px;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+    .metrics-pills-row-5 .metric-pill strong {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-top: 1px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    /* 页面框不一致阻断式模态弹窗 (Modal Dialog - 真实还原 AntdUI 弹窗，杜绝视线漏看) */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(2px);
+      animation: fadeIn 0.15s ease-out;
+    }
+    .modal-overlay.open {
+      display: flex;
+    }
+    .modal-card {
+      width: 440px;
+      max-width: calc(100vw - 32px);
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22);
+      border: 1px solid #d9d9d9;
+      overflow: hidden;
+      animation: zoomIn 0.18s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+    @keyframes zoomIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .modal-header {
+      padding: 14px 18px 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-header .modal-icon {
+      font-size: 20px;
+      color: #faad14;
+    }
+    .modal-header .modal-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #262626;
+    }
+    .modal-body {
+      padding: 6px 18px 14px;
+      font-size: 12px;
+      color: #595959;
+      line-height: 1.6;
+    }
+    .modal-footer {
+      padding: 10px 18px;
+      background: #fafafa;
+      border-top: 1px solid #f0f0f0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .modal-btn {
+      height: 30px;
+      padding: 0 14px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .modal-btn.primary {
+      background: var(--primary);
+      border: 1px solid var(--primary);
+      color: #fff;
+    }
+    .modal-btn.primary:hover {
+      background: var(--primary-hover);
+    }
+    .modal-btn.secondary {
+      background: #fff;
+      border: 1px solid #d9d9d9;
+      color: #262626;
+    }
+    .modal-btn.secondary:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .modal-btn.danger-action {
+      background: #ff4d4f;
+      border: 1px solid #ff4d4f;
+      color: #fff;
+    }
+    .modal-btn.danger-action:hover {
+      background: #ff7875;
+    }
+
+    /* 单尺寸纯净看板 (6列科学排布：网格、布局数、角度、尺寸、出血、颜色，字号适中完整呈现) */
+    .metrics-pills-pure {
+      display: grid;
+      grid-template-columns: 48px 48px 40px 1fr 48px 50px;
+      gap: 3px;
+      background: #fff;
+      padding: 4px 5px;
+      border-radius: 4px;
+      border: 1px solid #dbe2ea;
+      text-align: center;
+      align-items: center;
+    }
+    .metrics-pills-pure .metric-pill {
+      min-width: 0;
+      user-select: none;
+      padding: 1px 2px;
+    }
+    .metrics-pills-pure .metric-pill span {
+      display: block;
+      color: var(--text-muted);
+      font-size: 9px;
+      line-height: 1.1;
+      white-space: nowrap;
+      letter-spacing: -0.2px;
+    }
+    .metrics-pills-pure .metric-pill strong {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.25;
+      margin-top: 1px;
+      white-space: nowrap;
+      cursor: pointer;
+      font-family: Consolas, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .metrics-pills-pure .metric-pill strong:hover {
+      opacity: 0.8;
+      text-decoration: underline;
+    }
+
+    /* 快捷预设胶囊栏 (去标题与齿轮，纯净平铺，完全沿用当前代码右键菜单交互) */
+    .preset-capsules-bar {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      overflow-x: auto;
+      padding: 3px 2px;
+      background: #f8fafc;
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+      scrollbar-width: none;
+    }
+    .preset-capsules-bar::-webkit-scrollbar { display: none; }
+    .btn-preset-pill {
+      height: 23px;
+      padding: 0 10px;
+      border-radius: 12px;
+      font-size: 10.5px;
+      font-weight: 500;
+      border: 1px solid #d3dbe4;
+      background: #fff;
+      color: #3b444f;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .btn-preset-pill:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: #f0f7ff;
+    }
+    .btn-preset-pill.active {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba(22, 119, 255, 0.12);
+    }
+
+    /* 预设专属 AntdUI 风格右键菜单 (Context Menu - 完全沿用当前实现逻辑) */
+    .preset-context-menu {
+      display: none;
+      position: fixed;
+      background: #ffffff;
+      border: 1px solid #d9d9d9;
+      border-radius: 6px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+      padding: 4px;
+      z-index: 99999;
+      min-width: 170px;
+      animation: fadeIn 0.1s ease-out;
+    }
+    .context-menu-item {
+      padding: 6px 10px;
+      font-size: 11px;
+      color: #262626;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+      transition: all 0.12s;
+    }
+    .context-menu-item:hover {
+      background: #f5f5f5;
+      color: var(--primary);
+    }
+    .context-menu-item.danger:hover {
+      background: #fff1f0;
+      color: #cf1322;
+    }
+    .context-menu-separator {
+      height: 1px;
+      background: #f0f0f0;
+      margin: 3px 0;
+    }
+
+    /* 方案 2 专用：分段胶囊微型拨钮 (净 / 毛 互斥点选) */
+    .dim-pill-switch {
+      display: inline-flex;
+      height: 22px;
+      border: 1px solid #bae0ff;
+      border-radius: 3px;
+      overflow: hidden;
+      background: #f4f8fc;
+      width: 100%;
+    }
+    .dim-pill-btn {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 10px;
+      cursor: pointer;
+      line-height: 20px;
+      padding: 0 1px;
+      color: #4b525d;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .dim-pill-btn.active {
+      background: #1677ff;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    /* 方案 3 专用：行内工程差值角标 */
+    .dim-delta-badge-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+    }
+    .dim-delta-main {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0958d9;
+      display: flex;
+      align-items: baseline;
+      gap: 2px;
+    }
+    .dim-delta-sub {
+      font-size: 8.5px;
+      color: #5c6370;
+      background: #f0f2f5;
+      padding: 0 3px;
+      border-radius: 2px;
+      border: 1px solid #d9e0e8;
+      line-height: 12px;
+    }
+
+    /* 方案 4 专用：微型 CAD 模切双框示意图 */
+    .dim-cad-badge-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      background: #fbfcfe;
+      border: 1px solid #dbe2ea;
+      border-radius: 3px;
+      padding: 2px 4px;
+      cursor: pointer;
+    }
+    .dim-cad-icon {
+      width: 14px;
+      height: 12px;
+      border: 1px dashed #ff4d4f;
+      padding: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 1px;
+      flex-shrink: 0;
+    }
+    .dim-cad-inner {
+      width: 100%;
+      height: 100%;
+      border: 1px solid #1677ff;
+      background: #e6f4ff;
+    }
+
+    .dim-contrast-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #f0f7ff;
+      border: 1px solid #bae0ff;
+      border-radius: 3px;
+      padding: 2px 3px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .dim-contrast-box:hover {
+      border-color: var(--primary);
+      background: #e6f4ff;
+    }
+    .dim-net-val {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #0958d9;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+    .dim-raw-val {
+      font-size: 9.5px;
+      color: #69778c;
+      line-height: 1.1;
+      white-space: nowrap;
+      margin-top: 1px;
+    }
+
+    /* 公式推导式流线样式 */
+    .dim-equation-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+      border-radius: 3px;
+      padding: 2px 4px;
+      font-size: 11px;
+    }
+
+    .dim-scheme-selector-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 3px;
+      background: #f0f3f6;
+      padding: 5px 6px;
+      border-radius: 4px;
+      margin-top: 5px;
+      border: 1px solid #d9e0e8;
+    }
+    .btn-tab-mini {
+      padding: 3px 6px;
+      font-size: 9.5px;
+      border: 1px solid #c8d1dc;
+      background: #fff;
+      border-radius: 3px;
+      cursor: pointer;
+      color: #4b525d;
+      transition: all 0.15s;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .btn-tab-mini:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .btn-tab-mini.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    /* 2行大字清晰看板 (备选参考) */
+    .metrics-2tier-board {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      background: #fff;
+      padding: 5px 6px;
+      border-radius: 4px;
+      border: 1px solid #dbe2ea;
+    }
+    .metrics-tier-row1 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      text-align: center;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed #e8ecf0;
+    }
+    .metrics-tier-row1 .metric-pill span {
+      display: block;
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 500;
+    }
+    .metrics-tier-row1 .metric-pill strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-top: 1px;
+      cursor: pointer;
+    }
+    .metrics-tier-row1 .metric-pill strong:hover {
+      opacity: 0.8;
+      text-decoration: underline;
+    }
+
+    .metrics-tier-row2 {
+      display: grid;
+      grid-template-columns: 130px 1fr 1fr;
+      gap: 4px;
+      text-align: center;
+      align-items: center;
+      padding-top: 2px;
+    }
+    .metrics-tier-row2 .metric-pill span {
+      display: block;
+      color: var(--text-muted);
+      font-size: 9px;
+    }
+    .metrics-tier-row2 .metric-pill strong {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 1px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .metrics-tier-row2 .metric-pill strong:hover {
+      opacity: 0.8;
+      text-decoration: underline;
+    }
+    .metrics-pills-row-6 .metric-pill span {
+      display: block;
+      color: var(--text-muted);
+      font-size: 9px;
+      line-height: 1.2;
+    }
+    .metrics-pills-row-6 .metric-pill strong {
+      display: block;
+      font-size: 11px;
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+    .metrics-pills-row-6 .metric-pill strong:hover {
+      opacity: 0.8;
+      text-decoration: underline;
+    }
+    .metric-pill strong {
+      display: block;
+      font-size: 11px;
+      color: #1f2429;
+    }
+
+    /* 底部操作行 */
+    .action-bar-compact {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 2px;
+      border-top: 1px solid var(--border-light);
+    }
+    .btn-action-sm {
+      height: 26px;
+      padding: 0 12px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+    }
+    .btn-action-sm.primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .btn-action-sm.ghost {
+      border-color: #d9d9d9;
+      color: #555;
+    }
+
+    /* ==========================================================================
+       2. 方案 B：极致轻量型 (Ultra-Slim) 核心布局样式
+       ========================================================================== */
+    .slim-container {
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    /* 组合输入框样式 (JoinMode: 数量+增量, 尺寸+出血, 订单+模式) - 弹性自适应不溢出 */
+    .join-group {
+      display: flex;
+      align-items: center;
+      height: 24px;
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+    }
+    .join-input-left {
+      flex: 1;
+      height: 24px;
+      border: 1px solid var(--border);
+      border-right: none;
+      border-radius: 3px 0 0 3px;
+      padding: 0 5px;
+      font-size: 11px;
+      outline: none;
+      min-width: 0;
+      width: 0; /* 允许 flex 项自由收缩或伸展 */
+      color: #1f2429;
+    }
+    .join-input-left:focus {
+      border-color: var(--primary);
+      z-index: 1;
+    }
+    .join-input-right {
+      height: 24px;
+      border: 1px solid var(--border);
+      border-radius: 0 3px 3px 0;
+      padding: 0 2px;
+      font-size: 10px;
+      background: #fafbfc;
+      outline: none;
+      flex-shrink: 0;
+      color: #595959;
+    }
+    .join-btn-right {
+      height: 24px;
+      border: 1px solid var(--border);
+      border-radius: 0 3px 3px 0;
+      padding: 0 5px;
+      font-size: 10px;
+      background: #fafbfc;
+      cursor: pointer;
+      color: #4b525d;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .join-btn-right:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* 单行全宽清晰流式行 (方案 A: 输入框彻底放飞、全部完整无截断) */
+    .full-width-field-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 25px;
+    }
+    .full-width-field-row label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      width: 30px;
+      flex-shrink: 0;
+      font-weight: 500;
+    }
+
+    /* 方案 C 智能非对称栅格 (短长搭配，序号 85px，订单 195px，100% 完整显示) */
+    .grid-asym-row1 {
+      display: grid;
+      grid-template-columns: 86px 1fr;
+      gap: 6px;
+      align-items: center;
+    }
+    .grid-equal-row2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      align-items: center;
+    }
+
+    /* 单行高频路径条 */
+    .slim-path-row {
+      display: flex;
+      align-items: center;
+      height: 26px;
+      background: #f4f7fa;
+      border: 1px solid #d8e0ea;
+      border-radius: 4px;
+      padding: 0 6px;
+      gap: 6px;
+      font-size: 11px;
+    }
+    .slim-path-label {
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .slim-path-val {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: Consolas, monospace;
+      color: #24292f;
+    }
+    .btn-icon-tag {
+      height: 20px;
+      padding: 0 6px;
+      border: 1px solid #cfd7df;
+      background: #fff;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 10px;
+      color: #4b525d;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+    .btn-icon-tag:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* 极致网格：全宽两列并排 */
+    .slim-grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 8px;
+    }
+
+    .slim-field {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 24px;
+    }
+    .slim-field label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      width: 32px;
+      flex-shrink: 0;
+    }
+
+    /* 极致工单选项并排卡片 */
+    .slim-craft-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .craft-group-sm {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .craft-group-sm .craft-lbl {
+      font-size: 10px;
+      color: var(--text-muted);
+      width: 24px;
+    }
+
+    /* 极致拼版条 (单行极简集成) */
+    .slim-impo-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 25px;
+      padding: 0 6px;
+      background: #f6f8fa;
+      border: 1px solid #e1e4e8;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    .slim-metrics {
+      display: flex;
+      gap: 8px;
+      font-family: Consolas, monospace;
+      font-size: 10px;
+    }
+    .slim-metrics span { color: #57606a; }
+    .slim-metrics b { color: var(--primary); }
+
+    /* 下拉弹窗模拟 */
+    .path-dropdown-popup {
+      display: none;
+      position: absolute;
+      top: 62px;
+      left: 10px;
+      right: 10px;
+      background: #fff;
+      border: 1px solid #b8c1cc;
+      border-radius: 5px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      z-index: 100;
+      padding: 8px;
+      animation: fadeIn 0.15s ease-out;
+    }
+    .path-dropdown-popup.show { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ==========================================================================
+       3. 方案 C：极智精细版 (Ultra-Refined) 4大优化部件样式
+       ========================================================================== */
+    .mat-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 2px;
+    }
+    .mat-clean-btn {
+      color: var(--danger);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 10px;
+    }
+    .mat-clean-btn:hover { text-decoration: underline; }
+
+    .mat-drawer-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+      overflow: hidden;
+      transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .mat-drawer-grid.collapsed {
+      max-height: 56px; /* 2行高频材料 */
+    }
+    .mat-drawer-grid.expanded {
+      max-height: 125px; /* 展开全部4行 */
+    }
+
+    .mat-more-toggle-bar {
+      text-align: center;
+      padding: 1px 0;
+      cursor: pointer;
+      font-size: 10px;
+      color: var(--text-muted);
+      border-bottom: 1px dashed #e6ebf1;
+      margin-bottom: 2px;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+    }
+    .mat-more-toggle-bar:hover { color: var(--primary); }
+
+    /* 内嵌放大镜按钮 */
+    .input-suffix-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      flex: 1;
+      min-width: 0;
+    }
+    .input-suffix-wrapper input {
+      padding-right: 22px !important;
+    }
+    .btn-search-suffix {
+      position: absolute;
+      right: 2px;
+      top: 2px;
+      bottom: 2px;
+      width: 20px;
+      border: none;
+      background: transparent;
+      color: #9aa4b2;
+      cursor: pointer;
+      font-size: 10px;
+      display: grid;
+      place-items: center;
+      border-radius: 2px;
+      transition: all 0.15s;
+    }
+    .btn-search-suffix:hover { color: var(--primary); background: #f0f7ff; }
+    .btn-search-suffix.active { color: var(--primary); background: #e6f4ff; font-weight: bold; }
+
+    /* R角吸附提示 */
+    .radius-attach-box {
+      display: none;
+      align-items: center;
+      gap: 2px;
+      font-size: 10px;
+      color: #0958d9;
+      background: #e6f4ff;
+      border: 1px solid #91caff;
+      border-radius: 3px;
+      padding: 0 4px;
+      height: 20px;
+      margin-left: 2px;
+      animation: fadeIn 0.15s ease-out;
+    }
+    .radius-attach-box.show { display: inline-flex; }
+    .radius-attach-box input {
+      width: 26px;
+      height: 16px;
+      border: 1px solid #91caff;
+      background: #fff;
+      border-radius: 2px;
+      font-size: 10px;
+      text-align: center;
+      outline: none;
+    }
+
+    /* 一式多联按需滑出容器 */
+    .duplicate-drawer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.2s ease, opacity 0.2s ease;
+      opacity: 0;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f8fafc;
+      border-radius: 3px;
+    }
+    .duplicate-drawer.open {
+      max-height: 28px;
+      opacity: 1;
+      padding: 2px 4px;
+      border: 1px dashed #d0d7de;
+      margin-top: 2px;
+    }
+
+    /* 独立全宽输出路径栏 (不挤在按钮列，长路径舒展完整) */
+    .path-standalone-bar {
+      display: flex;
+      align-items: center;
+      height: 27px;
+      background: #f4f7fa;
+      border: 1px solid #d4dbe4;
+      border-radius: 4px;
+      padding: 0 8px;
+      gap: 6px;
+      font-size: 11px;
+    }
+    .path-standalone-lbl {
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .path-standalone-val {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: Consolas, monospace;
+      color: #1f2429;
+      background: #fff;
+      border: 1px solid #d9e0e8;
+      border-radius: 3px;
+      padding: 1px 6px;
+      font-size: 11px;
+      height: 21px;
+      line-height: 19px;
+    }
+    .btn-standalone-browse {
+      height: 21px;
+      padding: 0 8px;
+      border: 1px solid #b8c4d1;
+      background: #fff;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 500;
+      color: #333d47;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .btn-standalone-browse:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: #f0f7ff;
+    }
+
+    /* ==========================================================================
+       4. 方案 A (V3) 专享：左右职能分立版 (左列纯按钮类 58%，右列纯输入框类 42% - 调整比例消灭按钮拥挤)
+       ========================================================================== */
+    .split-col-container {
+      display: grid;
+      grid-template-columns: 58% 42%;
+      gap: 10px;
+      background: #fafbfc;
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+      padding: 7px 8px;
+    }
+
+    /* 左列：纯按钮类 (扩宽至 58%，按钮全面舒展) */
+    .buttons-column {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border-right: 1px solid #e5eaf0;
+      padding-right: 10px;
+    }
+
+    /* 右列：纯输入框类 (紧凑至 42%，减少无效空隙) */
+    .inputs-column {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* ==========================================================================
+       5. 方案 V4 专享：颠覆性流水线控制台 (全宽工艺开关矩阵 + 极简高密参数舱)
+       ========================================================================== */
+    .v4-container {
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    /* 全宽工艺开关矩阵：让按钮享受 100% 满宽，彻底解放手感 */
+    .v4-craft-matrix {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      background: #fbfcfd;
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+      padding: 6px 8px;
+    }
+    .v4-craft-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 25px;
+    }
+    .v4-craft-lbl {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      width: 28px;
+      flex-shrink: 0;
+    }
+
+    /* 极简高密参数舱：4大工单区域(订单、序号、数量、一式N联) 2×2 绝对均等空间分配 */
+    .v4-param-pod {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 10px;
+      background: #ffffff;
+      border: 1px solid #d4dbe4;
+      border-radius: 4px;
+      padding: 6px 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .v4-pod-cell {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 25px;
+      min-width: 0;
+    }
+    .v4-pod-cell-lbl {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      width: 26px;
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    /* ==========================================================================
+       6. 方案 V4 颠覆性一体化双联工作台 (左侧 100% 还原当前代码架构 + 右侧流水线工位)
+       ========================================================================== */
+    .v4-workbench-wrapper {
+      display: flex;
+      align-items: stretch;
+      background: #ffffff;
+      border-radius: 6px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
+      border: 1px solid #b0bac5;
+      overflow: hidden;
+      position: relative;
+      transition: all 0.25s ease;
+    }
+
+    /* 左侧待处理面板：520px (严格对应 C# 代码 const int BATCH_PANEL_WIDTH = 520) */
+    .v4-left-panel {
+      width: 520px;
+      background: #f8f9fa;
+      border-right: 1px solid #d4dbe4;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow: hidden;
+      transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+    }
+    .v4-left-panel.collapsed {
+      width: 0 !important;
+      border-right: none;
+      opacity: 0;
+    }
+
+    /* 1. 顶部状态标题栏 (pnlTopBatchHeader, 高 36px, #f0f2f5, 9.5pt 加粗) */
+    .v4-batch-header {
+      height: 36px;
+      background: #f0f2f5;
+      border-bottom: 1px solid #dce2e9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .v4-batch-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: rgb(38, 38, 38);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .v4-batch-fold-btn {
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-size: 11px;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .v4-batch-fold-btn:hover {
+      color: var(--primary);
+      background: #e2e8f0;
+    }
+
+    /* 4. 流式卡片组容器 (pnlCardsContainer, 灰底 #f5f7fa, 滚动) */
+    .v4-cards-container {
+      flex: 1;
+      overflow-y: auto;
+      background: #f5f7fa;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* 单个工艺分组卡片 (cardPanel) */
+    .v4-group-card-panel {
+      background: #ffffff;
+      border: 1px solid #91caff;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      display: flex;
+      flex-direction: column;
+    }
+    .v4-group-card-panel.locked {
+      border-color: #d9d9d9;
+    }
+
+    /* 方案五：智能工艺分组卡片头部控件 (BatchGroupHeaderCard, 高 36px) */
+    .v4-group-header-card {
+      height: 36px;
+      background: #f0f7ff;
+      border-bottom: 1px solid #bae0ff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .v4-group-header-card.locked {
+      background: #f5f5f5;
+      border-bottom-color: #e8e8e8;
+    }
+    .v4-group-header-left {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      overflow: hidden;
+    }
+    .v4-group-arrow {
+      font-size: 11px;
+      font-weight: bold;
+      color: #4b525d;
+      width: 12px;
+    }
+    .v4-group-name {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #0958d9;
+      white-space: nowrap;
+    }
+    .v4-group-count-badge {
+      font-size: 9px;
+      color: #fff;
+      background: #1677ff;
+      padding: 1px 5px;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+    .v4-group-pills {
+      display: flex;
+      gap: 3px;
+      align-items: center;
+      overflow: hidden;
+    }
+    .v4-group-pill-item {
+      font-size: 9px;
+      color: #0958d9;
+      background: #e6f4ff;
+      border: 1px solid #91caff;
+      border-radius: 3px;
+      padding: 0 4px;
+      height: 18px;
+      line-height: 16px;
+      white-space: nowrap;
+    }
+    .v4-group-status-badge {
+      width: 54px;
+      height: 20px;
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+      color: #52c41a;
+      font-size: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* 卡片内部子表格 (CreateGroupDataGridView, 7列真实结构) */
+    .v4-group-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      background: #fff;
+      table-layout: fixed;
+    }
+    .v4-group-table th {
+      background: #fafbfc;
+      color: #595959;
+      font-weight: 600;
+      height: 26px;
+      padding: 0 4px;
+      border-bottom: 1px solid #e8e8e8;
+      font-size: 10px;
+      text-align: left;
+    }
+    .v4-group-table td {
+      height: 26px;
+      padding: 0 4px;
+      border-bottom: 1px solid #f0f0f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+    .v4-group-table tr:hover td {
+      background: #f8fafc;
+    }
+    .v4-group-table tr.active td {
+      background: #e6f4ff;
+      color: #0958d9;
+      font-weight: 600;
+    }
+    .table-qty-input {
+      width: 48px;
+      height: 20px;
+      border: 1px solid #cbd5e1;
+      border-radius: 2px;
+      padding: 0 4px;
+      font-size: 10.5px;
+      font-weight: 600;
+      text-align: center;
+      outline: none;
+    }
+    .table-qty-input:focus {
+      border-color: var(--primary);
+      background: #fff;
+    }
+
+    /* 2. 底部操作工具栏 (pnlBottomToolbar, 高 38px, #f5f7fa) */
+    .v4-bottom-toolbar {
+      height: 38px;
+      background: #f5f7fa;
+      border-top: 1px solid #e4e8ec;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .btn-win-move {
+      width: 62px;
+      height: 28px;
+      border: 1px solid #d9d9d9;
+      background: #fff;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      color: #262626;
+      font-family: var(--font-base);
+    }
+    .btn-win-move:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-win-newgroup {
+      width: 88px;
+      height: 28px;
+      border: 1px solid var(--primary);
+      background: var(--primary);
+      color: #fff;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: var(--font-base);
+    }
+    .btn-win-newgroup:hover { background: var(--primary-hover); }
+    .btn-win-delete {
+      width: 72px;
+      height: 28px;
+      border: 1px solid #ff4d4f;
+      background: #ff4d4f;
+      color: #fff;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: var(--font-base);
+    }
+    .btn-win-delete:hover { background: #ff7875; }
+
+    /* 3. 最底部帮助提示栏 (bottomHelpPanel, 高 28px, #f0f2f5) */
+    .v4-bottom-help {
+      height: 28px;
+      background: #f0f2f5;
+      border-top: 1px solid #e4e8ec;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 9.5px;
+      color: #696969;
+      flex-shrink: 0;
+      user-select: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 右侧工位容器 (完全嵌入双联体，宽度360px固定) */
+    .v4-right-station {
+      width: 360px;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .column-tag-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      text-transform: uppercase;
+    }
+
+    .btn-row-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 24px;
+    }
+    .btn-row-lbl {
+      font-size: 10px;
+      color: var(--text-muted);
+      width: 24px;
+      flex-shrink: 0;
+    }
+
+    .col-input-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      height: 24px;
+    }
+    .col-input-row label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      width: 28px;
+      flex-shrink: 0;
+      font-weight: 500;
+    }
+
+    /* ==========================================================================
+       5. 历史版本 V0 (原版现状) 与 V1 (稳健紧凑版) 专属样式
+       ========================================================================== */
+    .legacy-tab-header {
+      display: flex;
+      border-bottom: 2px solid #1677ff;
+      height: 24px;
+      margin-bottom: 4px;
+    }
+    .legacy-tab-item {
+      padding: 2px 14px;
+      font-size: 11px;
+      font-weight: bold;
+      color: #1677ff;
+      background: #f0f7ff;
+      border: 1px solid #91caff;
+      border-bottom: none;
+      border-radius: 3px 3px 0 0;
+    }
+    .legacy-tab-item.inactive {
+      color: #666;
+      background: transparent;
+      border: none;
+      font-weight: normal;
+    }
+    .legacy-split-row {
+      display: flex;
+      gap: 8px;
+      height: 240px;
+    }
+    .legacy-tree-col {
+      width: 135px;
+      border: 1px solid #c0c6cf;
+      background: #fff;
+      padding: 4px;
+      font-size: 11px;
+      overflow-y: auto;
+      border-radius: 3px;
+    }
+    .legacy-form-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+    .legacy-group-box {
+      border: 1px solid #c4cbd4;
+      border-radius: 3px;
+      padding: 3px 6px;
+      font-size: 10px;
+      margin-top: 1px;
+      background: #fff;
+    }
+    .legacy-group-title {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 2px;
+      font-size: 10px;
+    }
+    .legacy-metrics-text {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 10px;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 4px 6px;
+      background: #fbfcfd;
+      border: 1px solid #e1e4e8;
+      border-radius: 3px;
+    }
+
+    /* 对比表格 */
+    .comparison-section {
+      max-width: 1420px;
+      margin: 32px auto 0;
+      background: #fff;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 12px;
+    }
+    .comparison-table th, .comparison-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-light);
+      text-align: left;
+    }
+    .comparison-table th {
+      background: #f8fafc;
+      color: var(--text-secondary);
+      font-weight: 700;
+    }
+    .text-success { color: #389e0d; font-weight: 700; }
+    .text-primary { color: #0958d9; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <!-- 顶部控制栏 -->
+  <header class="header">
+    <div class="header-title">
+      <h1>
+        材料选择框全版本演进与空间瘦身方案对比
+        <span class="badge-reduction">全历程 4 版本完整收录 · 随时横向对比</span>
+      </h1>
+      <p>完整保留：V0 代码现状原版 $\to$ V1 稳健紧凑版 $\to$ V2 极智挂件版 $\to$ V3 最新职能分立版</p>
+    </div>
+
+    <div class="controls-toolbar">
+      <!-- 演进视图模式切换 -->
+      <div class="btn-group">
+        <button class="btn-tab active" onclick="switchVersionView('v4-vs-v3', this)">★ 颠覆性工位版(V4) vs 职能分立版(V3)</button>
+        <button class="btn-tab" onclick="switchVersionView('v4-vs-v1', this)">颠覆工位(V4) vs 第一版稳健(V1)</button>
+        <button class="btn-tab" onclick="switchVersionView('v4-vs-v0', this)">颠覆工位(V4) vs 历史原版(V0)</button>
+        <button class="btn-tab" onclick="switchVersionView('v4-only', this)">仅看 颠覆工位版(V4)</button>
+        <button class="btn-tab" onclick="switchVersionView('v3-only', this)">仅看 职能分立版(V3)</button>
+        <button class="btn-tab" onclick="switchVersionView('v1-only', this)">仅看 第一版稳健(V1)</button>
+        <button class="btn-tab" onclick="switchVersionView('all-5', this)">全版本对比长廊</button>
+      </div>
+
+      <!-- 横向宽度联动调节 -->
+      <div style="display: flex; align-items: center; gap: 6px; background: #f0f2f5; padding: 3px 8px; border-radius: 6px;">
+        <span style="font-size: 11px; font-weight: 700; color: var(--text-secondary);">宽度:</span>
+        <button class="btn-tab active" style="padding: 4px 8px;" onclick="setGlobalWidth('default', this)">各自推荐 (V4:360/V1:400)</button>
+        <button class="btn-tab" style="padding: 4px 8px;" onclick="setGlobalWidth('360px', this)">360px (黄金舒展)</button>
+        <button class="btn-tab" style="padding: 4px 8px;" onclick="setGlobalWidth('400px', this)">400px (原宽)</button>
+        <button class="btn-tab" style="padding: 4px 8px;" onclick="setGlobalWidth('310px', this)">310px (极窄)</button>
+      </div>
+
+      <label class="switch-label">
+        <input type="checkbox" id="togglePreview" checked onchange="handleTogglePreview(this.checked)">
+        展开 PDF 预览 (+245px 真实网格)
+      </label>
+    </div>
+  </header>
+
+  <!-- 主方案展示区 -->
+  <main class="stage" id="mainStage">
+
+    <!-- 方案 V4：颠覆性流水线一体化工作台 (左侧待处理列表 + 右侧流水线工位) -->
+    <div class="mock-column" id="colV4" style="max-width: 100%;">
+      <div class="col-header">
+        <div class="col-title">
+          <span>方案 V4：颠覆性流水线一体化工作台 (左侧列表 + 右侧工位)</span>
+          <span class="height-tag tag-slim" id="tagHeightV4" style="background: #f6ffed; color: #389e0d; border-color: #b7eb8f;">展开 820 × 345 px · 折叠 360 × 345 px</span>
+        </div>
+        <div class="col-desc">左侧展开多文件排版工作台(460px)，右侧融合颠覆性流水线工位(360px)，左右无缝联动！</div>
+      </div>
+
+      <div class="window-wrapper">
+        <div class="v4-workbench-wrapper" id="v4WorkbenchWin">
+          <!-- ==================== 【左侧批量排版工作台】 (100% 严格还原当前 C# 代码架构 · 宽 520px) ==================== -->
+          <div class="v4-left-panel" id="v4LeftBatchPanel">
+            <!-- 1. 顶部状态标题栏 (pnlTopBatchHeader · 高 36px · #f0f2f5 · 9.5pt 加粗) -->
+            <div class="v4-batch-header">
+              <div class="v4-batch-title">
+                <span id="v4LblBatchTitle">待处理 (4款 · 2组)</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <button type="button" class="v4-batch-fold-btn" onclick="toggleV4LeftPanel()" title="折叠左侧待处理列表，仅保留右侧单工位">
+                  ◀ 收起列表
+                </button>
+              </div>
+            </div>
+
+            <!-- 2. 流式卡片组容器 (pnlCardsContainer · AutoScroll · 灰底 #f5f7fa) -->
+            <div class="v4-cards-container" id="v4CardsContainer">
+              <!-- =================== 工艺分组卡片 1：【一组】 (新单浅蓝 · 3款) =================== -->
+              <div class="v4-group-card-panel" id="v4CardGroup1">
+                <!-- BatchGroupHeaderCard 头部控件 (高 36px) -->
+                <div class="v4-group-header-card" onclick="toggleGroupCollapse(1)">
+                  <div class="v4-group-header-left">
+                    <span class="v4-group-arrow" id="v4GroupArrow1">▾</span>
+                    <span class="v4-group-name">【一组】</span>
+                    <span class="v4-group-count-badge">3款新单</span>
+                    <!-- 公共工艺参数胶囊 -->
+                    <div class="v4-group-pills">
+                      <span class="v4-group-pill-item" id="v4PillMat1">PET哑光</span>
+                      <span class="v4-group-pill-item" id="v4PillProc1">彩色哑膜</span>
+                      <span class="v4-group-pill-item" id="v4PillImpo1">平张·连拼</span>
+                      <span class="v4-group-pill-item" id="v4PillShape1">直角</span>
+                    </div>
+                  </div>
+                  <!-- 右侧锁定/联动指示标签 (点击切换锁定状态) -->
+                  <div class="v4-group-status-badge" id="v4LockBadge1" onclick="event.stopPropagation(); toggleGroupLock(1)" title="点击锁定/解锁该组参数与右侧的实时联动">
+                    联动
+                  </div>
+                </div>
+
+                <!-- CreateGroupDataGridView 子表格 (7列真实结构) -->
+                <div id="v4GroupTableWrap1">
+                  <table class="v4-group-table">
+                    <thead>
+                      <tr>
+                        <th style="width: 32px; text-align: center;">序号</th>
+                        <th style="width: 155px;">文件名</th>
+                        <th style="width: 50px;">订单</th>
+                        <th style="width: 55px; text-align: center;">数量</th>
+                        <th style="width: 45px; text-align: center;">页数</th>
+                        <th style="width: 65px; text-align: center;">尺寸</th>
+                        <th style="width: 85px; text-align: center;">排版/版数</th>
+                      </tr>
+                    </thead>
+                    <tbody id="v4GroupTbody1">
+                      <!-- 行 1: 正在编辑 (高亮) -->
+                      <tr class="active" onclick="switchActiveFile(this, 1)">
+                        <td style="text-align: center; font-family: Consolas, monospace; font-weight: bold; color: #1677ff;">001</td>
+                        <td title="铭牌_A款_80×45mm.pdf" style="font-weight: 600;"><span class="status-dot editing"></span>铭牌_A款_80×45mm.pdf</td>
+                        <td style="font-family: Consolas, monospace; color: #555;">DC260915-08</td>
+                        <td style="text-align: center;" onclick="event.stopPropagation()"><input class="table-qty-input" value="500" onchange="updateFileQty(1, this.value)"></td>
+                        <td style="text-align: center; color: var(--text-muted);">1页</td>
+                        <td style="text-align: center; font-family: Consolas, monospace; color: #0958d9;">80×45</td>
+                        <td style="text-align: center; font-family: Consolas, monospace; color: #1677ff;">5×3 · 15版</td>
+                      </tr>
+                      <!-- 行 2: 待处理 -->
+                      <tr onclick="switchActiveFile(this, 2)">
+                        <td style="text-align: center; font-family: Consolas, monospace; color: #666;">002</td>
+                        <td title="铭牌_B款_80×45mm.pdf"><span class="status-dot pending"></span>铭牌_B款_80×45mm.pdf</td>
+                        <td style="font-family: Consolas, monospace; color: #555;">DC260915-09</td>
+                        <td style="text-align: center;" onclick="event.stopPropagation()"><input class="table-qty-input" value="300" onchange="updateFileQty(2, this.value)"></td>
+                        <td style="text-align: center; color: var(--text-muted);">1页</td>
+                        <td style="text-align: center; font-family: Consolas, monospace; color: #0958d9;">80×45</td>
+                        <td style="text-align: center; font-family: Consolas, monospace; color: #1677ff;">5×3 · 15版</td>
+                      </tr>
+                      <!-- 行 3: 待处理 (2页) -->
+                      <tr onclick="switchActiveFile(this, 3)">
+                        <td style="text-align: center; font-family: Consolas, monospace; color: #666;">003</td>
+                        <td title="铭牌_C款_80×45mm.pdf"><span class="status-dot pending"></span>铭牌_C款_80×45mm.pdf</td>
+                        <td style="font-family: Consolas, monospace; color: #555;">DC260915-10</td>
+                        <td style="text-align: center;" onclick="event.stopPropagation()"><input class="table-qty-input" value="1,000" onchange="updateFileQty(3, this.value)"></td>
+                        <td style="text-align: center; color: var(--text-muted);">2页</td>
+                        <td style="text-align: center; font-family: Consolas, monospace; color: #0958d9;">80×45</td>
+                        <td style="text-align: center; font-family: Consolas, monospace; color: #1677ff;">5×3 · 15版</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- =================== 工艺分组卡片 2：【二组】 (独立组 · 1款) =================== -->
+              <div class="v4-group-card-panel" id="v4CardGroup2">
+                <!-- BatchGroupHeaderCard 头部控件 -->
+                <div class="v4-group-header-card" onclick="toggleGroupCollapse(2)">
+                  <div class="v4-group-header-left">
+                    <span class="v4-group-arrow" id="v4GroupArrow2">▾</span>
+                    <span class="v4-group-name">【二组】</span>
+                    <span class="v4-group-count-badge" style="background: #722ed1;">1款新单</span>
+                    <div class="v4-group-pills">
+                      <span class="v4-group-pill-item" style="color: #722ed1; border-color: #d3adf7; background: #f9f0ff;">PP环保</span>
+                      <span class="v4-group-pill-item">彩色光膜</span>
+                      <span class="v4-group-pill-item">平张·连拼</span>
+                      <span class="v4-group-pill-item">直角</span>
+                    </div>
+                  </div>
+                  <div class="v4-group-status-badge" id="v4LockBadge2" onclick="event.stopPropagation(); toggleGroupLock(2)" title="点击锁定/解锁该组参数与右侧的实时联动">
+                    联动
+                  </div>
+                </div>
+
+                <!-- CreateGroupDataGridView 子表格 -->
+                <div id="v4GroupTableWrap2">
+                  <table class="v4-group-table">
+                    <thead>
+                      <tr>
+                        <th style="width: 32px; text-align: center;">序号</th>
+                        <th style="width: 155px;">文件名</th>
+                        <th style="width: 50px;">订单</th>
+                        <th style="width: 55px; text-align: center;">数量</th>
+                        <th style="width: 45px; text-align: center;">页数</th>
+                        <th style="width: 65px; text-align: center;">尺寸</th>
+                        <th style="width: 85px; text-align: center;">排版/版数</th>
+                      </tr>
+                    </thead>
+                    <tbody id="v4GroupTbody2">
+                      <!-- 行 4: 德佰仕 75x15 -->
+                      <tr onclick="switchActiveFile(this, 4)">
+                        <td style="text-align: center; font-family: Consolas, monospace; color: #666;">004</td>
+                        <td title="徳佰仕75x15.pdf"><span class="status-dot pending"></span>徳佰仕75x15.pdf</td>
+                        <td style="font-family: Consolas, monospace; color: #555;">DC260916-02</td>
+                        <td style="text-align: center;" onclick="event.stopPropagation()"><input class="table-qty-input" value="200" onchange="updateFileQty(4, this.value)"></td>
+                        <td style="text-align: center; color: var(--text-muted);">1页</td>
+                        <td style="text-align: center; font-family: Consolas, monospace; color: #0958d9;">75×15</td>
+                        <td style="text-align: center; font-family: Consolas, monospace; color: #52c41a;">6×3 · 18版</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. 底部操作工具栏 (pnlBottomToolbar · 高 38px · 对应 C# 四大按钮) -->
+            <div class="v4-bottom-toolbar">
+              <button type="button" class="btn-win-move" onclick="moveFileRow(-1)" title="将选中的文件行向上移动">▲ 上移</button>
+              <button type="button" class="btn-win-move" onclick="moveFileRow(1)" title="将选中的文件行向下移动">▼ 下移</button>
+              <button type="button" class="btn-win-newgroup" onclick="createNewGroup()" title="将选中文件拆分至新的独立印前分组">➕ 分出新组</button>
+              <button type="button" class="btn-win-delete" onclick="deleteSelectedFileRow()" title="删除选中行并移入取消处理列表">删除行</button>
+            </div>
+
+            <!-- 4. 最底部帮助提示栏 (bottomHelpPanel · 高 28px · 对应 lblBatchHelp) -->
+            <div class="v4-bottom-help">
+              <span>点击序号列选中整行；Delete 删除并移入“取消处理”；未匹配行优先置顶</span>
+            </div>
+          </div>
+          <!-- ==================== 【右侧颠覆性流水线工位】 (宽度 360px 固定) ==================== -->
+          <div class="v4-right-station" id="v4RightStation">
+            <!-- 标题栏 (26px) 带左侧面板折叠开关 -->
+            <div class="win-titlebar">
+              <div style="display: flex; align-items: center; gap: 6px; overflow: hidden;">
+                <button type="button" class="btn-icon-tag" id="btnToggleLeftFold" onclick="toggleV4LeftPanel()" style="height: 20px; font-size: 10px; padding: 0 5px;" title="点击展开/折叠左侧待处理文件列表">
+                  ◀ 待处理列表
+                </button>
+                <span class="win-title" id="v4ActiveFileName">铭牌_A款_80×45mm.pdf</span>
+              </div>
+              <button class="pin-btn" title="窗口置顶">📌</button>
+            </div>
+
+            <!-- 主体内容容器 -->
+            <div class="v4-container">
+              <!-- 1. 常用材料区 (4列紧凑 + 状态与清除) -->
+              <div>
+                <div class="mat-header-row">
+                  <span>常用材料 <span style="color: var(--text-muted); font-size: 10px;">(4列紧凑)</span></span>
+                  <div>
+                    <span id="matStatusTextV4" style="color: var(--primary); font-weight: 600; font-size: 10px;">已选: PET哑光</span>
+                    <button class="mat-clean-btn" onclick="clearMatV4()" title="清空材料选择">× 清除</button>
+                  </div>
+                </div>
+                <div class="materials-grid-compact" id="matGridV4">
+                  <button class="btn-mat-compact" onclick="selectMatV4(this)">PET</button>
+                  <button class="btn-mat-compact" onclick="selectMatV4(this)">PP</button>
+                  <button class="btn-mat-compact" onclick="selectMatV4(this)">PVC</button>
+                  <button class="btn-mat-compact" onclick="selectMatV4(this)">PET环保</button>
+                  <button class="btn-mat-compact" onclick="selectMatV4(this)">PET透明</button>
+                  <button class="btn-mat-compact active" onclick="selectMatV4(this)">PET哑光</button>
+                  <button class="btn-mat-compact" onclick="selectMatV4(this)">PET镭射</button>
+                  <button class="btn-mat-compact" onclick="selectMatV4(this)">PET磨砂</button>
+                  <button class="btn-mat-compact" onclick="selectMatV4(this)">PET金色</button>
+                  <button class="btn-mat-compact" onclick="selectMatV4(this)">PET银色</button>
+                  <button class="btn-mat-compact" onclick="selectMatV4(this)">PET白色</button>
+                  <button class="btn-mat-compact" onclick="selectMatV4(this)">PET红色</button>
+                  <button class="btn-mat-compact" onclick="selectMatV4(this)">PET蓝色</button>
+                  <button class="btn-mat-compact" onclick="selectMatV4(this)">PET绿色</button>
+                  <button class="btn-mat-compact" onclick="selectMatV4(this)">PP环保</button>
+                  <select class="select-mat-compact" onchange="selectDropdownMatV4(this.value)">
+                    <option>更多材料▾</option>
+                    <option>AL6061-T6</option>
+                    <option>ST304不锈钢</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- 2. 【已确认可用部件 2 · 独立全宽输出路径栏】(27px，保持100%不变) -->
+              <div class="path-standalone-bar">
+                <span class="path-standalone-lbl">输出:</span>
+                <span class="path-standalone-val" id="v4PathDisplay" title="当前目标输出目录">D:\生产输出\今日输出</span>
+                <button class="btn-standalone-browse" onclick="toggleV4PathDropdown()">📂 切换目录 ▾</button>
+              </div>
+
+              <!-- 模拟路径下拉浮层 -->
+              <div class="path-dropdown-popup" id="v4PathDropdown" style="top: 172px;">
+                <div style="font-size: 11px; font-weight: 700; margin-bottom: 6px; color: var(--text-secondary);">选择目标输出目录:</div>
+                <div class="tree-box-compact" style="max-height: 140px;">
+                  <div class="tree-item-compact" onclick="selectV4Path('D:\\生产输出')">📁 D:\生产输出</div>
+                  <div class="tree-item-compact selected" style="padding-left: 14px;" onclick="selectV4Path('D:\\生产输出\\今日输出')">📂 今日输出</div>
+                  <div class="tree-item-compact" style="padding-left: 14px;" onclick="selectV4Path('D:\\生产输出\\不干胶标签')">📁 不干胶标签</div>
+                  <div class="tree-item-compact" style="padding-left: 14px;" onclick="selectV4Path('D:\\生产输出\\书籍画册')">📁 书籍画册</div>
+                  <div class="tree-item-compact" onclick="selectV4Path('E:\\客户文件')">📁 E:\客户文件</div>
+                </div>
+                <div style="text-align: right; margin-top: 6px;">
+                  <button class="btn-action-sm primary" style="height: 22px; padding: 0 8px;" onclick="toggleV4PathDropdown()">确定</button>
+                </div>
+              </div>
+
+              <!-- 3. 【全宽工艺开关矩阵】(满宽340px，每个按钮80px宽，彻底消除拥挤！) -->
+              <div class="v4-craft-matrix">
+                <!-- 覆膜整行全宽展开 -->
+                <div class="v4-craft-row">
+                  <span class="v4-craft-lbl">覆膜</span>
+                  <div class="btn-segmented-group">
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)">✨ 光膜</button>
+                    <button class="btn-segmented-sm active" onclick="setSegmented(this)">🌫️ 哑膜</button>
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)">🔴 红膜</button>
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)">🚫 不过膜</button>
+                  </div>
+                </div>
+
+                <!-- 模切形状整行全宽展开 (原地切换圆角 R 半径输入，100% 满宽无外挂) -->
+                <div class="v4-craft-row">
+                  <span class="v4-craft-lbl">形状</span>
+                  <div class="btn-segmented-group" id="v4ShapeSegmentGroup" style="flex: 1;">
+                    <button type="button" class="btn-segmented-sm active" onclick="selectShapeV4(this, 'rect')" title="直角矩形模切">▢ 直角</button>
+                    <button type="button" class="btn-segmented-sm" onclick="selectShapeV4(this, 'circle')" title="圆形模切">○ 圆形</button>
+                    <button type="button" class="btn-segmented-sm" onclick="selectShapeV4(this, 'special')" title="异形刀模">◇ 异形</button>
+                    <!-- 第 4 个按钮：常态显示“▢ 圆角”，选中后原地秒变微型内嵌输入“▢ R[ 3 ]mm” -->
+                    <button type="button" class="btn-segmented-sm" id="v4BtnShapeRound" onclick="selectShapeV4(this, 'round')" title="圆角矩形模切 (选中后可直接原地修改半径 R)">
+                      <span id="v4ShapeRoundText">▢ 圆角</span>
+                      <span class="round-inplace-wrap" id="v4RoundInputWrap" style="display: none;">
+                        <span style="font-weight: 700;">▢ R</span>
+                        <input type="text" class="round-inplace-input" id="v4RadiusInput" value="3" onclick="event.stopPropagation()" oninput="updateInplaceRadius(this.value)" onchange="updateInplaceRadius(this.value)" title="点击直接修改圆角半径">
+                        <span style="font-size: 9px; opacity: 0.85;">mm</span>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 4. 【极简工单舱 · 4大区域空间均等分配 (订单 / 序号 / 数量 / 一式N联 2×2 对称均分)】 -->
+              <div class="v4-param-pod">
+                <!-- 象限 1 (左上 50%): 订单 -->
+                <div class="v4-pod-cell">
+                  <span class="v4-pod-cell-lbl">订单</span>
+                  <div class="join-group">
+                    <input class="join-input-left" id="v4InputOrder" value="DC260915-08" placeholder="订单号" style="font-family: Consolas, monospace; font-weight: 600;">
+                    <button class="join-btn-right" title="点击切换正则模式">无 ▾</button>
+                  </div>
+                </div>
+
+                <!-- 象限 2 (右上 50%): 序号 -->
+                <div class="v4-pod-cell">
+                  <span class="v4-pod-cell-lbl">序号</span>
+                  <div class="input-suffix-wrapper" style="height: 24px;">
+                    <input class="input-compact" id="v4InputSerial" value="A08" placeholder="序号" style="font-weight: 600; padding-right: 22px;">
+                    <button class="btn-search-suffix active" title="已开启在Excel中反查联动">🔍</button>
+                  </div>
+                </div>
+
+                <!-- 象限 3 (左下 50%): 数量 -->
+                <div class="v4-pod-cell">
+                  <span class="v4-pod-cell-lbl">数量</span>
+                  <div class="join-group">
+                    <input class="join-input-left" id="v4InputQty" value="500" placeholder="多个逗号隔开">
+                    <input class="join-input-right" value="+1" style="width: 28px; text-align: center;" title="增量步长">
+                  </div>
+                </div>
+
+                <!-- 象限 4 (右下 50%): 一式N联 -->
+                <div class="v4-pod-cell">
+                  <label style="font-size: 10px; display: flex; align-items: center; gap: 2px; font-weight: 700; color: var(--text-secondary); width: 36px; flex-shrink: 0; cursor: pointer; white-space: nowrap;">
+                    <input type="checkbox" checked> 一式
+                  </label>
+                  <div class="join-group">
+                    <input class="input-compact" type="number" value="2" style="width: 24px; text-align: center; flex: unset; padding: 0 1px; border-right: none; border-radius: 3px 0 0 3px;">
+                    <select style="height: 24px; border: 1px solid var(--border); font-size: 10px; padding: 0 2px; border-right: none;">
+                      <option>联</option>
+                      <option>份</option>
+                    </select>
+                    <select style="height: 24px; border: 1px solid var(--border); border-radius: 0 3px 3px 0; font-size: 10px; padding: 0 2px; flex: 1; min-width: 0;">
+                      <option>自适应</option>
+                      <option>列优先</option>
+                      <option>不旋转</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 5. 【已确认可用部件 1 · 纯净 6 宫格大字排版看板】 -->
+              <div class="robust-imposition-card" style="margin-top: 2px;">
+                <div class="impo-config-row">
+                  <label style="font-weight: 600; display: flex; align-items: center; gap: 3px; font-size: 11px;">
+                    <input type="checkbox" checked> 启用自动排版计算
+                  </label>
+                  <div style="display: flex; gap: 6px; align-items: center;">
+                    <!-- 材料类型切换按钮 (平张 / 卷装) -->
+                    <div class="mini-segmented" title="材料类型切换">
+                      <button class="mini-seg-btn active" onclick="setMiniSeg(this)">平张</button>
+                      <button class="mini-seg-btn" onclick="setMiniSeg(this)">卷装</button>
+                    </div>
+                    <!-- 排版模式切换按钮 (连拼 / 折手) -->
+                    <div class="mini-segmented" title="排版模式切换">
+                      <button class="mini-seg-btn active" onclick="setMiniSeg(this)">连拼</button>
+                      <button class="mini-seg-btn" onclick="setMiniSeg(this)">折手</button>
+                    </div>
+                    <label style="display: flex; align-items: center; gap: 2px; font-size: 10px;"><input type="checkbox"> 标识页</label>
+                  </div>
+                </div>
+
+                <!-- 单尺寸纯净 6 宫格看板：文字字号精微调整，100% 完整舒展呈现无溢出 -->
+                <div class="metrics-pills-pure">
+                  <!-- 1. 网格 -->
+                  <div class="metric-pill">
+                    <span>网格</span>
+                    <strong style="color: #1677ff;">5 × 3</strong>
+                  </div>
+
+                  <!-- 2. 布局数 -->
+                  <div class="metric-pill">
+                    <span>布局数</span>
+                    <strong style="color: #fa8c16;">15</strong>
+                  </div>
+
+                  <!-- 3. 旋转角度 -->
+                  <div class="metric-pill" onclick="toggleV4Rotation(this)" title="点击切换旋转角度 (0° / 90°)">
+                    <span>角度 ↺</span>
+                    <strong id="v4RotationVal" style="color: #722ed1;">0°</strong>
+                  </div>
+
+                  <!-- 4. 纯净尺寸 (仅标“尺寸”，弹性自适应宽，字号12px加粗等宽，100%完整) -->
+                  <div class="metric-pill" onclick="promptV4Dimensions()" style="background: #f0f7ff; border-radius: 3px; border: 1px solid #91caff; padding: 2px 2px;" title="成品尺寸 (点击可微调)">
+                    <span style="color: #0958d9; font-weight: bold;">尺寸</span>
+                    <strong id="v4DimensionVal" style="color: #0958d9;">80×45</strong>
+                  </div>
+
+                  <!-- 5. 出血位 -->
+                  <div class="metric-pill" onclick="cycleV4Bleed()" title="点击切换出血位 (0/1.5/2/3mm)">
+                    <span>出血 ▾</span>
+                    <strong id="v4BleedVal" style="color: #eb2f96;">2.0mm</strong>
+                  </div>
+
+                  <!-- 6. 颜色模式 (移至出血右侧) -->
+                  <div class="metric-pill" onclick="toggleV4ColorMode(this)" title="点击切换印色模式 (彩色 / 黑白)">
+                    <span>颜色 ▾</span>
+                    <strong id="v4ColorVal" style="color: #13c2c2;">🎨彩色</strong>
+                  </div>
+                </div>
+
+                <!-- 页面框异常阻断预检模拟按钮 (界面0占用) -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 2px 1px;">
+                  <span style="font-size: 9px; color: #52c41a;">🛡️ 智能预检防御就绪：页面框异常即弹窗阻断</span>
+                  <button type="button" style="background: #fffbe6; border: 1px solid #ffe58f; border-radius: 3px; font-size: 9.5px; color: #ad6800; font-weight: bold; cursor: pointer; padding: 1px 6px;" onclick="openPageBoxModal()">
+                    ⚠️ 模拟：触发页面框异常警告弹窗
+                  </button>
+                </div>
+              </div>
+
+              <!-- 6. 【纯净快捷预设胶囊栏】(高频预设一键直达，右键菜单管理) -->
+              <div class="preset-capsules-bar" oncontextmenu="handlePresetContextMenu(event, '全局')">
+                <button type="button" class="btn-preset-pill active" onclick="applyPresetV4('铭牌75×15', this)" oncontextmenu="handlePresetContextMenu(event, '★ 铭牌75×15')">★ 铭牌75×15</button>
+                <button type="button" class="btn-preset-pill" onclick="applyPresetV4('PET平张连拼', this)" oncontextmenu="handlePresetContextMenu(event, 'PET平张')">PET平张</button>
+                <button type="button" class="btn-preset-pill" onclick="applyPresetV4('圆角不干胶', this)" oncontextmenu="handlePresetContextMenu(event, '圆角不干胶')">圆角不干胶</button>
+                <button type="button" class="btn-preset-pill" onclick="applyPresetV4('卷装折手', this)" oncontextmenu="handlePresetContextMenu(event, '卷装折手')">卷装折手</button>
+              </div>
+
+              <!-- 7. 底部操作栏 (28px - 智能区分单款与批量处理全部) -->
+              <div class="action-bar-compact">
+                <span style="font-size: 10px; color: var(--text-muted); line-height: 1; user-select: none;">💡 预设支持右键管理/另存</span>
+                <div style="display: flex; gap: 6px;">
+                  <button class="btn-action-sm ghost" id="v4BtnSingleApply" onclick="applyOnlyCurrentFile()">仅处理当前款</button>
+                  <button class="btn-action-sm ghost" onclick="showToast('已取消本次操作')">取消</button>
+                  <button class="btn-action-sm primary" id="v4BtnMainConfirm" onclick="confirmBatchOrSingle()">批量处理全部 (4款)</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 折叠预览控制条 -->
+            <div class="collapse-bar" onclick="toggleLocalPreview('winV4')">
+              <span>页码: 1/1</span>
+              <span id="txtArrowV4">▲ 点击展开预览 (+245px)</span>
+            </div>
+
+            <!-- 可折叠 PDF 预览 (展开真实 245px 网格拼版图) -->
+            <div class="preview-panel collapsed" id="previewV4">
+              <div class="preview-toolbar-inner">
+                <span>📄 拼版版面: 80×45mm (5行×3列 / 共15拼)</span>
+                <span>100% 页面适配</span>
+              </div>
+              <div class="preview-canvas-wrapper">
+                <div class="preview-sheet">
+                  <div class="preview-grid-layout">
+                    <div class="preview-item-cell">#1</div>
+                    <div class="preview-item-cell">#2</div>
+                    <div class="preview-item-cell">#3</div>
+                    <div class="preview-item-cell">#4</div>
+                    <div class="preview-item-cell">#5</div>
+                    <div class="preview-item-cell">#6</div>
+                    <div class="preview-item-cell">#7</div>
+                    <div class="preview-item-cell">#8</div>
+                    <div class="preview-item-cell">#9</div>
+                    <div class="preview-item-cell">#10</div>
+                    <div class="preview-item-cell">#11</div>
+                    <div class="preview-item-cell">#12</div>
+                    <div class="preview-item-cell">#13</div>
+                    <div class="preview-item-cell">#14</div>
+                    <div class="preview-item-cell">#15</div>
+                  </div>
+                  <div class="preview-caption-tag">平张·连拼 15拼 (出血2mm)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ruler">
+          <span class="ruler-mark-top">0</span>
+          <span class="ruler-mark-base">345</span>
+          <span class="ruler-mark-preview">590</span>
+        </div>
+      </div>
+    </div>
+    <!-- 方案 V1：第一版·稳健紧凑型 (左树右表单经典骨架，物理脱水 · 宽 400px) -->
+    <div class="mock-column" id="colV1" style="display: none;">
+      <div class="col-header">
+        <div class="col-title">
+          <span>方案 V1：第一版·稳健紧凑型</span>
+          <span class="height-tag tag-robust" id="tagHeightV1" style="background: #e6f4ff; border-color: #1677ff; color: #0958d9;">400 × 460 px</span>
+        </div>
+        <div class="col-desc">保留左侧常驻目录树(188px)，右侧单列表单紧凑排布，去冗余Tab头</div>
+      </div>
+
+      <div class="window-wrapper">
+        <div class="form-window" id="winV1" style="--win-w: 400px; --base-h: 460px;">
+          <!-- 标题栏 (26px) -->
+          <div class="win-titlebar">
+            <span class="win-title">铭牌_A款_80×45mm.pdf (材料选择)</span>
+            <button class="pin-btn">📌</button>
+          </div>
+
+          <div class="robust-container">
+            <!-- 1. 紧凑材料按钮区 (114px) - 4行4列 -->
+            <div class="materials-grid-compact">
+              <button class="btn-mat-compact" onclick="selectMat(this)">PET</button>
+              <button class="btn-mat-compact" onclick="selectMat(this)">PP</button>
+              <button class="btn-mat-compact" onclick="selectMat(this)">PVC</button>
+              <button class="btn-mat-compact" onclick="selectMat(this)">PET环保</button>
+              <button class="btn-mat-compact" onclick="selectMat(this)">PET透明</button>
+              <button class="btn-mat-compact active" onclick="selectMat(this)">PET哑光</button>
+              <button class="btn-mat-compact" onclick="selectMat(this)">PET镭射</button>
+              <button class="btn-mat-compact" onclick="selectMat(this)">PET磨砂</button>
+              <button class="btn-mat-compact" onclick="selectMat(this)">PET金色</button>
+              <button class="btn-mat-compact" onclick="selectMat(this)">PET银色</button>
+              <button class="btn-mat-compact" onclick="selectMat(this)">PET白色</button>
+              <button class="btn-mat-compact" onclick="selectMat(this)">PET红色</button>
+              <button class="btn-mat-compact" onclick="selectMat(this)">PET蓝色</button>
+              <button class="btn-mat-compact" onclick="selectMat(this)">PET绿色</button>
+              <button class="btn-mat-compact" onclick="selectMat(this)">PP环保</button>
+              <select class="select-mat-compact"><option>更多材料▾</option><option>AL6061-T6</option></select>
+            </div>
+
+            <!-- 2. 第一版经典中段：左树(135px) + 右表单(单列7行) (树高由 286 物理压缩至 188px) -->
+            <div class="robust-mid-split">
+              <!-- 左侧常驻小目录树 (135px) -->
+              <div class="tree-box-compact">
+                <div class="tree-item-compact">📁 D:\生产输出</div>
+                <div class="tree-item-compact selected" style="padding-left: 14px;">📂 今日输出</div>
+                <div class="tree-item-compact" style="padding-left: 14px;">📁 不干胶标签</div>
+                <div class="tree-item-compact" style="padding-left: 14px;">📁 书籍画册</div>
+                <div class="tree-item-compact" style="padding-left: 14px;">📁 样品质检</div>
+                <div class="tree-item-compact">📁 E:\客户原稿</div>
+                <div class="tree-item-compact" style="padding-left: 14px;">📁 大诚包装</div>
+              </div>
+
+              <!-- 右侧单列工单表单 -->
+              <div class="robust-form-col">
+                <!-- 覆膜 4 按钮 -->
+                <div class="ctrl-row-compact">
+                  <span class="ctrl-label-sm">覆膜:</span>
+                  <div class="btn-segmented-group">
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)">光膜</button>
+                    <button class="btn-segmented-sm active" onclick="setSegmented(this)">哑膜</button>
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)">红膜</button>
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)">无</button>
+                  </div>
+                </div>
+
+                <!-- 形状 4 按钮 -->
+                <div class="ctrl-row-compact">
+                  <span class="ctrl-label-sm">形状:</span>
+                  <div class="btn-segmented-group">
+                    <button class="btn-segmented-sm active" onclick="setSegmented(this)">直角</button>
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)">圆形</button>
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)">异形</button>
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)">圆角</button>
+                  </div>
+                </div>
+
+                <!-- 序号 -->
+                <div class="ctrl-row-compact">
+                  <span class="ctrl-label-sm">序号:</span>
+                  <input class="input-compact" value="A08" style="width: 70px;">
+                  <label style="font-size: 11px; display: flex; align-items: center; gap: 2px;">
+                    <input type="checkbox" checked> 搜索
+                  </label>
+                </div>
+
+                <!-- 订单号 -->
+                <div class="ctrl-row-compact">
+                  <span class="ctrl-label-sm">订单:</span>
+                  <input class="input-compact" value="DC260915">
+                  <button style="height: 24px; font-size: 11px; padding: 0 6px; border: 1px solid var(--border); background: #fff; border-radius: 3px; cursor: pointer;">无</button>
+                </div>
+
+                <!-- 数量 + 增量 -->
+                <div class="ctrl-row-compact">
+                  <span class="ctrl-label-sm">数量:</span>
+                  <input class="input-compact" value="500">
+                  <input class="input-compact" value="+1" style="width: 36px; text-align: center; flex: unset;">
+                </div>
+
+                <!-- 尺寸 + 出血 -->
+                <div class="ctrl-row-compact">
+                  <span class="ctrl-label-sm">尺寸:</span>
+                  <input class="input-compact" value="80×45">
+                  <select style="height: 24px; border: 1px solid var(--border); border-radius: 3px; font-size: 11px; padding: 0 2px;">
+                    <option>出2</option>
+                    <option>出1.5</option>
+                    <option>出0</option>
+                  </select>
+                </div>
+
+                <!-- 一式多联 -->
+                <div class="ctrl-row-compact">
+                  <label style="font-size: 11px; display: flex; align-items: center; gap: 2px;">
+                    <input type="checkbox"> 一式
+                  </label>
+                  <input class="input-compact" type="number" value="2" style="width: 38px; text-align: center; flex: unset;">
+                  <span style="font-size: 11px; color: var(--text-muted);">联</span>
+                  <select style="height: 22px; border: 1px solid var(--border); border-radius: 3px; font-size: 10px; padding: 0 2px; flex: 1;">
+                    <option>自适应列</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. 已确认优质部件：排版参数与指标卡片 (62px) -->
+            <div class="robust-imposition-card">
+              <div class="impo-config-row">
+                <label style="font-weight: 600; display: flex; align-items: center; gap: 3px; font-size: 11px;">
+                  <input type="checkbox" checked> 启用排版
+                </label>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                  <div class="mini-segmented" title="材料类型">
+                    <button class="mini-seg-btn active" onclick="setMiniSeg(this)">平张</button>
+                    <button class="mini-seg-btn" onclick="setMiniSeg(this)">卷装</button>
+                  </div>
+                  <div class="mini-segmented" title="排版模式">
+                    <button class="mini-seg-btn active" onclick="setMiniSeg(this)">连拼</button>
+                    <button class="mini-seg-btn" onclick="setMiniSeg(this)">折手</button>
+                  </div>
+                  <label style="display: flex; align-items: center; gap: 2px; font-size: 10px;"><input type="checkbox"> 标识页</label>
+                  <button class="btn-color-tag" onclick="toggleColorMode(this)">🎨 彩色</button>
+                </div>
+              </div>
+
+              <div class="metrics-pills-row">
+                <div class="metric-pill"><span>行数</span><strong style="color: #1677ff;">5</strong></div>
+                <div class="metric-pill"><span>列数</span><strong style="color: #52c41a;">3</strong></div>
+                <div class="metric-pill"><span>布局数</span><strong style="color: #fa8c16;">15</strong></div>
+                <div class="metric-pill"><span>角度</span><strong style="color: #722ed1;">0°</strong></div>
+              </div>
+            </div>
+
+            <!-- 4. 底部操作栏 -->
+            <div class="action-bar-compact">
+              <button class="btn-action-sm ghost" style="font-size: 10px; padding: 0 6px;">常用预设▾</button>
+              <div style="display: flex; gap: 6px;">
+                <button class="btn-action-sm ghost">批量处理</button>
+                <button class="btn-action-sm ghost">取消</button>
+                <button class="btn-action-sm primary">确认</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 折叠预览控制条 -->
+          <div class="collapse-bar" onclick="toggleLocalPreview('winV1')">
+            <span>页码: 1/1</span>
+            <span id="txtArrowV1">▲ 点击展开预览 (+245px)</span>
+          </div>
+
+          <!-- 可折叠 PDF 预览 (展开真实 245px 网格拼版图) -->
+          <div class="preview-panel collapsed" id="previewV1">
+            <div class="preview-toolbar-inner">
+              <span>📄 拼版版面: 80×45mm (5行×3列 / 共15拼)</span>
+              <span>100% 页面适配</span>
+            </div>
+            <div class="preview-canvas-wrapper">
+              <div class="preview-sheet">
+                <div class="preview-grid-layout">
+                  <div class="preview-item-cell">#1</div>
+                  <div class="preview-item-cell">#2</div>
+                  <div class="preview-item-cell">#3</div>
+                  <div class="preview-item-cell">#4</div>
+                  <div class="preview-item-cell">#5</div>
+                  <div class="preview-item-cell">#6</div>
+                  <div class="preview-item-cell">#7</div>
+                  <div class="preview-item-cell">#8</div>
+                  <div class="preview-item-cell">#9</div>
+                  <div class="preview-item-cell">#10</div>
+                  <div class="preview-item-cell">#11</div>
+                  <div class="preview-item-cell">#12</div>
+                  <div class="preview-item-cell">#13</div>
+                  <div class="preview-item-cell">#14</div>
+                  <div class="preview-item-cell">#15</div>
+                </div>
+                <div class="preview-caption-tag">平张·连拼 15拼 (出血2mm)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ruler">
+          <span class="ruler-mark-top">0</span>
+          <span class="ruler-mark-base">460</span>
+          <span class="ruler-mark-preview">705</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 方案 V3：最新职能分立版 (当前主推 · 宽 360px) -->
+    <div class="mock-column" id="colV3">
+      <div class="col-header">
+        <div class="col-title">
+          <span>方案 V3：最新职能分立版 (推荐)</span>
+          <span class="height-tag tag-robust" id="tagHeightV3">360 × 420 px</span>
+        </div>
+        <div class="col-desc">输出路径独立一行，左列纯按钮(46%)，右列纯输入框(54%)，黄金分配不拥挤</div>
+      </div>
+
+      <div class="window-wrapper">
+        <div class="form-window" id="winV3" style="--win-w: 360px; --base-h: 420px;">
+          <!-- 标题栏 (26px) -->
+          <div class="win-titlebar">
+            <span class="win-title">铭牌_A款_80×45mm.pdf (材料选择)</span>
+            <button class="pin-btn" title="窗口置顶">📌</button>
+          </div>
+
+          <!-- 主体内容 -->
+          <div class="robust-container">
+            <!-- 1. 常用材料区 (带显性状态与清空按钮) -->
+            <div>
+              <div class="mat-header-row">
+                <span>常用材料 <span style="color: var(--text-muted); font-size: 10px;">(4列紧凑)</span></span>
+                <div>
+                  <span id="matStatusTextV3" style="color: var(--primary); font-weight: 600; font-size: 10px;">已选: PET哑光</span>
+                  <button class="mat-clean-btn" onclick="clearMatV3()" title="清空材料选择">× 清除</button>
+                </div>
+              </div>
+              <div class="materials-grid-compact" id="matGridV3">
+                <button class="btn-mat-compact" onclick="selectMatV3(this)">PET</button>
+                <button class="btn-mat-compact" onclick="selectMatV3(this)">PP</button>
+                <button class="btn-mat-compact" onclick="selectMatV3(this)">PVC</button>
+                <button class="btn-mat-compact" onclick="selectMatV3(this)">PET环保</button>
+                <button class="btn-mat-compact" onclick="selectMatV3(this)">PET透明</button>
+                <button class="btn-mat-compact active" onclick="selectMatV3(this)">PET哑光</button>
+                <button class="btn-mat-compact" onclick="selectMatV3(this)">PET镭射</button>
+                <button class="btn-mat-compact" onclick="selectMatV3(this)">PET磨砂</button>
+                <button class="btn-mat-compact" onclick="selectMatV3(this)">PET金色</button>
+                <button class="btn-mat-compact" onclick="selectMatV3(this)">PET银色</button>
+                <button class="btn-mat-compact" onclick="selectMatV3(this)">PET白色</button>
+                <button class="btn-mat-compact" onclick="selectMatV3(this)">PET红色</button>
+                <button class="btn-mat-compact" onclick="selectMatV3(this)">PET蓝色</button>
+                <button class="btn-mat-compact" onclick="selectMatV3(this)">PET绿色</button>
+                <button class="btn-mat-compact" onclick="selectMatV3(this)">PP环保</button>
+                <select class="select-mat-compact" onchange="selectDropdownMatV3(this.value)">
+                  <option>更多材料▾</option>
+                  <option>AL6061-T6</option>
+                  <option>ST304不锈钢</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 2. 输出路径独立一行 (横向全宽，深层长路径舒展完整，点击即呼出浮层) -->
+            <div class="path-standalone-bar">
+              <span class="path-standalone-lbl">输出:</span>
+              <span class="path-standalone-val" id="robustPathDisplay" title="当前目标输出目录">D:\生产输出\今日输出</span>
+              <button class="btn-standalone-browse" onclick="toggleRobustPathDropdown()">📂 切换目录 ▾</button>
+            </div>
+
+            <!-- 模拟路径下拉浮层 -->
+            <div class="path-dropdown-popup" id="robustPathDropdown" style="top: 172px;">
+              <div style="font-size: 11px; font-weight: 700; margin-bottom: 6px; color: var(--text-secondary);">选择目标输出目录:</div>
+              <div class="tree-box-compact" style="max-height: 140px;">
+                <div class="tree-item-compact" onclick="selectRobustPath('D:\\生产输出')">📁 D:\生产输出</div>
+                <div class="tree-item-compact selected" style="padding-left: 14px;" onclick="selectRobustPath('D:\\生产输出\\今日输出')">📂 今日输出</div>
+                <div class="tree-item-compact" style="padding-left: 14px;" onclick="selectRobustPath('D:\\生产输出\\不干胶标签')">📁 不干胶标签</div>
+                <div class="tree-item-compact" style="padding-left: 14px;" onclick="selectRobustPath('D:\\生产输出\\书籍画册')">📁 书籍画册</div>
+                <div class="tree-item-compact" onclick="selectRobustPath('E:\\客户文件')">📁 E:\客户文件</div>
+              </div>
+              <div style="text-align: right; margin-top: 6px;">
+                <button class="btn-action-sm primary" style="height: 22px; padding: 0 8px;" onclick="toggleRobustPathDropdown()">确定</button>
+              </div>
+            </div>
+
+            <!-- 3. 核心中段：双列职能分立 (合理配比 48% : 52%，左列纯按钮，右列纯输入框，绝不拥挤) -->
+            <div class="split-col-container">
+              <!-- 【左列：工艺与选项类 (纯按钮操作)】 (全鼠标点选交互，无打字干扰) -->
+              <div class="buttons-column">
+                <div class="column-tag-title">🔘 工艺与选项 (按钮类)</div>
+
+                <!-- 1. 覆膜工艺 (分段按钮) -->
+                <div class="btn-row-item">
+                  <span class="btn-row-lbl">覆膜</span>
+                  <div class="btn-segmented-group">
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)" title="光膜">✨光</button>
+                    <button class="btn-segmented-sm active" onclick="setSegmented(this)" title="哑膜">🌫️哑</button>
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)" title="红膜">🔴红</button>
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)" title="不过膜">🚫无</button>
+                  </div>
+                </div>
+
+                <!-- 2. 模切形状 (分段按钮，带几何图标) -->
+                <div class="btn-row-item">
+                  <span class="btn-row-lbl">形状</span>
+                  <div class="btn-segmented-group">
+                    <button class="btn-segmented-sm active" onclick="setSegmented(this)">▢ 直</button>
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)">○ 圆</button>
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)">◇ 异</button>
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)">▢ 角</button>
+                  </div>
+                </div>
+
+                <!-- 3. 出血预设分段按钮 (从尺寸输入框解放出来，大方好点，彻底消灭挤压) -->
+                <div class="btn-row-item">
+                  <span class="btn-row-lbl">出血</span>
+                  <div class="btn-segmented-group">
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)">0</button>
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)">1.5</button>
+                    <button class="btn-segmented-sm active" onclick="setSegmented(this)">2mm</button>
+                    <button class="btn-segmented-sm" onclick="setSegmented(this)">3mm</button>
+                  </div>
+                </div>
+
+                <!-- 4. 订单正则匹配模式 (从订单输入框解放出来，独立成整行选择按钮) -->
+                <div class="btn-row-item">
+                  <span class="btn-row-lbl">匹配</span>
+                  <button class="join-btn-right" style="width: 100%; height: 24px; border-radius: 3px; border: 1px solid var(--border); font-size: 11px; justify-content: space-between; padding: 0 8px; background: #fff;" title="点击切换Excel数据提取正则模式">
+                    <span>订单模式: 无</span><span>▾</span>
+                  </button>
+                </div>
+
+                <!-- 5. 一式排版规则按钮组 -->
+                <div class="btn-row-item">
+                  <span class="btn-row-lbl">一式</span>
+                  <div style="display: flex; gap: 3px; width: 100%;">
+                    <div class="mini-segmented" style="height: 24px;">
+                      <button class="mini-seg-btn active" onclick="setMiniSeg(this)" style="line-height: 22px;">联</button>
+                      <button class="mini-seg-btn" onclick="setMiniSeg(this)" style="line-height: 22px;">份</button>
+                    </div>
+                    <select style="height: 24px; border: 1px solid var(--border); border-radius: 3px; font-size: 10px; padding: 0 4px; flex: 1; min-width: 0; background: #fff;">
+                      <option>自适应列</option>
+                      <option>自适应行</option>
+                      <option>不旋转列</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 【右列：工单与参数类 (纯输入框)】 (全键盘/Tab键录入，垂直对齐，完全不拥挤) -->
+              <div class="inputs-column">
+                <div class="column-tag-title">📝 工单与参数 (输入框类)</div>
+
+                <!-- 1. 订单号输入框 (纯净长框，100% 完整显示无截断) -->
+                <div class="col-input-row">
+                  <label>订单</label>
+                  <input class="input-compact" value="DC260915-08" placeholder="订单号" style="font-family: Consolas, monospace; font-size: 11px;">
+                </div>
+
+                <!-- 2. 序号输入框 (带放大镜反查开关) -->
+                <div class="col-input-row">
+                  <label>序号</label>
+                  <div class="input-suffix-wrapper">
+                    <input class="input-compact" value="A08" placeholder="序号" style="font-weight: 600;">
+                    <button class="btn-search-suffix active" title="已开启在Excel中反查联动">🔍</button>
+                  </div>
+                </div>
+
+                <!-- 3. 尺寸输入框 (纯净宽×高，再无出血下拉挤占，宽阔舒适) -->
+                <div class="col-input-row">
+                  <label>尺寸</label>
+                  <div class="join-group">
+                    <input class="input-compact" value="80 × 45" placeholder="宽×高 (mm)" style="text-align: center;">
+                    <span class="join-btn-right" style="cursor: default; background: #fbfcfd; color: var(--text-muted);">mm</span>
+                  </div>
+                </div>
+
+                <!-- 4. 数量输入框 (多值逗号隔开 + 增量步长) -->
+                <div class="col-input-row">
+                  <label>数量</label>
+                  <div class="join-group">
+                    <input class="join-input-left" value="500, 300" placeholder="数量 (支持多值)">
+                    <input class="join-input-right" value="+1" style="width: 28px; text-align: center;" title="增量步长">
+                  </div>
+                </div>
+
+                <!-- 5. 附加数值输入框 (圆角半径与一式联数并排) -->
+                <div class="col-input-row">
+                  <label>数值</label>
+                  <div style="display: flex; gap: 4px; width: 100%;">
+                    <div class="join-group" style="flex: 1;" title="圆角半径">
+                      <span class="join-btn-right" style="cursor: default; border-radius: 3px 0 0 3px; border-right: none; font-size: 10px; color: var(--text-muted); padding: 0 4px;">R</span>
+                      <input class="join-input-right" value="3.0" style="border-radius: 0 3px 3px 0; width: 100%; text-align: center;">
+                    </div>
+                    <div class="join-group" style="flex: 1;" title="一式联数">
+                      <span class="join-btn-right" style="cursor: default; border-radius: 3px 0 0 3px; border-right: none; font-size: 10px; color: var(--text-muted); padding: 0 4px;">联数</span>
+                      <input class="join-input-right" type="number" value="2" style="border-radius: 0 3px 3px 0; width: 100%; text-align: center;">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. 已确认可用部件：排版参数与指标卡片 (62px · 保持 100% 绝对不变) -->
+            <div class="robust-imposition-card" style="margin-top: 3px;">
+              <div class="impo-config-row">
+                <label style="font-weight: 600; display: flex; align-items: center; gap: 3px; font-size: 11px;">
+                  <input type="checkbox" checked> 启用自动排版计算
+                </label>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                  <!-- 材料类型切换按钮 (平张 / 卷装) -->
+                  <div class="mini-segmented" title="材料类型切换">
+                    <button class="mini-seg-btn active" onclick="setMiniSeg(this)">平张</button>
+                    <button class="mini-seg-btn" onclick="setMiniSeg(this)">卷装</button>
+                  </div>
+                  <!-- 排版模式切换按钮 (连拼 / 折手) -->
+                  <div class="mini-segmented" title="排版模式切换">
+                    <button class="mini-seg-btn active" onclick="setMiniSeg(this)">连拼</button>
+                    <button class="mini-seg-btn" onclick="setMiniSeg(this)">折手</button>
+                  </div>
+                  <label style="display: flex; align-items: center; gap: 2px; font-size: 10px;"><input type="checkbox"> 标识页</label>
+                  <button class="btn-color-tag" onclick="toggleColorMode(this)">🎨 彩色</button>
+                </div>
+              </div>
+
+              <div class="metrics-pills-row">
+                <div class="metric-pill"><span>行数</span><strong style="color: #1677ff;">5</strong></div>
+                <div class="metric-pill"><span>列数</span><strong style="color: #52c41a;">3</strong></div>
+                <div class="metric-pill"><span>布局数</span><strong style="color: #fa8c16;">15</strong></div>
+                <div class="metric-pill"><span>角度</span><strong style="color: #722ed1;">0°</strong></div>
+              </div>
+            </div>
+
+            <!-- 5. 底部纯净操作栏 (28px) -->
+            <div class="action-bar-compact">
+              <div style="display: flex; gap: 4px;">
+                <button class="btn-action-sm ghost" style="font-size: 10px; padding: 0 6px;">常用预设▾</button>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <button class="btn-action-sm ghost">批量处理</button>
+                <button class="btn-action-sm ghost">取消</button>
+                <button class="btn-action-sm primary">确认并继续</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 折叠预览控制条 -->
+          <div class="collapse-bar" onclick="toggleLocalPreview('winV3')">
+            <span>页码: 1/1</span>
+            <span id="txtArrowV3">▲ 点击展开预览 (+245px)</span>
+          </div>
+
+          <!-- 可折叠 PDF 预览 (展开真实 245px 网格拼版图) -->
+          <div class="preview-panel collapsed" id="previewV3">
+            <div class="preview-toolbar-inner">
+              <span>📄 拼版版面: 80×45mm (5行×3列 / 共15拼)</span>
+              <span>100% 页面适配</span>
+            </div>
+            <div class="preview-canvas-wrapper">
+              <div class="preview-sheet">
+                <div class="preview-grid-layout">
+                  <div class="preview-item-cell">#1</div>
+                  <div class="preview-item-cell">#2</div>
+                  <div class="preview-item-cell">#3</div>
+                  <div class="preview-item-cell">#4</div>
+                  <div class="preview-item-cell">#5</div>
+                  <div class="preview-item-cell">#6</div>
+                  <div class="preview-item-cell">#7</div>
+                  <div class="preview-item-cell">#8</div>
+                  <div class="preview-item-cell">#9</div>
+                  <div class="preview-item-cell">#10</div>
+                  <div class="preview-item-cell">#11</div>
+                  <div class="preview-item-cell">#12</div>
+                  <div class="preview-item-cell">#13</div>
+                  <div class="preview-item-cell">#14</div>
+                  <div class="preview-item-cell">#15</div>
+                </div>
+                <div class="preview-caption-tag">平张·连拼 15拼 (出血2mm)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ruler">
+          <span class="ruler-mark-top">0</span>
+          <span class="ruler-mark-base">420</span>
+          <span class="ruler-mark-preview">665</span>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- 历史 V0：代码真实原版现状 (Legacy 400px 基准，用于直接对比) -->
+    <div class="mock-column" id="colV0" style="display: none;">
+      <div class="col-header">
+        <div class="col-title">
+          <span>历史 V0：代码真实原版 (基准)</span>
+          <span class="height-tag tag-origin" id="tagHeightV0">400 × 673 px</span>
+        </div>
+        <div class="col-desc">286px 大树强行切分，右侧极度挤压，双 GroupBox 框线</div>
+      </div>
+
+      <div class="window-wrapper">
+        <div class="form-window" id="winV0" style="--win-w: 400px; --base-h: 673px;">
+          <!-- 标题栏 (28px) -->
+          <div class="win-titlebar" style="height: 28px;">
+            <span class="win-title" style="font-weight: bold;">材料选择</span>
+            <button class="pin-btn">📌</button>
+          </div>
+
+          <!-- 原版主体内容 (673px) -->
+          <div style="padding: 6px 8px; display: flex; flex-direction: column; gap: 6px;">
+            <!-- 原版 tabs1 带标题头 (183px) -->
+            <div style="border: 1px solid #e1e4e8; border-radius: 4px; padding: 4px; background: #fff;">
+              <div class="legacy-tab-header">
+                <div class="legacy-tab-item">不干胶</div>
+                <div class="legacy-tab-item inactive">书籍 (空)</div>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;">
+                <button class="btn-mat-compact" style="height: 32px;">PET材料</button>
+                <button class="btn-mat-compact" style="height: 32px;">PP材料</button>
+                <button class="btn-mat-compact" style="height: 32px;">PVC材料</button>
+                <button class="btn-mat-compact" style="height: 32px;">PET环保</button>
+                <button class="btn-mat-compact" style="height: 32px;">PET透明</button>
+                <button class="btn-mat-compact active" style="height: 32px;">PET哑光</button>
+                <button class="btn-mat-compact" style="height: 32px;">PET镭射</button>
+                <button class="btn-mat-compact" style="height: 32px;">PET磨砂</button>
+                <button class="btn-mat-compact" style="height: 32px;">PET白色</button>
+                <button class="btn-mat-compact" style="height: 32px;">PET金色</button>
+                <button class="btn-mat-compact" style="height: 32px;">PET银色</button>
+                <button class="btn-mat-compact" style="height: 32px;">PET蓝色</button>
+                <button class="btn-mat-compact" style="height: 32px;">PET红色</button>
+                <button class="btn-mat-compact" style="height: 32px;">PET绿色</button>
+                <button class="btn-mat-compact" style="height: 32px;">PP环保</button>
+                <select class="select-mat-compact" style="height: 32px;"><option>更多材料▾</option></select>
+              </div>
+            </div>
+
+            <!-- 原版 144px 树与被挤压的右侧单列参数 (286px) -->
+            <div class="legacy-split-row">
+              <div class="legacy-tree-col">
+                <div style="font-weight: bold; color: #555; margin-bottom: 3px;">📁 输出目录树</div>
+                <div>▸ 📁 D:\生产文件</div>
+                <div style="padding-left: 8px; color: var(--primary); font-weight: bold;">▾ 📂 今日输出</div>
+                <div style="padding-left: 14px;">• 不干胶标签</div>
+                <div style="padding-left: 14px;">• 样品测试</div>
+                <div style="padding-left: 8px;">▸ 📁 书籍画册</div>
+                <div>▸ 📁 E:\客户文件</div>
+                <div style="margin-top: 50px; border-top: 1px solid #eee; padding-top: 6px;">
+                  <label style="display: block; margin-bottom: 4px;"><input type="checkbox"> 标识页</label>
+                  <label style="display: block;"><input type="checkbox" checked> 启用排版</label>
+                </div>
+              </div>
+
+              <!-- 右侧被挤压的 7 行单列输入框 (仅 225px 宽) -->
+              <div class="legacy-form-col">
+                <div style="display: flex; gap: 2px;">
+                  <button class="btn-segmented-sm" style="flex:1;">光膜</button>
+                  <button class="btn-segmented-sm active" style="flex:1;">哑膜</button>
+                  <button class="btn-segmented-sm" style="flex:1;">红膜</button>
+                  <button class="btn-segmented-sm" style="flex:1;">不过膜</button>
+                </div>
+                <div style="display: flex; gap: 2px;">
+                  <button class="btn-segmented-sm active" style="flex:1;">直角</button>
+                  <button class="btn-segmented-sm" style="flex:1;">圆形</button>
+                  <button class="btn-segmented-sm" style="flex:1;">异形</button>
+                  <button class="btn-segmented-sm" style="flex:1; font-size: 9px;">圆角矩形</button>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px;">
+                  <span style="font-size: 10px; width: 34px;">序号:</span>
+                  <input class="input-compact" value="A08" style="width: 70px;">
+                  <label style="font-size: 10px;"><input type="checkbox" checked>搜</label>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px;">
+                  <span style="font-size: 10px; width: 34px;">订单:</span>
+                  <input class="input-compact" value="DC260915">
+                  <button class="tiny-btn" style="height: 22px; font-size: 10px; padding: 0 4px;">无</button>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px;">
+                  <span style="font-size: 10px; width: 34px;">数量:</span>
+                  <input class="input-compact" value="500">
+                  <input class="input-compact" value="+1" style="width: 32px; text-align: center;">
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px;">
+                  <span style="font-size: 10px; width: 34px;">尺寸:</span>
+                  <input class="input-compact" value="80×45">
+                  <select style="height: 22px; font-size: 10px;"><option>出2</option></select>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; font-size: 10px;">
+                  <label><input type="checkbox">一式</label>
+                  <input class="input-compact" value="2" style="width: 26px; text-align: center;">
+                  <span>联</span>
+                  <select style="height: 22px; font-size: 9px; flex: 1;"><option>自适应列</option></select>
+                </div>
+
+                <!-- 两个原生 GroupBox 边框 -->
+                <div class="legacy-group-box">
+                  <div class="legacy-group-title">材料类型</div>
+                  <label><input type="radio" checked name="leg_mat"> 平张</label>
+                  <label style="margin-left: 8px;"><input type="radio" name="leg_mat"> 卷装</label>
+                </div>
+                <div class="legacy-group-box">
+                  <div class="legacy-group-title">排版模式</div>
+                  <label><input type="radio" checked name="leg_mod"> 连拼</label>
+                  <label style="margin-left: 8px;"><input type="radio" name="leg_mod"> 折手</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- 原版散落的彩色指标 Label -->
+            <div class="legacy-metrics-text">
+              <span style="color: dodgerblue;">行数: 5</span>
+              <span style="color: forestgreen;">列数: 3</span>
+              <span style="color: orange;">布局数量: 15</span>
+              <span style="color: mediumpurple;">角度: 0°</span>
+              <span style="color: seagreen;">PDF: 80×45mm</span>
+            </div>
+
+            <!-- 原版预设和按钮 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 4px; border-top: 1px solid #eee;">
+              <button class="btn-action-sm ghost" style="height: 24px; font-size: 10px;">彩色</button>
+              <div style="display: flex; gap: 4px;">
+                <button class="btn-action-sm ghost" style="height: 26px;">批量处理</button>
+                <button class="btn-action-sm primary" style="height: 26px;">确认</button>
+                <button class="btn-action-sm ghost" style="height: 26px;">取消</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 折叠预览控制条 -->
+          <div class="collapse-bar" onclick="toggleLocalPreview('winV0')">
+            <span>页码: 1/1</span>
+            <span id="txtArrowV0">▲ 点击展开预览 (+245px)</span>
+          </div>
+
+          <!-- 原版预览展开 -->
+          <div class="preview-panel collapsed" id="previewV0">
+            <div class="preview-canvas-wrapper">
+              <div class="preview-sheet"><div class="preview-grid-layout"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ruler">
+          <span class="ruler-mark-top">0</span>
+          <span class="ruler-mark-base">673</span>
+          <span class="ruler-mark-preview">918</span>
+        </div>
+      </div>
+    </div>
+
+          <!-- 折叠预览控制条 -->
+          <div class="collapse-bar" onclick="toggleLocalPreview('winRobust')">
+            <span>页码: 1/1</span>
+            <span id="txtArrowA">▲ 点击展开预览 (+245px)</span>
+          </div>
+
+          <!-- 可折叠 PDF 预览 (展开真实 245px 网格拼版图) -->
+          <div class="preview-panel collapsed" id="previewRobust">
+            <div class="preview-toolbar-inner">
+              <span>📄 拼版版面: 80×45mm (5行×3列 / 共15拼)</span>
+              <span>100% 页面适配</span>
+            </div>
+            <div class="preview-canvas-wrapper">
+              <div class="preview-sheet">
+                <div class="preview-grid-layout">
+                  <div class="preview-item-cell">#1</div>
+                  <div class="preview-item-cell">#2</div>
+                  <div class="preview-item-cell">#3</div>
+                  <div class="preview-item-cell">#4</div>
+                  <div class="preview-item-cell">#5</div>
+                  <div class="preview-item-cell">#6</div>
+                  <div class="preview-item-cell">#7</div>
+                  <div class="preview-item-cell">#8</div>
+                  <div class="preview-item-cell">#9</div>
+                  <div class="preview-item-cell">#10</div>
+                  <div class="preview-item-cell">#11</div>
+                  <div class="preview-item-cell">#12</div>
+                  <div class="preview-item-cell">#13</div>
+                  <div class="preview-item-cell">#14</div>
+                  <div class="preview-item-cell">#15</div>
+                </div>
+                <div class="preview-caption-tag">平张·连拼 15拼 (出血2mm)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ruler">
+          <span class="ruler-mark-top">0</span>
+          <span class="ruler-mark-base">395</span>
+          <span class="ruler-mark-preview">640</span>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- 方案 V2：极智挂件版 (宽 310px 极限迷你) -->
+    <div class="mock-column" id="colV2" style="display: none;">
+      <div class="col-header">
+        <div class="col-title">
+          <span>方案 V2：极智挂件版 (宽 310px)</span>
+          <span class="height-tag tag-slim" id="tagHeightV2" style="background: #f6ffed; color: #389e0d; border-color: #b7eb8f;">310 × 335 px</span>
+        </div>
+        <div class="col-desc">极限 310px 侧边悬浮挂件！高频抽屉+R角吸附+内嵌搜索，屏幕占用减61%</div>
+      </div>
+
+      <div class="window-wrapper">
+        <div class="form-window" id="winV2" style="--win-w: 310px; --base-h: 335px;">
+          <!-- 标题栏 (26px) -->
+          <div class="win-titlebar">
+            <span class="win-title">铭牌_A款_80×45mm.pdf (材料选择)</span>
+            <button class="pin-btn" title="窗口置顶">📌</button>
+          </div>
+
+          <!-- 主体内容 -->
+          <div class="slim-container">
+            <!-- 1. 优化点一：材料高频2行 (56px) + 状态清除 + 展开抽屉 -->
+            <div>
+              <div class="mat-header-row">
+                <span>常用材料 <span style="color: var(--text-muted); font-size: 10px;">(前8款高频)</span></span>
+                <div>
+                  <span id="matStatusTextC" style="color: var(--primary); font-weight: 600; font-size: 10px;">已选: PET哑光</span>
+                  <button class="mat-clean-btn" onclick="clearMatC()" title="清空材料选择">× 清除</button>
+                </div>
+              </div>
+
+              <!-- 2行高频材料抽屉 -->
+              <div class="mat-drawer-grid collapsed" id="matDrawerGridC">
+                <!-- 第一行高频 (4个) -->
+                <button class="btn-mat-compact" onclick="selectMatC(this)">PET</button>
+                <button class="btn-mat-compact" onclick="selectMatC(this)">PP</button>
+                <button class="btn-mat-compact" onclick="selectMatC(this)">PVC</button>
+                <button class="btn-mat-compact" onclick="selectMatC(this)">PET环保</button>
+                <!-- 第二行高频 (4个) -->
+                <button class="btn-mat-compact" onclick="selectMatC(this)">PET透明</button>
+                <button class="btn-mat-compact active" onclick="selectMatC(this)">PET哑光</button>
+                <button class="btn-mat-compact" onclick="selectMatC(this)">PET镭射</button>
+                <button class="btn-mat-compact" onclick="selectMatC(this)">PET磨砂</button>
+                <!-- 抽屉展开时可见的次高频材料 (第3、4行) -->
+                <button class="btn-mat-compact" onclick="selectMatC(this)">PET金色</button>
+                <button class="btn-mat-compact" onclick="selectMatC(this)">PET银色</button>
+                <button class="btn-mat-compact" onclick="selectMatC(this)">PET白色</button>
+                <button class="btn-mat-compact" onclick="selectMatC(this)">PET红色</button>
+                <button class="btn-mat-compact" onclick="selectMatC(this)">PET蓝色</button>
+                <button class="btn-mat-compact" onclick="selectMatC(this)">PET绿色</button>
+                <button class="btn-mat-compact" onclick="selectMatC(this)">PP环保</button>
+                <select class="select-mat-compact" onchange="selectDropdownMatC(this.value)">
+                  <option>更多材料▾</option>
+                  <option>AL6061-T6</option>
+                  <option>ST304不锈钢</option>
+                </select>
+              </div>
+
+              <!-- 抽屉展开/收起切换栏 -->
+              <div class="mat-more-toggle-bar" id="matDrawerToggleBarC" onclick="toggleMatDrawerC()">
+                <span>展开全部 16 种材料 ▾</span>
+              </div>
+            </div>
+
+            <!-- 2. 单行路径选择部件 (26px) -->
+            <div class="slim-path-row">
+              <span class="slim-path-label">输出:</span>
+              <span class="slim-path-val" id="slimPathDisplay">D:\生产输出\今日输出</span>
+              <button class="btn-icon-tag" onclick="togglePathDropdown()">
+                📂 切换目录▾
+              </button>
+            </div>
+
+            <!-- 模拟路径弹窗 -->
+            <div class="path-dropdown-popup" id="pathDropdown">
+              <div style="font-size: 11px; font-weight: 700; margin-bottom: 6px; color: var(--text-secondary);">选择目标输出目录:</div>
+              <div class="tree-box-compact" style="max-height: 140px;">
+                <div class="tree-item-compact" onclick="selectPath('D:\\生产输出')">📁 D:\生产输出</div>
+                <div class="tree-item-compact selected" style="padding-left: 14px;" onclick="selectPath('D:\\生产输出\\今日输出')">📂 今日输出</div>
+                <div class="tree-item-compact" style="padding-left: 14px;" onclick="selectPath('D:\\生产输出\\不干胶标签')">📁 不干胶标签</div>
+                <div class="tree-item-compact" style="padding-left: 14px;" onclick="selectPath('D:\\生产输出\\书籍画册')">📁 书籍画册</div>
+                <div class="tree-item-compact" onclick="selectPath('E:\\客户文件')">📁 E:\客户文件</div>
+              </div>
+              <div style="text-align: right; margin-top: 6px;">
+                <button class="btn-action-sm primary" style="height: 22px; padding: 0 8px;" onclick="togglePathDropdown()">确定</button>
+              </div>
+            </div>
+
+            <!-- 3. 优化点二与三：精炼覆膜按钮 + 图形化形状 + R角半径内嵌吸附 (310px 窄屏平整贴合) -->
+            <div class="slim-craft-row">
+              <div class="craft-group-sm">
+                <span class="craft-lbl">膜:</span>
+                <div class="btn-segmented-group">
+                  <button class="btn-segmented-sm" onclick="setSegmented(this)" title="光膜">✨光</button>
+                  <button class="btn-segmented-sm active" onclick="setSegmented(this)" title="哑膜">🌫️哑</button>
+                  <button class="btn-segmented-sm" onclick="setSegmented(this)" title="红膜">🔴红</button>
+                  <button class="btn-segmented-sm" onclick="setSegmented(this)" title="不过膜">🚫无</button>
+                </div>
+              </div>
+
+              <div class="craft-group-sm">
+                <span class="craft-lbl">形:</span>
+                <div class="btn-segmented-group" style="flex: 1; min-width: 0;">
+                  <button class="btn-segmented-sm" onclick="selectShapeC(this, 'rect')" title="直角矩形">▢ 直</button>
+                  <button class="btn-segmented-sm" onclick="selectShapeC(this, 'circle')" title="圆形">○ 圆</button>
+                  <button class="btn-segmented-sm" onclick="selectShapeC(this, 'special')" title="异形">◇ 异</button>
+                  <button class="btn-segmented-sm active" onclick="selectShapeC(this, 'round')" title="圆角矩形">▢ 角</button>
+                </div>
+                <!-- R角吸附提示框 (仅选圆角时显示) -->
+                <div class="radius-attach-box show" id="radiusAttachBoxC" title="圆角半径">
+                  <span>R</span><input value="3" id="radiusInputC">
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. 优化点四：智能非对称栅格 (彻底解决输入框显示不全！短+长搭配，文字全部舒展呈现) -->
+            <!-- 行 1: 序号(86px短输入) + 订单号(195px超大宽度，单号100%完整) -->
+            <div class="grid-asym-row1">
+              <!-- 序号 -->
+              <div style="display: flex; align-items: center; gap: 3px;">
+                <span style="font-size: 11px; color: var(--text-secondary); width: 24px; flex-shrink: 0;">序号</span>
+                <div class="input-suffix-wrapper">
+                  <input class="input-compact" value="A08" placeholder="序号" style="padding: 0 18px 0 4px; font-weight: 600;">
+                  <button class="btn-search-suffix active" id="btnSearchSuffixC" onclick="toggleSearchSuffixC(this)" title="已开启在Excel中反查联动">🔍</button>
+                </div>
+              </div>
+
+              <!-- 订单 -->
+              <div style="display: flex; align-items: center; gap: 3px;">
+                <span style="font-size: 11px; color: var(--text-secondary); width: 24px; flex-shrink: 0;">订单</span>
+                <div class="join-group">
+                  <input class="join-input-left" value="DC260915-08" placeholder="订单号" style="font-family: Consolas, monospace;">
+                  <button class="join-btn-right" title="正则模式">无 ▾</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 行 2: 尺寸(140px均分舒展) + 数量(140px多值输入一清二楚) -->
+            <div class="grid-equal-row2">
+              <!-- 尺寸 -->
+              <div style="display: flex; align-items: center; gap: 3px;">
+                <span style="font-size: 11px; color: var(--text-secondary); width: 24px; flex-shrink: 0;">尺寸</span>
+                <div class="join-group">
+                  <input class="join-input-left" value="80×45" placeholder="宽×高">
+                  <select class="join-input-right" title="出血位">
+                    <option>出 2</option>
+                    <option>出 1.5</option>
+                    <option>出 0</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- 数量 -->
+              <div style="display: flex; align-items: center; gap: 3px;">
+                <span style="font-size: 11px; color: var(--text-secondary); width: 24px; flex-shrink: 0;">数量</span>
+                <div class="join-group">
+                  <input class="join-input-left" value="500, 300" placeholder="多个逗号隔开">
+                  <input class="join-input-right" value="+1" style="width: 26px; text-align: center;" title="增量步长">
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. 优化点四：一式多联“按需滑出” (未勾选时不占高度) -->
+            <div style="font-size: 11px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <label style="display: flex; align-items: center; gap: 3px; cursor: pointer; color: var(--text-secondary); font-size: 10px;">
+                  <input type="checkbox" id="chkDuplicateC" onchange="toggleDuplicateDrawerC(this)">
+                  <span>启用一式多联参数 (按需展开)</span>
+                </label>
+                <span style="font-size: 10px; color: var(--text-muted);" id="duplicateSummaryC">未启用 (不占空间)</span>
+              </div>
+
+              <!-- 按需滑出的一式多联参数容器 -->
+              <div class="duplicate-drawer" id="duplicateDrawerC">
+                <span style="color: var(--primary); font-weight: bold;">一式</span>
+                <input class="input-compact" type="number" value="2" style="width: 38px; text-align: center; flex: unset;">
+                <select style="height: 22px; border: 1px solid var(--border); border-radius: 3px; font-size: 10px; padding: 0 2px;">
+                  <option>联</option>
+                  <option>份</option>
+                </select>
+                <select style="height: 22px; border: 1px solid var(--border); border-radius: 3px; font-size: 10px; padding: 0 4px; flex: 1;">
+                  <option>自适应列</option>
+                  <option>自适应行</option>
+                  <option>不旋转列</option>
+                  <option>不旋转行</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 6. 一体化排版与指标卡片 (已确认优质部件) -->
+            <div class="robust-imposition-card">
+              <div class="impo-config-row">
+                <label style="font-weight: 600; display: flex; align-items: center; gap: 3px; font-size: 11px;">
+                  <input type="checkbox" checked> 启用排版
+                </label>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                  <div class="mini-segmented" title="材料类型">
+                    <button class="mini-seg-btn active" onclick="setMiniSeg(this)">平张</button>
+                    <button class="mini-seg-btn" onclick="setMiniSeg(this)">卷装</button>
+                  </div>
+                  <div class="mini-segmented" title="排版模式">
+                    <button class="mini-seg-btn active" onclick="setMiniSeg(this)">连拼</button>
+                    <button class="mini-seg-btn" onclick="setMiniSeg(this)">折手</button>
+                  </div>
+                  <label style="display: flex; align-items: center; gap: 2px; font-size: 10px;"><input type="checkbox"> 标识页</label>
+                  <button class="btn-color-tag" onclick="toggleColorMode(this)">🎨 彩色</button>
+                </div>
+              </div>
+
+              <div class="metrics-pills-row">
+                <div class="metric-pill"><span>行数</span><strong style="color: #1677ff;">5</strong></div>
+                <div class="metric-pill"><span>列数</span><strong style="color: #52c41a;">3</strong></div>
+                <div class="metric-pill"><span>布局数</span><strong style="color: #fa8c16;">15</strong></div>
+                <div class="metric-pill"><span>角度</span><strong style="color: #722ed1;">0°</strong></div>
+              </div>
+            </div>
+
+            <!-- 7. 底部纯净操作栏 (28px) -->
+            <div class="action-bar-compact">
+              <div style="display: flex; gap: 4px;">
+                <button class="btn-action-sm ghost" style="font-size: 10px; padding: 0 6px;">常用预设▾</button>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <button class="btn-action-sm ghost">批量处理</button>
+                <button class="btn-action-sm ghost">取消</button>
+                <button class="btn-action-sm primary">确认并继续</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 折叠预览控制条 -->
+          <div class="collapse-bar" onclick="toggleLocalPreview('winV2')">
+            <span>页码: 1/1</span>
+            <span id="txtArrowV2">▲ 点击展开预览 (+245px)</span>
+          </div>
+
+          <!-- 可折叠 PDF 预览 (展开真实 245px 网格拼版图) -->
+          <div class="preview-panel collapsed" id="previewV2">
+            <div class="preview-toolbar-inner">
+              <span>📄 拼版版面: 80×45mm (5行×3列 / 共15拼)</span>
+              <span>100% 页面适配</span>
+            </div>
+            <div class="preview-canvas-wrapper">
+              <div class="preview-sheet">
+                <div class="preview-grid-layout">
+                  <div class="preview-item-cell">#1</div>
+                  <div class="preview-item-cell">#2</div>
+                  <div class="preview-item-cell">#3</div>
+                  <div class="preview-item-cell">#4</div>
+                  <div class="preview-item-cell">#5</div>
+                  <div class="preview-item-cell">#6</div>
+                  <div class="preview-item-cell">#7</div>
+                  <div class="preview-item-cell">#8</div>
+                  <div class="preview-item-cell">#9</div>
+                  <div class="preview-item-cell">#10</div>
+                  <div class="preview-item-cell">#11</div>
+                  <div class="preview-item-cell">#12</div>
+                  <div class="preview-item-cell">#13</div>
+                  <div class="preview-item-cell">#14</div>
+                  <div class="preview-item-cell">#15</div>
+                </div>
+                <div class="preview-caption-tag">平张·连拼 15拼 (出血2mm)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ruler">
+          <span class="ruler-mark-top">0</span>
+          <span class="ruler-mark-base">335</span>
+          <span class="ruler-mark-preview">580</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+
+  <!-- 数据对比分析表 (全历程 5 版本完整技术矩阵) -->
+  <section class="comparison-section">
+    <h2 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+      <span>全历程 5 版本核心指标与技术架构详细对比</span>
+      <span class="badge-reduction" style="font-size: 11px;">颠覆性方案 V4 已就位 · 历史版本全部留档</span>
+    </h2>
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>指标维度</th>
+          <th>历史 V0：代码原版 (基准)</th>
+          <th>方案 V1：第一版稳健紧凑</th>
+          <th>方案 V3：职能分立版 (优化后)</th>
+          <th style="background: #f6ffed; color: #277c16;">方案 V4：颠覆性工位版 (极力推荐)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>方案定位</strong></td>
+          <td>当前未经优化的散乱布局</td>
+          <td>经典左树右单列表单骨架</td>
+          <td>左列58%纯按钮，右列42%纯输入框</td>
+          <td style="background: #f6ffed;"><strong style="color: #277c16;">全宽工艺矩阵 + 极简高密参数舱</strong><br>按钮全宽彻底不挤，输入框缩减60%，动线科技感极强</td>
+        </tr>
+        <tr>
+          <td><strong>横向窗体宽度</strong></td>
+          <td><span class="height-tag tag-origin">400 px</span></td>
+          <td><span class="height-tag tag-robust">400 px</span> (经典宽)</td>
+          <td><span class="height-tag tag-robust">360 px</span> (黄金宽)</td>
+          <td style="background: #f6ffed;"><span class="height-tag tag-slim" style="background:#e6f4ff; border-color:#1677ff; color:#0958d9;">360 px</span> (舒适黄金宽)</td>
+        </tr>
+        <tr>
+          <td><strong>默认高度 (折叠)</strong></td>
+          <td><span class="height-tag tag-origin">673 px</span></td>
+          <td><span class="height-tag tag-robust">460 px</span> (-213px)</td>
+          <td><span class="height-tag tag-robust">420 px</span> (-253px)</td>
+          <td style="background: #f6ffed;"><strong style="color:#277c16; font-size: 13px;">345 px</strong> <span class="text-success">(直减 328px / -48.7%)</span></td>
+        </tr>
+        <tr>
+          <td><strong>按钮区域体验</strong></td>
+          <td>右侧单列极窄 (55px字挤爆)</td>
+          <td>单列微调紧凑</td>
+          <td>左列扩宽至 58% 改善挤压</td>
+          <td style="background: #f6ffed;"><strong style="color:#277c16;">享 340px 全宽！</strong><br>覆膜/形状每个按钮宽达 80px，按压从容不迫！</td>
+        </tr>
+        <tr>
+          <td><strong>输入框占用空间</strong></td>
+          <td>7 行垂直堆叠 (286px)</td>
+          <td>7 行垂直单列 (188px)</td>
+          <td>右列垂直单列 (135px)</td>
+          <td style="background: #f6ffed;"><strong style="color:#277c16;">2×2 空间绝对均分 (仅占50px)</strong><br>订单、序号、数量、一式N联 4 区域各占 50%，对称工整！</td>
+        </tr>
+        <tr>
+          <td><strong>已确认部件 1 (排版卡片)</strong></td>
+          <td>两个大 GroupBox 冗余 (155px)</td>
+          <td>✅ 保持 100% 确认设计 (62px)</td>
+          <td>✅ 保持 100% 确认设计 (62px)</td>
+          <td style="background: #f6ffed;">✅ <strong>保持 100% 确认设计不变</strong> (62px)</td>
+        </tr>
+        <tr>
+          <td><strong>已确认部件 2 (输出路径)</strong></td>
+          <td>左侧常驻大树 (144×286px)</td>
+          <td>常驻左侧小树 (130×188px)</td>
+          <td>✅ 保持 100% 独立全宽行 (27px)</td>
+          <td style="background: #f6ffed;">✅ <strong>保持 100% 独立全宽行不变</strong> (27px)</td>
+        </tr>
+        <tr>
+          <td><strong>展开预览总高度</strong></td>
+          <td>918 px (严重超屏遮挡)</td>
+          <td>705 px (适配 1080p)</td>
+          <td>665 px (不挡任务栏)</td>
+          <td style="background: #f6ffed;"><strong style="color:#277c16;">590 px</strong> (即使展开也比原版折叠矮 83px!)</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <script>
+    function switchVersionView(mode, btn) {
+      document.querySelectorAll('.btn-group .btn-tab').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+
+      const colV4 = document.getElementById('colV4');
+      const colV3 = document.getElementById('colV3');
+      const colV1 = document.getElementById('colV1');
+      const colV0 = document.getElementById('colV0');
+      const colV2 = document.getElementById('colV2');
+
+      // 全部先隐藏
+      [colV4, colV3, colV1, colV0, colV2].forEach(col => { if (col) col.style.display = 'none'; });
+
+      if (mode === 'v4-vs-v3') {
+        if (colV4) colV4.style.display = 'flex';
+        if (colV3) colV3.style.display = 'flex';
+      } else if (mode === 'v4-vs-v1') {
+        if (colV4) colV4.style.display = 'flex';
+        if (colV1) colV1.style.display = 'flex';
+      } else if (mode === 'v4-vs-v0') {
+        if (colV4) colV4.style.display = 'flex';
+        if (colV0) colV0.style.display = 'flex';
+      } else if (mode === 'v4-only') {
+        if (colV4) colV4.style.display = 'flex';
+      } else if (mode === 'v3-only') {
+        if (colV3) colV3.style.display = 'flex';
+      } else if (mode === 'v1-only') {
+        if (colV1) colV1.style.display = 'flex';
+      } else if (mode === 'all-versions' || mode === 'all-5') {
+        if (colV4) colV4.style.display = 'flex';
+        if (colV3) colV3.style.display = 'flex';
+        if (colV1) colV1.style.display = 'flex';
+        if (colV2) colV2.style.display = 'flex';
+        if (colV0) colV0.style.display = 'flex';
+      }
+    }
+
+    function handleTogglePreview(isExpanded) {
+      const panels = ['previewV4', 'previewV3', 'previewV1', 'previewV0', 'previewV2'].map(id => document.getElementById(id));
+      const arrows = [
+        document.getElementById('txtArrowV4'),
+        document.getElementById('txtArrowV3'),
+        document.getElementById('txtArrowV1'),
+        document.getElementById('txtArrowV0'),
+        document.getElementById('txtArrowV2')
+      ];
+
+      panels.forEach(p => {
+        if (!p) return;
+        if (isExpanded) p.classList.remove('collapsed');
+        else p.classList.add('collapsed');
+      });
+
+      arrows.forEach(a => {
+        if (!a) return;
+        a.textContent = isExpanded ? '▼ 点击折叠预览' : '▲ 点击展开预览 (+245px)';
+      });
+    }
+
+    // 默认初始展示颠覆性工位版 V4 vs 职能分立版 V3
+    window.addEventListener('DOMContentLoaded', () => {
+      switchVersionView('v4-vs-v3');
+      const chk = document.getElementById('togglePreview');
+      if (chk) {
+        chk.checked = true;
+        handleTogglePreview(true);
+      }
+    });
+
+    function setGlobalWidth(widthMode, btn) {
+      btn.parentElement.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const winV4 = document.getElementById('winV4');
+      const winV3 = document.getElementById('winV3');
+      const winV1 = document.getElementById('winV1');
+      const winV0 = document.getElementById('winV0');
+      const winV2 = document.getElementById('winV2');
+
+      const tagV4 = document.getElementById('tagHeightV4');
+      const tagV3 = document.getElementById('tagHeightV3');
+      const tagV1 = document.getElementById('tagHeightV1');
+      const tagV0 = document.getElementById('tagHeightV0');
+      const tagV2 = document.getElementById('tagHeightV2');
+
+      if (widthMode === 'default') {
+        if (winV4) winV4.style.setProperty('--win-w', '360px');
+        if (winV3) winV3.style.setProperty('--win-w', '360px');
+        if (winV1) winV1.style.setProperty('--win-w', '400px');
+        if (winV0) winV0.style.setProperty('--win-w', '400px');
+        if (winV2) winV2.style.setProperty('--win-w', '310px');
+
+        if (tagV4) tagV4.textContent = '360 × 345 px';
+        if (tagV3) tagV3.textContent = '360 × 420 px';
+        if (tagV1) tagV1.textContent = '400 × 460 px';
+        if (tagV0) tagV0.textContent = '400 × 673 px';
+        if (tagV2) tagV2.textContent = '310 × 335 px';
+      } else {
+        [winV4, winV3, winV1, winV0, winV2].forEach(w => { if (w) w.style.setProperty('--win-w', widthMode); });
+        const num = parseInt(widthMode);
+        if (tagV4) tagV4.textContent = `${num} × 345 px`;
+        if (tagV3) tagV3.textContent = `${num} × 420 px`;
+        if (tagV1) tagV1.textContent = `${num} × 460 px`;
+        if (tagV0) tagV0.textContent = `${num} × 673 px`;
+        if (tagV2) tagV2.textContent = `${num} × 335 px`;
+      }
+    }
+
+    // 方案 V4 路径弹窗
+    function toggleV4PathDropdown() {
+      const dd = document.getElementById('v4PathDropdown');
+      if (dd) dd.classList.toggle('show');
+    }
+    function selectV4Path(path) {
+      const el = document.getElementById('v4PathDisplay');
+      if (el) el.textContent = path;
+      toggleV4PathDropdown();
+    }
+
+    // 方案 V4 材料选择与清除
+    function selectMatV4(btn) {
+      document.querySelectorAll('#matGridV4 .btn-mat-compact').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('matStatusTextV4').textContent = '已选: ' + btn.textContent.trim();
+    }
+    function selectDropdownMatV4(val) {
+      if (val && !val.includes('更多材料')) {
+        document.querySelectorAll('#matGridV4 .btn-mat-compact').forEach(b => b.classList.remove('active'));
+        document.getElementById('matStatusTextV4').textContent = '已选: ' + val;
+      }
+    }
+    function clearMatV4() {
+      document.querySelectorAll('#matGridV4 .btn-mat-compact').forEach(b => b.classList.remove('active'));
+      document.getElementById('matStatusTextV4').textContent = '未选择材料';
+    }
+
+    // 方案 V4 形状与圆角半径原地切换 (In-Place Toggle)
+    function selectShapeV4(btn, shape) {
+      document.querySelectorAll('#v4ShapeSegmentGroup .btn-segmented-sm').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const roundText = document.getElementById('v4ShapeRoundText');
+      const roundWrap = document.getElementById('v4RoundInputWrap');
+      const roundInput = document.getElementById('v4RadiusInput');
+
+      if (shape === 'round') {
+        if (roundText) roundText.style.display = 'none';
+        if (roundWrap) {
+          roundWrap.style.display = 'inline-flex';
+          setTimeout(() => { if (roundInput) { roundInput.focus(); roundInput.select(); } }, 50);
+        }
+        showToast('📐 已切换为 <b>圆角矩形</b> (已在按钮原地激活半径 R 输入框)');
+      } else {
+        if (roundText) roundText.style.display = 'inline';
+        if (roundWrap) roundWrap.style.display = 'none';
+        const nameMap = { rect: '直角矩形', circle: '圆形模切', special: '异形刀模' };
+        showToast(`📐 已切换为 <b>${nameMap[shape] || '直角'}</b> 模切`);
+      }
+    }
+
+    // 原地微调圆角半径
+    function updateInplaceRadius(val) {
+      if (val && !isNaN(val)) {
+        showToast(`✏️ 圆角半径已原地设置为: <b>R ${val} mm</b>`);
+      }
+    }
+
+    // 方案 V4 排版卡片 6 宫格交互 (角度切换、尺寸修改、出血切换)
+    function toggleV4Rotation(el) {
+      const rot = document.getElementById('v4RotationVal');
+      if (rot) {
+        rot.textContent = (rot.textContent === '0°') ? '90°' : '0°';
+      }
+    }
+
+    function promptV4Dimensions() {
+      const dim = document.getElementById('v4DimensionVal');
+      if (dim) {
+        const val = prompt('请输入PDF尺寸宽×高 (单位 mm):', dim.textContent);
+        if (val && val.trim()) {
+          dim.textContent = val.trim();
+        }
+      }
+    }
+
+    const bleedOptions = ['2.0mm', '3.0mm', '0.0mm', '1.5mm'];
+    let bleedIdx = 0;
+    function cycleV4Bleed() {
+      bleedIdx = (bleedIdx + 1) % bleedOptions.length;
+      const bld = document.getElementById('v4BleedVal');
+      if (bld) {
+        bld.textContent = bleedOptions[bleedIdx];
+      }
+    }
+
+    function toggleV4ColorMode(el) {
+      const c = document.getElementById('v4ColorVal');
+      if (c) {
+        if (c.textContent.includes('彩色')) {
+          c.textContent = '⚪黑白';
+          c.style.color = '#595959';
+        } else {
+          c.textContent = '🎨彩色';
+          c.style.color = '#13c2c2';
+        }
+      }
+    }
+
+    // 页面框异常预检提示测试切换
+    function toggleAlertSimulation(btn) {
+      const alert = document.getElementById('v4PageBoxAlert');
+      const status = document.getElementById('v4AlertSimStatus');
+      if (!alert) return;
+      if (alert.style.display === 'none') {
+        alert.style.display = 'flex';
+        btn.textContent = '⇄ 模拟测试: 切换为正常文件(两框一致，隐藏告警)';
+        if (status) {
+          status.textContent = '✔ 预检逻辑已生效：检测到 CropBox ≠ MediaBox 触发警示';
+          status.style.color = '#52c41a';
+        }
+      } else {
+        alert.style.display = 'none';
+        btn.textContent = '⇄ 模拟测试: 切换为异常文件(触发页面框不一致警示)';
+        if (status) {
+          status.textContent = '○ 当前模拟正常文件：两框一致，无须告警';
+          status.style.color = 'var(--text-muted)';
+        }
+      }
+    }
+
+    // 方案 C 材料抽屉展开/折叠
+    function toggleMatDrawerC() {
+      const drawer = document.getElementById('matDrawerGridC');
+      const bar = document.getElementById('matDrawerToggleBarC');
+      if (drawer.classList.contains('collapsed')) {
+        drawer.classList.remove('collapsed');
+        drawer.classList.add('expanded');
+        bar.innerHTML = '<span>收起至高频材料 ▴</span>';
+      } else {
+        drawer.classList.remove('expanded');
+        drawer.classList.add('collapsed');
+        bar.innerHTML = '<span>展开全部 16 种材料 ▾</span>';
+      }
+    }
+
+    // 方案 C 选择材料
+    function selectMatC(btn) {
+      btn.parentElement.querySelectorAll('.btn-mat-compact').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('matStatusTextC').textContent = '已选: ' + btn.textContent.trim();
+    }
+
+    function selectDropdownMatC(val) {
+      if (val && !val.includes('更多材料')) {
+        document.querySelectorAll('#matDrawerGridC .btn-mat-compact').forEach(b => b.classList.remove('active'));
+        document.getElementById('matStatusTextC').textContent = '已选: ' + val;
+      }
+    }
+
+    // 方案 C 清除材料
+    function clearMatC() {
+      document.querySelectorAll('#matDrawerGridC .btn-mat-compact').forEach(b => b.classList.remove('active'));
+      document.getElementById('matStatusTextC').textContent = '未选择材料';
+    }
+
+    // 方案 C 形状选择与 R 角吸附联动
+    function selectShapeC(btn, shape) {
+      btn.parentElement.querySelectorAll('.btn-segmented-sm').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const attachBox = document.getElementById('radiusAttachBoxC');
+      if (shape === 'round') {
+        attachBox.classList.add('show');
+      } else {
+        attachBox.classList.remove('show');
+      }
+    }
+
+    // 方案 C 序号内嵌放大镜点击
+    function toggleSearchSuffixC(btn) {
+      btn.classList.toggle('active');
+    }
+
+    // 方案 C 一式多联按需滑出抽屉
+    function toggleDuplicateDrawerC(chk) {
+      const drawer = document.getElementById('duplicateDrawerC');
+      const summary = document.getElementById('duplicateSummaryC');
+      if (chk.checked) {
+        drawer.classList.add('open');
+        summary.textContent = '已启用';
+        summary.style.color = 'var(--primary)';
+      } else {
+        drawer.classList.remove('open');
+        summary.textContent = '未启用 (不占空间)';
+        summary.style.color = '';
+      }
+    }
+
+    function toggleRobustPathDropdown() {
+      const dd = document.getElementById('robustPathDropdown');
+      dd.classList.toggle('show');
+    }
+
+    function selectRobustPath(path) {
+      document.getElementById('robustPathDisplay').textContent = path;
+      toggleRobustPathDropdown();
+    }
+
+    function toggleLocalPreview(winId) {
+      const chk = document.getElementById('togglePreview');
+      chk.checked = !chk.checked;
+      handleTogglePreview(chk.checked);
+    }
+
+    function selectMat(btn) {
+      btn.parentElement.querySelectorAll('.btn-mat-compact').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function setSegmented(btn) {
+      btn.parentElement.querySelectorAll('.btn-segmented-sm').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function setMiniSeg(btn) {
+      btn.parentElement.querySelectorAll('.mini-seg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function toggleColorMode(btn) {
+      if (btn.classList.contains('bw')) {
+        btn.classList.remove('bw');
+        btn.textContent = '🎨 彩色';
+      } else {
+        btn.classList.add('bw');
+        btn.textContent = '⚪ 黑白';
+      }
+    }
+
+    // 方案 V3 材料选择与清除
+    function selectMatV3(btn) {
+      document.querySelectorAll('#matGridV3 .btn-mat-compact').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('matStatusTextV3').textContent = '已选: ' + btn.textContent.trim();
+    }
+
+    function selectDropdownMatV3(val) {
+      if (val && !val.includes('更多材料')) {
+        document.querySelectorAll('#matGridV3 .btn-mat-compact').forEach(b => b.classList.remove('active'));
+        document.getElementById('matStatusTextV3').textContent = '已选: ' + val;
+      }
+    }
+
+    function clearMatV3() {
+      document.querySelectorAll('#matGridV3 .btn-mat-compact').forEach(b => b.classList.remove('active'));
+      document.getElementById('matStatusTextV3').textContent = '未选择材料';
+    }
+
+    // 页面框异常模态弹窗控制器
+    function openPageBoxModal() {
+      const modal = document.getElementById('pageBoxModal');
+      if (modal) modal.classList.add('open');
+    }
+
+    function closePageBoxModal() {
+      const modal = document.getElementById('pageBoxModal');
+      if (modal) modal.classList.remove('open');
+    }
+
+    // 轻量全局 Toast 提示条
+    function showToast(msg) {
+      let toast = document.getElementById('toastNotice');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toastNotice';
+        toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1f2429;color:#fff;padding:7px 16px;border-radius:20px;font-size:11.5px;font-weight:600;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,0.3);transition:opacity 0.2s,transform 0.2s;opacity:0;pointer-events:none;display:flex;align-items:center;gap:6px;border:1px solid #3d4450;';
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = msg;
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateX(-50%) translateY(4px)';
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+      }, 2200);
+    }
+
+    // 方案 V4 预设按钮一键加载逻辑与参数联动
+    function applyPresetV4(presetName, btn) {
+      if (btn) {
+        btn.parentElement.querySelectorAll('.btn-preset-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+
+      if (presetName === '铭牌75×15') {
+        const dim = document.getElementById('v4DimensionVal');
+        if (dim) dim.textContent = '75×15';
+        const bleed = document.getElementById('v4BleedVal');
+        if (bleed) bleed.textContent = '2.0mm';
+        showToast('⚡ 已一键应用预设 <b>[★ 铭牌75×15]</b>：PET哑光 · 75×15mm · 出血2mm · 直角矩形');
+      } else if (presetName === 'PET平张连拼') {
+        const dim = document.getElementById('v4DimensionVal');
+        if (dim) dim.textContent = '80×45';
+        const bleed = document.getElementById('v4BleedVal');
+        if (bleed) bleed.textContent = '2.0mm';
+        showToast('⚡ 已一键应用预设 <b>[PET平张连拼]</b>：PET哑光 · 80×45mm · 平张连拼 5×3');
+      } else if (presetName === '圆角不干胶') {
+        const dim = document.getElementById('v4DimensionVal');
+        if (dim) dim.textContent = '60×40';
+        const bleed = document.getElementById('v4BleedVal');
+        if (bleed) bleed.textContent = '1.5mm';
+        showToast('⚡ 已一键应用预设 <b>[圆角不干胶]</b>：PP环保 · 60×40mm · 圆角 R3 · 出血1.5mm');
+      } else if (presetName === '卷装折手') {
+        const dim = document.getElementById('v4DimensionVal');
+        if (dim) dim.textContent = '100×60';
+        const bleed = document.getElementById('v4BleedVal');
+        if (bleed) bleed.textContent = '2.0mm';
+        showToast('⚡ 已一键应用预设 <b>[卷装折手]</b>：卷装折手 · 一式2联 · 100×60mm');
+      }
+    }
+
+    function openPresetManageModal() {
+      showToast('⚙️ 已唤出预设管理器：可新建、重命名、排序或导入导出预设方案');
+    }
+
+    // 预设专属右键菜单交互逻辑 (100% 沿用当前代码操作习惯)
+    let currentContextPreset = '预设';
+    function handlePresetContextMenu(e, presetName) {
+      e.preventDefault();
+      e.stopPropagation();
+      currentContextPreset = presetName;
+      const menu = document.getElementById('presetContextMenu');
+      if (!menu) return;
+      menu.style.display = 'block';
+      menu.style.left = Math.min(e.clientX, window.innerWidth - 185) + 'px';
+      menu.style.top = Math.min(e.clientY, window.innerHeight - 210) + 'px';
+    }
+
+    function handlePresetAction(action) {
+      const menu = document.getElementById('presetContextMenu');
+      if (menu) menu.style.display = 'none';
+      if (action === 'apply') {
+        applyPresetV4(currentContextPreset);
+      } else if (action === 'save') {
+        showToast(`💾 已将当前参数覆盖更新至预设 <b>[${currentContextPreset}]</b>！`);
+      } else if (action === 'new') {
+        showToast(`➕ 弹出新建预设对话框：将当前工单参数保存为新预设`);
+      } else if (action === 'edit') {
+        showToast(`✏️ 弹出预设编辑对话框：修改 <b>[${currentContextPreset}]</b> 的属性与参数`);
+      } else if (action === 'manage') {
+        showToast(`⚙️ 弹出预设管理面板：排序、重命名、批量管理预设`);
+      } else if (action === 'delete') {
+        showToast(`🗑️ 已从快捷栏中移除预设 <b>[${currentContextPreset}]</b>`);
+      }
+    }
+
+    // =========================================================================
+    // 方案 V4 一体化双联工作台：左侧待处理列表操作与左右联动逻辑
+    // =========================================================================
+    let isV4LeftPanelExpanded = true;
+    const mockFilesData = {
+      1: { name: '铭牌_A款_80×45mm.pdf', order: 'DC260915-08', serial: 'A08', qty: '500', dim: '80×45', shape: 'rect', bleed: '2.0mm' },
+      2: { name: '铭牌_B款_75×15mm.pdf', order: 'DC260915-09', serial: 'A09', qty: '300', dim: '75×15', shape: 'rect', bleed: '2.0mm' },
+      3: { name: '警示贴_圆形_D50mm.pdf', order: 'DC260916-01', serial: 'A10', qty: '1,000', dim: '50×50', shape: 'circle', bleed: '1.5mm' },
+      4: { name: '德佰仕设备标_80×45mm.pdf', order: 'DC260916-02', serial: 'A11', qty: '200', dim: '80×45', shape: 'round', bleed: '2.0mm' }
+    };
+    let currentActiveFileId = 1;
+
+    // 切换左侧待处理列表的展开与折叠
+    function toggleV4LeftPanel() {
+      const panel = document.getElementById('v4LeftBatchPanel');
+      const btnFold = document.getElementById('btnToggleLeftFold');
+      const btnMain = document.getElementById('v4BtnMainConfirm');
+      const btnSingle = document.getElementById('v4BtnSingleApply');
+      const tagHeight = document.getElementById('tagHeightV4');
+
+      if (!panel) return;
+      isV4LeftPanelExpanded = !isV4LeftPanelExpanded;
+
+      if (isV4LeftPanelExpanded) {
+        panel.classList.remove('collapsed');
+        if (btnFold) btnFold.textContent = '◀ 待处理列表';
+        if (btnMain) btnMain.textContent = '批量处理全部 (4款)';
+        if (btnSingle) btnSingle.style.display = 'inline-block';
+        if (tagHeight) tagHeight.textContent = '展开 820 × 345 px (工作台全景)';
+        showToast('📂 已展开左侧待处理列表工作台 (多款批量排版模式)');
+      } else {
+        panel.classList.add('collapsed');
+        if (btnFold) btnFold.textContent = '▶ 展开待处理列表 (4)';
+        if (btnMain) btnMain.textContent = '确认并继续';
+        if (btnSingle) btnSingle.style.display = 'none';
+        if (tagHeight) tagHeight.textContent = '折叠 360 × 345 px (单工位模式)';
+        showToast('📁 已折叠左侧列表，切换为 360px 纯净单工位模式');
+      }
+    }
+
+    // 点击左侧分组表格行，右侧工位实时联动对应参数
+    function switchActiveFile(tr, fileId) {
+      document.querySelectorAll('#v4CardsContainer .v4-group-table tbody tr').forEach(r => {
+        r.classList.remove('active');
+        const dot = r.querySelector('.status-dot');
+        if (dot) dot.className = 'status-dot pending';
+        if (r.children[1]) r.children[1].style.fontWeight = 'normal';
+      });
+
+      tr.classList.add('active');
+      const curDot = tr.querySelector('.status-dot');
+      if (curDot) curDot.className = 'status-dot editing';
+      if (tr.children[1]) tr.children[1].style.fontWeight = 'bold';
+
+      currentActiveFileId = fileId;
+      const data = mockFilesData[fileId];
+      if (data) {
+        const title = document.getElementById('v4ActiveFileName');
+        if (title) title.textContent = data.name;
+
+        const orderInput = document.getElementById('v4InputOrder');
+        if (orderInput) orderInput.value = data.order;
+
+        const serialInput = document.getElementById('v4InputSerial');
+        if (serialInput) serialInput.value = data.serial;
+
+        const qtyInput = document.getElementById('v4InputQty');
+        if (qtyInput) qtyInput.value = data.qty;
+
+        const dimVal = document.getElementById('v4DimensionVal');
+        if (dimVal) dimVal.textContent = data.dim;
+
+        const bleedVal = document.getElementById('v4BleedVal');
+        if (bleedVal) bleedVal.textContent = data.bleed;
+
+        showToast(`🔄 已切换至款项: <b>${data.name}</b> (参数已自动联动)`);
+      }
+    }
+
+    // 折叠/展开指定工艺分组卡片
+    function toggleGroupCollapse(groupId) {
+      const wrap = document.getElementById('v4GroupTableWrap' + groupId);
+      const arrow = document.getElementById('v4GroupArrow' + groupId);
+      if (!wrap || !arrow) return;
+      if (wrap.style.display === 'none') {
+        wrap.style.display = 'block';
+        arrow.textContent = '▾';
+      } else {
+        wrap.style.display = 'none';
+        arrow.textContent = '▸';
+      }
+    }
+
+    // 切换组锁定状态 (对应 BatchGroupHeaderCard LockBadgeClicked)
+    function toggleGroupLock(groupId) {
+      const badge = document.getElementById('v4LockBadge' + groupId);
+      const card = document.getElementById('v4CardGroup' + groupId);
+      if (!badge) return;
+      if (badge.textContent.includes('联动')) {
+        badge.textContent = '已锁定';
+        badge.style.background = '#f9f0ff';
+        badge.style.borderColor = '#d3adf7';
+        badge.style.color = '#722ed1';
+        if (card) card.classList.add('locked');
+        showToast(`🔒 已锁定【${groupId === 1 ? '一组' : '二组'}】：该组参数将不再随右侧操作实时改变`);
+      } else {
+        badge.textContent = '联动';
+        badge.style.background = '#f6ffed';
+        badge.style.borderColor = '#b7eb8f';
+        badge.style.color = '#52c41a';
+        if (card) card.classList.remove('locked');
+        showToast(`🔓 已解锁【${groupId === 1 ? '一组' : '二组'}】：该组参数恢复与右侧实时联动`);
+      }
+    }
+
+    // 行内修改数量
+    function updateFileQty(fileId, newQty) {
+      if (mockFilesData[fileId]) {
+        mockFilesData[fileId].qty = newQty;
+        if (currentActiveFileId === fileId) {
+          const qtyInput = document.getElementById('v4InputQty');
+          if (qtyInput) qtyInput.value = newQty;
+        }
+        showToast(`✏️ 已更新款项 #${fileId} 的印量为 <b>${newQty}</b>`);
+      }
+    }
+
+    // 上移 / 下移行
+    function moveFileRow(delta) {
+      const activeTr = document.querySelector('#v4CardsContainer .v4-group-table tbody tr.active');
+      if (!activeTr) return;
+      if (delta < 0 && activeTr.previousElementSibling) {
+        activeTr.parentNode.insertBefore(activeTr, activeTr.previousElementSibling);
+        renumberFileRows();
+        showToast('▲ 选中文件行已上移');
+      } else if (delta > 0 && activeTr.nextElementSibling) {
+        activeTr.parentNode.insertBefore(activeTr.nextElementSibling, activeTr);
+        renumberFileRows();
+        showToast('▼ 选中文件行已下移');
+      }
+    }
+
+    function renumberFileRows() {
+      const rows = document.querySelectorAll('#v4CardsContainer .v4-group-table tbody tr');
+      rows.forEach((r, idx) => {
+        const numTd = r.children[0];
+        if (numTd) numTd.textContent = String(idx + 1).padStart(3, '0');
+      });
+    }
+
+    // ➕ 分出新组
+    function createNewGroup() {
+      const activeTr = document.querySelector('#v4CardsContainer .v4-group-table tbody tr.active');
+      const fileName = activeTr ? activeTr.children[1].textContent.trim() : '当前选中项';
+      showToast(`➕ 已将 [${fileName}] 独立分出为新组 <b>[分组 2: 独立排版批次]</b>`);
+      const badge = document.getElementById('v4LblBatchTitle');
+      if (badge) badge.textContent = '待处理 (4款 · 3组)';
+    }
+
+    // 🗑️ 移入取消处理
+    function deleteSelectedFileRow() {
+      const activeTr = document.querySelector('#v4CardsContainer .v4-group-table tbody tr.active');
+      if (!activeTr) return;
+      const fileName = activeTr.children[1].textContent.trim();
+      activeTr.style.opacity = '0.35';
+      activeTr.style.textDecoration = 'line-through';
+      showToast(`🗑️ 已将 [${fileName}] 移入“取消处理”列表（不会参与输出）`);
+    }
+
+    // 📋 从剪贴板粘贴数量
+    function pasteQuantities() {
+      const sampleQtys = ['600', '400', '1,200', '350'];
+      const inputs = document.querySelectorAll('#v4CardsContainer .table-qty-input');
+      inputs.forEach((inp, idx) => {
+        if (sampleQtys[idx]) {
+          inp.value = sampleQtys[idx];
+          if (mockFilesData[idx + 1]) mockFilesData[idx + 1].qty = sampleQtys[idx];
+        }
+      });
+      const activeQty = document.getElementById('v4InputQty');
+      if (activeQty && sampleQtys[0]) activeQty.value = sampleQtys[0];
+      showToast('📋 已从剪贴板向下批量填充 4 个款项的印制数量！');
+    }
+
+    // 底部主确认按钮执行
+    function confirmBatchOrSingle() {
+      if (isV4LeftPanelExpanded) {
+        showToast('🚀 <b>[批量处理执行中]</b>：已将当前材料与排版参数流水线应用到全部 4 款文件并导出！');
+      } else {
+        showToast('✅ <b>[单款确认完成]</b>：已应用当前参数并输出单文件！');
+      }
+    }
+
+    function applyOnlyCurrentFile() {
+      showToast('🎯 <b>[单款生效]</b>：仅将参数应用到当前选中的款项，其余文件保持待处理');
+    }
+
+    // 点击任意空白处自动关闭右键菜单
+    document.addEventListener('click', () => {
+      const menu = document.getElementById('presetContextMenu');
+      if (menu) menu.style.display = 'none';
+    });
+  </script>
+
+  <!-- 预设右键菜单浮层 (完全沿用当前代码 WinForms 右键菜单功能) -->
+  <div class="preset-context-menu" id="presetContextMenu" onclick="event.stopPropagation()">
+    <div class="context-menu-item" onclick="handlePresetAction('apply')">⚡ 应用此预设</div>
+    <div class="context-menu-item" onclick="handlePresetAction('save')">💾 将当前参数覆盖保存</div>
+    <div class="context-menu-item" onclick="handlePresetAction('new')">➕ 将当前参数存为新预设...</div>
+    <div class="context-menu-item" onclick="handlePresetAction('edit')">✏️ 编辑此预设...</div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" onclick="handlePresetAction('manage')">⚙️ 管理与排序全部预设...</div>
+    <div class="context-menu-item danger" onclick="handlePresetAction('delete')">🗑️ 删除此预设</div>
+  </div>
+
+  <!-- 页面框不一致阻断式 AntdUI 风格警告弹窗 (仅异常时主动弹出提示) -->
+  <div class="modal-overlay" id="pageBoxModal" onclick="closePageBoxModal()">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-icon">⚠️</span>
+        <span class="modal-title">PDF 页面框不一致预检警告</span>
+      </div>
+      <div class="modal-body">
+        <div style="background: #fffbe6; border: 1px solid #ffe58f; padding: 10px 12px; border-radius: 4px; font-size: 11.5px; color: #873800; line-height: 1.5; margin-bottom: 10px;">
+          检测到当前文件 <b>裁剪框 (CropBox)</b> 与 <b>媒体框 (MediaBox)</b> 尺寸不一致：
+          <div style="margin-top: 6px; font-family: Consolas, monospace; font-size: 11px; background: #fff; padding: 6px 8px; border-radius: 3px; border: 1px dashed #ffd666; color: #1f2429;">
+            • 裁剪框 (CropBox / 实际设计画板): <b style="color: #0958d9;">79.0 × 19.0 mm</b><br>
+            • 媒体框 (MediaBox / 物理外部白边): <b style="color: #d46b08;">79.0 × 30.0 mm</b> (高度外凸 +11mm)
+          </div>
+        </div>
+        <p style="font-size: 11.5px; color: #595959; line-height: 1.6; margin-bottom: 6px;">
+          <b>⚠️ 印前严重潜在风险警示：</b><br>
+          原文件存在未裁净的白边差值。若直接执行排版处理，将导致：<br>
+          1. <b>空白页尺寸不匹配</b>：生成的补充空白页会被创建为 79×30mm 大页面；<br>
+          2. <b>裁切线垂直错位</b>：红色裁切线将按 30mm 居中，与真实图案发生 5.5mm 严重偏移！
+        </p>
+        <p style="font-size: 11px; color: #277c16; font-weight: bold;">
+          💡 强烈建议：点击下方“停止操作”，在印前软件中先将页面框统一（移去白边）后再导入。
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn secondary" onclick="closePageBoxModal()">停止操作，先去统一页面框</button>
+        <button class="modal-btn danger-action" onclick="closePageBoxModal()">已知晓风险，强行继续</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

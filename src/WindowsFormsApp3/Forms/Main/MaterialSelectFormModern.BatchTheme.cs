@@ -52,7 +52,7 @@ namespace WindowsFormsApp3
                     }
                 }
 
-                foreach (var button in new[] { btnMoveUp, btnMoveDown, btnNewGroupDirect })
+                foreach (var button in new[] { btnMoveUp, btnMoveDown, btnNewGroupDirect, btnDeleteBatchRows })
                 {
                     if (button != null)
                     {

@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using AntdUI;
@@ -40,13 +41,14 @@ namespace WindowsFormsApp3.Tests.UI
         }
 
         [Fact]
-        public void ColumnChecklist_Anchors_Its_Top_Left_To_The_Right_Click_Position()
+        public void ColumnChecklist_Clamps_Its_Top_Left_To_The_Working_Area()
         {
-            var anchor = ColumnVisibilityChecklistPopup.GetMouseAnchor(
-                new Point(127, 43),
-                new Size(280, 160));
+            var location = ColumnVisibilityChecklistPopup.ClampTopLeftToWorkingArea(
+                new Point(950, 740),
+                new Size(280, 500),
+                new Rectangle(0, 0, 1000, 800));
 
-            Assert.Equal(new Point(267, 43), anchor);
+            Assert.Equal(new Point(720, 300), location);
         }
 
         [Fact]
@@ -370,30 +372,76 @@ namespace WindowsFormsApp3.Tests.UI
         }
 
         [Theory]
-        [InlineData(1.25F)]
-        [InlineData(1.5F)]
-        [InlineData(2F)]
-        public void ColumnVisibilityPopup_Uses_Logical_Popover_Chrome_Without_Double_Scaling(float dpiScale)
+        [InlineData(0, 30, 30)]
+        [InlineData(1, 30, 30)]
+        [InlineData(14, 30, 420)]
+        public void ColumnVisibilityPopup_Shows_All_Columns_Without_A_Height_Cap(
+            int columnCount,
+            int rowHeight,
+            int expectedHeight)
         {
-            // 内容控件按目标 DPI 放大，但 Popover 外壳交给 AntdUI 按目标控件 DPI 缩放。
-            Assert.Equal(8, ColumnVisibilityChecklistPopup.PopoverRadius);
-            Assert.Equal(4, ColumnVisibilityChecklistPopup.PopoverGap);
-            Assert.Equal((int)Math.Round(8 * dpiScale), ColumnVisibilityChecklistPopup.ScaleDimension(8, dpiScale));
-            Assert.Equal((int)Math.Round(4 * dpiScale), ColumnVisibilityChecklistPopup.ScaleDimension(4, dpiScale));
+            Assert.Equal(
+                expectedHeight,
+                ColumnVisibilityChecklistPopup.CalculateListHeight(columnCount, rowHeight));
         }
 
         [Fact]
-        public void ColumnVisibilityPopup_Clamps_Center_Anchor_To_Working_Area()
+        public void ColumnVisibilityPopup_Uses_A_Native_Non_Layered_DropDown_Host()
+        {
+            using var content = new System.Windows.Forms.Panel { Size = new Size(280, 520) };
+            using var dropDown = ColumnVisibilityChecklistPopup.CreateDropDown(content);
+
+            var borderlessDropDown = Assert.IsType<ColumnVisibilityChecklistPopup.BorderlessToolStripDropDown>(dropDown);
+            Assert.IsType<ToolStripControlHost>(Assert.Single(dropDown.Items.Cast<ToolStripItem>()));
+            Assert.IsType<ColumnVisibilityChecklistPopup.BorderlessToolStripRenderer>(dropDown.Renderer);
+            Assert.False(borderlessDropDown.HasNativeBorder);
+            Assert.False(dropDown.DropShadowEnabled);
+            Assert.Equal(content.BackColor, dropDown.BackColor);
+            Assert.Equal(Padding.Empty, dropDown.Padding);
+        }
+
+        [Fact]
+        public void ColumnVisibilityPopup_Defers_Disposal_Until_After_The_Closed_Callback()
+        {
+            using var dropDown = new ToolStripDropDown();
+            Action deferredDisposal = null;
+
+            ColumnVisibilityChecklistPopup.ScheduleDropDownDisposal(
+                dropDown,
+                action => deferredDisposal = action);
+
+            Assert.False(dropDown.IsDisposed);
+            Assert.NotNull(deferredDisposal);
+
+            deferredDisposal();
+
+            Assert.True(dropDown.IsDisposed);
+        }
+
+        [Fact]
+        public void ColumnVisibilityPopup_Reserves_Padding_And_Shadow_Outside_All_Rows()
+        {
+            var contentHeight = ColumnVisibilityChecklistPopup.CalculateContentHeight(
+                listHeight: 450,
+                footerHeight: 42,
+                popupPadding: 8,
+                popupShadow: 8);
+
+            Assert.Equal(524, contentHeight);
+        }
+
+        [Fact]
+        public void ColumnVisibilityPopup_Clamps_DropDown_To_Working_Area()
         {
             var workingArea = new Rectangle(100, 50, 1000, 700);
             var popupSize = new Size(280, 300);
 
-            var clamped = ColumnVisibilityChecklistPopup.ClampAnchorToWorkingArea(
+            var clamped = ColumnVisibilityChecklistPopup.ClampTopLeftToWorkingArea(
                 new Point(10, 900),
                 popupSize,
                 workingArea);
 
-            Assert.Equal(new Point(240, 750), clamped);
+            Assert.Equal(new Point(100, 450), clamped);
         }
 
         [Fact]

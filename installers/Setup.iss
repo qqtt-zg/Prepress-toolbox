@@ -2,15 +2,15 @@
 ; 应用程序基本信息
 AppName=大诚重命名工具
 AppId={{D5F3E9B0-FEAT-ADD-PERF-MONITOR-FORM}}
-AppVersion=2.6.3
-AppVerName=大诚重命名工具 v2.6.3
+AppVersion=2.6.4
+AppVerName=大诚重命名工具 v2.6.4
 AppPublisher=大诚软件
 AppPublisherURL=
 AppSupportURL=
 AppUpdatesURL=
 AppCopyright=Copyright (C) 2026 大诚软件
 ; 版本更新说明
-AppComments=V2.6.3更新内容：修复监控文件进入后锁定分组状态丢失的问题；支持未锁定联动分组之间拖动文件，并禁止锁定分组拖入拖出；恢复左侧列表对全局预设右键菜单的屏蔽；优化浅色主题按钮文字可读性；
+AppComments=V2.6.4更新内容：优化文件列表列头右键菜单的定位、完整显示与无闪烁交互；材料选择列表新增真实PDF页数与点击预览；修复材料选择列表匹配Excel数据后未正确返回序号的问题；支持删除待处理行并将文件移入监控目录的“取消处理”文件夹；Excel未匹配行高亮显示且任意列排序时优先置顶；修复左侧列表单元格和整行无法稳定选择的问题，异步刷新后保留选择且仅序号列触发拖拽；材料选择窗口新增可记忆的置顶按钮并默认开启；修复监控文件进入后的分组锁定状态与联动拖放；优化浅色主题按钮文字可读性；
 
 ; 默认安装目录
 DefaultDirName={autopf}\大诚重命名工具
@@ -19,7 +19,7 @@ DefaultGroupName=大诚重命名工具
 ; 输出设置
 ; 注意：文件名包含版本号，确保每次版本更新都会生成不同的文件名，从而保留旧版本的安装包
 ; 请确保在更新版本号时同步更新此处的文件名版本号
-OutputBaseFilename=大诚重命名工具_v2.6.3_安装包
+OutputBaseFilename=大诚重命名工具_v2.6.4_安装包
 OutputDir=.\安装包
 ; SetupIconFile=dc.ico
 
