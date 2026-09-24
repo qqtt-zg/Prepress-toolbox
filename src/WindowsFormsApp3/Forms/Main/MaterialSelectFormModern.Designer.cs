@@ -902,24 +902,24 @@ namespace WindowsFormsApp3
             this.copyTypeComboBox.SelectedIndexChanged += new System.EventHandler(this.CopyTypeComboBox_SelectedIndexChanged);
             // 
             // previewCollapseButton
-            // 
+            //
             this.previewCollapseButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F);
-            this.previewCollapseButton.Location = new System.Drawing.Point(0, 658);
+            this.previewCollapseButton.Location = new System.Drawing.Point(0, 492);
             this.previewCollapseButton.Name = "previewCollapseButton";
             this.previewCollapseButton.Radius = 0;
-            this.previewCollapseButton.Size = new System.Drawing.Size(400, 15);
+            this.previewCollapseButton.Size = new System.Drawing.Size(360, 16);
             this.previewCollapseButton.TabIndex = 60;
-            this.previewCollapseButton.Text = "▲";
+            this.previewCollapseButton.Text = "▼ 点击展开预览 (+245px)";
             this.previewCollapseButton.WaveSize = 0;
             this.previewCollapseButton.Click += new System.EventHandler(this.PreviewCollapseButton_Click);
-            // 
+            //
             // pdfPreviewPanel
-            // 
+            //
             this.pdfPreviewPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
             this.pdfPreviewPanel.Controls.Add(this.pdfPreviewControl);
-            this.pdfPreviewPanel.Location = new System.Drawing.Point(0, 673);
+            this.pdfPreviewPanel.Location = new System.Drawing.Point(0, 508);
             this.pdfPreviewPanel.Name = "pdfPreviewPanel";
-            this.pdfPreviewPanel.Size = new System.Drawing.Size(400, 245);
+            this.pdfPreviewPanel.Size = new System.Drawing.Size(360, 245);
             this.pdfPreviewPanel.TabIndex = 61;
             // 
             // pdfPreviewControl
@@ -983,7 +983,7 @@ namespace WindowsFormsApp3
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
             this.CancelButton = this.cancelButton;
-            this.ClientSize = new System.Drawing.Size(400, 918);
+            this.ClientSize = new System.Drawing.Size(360, 508);
             this.Controls.Add(this.copyCountNumericUpDown);
             this.Controls.Add(this.fileNameSeparator);
             this.Controls.Add(this.titleBarPanel);

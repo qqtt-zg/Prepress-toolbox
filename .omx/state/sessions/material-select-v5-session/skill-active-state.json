@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "active": false,
+  "skill": "autopilot",
+  "keyword": "",
+  "phase": "ultragoal",
+  "activated_at": "2026-09-19T21:48:11.870Z",
+  "updated_at": "2026-09-19T21:55:48.753Z",
+  "source": "state-operations",
+  "active_skills": [],
+  "session_id": "material-select-v5-session"
+}

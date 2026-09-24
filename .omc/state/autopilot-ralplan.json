@@ -1,0 +1,18 @@
+{
+  "mode": "autopilot",
+  "active": true,
+  "current_phase": "ralplan",
+  "state": {
+    "phase_cycle": ["deep-interview", "ralplan", "ultragoal"],
+    "deep_interview_gate": {
+      "status": "complete",
+      "rationale": "Requirements crystallized and approved via V5 final workbench HTML prototype"
+    },
+    "handoff_artifacts": {
+      "deep_interview": ".omx/specs/prd-material-select-v5-workbench.md",
+      "ralplan": null,
+      "ultragoal": null
+    },
+    "return_to_ralplan_reason": null
+  }
+}

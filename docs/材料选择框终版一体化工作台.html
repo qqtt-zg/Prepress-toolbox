@@ -19,6 +19,8 @@
       --success: #52c41a;
       --warning: #faad14;
       --danger: #ff4d4f;
+      --scope-accent: #1677ff;
+      --scope-accent-ink: #ffffff;
       --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", sans-serif;
 
       /* V5 实施尺寸契约：WinForms ClientSize，禁止按窗体外框尺寸换算 */
@@ -146,6 +148,30 @@
       accent-color: var(--primary);
       cursor: pointer;
     }
+    .scope-color-picker {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      background: #f0f2f5;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .scope-color-swatch {
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      outline: 1px solid #cbd5e1;
+      background: var(--swatch);
+      cursor: pointer;
+      transition: transform .15s ease, outline-color .15s ease;
+    }
+    .scope-color-swatch:hover { transform: scale(1.12); }
+    .scope-color-swatch.active { outline: 2px solid var(--primary); }
 
     /* 主展示舞台 */
     .stage {
@@ -863,14 +889,168 @@
       display: grid;
       grid-template-columns: 48px 48px 40px 1fr 48px 50px;
       gap: 3px;
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
       background: #ffffff;
       padding: 3px 4px;
       border-radius: 4px;
       border: 1px solid #d8e0ea;
       text-align: center;
       align-items: center;
+      box-shadow: 0 1px 3px rgba(31, 45, 61, 0.08);
+    }
+    .metrics-pills-pure::before {
+      content: "";
+      position: absolute;
+      z-index: 0;
+      inset: 2px 7px -5px;
+      border-radius: 48%;
+      filter: blur(9px);
+      opacity: 0.28;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+    }
+    .metrics-pills-pure::after {
+      content: "";
+      position: absolute;
+      z-index: 0;
+      inset: 2px;
+      display: none;
+      border-radius: 2px;
+      pointer-events: none;
+    }
+    .metrics-pills-pure.mode-mono::before {
+      background: linear-gradient(100deg, #17191c 0%, #74787d 52%, #e3e5e7 100%);
+    }
+    .metrics-pills-pure.mode-color::before {
+      background: linear-gradient(100deg,
+        #5b51d8 0%,
+        #833ab4 17%,
+        #e1306c 34%,
+        #fd1d1d 50%,
+        #f77737 66%,
+        #fcaf45 83%,
+        #ffdc80 100%);
+    }
+    .metrics-pills-pure.effect-text-glow::before {
+      opacity: 0;
+    }
+    .metrics-pills-pure.effect-text-glow #v4ColorVal {
+      position: relative;
+      display: inline-grid;
+      place-items: center;
+      min-width: 34px;
+      height: 17px;
+      margin-top: 0;
+      padding: 0 5px;
+      overflow: hidden;
+      isolation: isolate;
+      border-radius: 9px;
+      transition: transform 0.2s ease;
+    }
+    .metrics-pills-pure.effect-text-glow #v4ColorVal::before {
+      content: "";
+      position: absolute;
+      z-index: -2;
+      top: -70%;
+      left: -50%;
+      width: 200%;
+      height: 240%;
+      filter: blur(3px);
+      transform: rotate(0deg);
+      transition: transform 1.5s ease-in-out;
+    }
+    .metrics-pills-pure.effect-text-glow #v4ColorVal::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      inset: 2px;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: inset 0 0 5px rgba(20, 28, 38, 0.24);
+    }
+    .metrics-pills-pure.effect-text-glow #v4ColorVal:hover {
+      transform: scale(1.03);
+    }
+    .metrics-pills-pure.effect-text-glow #v4ColorVal:hover::before {
+      transform: rotate(180deg);
+    }
+    .metrics-pills-pure.effect-text-glow.mode-color #v4ColorVal {
+      color: transparent !important;
+      background: conic-gradient(
+        from 0deg,
+        #ff6b6b,
+        #4ecdc4,
+        #45b7d1,
+        #96ceb4,
+        #feca57,
+        #ff9ff3,
+        #ff6b6b);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+    .metrics-pills-pure.effect-text-glow.mode-color #v4ColorVal::before {
+      background: conic-gradient(
+        from 0deg,
+        #ff6b6b,
+        #4ecdc4,
+        #45b7d1,
+        #96ceb4,
+        #feca57,
+        #ff9ff3,
+        #ff6b6b);
+    }
+    .metrics-pills-pure.effect-text-glow.mode-mono #v4ColorVal {
+      color: transparent !important;
+      background: conic-gradient(from 0deg, #202226, #777b80, #d7dade, #777b80, #202226);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+    .metrics-pills-pure.effect-text-glow.mode-mono #v4ColorVal::before {
+      background: conic-gradient(from 0deg, #202226, #777b80, #d7dade, #777b80, #202226);
+    }
+    .metrics-pills-pure.effect-border-inset {
+      border-color: transparent;
+      box-shadow: 0 1px 4px rgba(31, 45, 61, 0.08);
+    }
+    .metrics-pills-pure.effect-border-inset::before {
+      inset: -190px -30px;
+      border-radius: 0;
+      filter: blur(10px);
+      opacity: 0.72;
+      transform: rotate(0deg);
+      transition: transform 1.5s ease-in-out;
+    }
+    .metrics-pills-pure.effect-border-inset::after {
+      display: block;
+      inset: 2px;
+      background: rgba(255, 255, 255, 0.80);
+      box-shadow:
+        inset 0 0 11px rgba(255, 255, 255, 0.82),
+        inset 0 0 9px rgba(22, 31, 42, 0.08);
+      filter: blur(0.6px);
+    }
+    .metrics-pills-pure.effect-border-inset.mode-color::before {
+      background: conic-gradient(
+        from 0deg,
+        #ff9a9a,
+        #8de2dc,
+        #83cee1,
+        #bde4d2,
+        #ffe08a,
+        #ffc8f2,
+        #ff9a9a);
+    }
+    .metrics-pills-pure.effect-border-inset.mode-mono::before {
+      background: conic-gradient(from 0deg, #74797e, #b5b9be, #f0f1f2, #b5b9be, #74797e);
+    }
+    .metrics-pills-pure.effect-border-inset:hover::before {
+      transform: rotate(180deg);
     }
     .metrics-pills-pure .metric-pill {
+      position: relative;
+      z-index: 1;
       min-width: 0;
       user-select: none;
       padding: 1px 2px;
@@ -1061,7 +1241,52 @@
       border-color: var(--primary);
       color: #fff;
     }
-    .btn-action-current { width: 80px; padding: 0; }
+    .btn-action-current {
+      position: relative;
+      width: 104px;
+      padding: 0;
+      overflow: hidden;
+      border-radius: 6px;
+      background: #fff;
+      color: #1f2429;
+      isolation: isolate;
+    }
+    .scope-slide {
+      position: absolute;
+      z-index: 3;
+      left: 2px;
+      top: 2px;
+      width: 24px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 5px;
+      background: var(--scope-accent);
+      color: var(--scope-accent-ink);
+      transition: width 0.75s cubic-bezier(.4, 0, .2, 1);
+      pointer-events: none;
+    }
+    .btn-action-current:hover .scope-slide { width: 98px; }
+    .scope-arrow {
+      width: 12px;
+      height: 12px;
+      flex: 0 0 auto;
+      transform: rotate(0deg);
+      transition: transform 0.25s ease;
+    }
+    .btn-action-current.is-expanded .scope-arrow { transform: rotate(180deg); }
+    .scope-label {
+      position: relative;
+      z-index: 2;
+      display: block;
+      padding-left: 24px;
+      line-height: 22px;
+      white-space: nowrap;
+      pointer-events: none;
+      transition: color 0.2s ease;
+    }
+    .btn-action-current:hover .scope-label { color: var(--scope-accent-ink); }
     .btn-action-cancel { width: 46px; padding: 0; }
     .btn-action-confirm { width: 112px; padding: 0; }
     .btn-action-sm.ghost {
@@ -1474,6 +1699,13 @@
         <input type="checkbox" id="togglePreview" onchange="handleTogglePreview(this.checked)">
         展开底部 PDF 预览 (+245px)
       </label>
+      <div class="scope-color-picker" aria-label="批量按钮配色预览">
+        <span>批量按钮</span>
+        <button class="scope-color-swatch" style="--swatch:#4ade80" onclick="setScopeAccent('#4ade80','#102317',this)" title="绿色" type="button"></button>
+        <button class="scope-color-swatch active" style="--swatch:#1677ff" onclick="setScopeAccent('#1677ff','#ffffff',this)" title="蓝色" type="button"></button>
+        <button class="scope-color-swatch" style="--swatch:#fbbf24" onclick="setScopeAccent('#fbbf24','#422006',this)" title="橙色" type="button"></button>
+        <button class="scope-color-swatch" style="--swatch:#c4b5fd" onclick="setScopeAccent('#c4b5fd','#2e1065',this)" title="紫色" type="button"></button>
+      </div>
     </div>
   </header>
 
@@ -1744,23 +1976,19 @@
                 </div>
               </div>
 
-              <!-- 象限 4 (右下 50%): 一式N联 -->
+              <!-- 象限 4 (右下 50%): 一式N联 (去“一式”文字，联/份改为切换按钮) -->
               <div class="v4-pod-cell">
-                <label style="font-size: 10px; display: flex; align-items: center; gap: 2px; font-weight: 700; color: var(--text-secondary); width: 36px; flex-shrink: 0; cursor: pointer; white-space: nowrap;">
-                  <input type="checkbox" checked> 一式
-                </label>
-                <div class="join-group">
-                  <input class="input-compact" type="number" value="2" style="width: 24px; text-align: center; flex: unset; padding: 0 1px; border-right: none; border-radius: 3px 0 0 3px;">
-                  <select style="height: 24px; border: 1px solid var(--border); font-size: 10px; padding: 0 2px; border-right: none;">
-                    <option>联</option>
-                    <option>份</option>
-                  </select>
-                  <select style="height: 24px; border: 1px solid var(--border); border-radius: 0 3px 3px 0; font-size: 10px; padding: 0 2px; flex: 1; min-width: 0;">
-                    <option>自适应</option>
-                    <option>列优先</option>
-                    <option>不旋转</option>
-                  </select>
+                <input type="checkbox" checked style="accent-color: var(--primary); cursor: pointer; margin-right: 3px;" title="启用一式N联">
+                <input class="input-compact" type="number" value="2" style="width: 26px; text-align: center; height: 23px; border: 1px solid var(--border); border-radius: 3px;">
+                <div class="mini-segmented" style="height: 23px;">
+                  <button class="mini-seg-btn active" onclick="setMiniSeg(this)">联</button>
+                  <button class="mini-seg-btn" onclick="setMiniSeg(this)">份</button>
                 </div>
+                <select style="height: 23px; border: 1px solid var(--border); border-radius: 3px; font-size: 10px; padding: 0 4px; flex: 1; min-width: 0;">
+                  <option>自适应</option>
+                  <option>列优先</option>
+                  <option>不旋转</option>
+                </select>
               </div>
             </div>
 
@@ -1786,7 +2014,7 @@
               </div>
 
               <!-- 单尺寸纯净 6 宫格看板：字号适中 12px 粗体等宽，100% 完整舒展呈现无溢出 -->
-              <div class="metrics-pills-pure">
+              <div class="metrics-pills-pure mode-color" id="v4MetricsPanel" data-color-mode="color">
                 <!-- 1. 网格 -->
                 <div class="metric-pill">
                   <span>网格</span>
@@ -1818,9 +2046,9 @@
                 </div>
 
                 <!-- 6. 颜色模式 (移至出血右侧) -->
-                <div class="metric-pill" onclick="toggleV4ColorMode(this)" title="点击切换印色模式 (彩色 / 黑白)">
+                <div class="metric-pill" onclick="toggleV4ColorMode(this)" ondblclick="toggleV4ColorEffect(event)" title="单击切换彩色/黑白；双击循环整体背景、文字内陷光、边框内陷光">
                   <span>颜色 ▾</span>
-                  <strong id="v4ColorVal" style="color: #13c2c2;">🎨彩色</strong>
+                  <strong id="v4ColorVal" style="color: #168ca8;">彩色</strong>
                 </div>
               </div>
 
@@ -1851,7 +2079,15 @@
 
             <!-- 7. 底部操作栏：左侧处理范围切换，右侧终审决策提交，彻底消除腰斩与割裂感 -->
             <div class="action-bar-compact" data-tech="WinForms Panel + AntdUI.Button (Ghost/Primary)">
-              <button class="btn-action-sm ghost btn-action-current" id="v4BtnScopeToggle" onclick="toggleV4LeftPanel()" title="切换仅处理当前款 / 批量处理">仅处理当前款</button>
+              <button class="btn-action-sm ghost btn-action-current is-expanded" id="v4BtnScopeToggle" onclick="toggleV4LeftPanel()" title="切换仅处理当前款 / 批量处理" type="button">
+                <span class="scope-slide" aria-hidden="true">
+                  <svg class="scope-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+                    <path d="M224 480h640a32 32 0 1 1 0 64H224a32 32 0 0 1 0-64z" fill="currentColor"></path>
+                    <path d="m237.248 512 265.408 265.344a32 32 0 0 1-45.312 45.312l-288-288a32 32 0 0 1 0-45.312l288-288a32 32 0 1 1 45.312 45.312L237.248 512z" fill="currentColor"></path>
+                  </svg>
+                </span>
+                <span class="scope-label">仅处理当前款</span>
+              </button>
               <div class="action-buttons-right">
                 <button class="btn-action-sm ghost btn-action-cancel" onclick="showToast('已取消本次操作')">取消</button>
                 <button class="btn-action-sm primary btn-action-confirm" id="v4BtnMainConfirm" onclick="confirmBatchOrSingle()">确认并继续</button>
@@ -1933,6 +2169,13 @@
     };
     let currentActiveFileId = 1;
 
+    function setScopeAccent(background, foreground, button) {
+      document.documentElement.style.setProperty('--scope-accent', background);
+      document.documentElement.style.setProperty('--scope-accent-ink', foreground);
+      document.querySelectorAll('.scope-color-swatch').forEach(item => item.classList.remove('active'));
+      if (button) button.classList.add('active');
+    }
+
     // 切换左侧待处理列表的展开与折叠
     function toggleV4LeftPanel() {
       const panel = document.getElementById('v4LeftBatchPanel');
@@ -1946,13 +2189,21 @@
       if (isV4LeftPanelExpanded) {
         panel.classList.remove('collapsed');
         if (workbench) workbench.classList.remove('single-station');
-        if (btnScope) btnScope.textContent = '仅处理当前款';
+        if (btnScope) {
+          btnScope.classList.add('is-expanded');
+          const label = btnScope.querySelector('.scope-label');
+          if (label) label.textContent = '仅处理当前款';
+        }
         if (btnMain) btnMain.textContent = '确认并继续';
         showToast('📂 已展开左侧待处理列表工作台 (多款批量排版模式)');
       } else {
         panel.classList.add('collapsed');
         if (workbench) workbench.classList.add('single-station');
-        if (btnScope) btnScope.textContent = '批量处理';
+        if (btnScope) {
+          btnScope.classList.remove('is-expanded');
+          const label = btnScope.querySelector('.scope-label');
+          if (label) label.textContent = '批量处理';
+        }
         if (btnMain) btnMain.textContent = '确认并继续';
         showToast('📁 已折叠左侧列表，切换为 360px 纯净单工位模式');
       }
@@ -2200,14 +2451,38 @@
 
     function toggleV4ColorMode(el) {
       const c = document.getElementById('v4ColorVal');
-      if (c) {
+      const panel = document.getElementById('v4MetricsPanel');
+      if (c && panel) {
         if (c.textContent.includes('彩色')) {
-          c.textContent = '⚪黑白';
-          c.style.color = '#595959';
+          c.textContent = '黑白';
+          c.style.color = '#3f4348';
+          panel.classList.remove('mode-color');
+          panel.classList.add('mode-mono');
+          panel.dataset.colorMode = 'mono';
         } else {
-          c.textContent = '🎨彩色';
-          c.style.color = '#13c2c2';
+          c.textContent = '彩色';
+          c.style.color = '#168ca8';
+          panel.classList.remove('mode-mono');
+          panel.classList.add('mode-color');
+          panel.dataset.colorMode = 'color';
         }
+      }
+    }
+
+    function toggleV4ColorEffect(event) {
+      if (event) event.stopPropagation();
+      const panel = document.getElementById('v4MetricsPanel');
+      if (!panel) return;
+      if (!panel.classList.contains('effect-text-glow') && !panel.classList.contains('effect-border-inset')) {
+        panel.classList.add('effect-text-glow');
+        showToast('已切换为 <b>文字内陷渐变光</b> 效果');
+      } else if (panel.classList.contains('effect-text-glow')) {
+        panel.classList.remove('effect-text-glow');
+        panel.classList.add('effect-border-inset');
+        showToast('已切换为 <b>排版参数边框内陷光</b> 效果');
+      } else {
+        panel.classList.remove('effect-border-inset');
+        showToast('已恢复为 <b>排版参数整体背景微光</b> 效果');
       }
     }
 

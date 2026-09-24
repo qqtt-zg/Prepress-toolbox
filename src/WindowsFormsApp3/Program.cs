@@ -37,7 +37,7 @@ namespace WindowsFormsApp3
         /// 应用程序的主入口点。
         /// </summary>
         [STAThread]
-        static void Main()
+        static void Main(string[] args)
         {
             // 添加全局未观察任务异常处理
             System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (sender, e) =>
@@ -188,7 +188,12 @@ catch (Exception ex)
 
             LogHelper.Info("应用程序启动");
 
-            if (mutex.WaitOne(TimeSpan.Zero, true))
+            bool isMaterialPreview = args != null && args.Length > 0 &&
+                (args[0] == "--preview-material" || args[0] == "--material-select");
+            bool ownsSingleInstanceMutex = mutex.WaitOne(TimeSpan.Zero, true);
+
+            // V5 材料选择框预览是独立的开发入口，允许在主程序运行时并行打开。
+            if (ownsSingleInstanceMutex || isMaterialPreview)
             {
                 // 设置Spire授权密钥
                 string licenseKey = "8DJPwcCe0QCAfvuXySwTk7A7I6/mKl79wKDNNMYfS6zvvICl6bJkNs6GJD7UkU93Ec05scOcf0EjgptJB6fPlGQSArVHX6ZgZC+PqjV363gPN3JH3ctEksNCC24btBXI9CtWqaEw4g333LI7ukXtNVMmpOUUpoIX1C0Dqg3sPu7Uy5nhqVahScV3LHQr2RoIuTOaAACqCTE1DnmvHrpNYmFH/Y/8Qciv+4wieZlwNkS/rUWY3y6AVCFzV+klSXKOFC7DpgfNRvATANnQe5uC9fYA1WGrfKzY2HSUGvUBiEjJ11wGMog57bkaXvO6B/qMtcIqX4Crkg+qD+UKzaYMPET+osAX1SIk6gECaZBKvco5m/kvmJ4yAqrcZvT0iJKtnbokuomSkCkWPNlADMdAOKzczQjyJOM92zlOs2eYIpDNdy2Pm4tG0qX4TnwpKm2Vq+k7Pmh8dC0MFRp61DoZFXu3qNTODwnBDB+RwtO3l0sb4pHZQ3ZAJbMiKtjiFWYhnnZqlBKJ/YMV7dh0mRsO7+bSnldkikAcGMwYi2+BDpP+rtQAwZO2qjRrKlojbx8CnGKIzFnuCDOvXpOzfFpZGSQSuYQScYXWaPwLHMwPcw52EXaqQG8mXmOy/Sn0DAJEe3goI38wGaegPGePnQTcs0nTmCyPVxqEN/+efiTZuCqL/0i6Fj6Ap762Hhr7megmrxt1rxc1wb9iwFWlozeBqCHcoWzafjIfmzTZQIsn1GCTFMk/lEEDyERIUOY4TP48Ueu5CUvgp947VYnH7Jeg8jKGMRl3rIqJK6h5HGV0yLEQmw24Cs0c/EjM0Ja2iodY6sh6tRgW9nxwHriuyd0XfawQkVS407nOOks6b82B7IU1la5CvEMJew92qpSDIc+7abEFa0RXnwbeaKb96EVv8VBkarludtfH9lPwL4392LqUgsTbd6FcE2/ZZQ3gaaDawkfIQKcqV7zQ3p1PSXEta4rEA/mF+ldY/e7j5BoXoqktCdz13bTcxIU2+uN/es4jVP5N3f+uHFuxYzm30Kt8HNMfhrqJ8RYUxHpWUJhcuYQ=";
@@ -249,9 +254,41 @@ catch (Exception ex)
                     // 不阻止程序启动，只记录错误
                 }
 
-                Application.Run(new MainShellForm());
+                if (isMaterialPreview)
+                {
+                    var mockItems = new[]
+                    {
+                        @"C:\test\铭牌_A款_80×45mm.pdf",
+                        @"C:\test\铭牌_B款_80×45mm.pdf",
+                        @"C:\test\铭牌_C款_80×45mm.pdf",
+                        @"C:\test\徳佰仕75x15.pdf"
+                    };
+                    var form = new MaterialSelectFormModern(
+                        materials: new List<string> { "PET", "PP", "PVC", "PET环保", "PET透明", "PET哑光", "PET镭射", "PET磨砂", "PET金色", "PET银色", "PET白色", "PET红色", "PET蓝色", "PET绿色", "PP环保" },
+                        fileName: @"C:\test\铭牌_A款_80×45mm.pdf",
+                        regexResult: "DC260915-08",
+                        opacity: 1.0,
+                        width: "80",
+                        height: "45",
+                        excelData: null,
+                        searchColumnIndex: -1,
+                        returnColumnIndex: -1,
+                        serialColumnIndex: -1,
+                        newColumnIndex: -1,
+                        serialNumber: "A08"
+                    );
+                    form.SetPendingFiles(mockItems);
+                    Application.Run(form);
+                }
+                else
+                {
+                    Application.Run(new MainShellForm());
+                }
 
-                mutex.ReleaseMutex();
+                if (ownsSingleInstanceMutex)
+                {
+                    mutex.ReleaseMutex();
+                }
             }
             else
             {

@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>材料选择框 · 输出路径选择方式对比</title>
+  <style>
+    :root {
+      --ink: #18202a;
+      --muted: #667085;
+      --line: #d8dee8;
+      --line-soft: #e9edf3;
+      --paper: #f4f2ec;
+      --surface: #ffffff;
+      --blue: #1677ff;
+      --blue-soft: #eaf3ff;
+      --green: #217a4b;
+      --orange: #c66a16;
+      --shadow: 0 20px 55px rgba(37, 45, 59, .13);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(40, 48, 60, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(40, 48, 60, .035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 24px 24px;
+      font-family: "Microsoft YaHei UI", "PingFang SC", sans-serif;
+    }
+
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+
+    .page {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 42px 0 60px;
+    }
+
+    .masthead {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 28px;
+      align-items: end;
+      padding-bottom: 22px;
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--orange);
+      font: 700 11px/1.2 Consolas, monospace;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "STZhongsong", "SimSun", serif;
+      font-size: clamp(32px, 4vw, 54px);
+      line-height: 1.05;
+      letter-spacing: -.04em;
+    }
+
+    .subtitle {
+      max-width: 720px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .contract {
+      min-width: 210px;
+      padding: 12px 14px;
+      border: 1px solid var(--ink);
+      background: rgba(255,255,255,.65);
+      font: 12px/1.65 Consolas, monospace;
+    }
+    .contract b { color: var(--blue); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 248px minmax(0, 1fr);
+      gap: 28px;
+      margin-top: 30px;
+    }
+
+    .rail { position: sticky; top: 20px; align-self: start; }
+    .rail-title {
+      margin: 0 0 8px;
+      font: 700 11px/1 Consolas, monospace;
+      color: var(--muted);
+      letter-spacing: .1em;
+    }
+
+    .scheme-tab {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 32px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 13px 10px;
+      border: 0;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      background: transparent;
+      text-align: left;
+    }
+    .scheme-tab:last-of-type { border-bottom: 1px solid var(--line); }
+    .scheme-tab:hover { background: rgba(255,255,255,.7); color: var(--ink); }
+    .scheme-tab.active {
+      color: var(--ink);
+      background: var(--surface);
+      box-shadow: inset 3px 0 0 var(--blue);
+    }
+    .scheme-tab strong { font-size: 13px; }
+    .scheme-tab small { display: block; margin-top: 3px; font-size: 10px; color: #8b94a3; }
+    .index { font: 700 18px/1 Consolas, monospace; color: #a6afbd; }
+    .scheme-tab.active .index { color: var(--blue); }
+    .tag {
+      padding: 2px 5px;
+      border: 1px solid #9bc5ff;
+      color: #0958d9;
+      background: var(--blue-soft);
+      font-size: 9px;
+      border-radius: 2px;
+    }
+
+    .rail-note {
+      margin-top: 18px;
+      padding-left: 12px;
+      border-left: 2px solid var(--orange);
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.65;
+    }
+
+    .board {
+      min-height: 650px;
+      padding: 30px;
+      border: 1px solid #bbc4d0;
+      background: rgba(255,255,255,.72);
+      box-shadow: var(--shadow);
+    }
+
+    .scheme { display: none; animation: enter .28s ease both; }
+    .scheme.active { display: block; }
+    @keyframes enter { from { opacity: 0; transform: translateY(7px); } }
+
+    .scheme-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: start;
+      margin-bottom: 24px;
+    }
+    .scheme-kicker { margin: 0 0 6px; color: var(--blue); font: 700 11px Consolas, monospace; }
+    h2 { margin: 0; font: 700 24px/1.25 "Microsoft YaHei UI", sans-serif; }
+    .scheme-desc { max-width: 600px; margin: 9px 0 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    .score { white-space: nowrap; font: 700 12px Consolas, monospace; color: var(--green); }
+
+    .stage {
+      min-height: 430px;
+      display: grid;
+      place-items: start center;
+      padding: 36px 22px;
+      border: 1px dashed #b8c1cd;
+      background: #e9edf2;
+      overflow: hidden;
+    }
+
+    .station {
+      width: 360px;
+      min-height: 430px;
+      position: relative;
+      border: 1px solid #aeb8c5;
+      background: #fff;
+      box-shadow: 0 12px 26px rgba(31, 38, 50, .16);
+    }
+    .titlebar {
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 9px;
+      border-bottom: 1px solid var(--line-soft);
+      background: #f8fafc;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .mock-stack { padding: 8px 10px; }
+    .ghost-card { height: 58px; margin-bottom: 5px; border: 1px solid #d4dbe4; background: #fff; }
+    .ghost-card.material { height: 104px; background: repeating-linear-gradient(90deg, #fff 0 77px, #f7f9fb 77px 78px); }
+
+    .path-row {
+      height: 30px;
+      display: grid;
+      grid-template-columns: 40px minmax(0,1fr) auto;
+      align-items: center;
+      position: relative;
+      padding: 2px 3px 2px 7px;
+      border: 1px solid #cfd7e2;
+      background: #fff;
+      font-size: 10px;
+    }
+    .path-label { color: var(--muted); font-weight: 700; }
+    .path-value {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: Consolas, monospace;
+      color: #293442;
+    }
+    .path-button {
+      height: 24px;
+      padding: 0 8px;
+      border: 1px solid #cbd3df;
+      border-radius: 3px;
+      background: #fff;
+      color: #3b4655;
+      font-size: 10px;
+    }
+    .path-button:hover, .path-button.active { border-color: var(--blue); color: var(--blue); background: #f2f8ff; }
+
+    .popover {
+      position: absolute;
+      z-index: 10;
+      left: 0;
+      right: 0;
+      top: 34px;
+      padding: 8px;
+      border: 1px solid #b9c3d0;
+      background: #fff;
+      box-shadow: 0 14px 30px rgba(28, 38, 54, .22);
+      transform-origin: top right;
+      animation: pop .18s ease both;
+    }
+    @keyframes pop { from { opacity: 0; transform: translateY(-4px) scale(.99); } }
+    .hidden { display: none !important; }
+
+    .tree-item {
+      height: 26px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 7px;
+      border-radius: 2px;
+      color: #4a5564;
+      font-size: 11px;
+    }
+    .tree-item.indent { padding-left: 24px; }
+    .tree-item:hover { background: #f2f6fb; }
+    .tree-item.selected { color: #0958d9; background: var(--blue-soft); font-weight: 700; }
+    .popup-foot { display: flex; justify-content: flex-end; gap: 6px; padding-top: 7px; border-top: 1px solid var(--line-soft); }
+
+    .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .quick-card {
+      min-width: 0;
+      padding: 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+      text-align: left;
+    }
+    .quick-card:hover { border-color: var(--blue); background: #f7fbff; }
+    .quick-card b { display: block; margin-bottom: 3px; font-size: 11px; }
+    .quick-card span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font: 9px Consolas, monospace; }
+    .quick-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; color: var(--muted); font-size: 9px; }
+
+    .crumbs { display: flex; gap: 2px; padding-bottom: 7px; overflow: hidden; }
+    .crumb {
+      border: 0;
+      padding: 3px 5px;
+      background: #edf2f7;
+      color: #4d5a69;
+      font-size: 9px;
+    }
+    .folder-list { border-top: 1px solid var(--line-soft); }
+    .folder-row {
+      height: 28px;
+      display: grid;
+      grid-template-columns: 20px 1fr auto;
+      align-items: center;
+      padding: 0 6px;
+      border-bottom: 1px solid #f0f2f5;
+      font-size: 10px;
+    }
+    .folder-row:hover { background: #f5f9ff; }
+    .folder-row small { color: #9aa3af; }
+
+    .search-box {
+      width: 100%;
+      height: 28px;
+      padding: 0 9px;
+      border: 1px solid #bfc8d5;
+      outline: 0;
+      font-size: 10px;
+    }
+    .search-box:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(22,119,255,.12); }
+    .recent-title { margin: 10px 0 5px; color: var(--muted); font: 700 9px Consolas, monospace; letter-spacing: .08em; }
+    .recent-row {
+      display: grid;
+      grid-template-columns: 18px 1fr auto;
+      align-items: center;
+      gap: 6px;
+      min-height: 32px;
+      padding: 4px 5px;
+      border-bottom: 1px solid var(--line-soft);
+      font-size: 10px;
+    }
+    .recent-row:hover { background: #f5f9ff; }
+    .recent-row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: Consolas, monospace; }
+    .pin { color: #a6afbd; }
+
+    .verdict {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      background: var(--line);
+    }
+    .metric { padding: 10px; background: #fff; }
+    .metric small { display: block; color: var(--muted); font-size: 9px; }
+    .metric b { display: block; margin-top: 4px; font: 700 13px Consolas, monospace; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 99;
+      padding: 8px 14px;
+      color: #fff;
+      background: #1f2833;
+      border: 1px solid #465363;
+      border-radius: 3px;
+      font-size: 11px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.25);
+      opacity: 0;
+      transform: translate(-50%, 8px);
+      pointer-events: none;
+      transition: .18s ease;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 820px) {
+      .masthead, .layout { grid-template-columns: 1fr; }
+      .contract { min-width: 0; }
+      .rail { position: static; display: grid; grid-template-columns: 1fr 1fr; }
+      .rail-title, .rail-note { grid-column: 1 / -1; }
+      .board { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">Prepress Toolbox / UI Decision Sheet</p>
+        <h1>输出路径，应该怎样选？</h1>
+        <p class="subtitle">针对材料选择框 360px 工位，下面四种方案都保持路径可见、切换动作短、不会遮挡主要参数。点击左侧方案并直接操作原型。</p>
+      </div>
+      <div class="contract">工作台宽度 <b>360px</b><br>路径行高度 <b>30px</b><br>推荐点击数 <b>≤ 2</b></div>
+    </header>
+
+    <div class="layout">
+      <aside class="rail">
+        <p class="rail-title">SELECT A PATTERN</p>
+        <button class="scheme-tab active" data-target="scheme-a"><span class="index">01</span><span><strong>目录树浮层</strong><small>最接近现有实现</small></span><span class="tag">推荐</span></button>
+        <button class="scheme-tab" data-target="scheme-b"><span class="index">02</span><span><strong>常用路径面板</strong><small>生产效率最高</small></span></button>
+        <button class="scheme-tab" data-target="scheme-c"><span class="index">03</span><span><strong>面包屑浏览器</strong><small>层级关系最清楚</small></span></button>
+        <button class="scheme-tab" data-target="scheme-d"><span class="index">04</span><span><strong>搜索与最近使用</strong><small>目录很多时更快</small></span></button>
+        <p class="rail-note">建议最终采用 01 为主入口，并把 02 的“最近 / 常用路径”放在浮层顶部，形成混合方案。</p>
+      </aside>
+
+      <section class="board">
+        <article class="scheme active" id="scheme-a">
+          <div class="scheme-head"><div><p class="scheme-kicker">PATTERN 01 / TREE POPOVER</p><h2>目录树浮层</h2><p class="scheme-desc">点击按钮后在路径行下方展开完整目录树。保留用户熟悉的层级结构，改动成本最低，也最贴合当前 HTML 设计稿。</p></div><span class="score">推荐度 9.2 / 10</span></div>
+          <div class="stage">
+            <div class="station">
+              <div class="titlebar"><span>铭牌_A款_80×45mm.pdf</span><span>📌</span></div>
+              <div class="mock-stack">
+                <div class="ghost-card material"></div>
+                <div class="path-row">
+                  <span class="path-label">输出:</span>
+                  <span class="path-value" data-path>D:\生产输出\今日输出\不干胶标签</span>
+                  <button class="path-button active" onclick="togglePopup('treePopup', this)">📂 切换目录 ▾</button>
+                  <div class="popover" id="treePopup">
+                    <div class="tree-item">▾ 📁 D:\生产输出</div>
+                    <button class="tree-item indent selected" data-select-path="D:\生产输出\今日输出\不干胶标签">📂 今日输出\不干胶标签</button>
+                    <button class="tree-item indent" data-select-path="D:\生产输出\今日输出\书籍画册">📁 今日输出\书籍画册</button>
+                    <button class="tree-item indent" data-select-path="D:\生产输出\返工文件">📁 返工文件</button>
+                    <button class="tree-item" data-select-path="E:\客户文件\待输出">📁 E:\客户文件\待输出</button>
+                    <div class="popup-foot"><button class="path-button" onclick="togglePopup('treePopup')">取消</button><button class="path-button active" onclick="confirmPopup('treePopup')">完成</button></div>
+                  </div>
+                </div>
+                <div class="ghost-card"></div><div class="ghost-card"></div><div class="ghost-card"></div>
+              </div>
+            </div>
+          </div>
+          <div class="verdict"><div class="metric"><small>学习成本</small><b>低</b></div><div class="metric"><small>适合目录规模</small><b>中等</b></div><div class="metric"><small>实现成本</small><b>低</b></div></div>
+        </article>
+
+        <article class="scheme" id="scheme-b">
+          <div class="scheme-head"><div><p class="scheme-kicker">PATTERN 02 / QUICK DESTINATIONS</p><h2>常用路径快捷面板</h2><p class="scheme-desc">把生产中最常用的目录做成两列快捷卡片，选择一次即切换；底部保留“浏览全部目录”作为兜底。适合路径稳定、重复操作多的场景。</p></div><span class="score">推荐度 9.5 / 10</span></div>
+          <div class="stage">
+            <div class="station">
+              <div class="titlebar"><span>铭牌_A款_80×45mm.pdf</span><span>📌</span></div>
+              <div class="mock-stack">
+                <div class="ghost-card material"></div>
+                <div class="path-row">
+                  <span class="path-label">输出:</span><span class="path-value" data-path>D:\生产输出\今日输出</span><button class="path-button active" onclick="togglePopup('quickPopup', this)">常用目录 ▾</button>
+                  <div class="popover hidden" id="quickPopup">
+                    <div class="quick-grid">
+                      <button class="quick-card" data-select-path="D:\生产输出\今日输出"><b>⚡ 今日输出</b><span>D:\生产输出\今日输出</span></button>
+                      <button class="quick-card" data-select-path="D:\生产输出\不干胶标签"><b>🏷 不干胶</b><span>D:\生产输出\不干胶标签</span></button>
+                      <button class="quick-card" data-select-path="D:\生产输出\书籍画册"><b>📘 书籍画册</b><span>D:\生产输出\书籍画册</span></button>
+                      <button class="quick-card" data-select-path="E:\客户文件\待输出"><b>📥 客户待输出</b><span>E:\客户文件\待输出</span></button>
+                    </div>
+                    <div class="quick-foot"><span>最近使用自动置顶</span><button class="path-button">浏览全部目录…</button></div>
+                  </div>
+                </div>
+                <div class="ghost-card"></div><div class="ghost-card"></div><div class="ghost-card"></div>
+              </div>
+            </div>
+          </div>
+          <div class="verdict"><div class="metric"><small>日常点击数</small><b>1 次</b></div><div class="metric"><small>适合目录规模</small><b>固定常用</b></div><div class="metric"><small>实现成本</small><b>中</b></div></div>
+        </article>
+
+        <article class="scheme" id="scheme-c">
+          <div class="scheme-head"><div><p class="scheme-kicker">PATTERN 03 / BREADCRUMB BROWSER</p><h2>面包屑目录浏览器</h2><p class="scheme-desc">使用面包屑表达当前位置，下方只显示当前层级。界面更干净，路径很深时也容易理解，但切换跨根目录时点击次数会增加。</p></div><span class="score">推荐度 7.8 / 10</span></div>
+          <div class="stage">
+            <div class="station">
+              <div class="titlebar"><span>铭牌_A款_80×45mm.pdf</span><span>📌</span></div>
+              <div class="mock-stack">
+                <div class="ghost-card material"></div>
+                <div class="path-row">
+                  <span class="path-label">输出:</span><span class="path-value" data-path>D:\生产输出\今日输出</span><button class="path-button active" onclick="togglePopup('crumbPopup', this)">浏览 ▾</button>
+                  <div class="popover hidden" id="crumbPopup">
+                    <div class="crumbs"><button class="crumb">此电脑</button><button class="crumb">D:</button><button class="crumb">生产输出</button><button class="crumb">今日输出</button></div>
+                    <div class="folder-list">
+                      <button class="folder-row" data-select-path="D:\生产输出\今日输出\不干胶标签"><span>📁</span><span>不干胶标签</span><small>12 项</small></button>
+                      <button class="folder-row" data-select-path="D:\生产输出\今日输出\书籍画册"><span>📁</span><span>书籍画册</span><small>8 项</small></button>
+                      <button class="folder-row" data-select-path="D:\生产输出\今日输出\名牌卡片"><span>📁</span><span>名牌卡片</span><small>5 项</small></button>
+                    </div>
+                    <div class="popup-foot"><button class="path-button active" onclick="confirmPopup('crumbPopup')">选择当前目录</button></div>
+                  </div>
+                </div>
+                <div class="ghost-card"></div><div class="ghost-card"></div><div class="ghost-card"></div>
+              </div>
+            </div>
+          </div>
+          <div class="verdict"><div class="metric"><small>层级辨识</small><b>最佳</b></div><div class="metric"><small>适合目录规模</small><b>深层级</b></div><div class="metric"><small>实现成本</small><b>中高</b></div></div>
+        </article>
+
+        <article class="scheme" id="scheme-d">
+          <div class="scheme-head"><div><p class="scheme-kicker">PATTERN 04 / SEARCH & RECENTS</p><h2>搜索与最近使用</h2><p class="scheme-desc">直接搜索目录名称，并把最近使用路径放在输入框下方。适合客户目录非常多、名称已知但层级难记的工作环境。</p></div><span class="score">推荐度 8.6 / 10</span></div>
+          <div class="stage">
+            <div class="station">
+              <div class="titlebar"><span>铭牌_A款_80×45mm.pdf</span><span>📌</span></div>
+              <div class="mock-stack">
+                <div class="ghost-card material"></div>
+                <div class="path-row">
+                  <span class="path-label">输出:</span><span class="path-value" data-path>D:\生产输出\今日输出</span><button class="path-button active" onclick="togglePopup('searchPopup', this)">⌕ 查找 ▾</button>
+                  <div class="popover hidden" id="searchPopup">
+                    <input class="search-box" id="pathSearch" placeholder="输入客户名或目录名…" oninput="filterPaths(this.value)">
+                    <p class="recent-title">RECENT DESTINATIONS</p>
+                    <div id="recentPaths">
+                      <button class="recent-row" data-search="今日输出" data-select-path="D:\生产输出\今日输出"><span>↺</span><span>D:\生产输出\今日输出</span><span class="pin">★</span></button>
+                      <button class="recent-row" data-search="不干胶 标签" data-select-path="D:\生产输出\不干胶标签"><span>↺</span><span>D:\生产输出\不干胶标签</span><span class="pin">☆</span></button>
+                      <button class="recent-row" data-search="德佰仕 客户" data-select-path="E:\客户文件\德佰仕\待输出"><span>↺</span><span>E:\客户文件\德佰仕\待输出</span><span class="pin">☆</span></button>
+                      <button class="recent-row" data-search="书籍 画册" data-select-path="D:\生产输出\书籍画册"><span>↺</span><span>D:\生产输出\书籍画册</span><span class="pin">☆</span></button>
+                    </div>
+                  </div>
+                </div>
+                <div class="ghost-card"></div><div class="ghost-card"></div><div class="ghost-card"></div>
+              </div>
+            </div>
+          </div>
+          <div class="verdict"><div class="metric"><small>查找效率</small><b>高</b></div><div class="metric"><small>适合目录规模</small><b>大型</b></div><div class="metric"><small>实现成本</small><b>高</b></div></div>
+        </article>
+      </section>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+  <script>
+    const tabs = [...document.querySelectorAll('.scheme-tab')];
+    tabs.forEach(tab => tab.addEventListener('click', () => {
+      tabs.forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.scheme').forEach(x => x.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.target).classList.add('active');
+    }));
+
+    function togglePopup(id, button) {
+      const popup = document.getElementById(id);
+      popup.classList.toggle('hidden');
+      if (button) button.classList.toggle('active', !popup.classList.contains('hidden'));
+    }
+
+    function confirmPopup(id) {
+      document.getElementById(id).classList.add('hidden');
+      notify('输出目录已更新');
+    }
+
+    document.addEventListener('click', event => {
+      const item = event.target.closest('[data-select-path]');
+      if (!item) return;
+      const scheme = item.closest('.scheme');
+      scheme.querySelectorAll('[data-path]').forEach(el => el.textContent = item.dataset.selectPath);
+      item.parentElement.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+      item.classList.add('selected');
+      if (!item.closest('#treePopup') && !item.closest('#crumbPopup')) {
+        const popup = item.closest('.popover');
+        if (popup) popup.classList.add('hidden');
+        notify('已切换到：' + item.dataset.selectPath);
+      }
+    });
+
+    function filterPaths(value) {
+      const q = value.trim().toLowerCase();
+      document.querySelectorAll('#recentPaths [data-search]').forEach(row => {
+        row.style.display = !q || (row.dataset.search + row.dataset.selectPath).toLowerCase().includes(q) ? 'grid' : 'none';
+      });
+    }
+
+    let toastTimer;
+    function notify(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+  </script>
+</body>
+</html>

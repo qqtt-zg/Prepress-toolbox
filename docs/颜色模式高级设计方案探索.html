@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>颜色模式切换：方案 04 底边贯穿式细长光轨设计</title>
+  <style>
+    :root {
+      --bg: #0e1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --border-light: #21262d;
+      --text-white: #f0f6fc;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+    }
+
+    [data-theme="light"] {
+      --bg: #f4f6f8;
+      --card-bg: #ffffff;
+      --border: #d4dbe4;
+      --border-light: #e6ecf2;
+      --text-white: #1f2429;
+      --text-muted: #6e7781;
+      --accent: #1677ff;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 30px 20px 60px;
+      background: var(--bg);
+      color: var(--text-white);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+      max-width: 860px;
+    }
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    p.lead {
+      margin: 0;
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* 顶部主题与全局操作条 */
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      background: var(--card-bg);
+      padding: 8px 18px;
+      border-radius: 30px;
+      border: 1px solid var(--border);
+      margin-bottom: 32px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+    .btn-tool {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-white);
+      padding: 5px 12px;
+      border-radius: 16px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-tool:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .btn-tool.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    /* 对比舞台 */
+    .lab-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      width: 100%;
+      max-width: 1160px;
+      margin-bottom: 40px;
+    }
+
+    .concept-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 16px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    .concept-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+      border-color: rgba(88, 166, 255, 0.4);
+    }
+    .concept-tag {
+      position: absolute;
+      top: -10px;
+      left: 16px;
+      background: #8957e5;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: 0.5px;
+    }
+    .concept-tag.featured { background: linear-gradient(135deg, #1f6feb, #238636); }
+    .concept-tag.glow { background: linear-gradient(135deg, #f778ba, #58a6ff); }
+
+    .concept-title {
+      font-size: 14.5px;
+      font-weight: 700;
+      margin: 4px 0 6px;
+      text-align: center;
+    }
+    .concept-desc {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.5;
+      margin-bottom: 22px;
+      min-height: 35px;
+    }
+
+    /* 仿真工位卡片外壳 */
+    .sim-card {
+      width: 332px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+      position: relative;
+      padding-bottom: 12px;
+    }
+
+    /* 顶部控制行 (26px) */
+    .sim-ctrl-row {
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      padding: 0 2px;
+    }
+
+    .impo-icon-btn {
+      width: 26px;
+      height: 24px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      background: rgba(88, 166, 255, 0.1);
+      color: var(--accent);
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .mini-capsule {
+      display: inline-flex;
+      height: 22px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+    .mini-capsule span {
+      padding: 0 6px;
+      font-size: 10px;
+      line-height: 20px;
+      color: var(--text-muted);
+    }
+    .mini-capsule span.on {
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* 包含边框外挂按钮的容器 */
+    .metrics-anchor-wrap {
+      position: relative;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* 5 宫格参数看板核心区域 */
+    .metrics-5-strip {
+      width: 100%;
+      height: 44px;
+      position: relative;
+      border-radius: 5px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      align-items: center;
+      text-align: center;
+      background: var(--card-bg);
+      overflow: hidden;
+      isolation: isolate;
+      transition: all 0.35s ease;
+    }
+
+    /* 精确还原的锥形光晕外环 (SDF 距离场感) */
+    .metrics-5-strip::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 5px;
+      padding: 2px;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      z-index: 2;
+      transition: background 0.4s ease, filter 0.4s ease;
+    }
+    .metrics-5-strip::after {
+      content: "";
+      position: absolute;
+      inset: 2px;
+      border-radius: 3px;
+      background: rgba(22, 27, 34, 0.90);
+      box-shadow: inset 0 0 9px rgba(0,0,0,0.5);
+      pointer-events: none;
+      z-index: 1;
+      transition: background 0.4s ease;
+    }
+    [data-theme="light"] .metrics-5-strip::after {
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: inset 0 0 9px rgba(22, 31, 42, 0.05);
+    }
+
+    /* 彩色态彩环 */
+    .metrics-5-strip.glow-color::before {
+      background: conic-gradient(
+        from 0deg,
+        #ff9a9a,
+        #8de2dc,
+        #83cee1,
+        #bde4d2,
+        #ffe08a,
+        #ffc8f2,
+        #ff9a9a
+      );
+      filter: blur(0.4px);
+    }
+    /* 黑白态 (金属银灰冷调) */
+    .metrics-5-strip.glow-mono::before {
+      background: conic-gradient(
+        from 0deg,
+        #50565e,
+        #9ca3af,
+        #f3f4f6,
+        #9ca3af,
+        #50565e
+      );
+      filter: blur(0.4px);
+    }
+
+    /* 指标单格 */
+    .metric-cell {
+      position: relative;
+      z-index: 3;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      user-select: none;
+      cursor: default;
+    }
+    .metric-cell.clickable { cursor: pointer; }
+    .metric-cell.clickable:hover strong { opacity: 0.8; text-decoration: underline; }
+
+    .metric-cell span {
+      font-size: 9.5px;
+      color: var(--text-muted);
+      line-height: 1;
+      margin-bottom: 7px;
+    }
+    .metric-cell strong {
+      font-size: 13.5px;
+      font-weight: 700;
+      line-height: 1;
+      font-family: ui-monospace, SFMono-Regular, Consolas, sans-serif;
+      transition: color 0.35s ease;
+    }
+
+    /* 数值色彩定义 (彩色态) */
+    .c-grid { color: #58a6ff; }
+    .c-count { color: #f0883e; }
+    .c-rot { color: #bc8cff; }
+    .c-dim { color: #79c0ff; }
+    .c-bleed { color: #f778ba; }
+
+    [data-theme="light"] .c-grid { color: #1677ff; }
+    [data-theme="light"] .c-count { color: #fa8c16; }
+    [data-theme="light"] .c-rot { color: #722ed1; }
+    [data-theme="light"] .c-dim { color: #0958d9; }
+    [data-theme="light"] .c-bleed { color: #eb2f96; }
+
+    /* 黑白全息态 (色彩全部消解为精密墨色) */
+    .glow-mono .c-grid { color: #8b949e; }
+    .glow-mono .c-count { color: #8b949e; }
+    .glow-mono .c-rot { color: #8b949e; }
+    .glow-mono .c-dim { color: #c9d1d9; font-weight: 800; }
+    .glow-mono .c-bleed { color: #8b949e; }
+
+    [data-theme="light"] .glow-mono .c-grid { color: #595959; }
+    [data-theme="light"] .glow-mono .c-count { color: #595959; }
+    [data-theme="light"] .glow-mono .c-rot { color: #595959; }
+    [data-theme="light"] .glow-mono .c-dim { color: #262626; font-weight: 800; }
+    [data-theme="light"] .glow-mono .c-bleed { color: #595959; }
+
+
+    /* ================================================================ */
+    /* 核心实现：方案 04 底边贯穿式细长光轨按钮 (Full-Width Optical Rail)*/
+    /* ================================================================ */
+
+    /* 04-A: 纯净光纤微轨 (8px 高度，无缝贴合底边) */
+    .bottom-rail-pure {
+      width: 100%;
+      height: 9px;
+      margin-top: 3px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border);
+      position: relative;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      overflow: hidden;
+    }
+    [data-theme="light"] .bottom-rail-pure {
+      background: #f0f3f6;
+      border-color: #cbd5e1;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .bottom-rail-pure:hover {
+      height: 11px;
+      margin-top: 2px;
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(88, 166, 255, 0.3);
+    }
+    .bottom-rail-pure:active {
+      transform: scaleY(0.9);
+    }
+
+    /* 内部贯穿式光纤线芯 */
+    .rail-fiber-core {
+      width: 100%;
+      height: 3px;
+      border-radius: 2px;
+      background: linear-gradient(90deg,
+        #ff4081 0%,
+        #ff9100 25%,
+        #ffd600 50%,
+        #00e5ff 75%,
+        #7c4dff 100%
+      );
+      box-shadow: 0 0 8px rgba(0, 229, 255, 0.8), 0 0 4px rgba(255, 64, 129, 0.8);
+      transition: all 0.35s ease;
+    }
+    /* 黑白态：冷黑钛金属微轨 */
+    .glow-mono + .bottom-rail-pure .rail-fiber-core {
+      background: linear-gradient(90deg, #333 0%, #888 50%, #eee 75%, #888 100%);
+      box-shadow: none;
+      opacity: 0.6;
+    }
+
+    /* 04-B: 测控标尺光轨 (13px 高度，带微刻度与4C/1K微标) */
+    .bottom-rail-scale {
+      width: 100%;
+      height: 13px;
+      margin-top: 3px;
+      border-radius: 4px;
+      background: #11151c;
+      border: 1px solid var(--border);
+      position: relative;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      transition: all 0.25s ease;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+    [data-theme="light"] .bottom-rail-scale {
+      background: #ffffff;
+      border-color: #cbd5e1;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .bottom-rail-scale:hover {
+      border-color: var(--accent);
+      box-shadow: 0 2px 10px rgba(88, 166, 255, 0.25);
+    }
+    .bottom-rail-scale:active {
+      transform: scaleY(0.95);
+    }
+
+    .rail-legend {
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .rail-scale-core {
+      flex: 1;
+      margin: 0 8px;
+      height: 3px;
+      border-radius: 1.5px;
+      background: linear-gradient(90deg, #ff4081, #ffd600, #00e5ff);
+      box-shadow: 0 0 6px rgba(0,229,255,0.7);
+      transition: all 0.35s ease;
+    }
+    .glow-mono + .bottom-rail-scale .rail-scale-core {
+      background: linear-gradient(90deg, #444, #999, #eee);
+      box-shadow: none;
+    }
+
+    /* 方案 03（对比）：右侧一体化呼吸微舱 */
+    .pod-trigger-btn {
+      position: absolute;
+      right: 3px;
+      top: 3px;
+      bottom: 3px;
+      width: 14px;
+      border-radius: 4px;
+      z-index: 10;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      transition: all 0.2s;
+    }
+    .pod-trigger-btn:hover {
+      background: rgba(255,255,255,0.15);
+      transform: scaleX(1.1);
+    }
+    .pod-pip {
+      width: 4px;
+      height: 12px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, #ff4081, #00e5ff);
+      box-shadow: 0 0 6px rgba(0,229,255,0.8);
+      transition: all 0.3s;
+    }
+    .glow-mono .pod-pip {
+      background: #8b949e;
+      box-shadow: none;
+    }
+
+    .feature-list {
+      margin-top: 18px;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      width: 100%;
+      border-top: 1px dashed var(--border-light);
+      padding-top: 12px;
+    }
+    .feature-list b { color: var(--text-white); }
+  </style>
+</head>
+<body data-theme="dark">
+
+  <header>
+    <div class="eyebrow">PREPRESS WORKBENCH · CONCEPT 04 REFINED</div>
+    <h1>方案 04：底边贯穿式细长光轨按钮 (Full-Width Optical Rail)</h1>
+    <p class="lead">
+      完美落实您的第一意图：参考方案 03 的光丝微胶囊质感，演变为<b>贯穿整个底边宽度的横向细长按钮</b>。<br>
+      整条底边既是一道极具未来感的<b>光学基座光缆</b>，又是具备极致 Fitts 定律命中率的<b>全局色彩模式触控条</b>。
+    </p>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn-tool active" id="btnDark" onclick="setTheme('dark')">🌙 暗色极客工位</button>
+    <button class="btn-tool" id="btnLight" onclick="setTheme('light')">☀️ 亮色生产工位</button>
+    <span style="font-size: 11px; color: var(--text-muted); margin-left: 8px;">| 快速演示：</span>
+    <button class="btn-tool" onclick="syncAll('color')">🎨 全部彩色</button>
+    <button class="btn-tool" onclick="syncAll('mono')">⚫ 全部黑白</button>
+  </div>
+
+  <div class="lab-grid">
+
+    <!-- ============================================================== -->
+    <!-- 方案 04-A：纯净贯穿光纤微轨                                     -->
+    <!-- ============================================================== -->
+    <div class="concept-card">
+      <div class="concept-tag featured">⭐ 方案 04-A (推荐)</div>
+      <div class="concept-title">贯穿光纤微轨 (Pure Fiber Rail)</div>
+      <div class="concept-desc">9px 极细微轨，贯穿整个 332px 宽度。将方案 03 的微型光丝横向拉伸为整条连续流光。</div>
+
+      <div class="sim-card">
+        <div class="sim-ctrl-row">
+          <div class="impo-icon-btn">📐</div>
+          <div style="font-size: 10px; color: var(--text-muted);">自动排版矩阵</div>
+          <div class="mini-capsule"><span class="on">平张</span><span>卷装</span></div>
+          <div class="mini-capsule"><span class="on">连拼</span><span>折手</span></div>
+          <div style="font-size: 10px; color: var(--text-muted);">标识页</div>
+        </div>
+
+        <div class="metrics-anchor-wrap">
+          <!-- 5 宫格参数看板 (四边完好无缺) -->
+          <div class="metrics-5-strip glow-color" id="board4A">
+            <div class="metric-cell"><span>网格</span><strong class="c-grid">5 × 3</strong></div>
+            <div class="metric-cell"><span>布局数</span><strong class="c-count">15</strong></div>
+            <div class="metric-cell clickable"><span>角度 ↺</span><strong class="c-rot">0°</strong></div>
+            <div class="metric-cell"><span>尺寸</span><strong class="c-dim">80×45</strong></div>
+            <div class="metric-cell clickable"><span>出血 ▾</span><strong class="c-bleed">2.0mm</strong></div>
+          </div>
+
+          <!-- 核心：横向贯穿底边长度的细长光轨按钮 -->
+          <div class="bottom-rail-pure" onclick="toggleConcept('4A')" title="点击整条光轨：切换 4色全彩 CMYK ⇄ 单色黑白 K">
+            <div class="rail-fiber-core"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-list">
+        • <b>点击底轨测试</b>：点击 332px 任意底边位置均可触发切换<br>
+        • <b>基线平衡美感</b>：像高端专业仪器底部的光电防滑底座，沉稳大气<br>
+        • <b>极致无字化</b>：纯靠横跨 332px 的光纤流光指示色彩，无任何冗余文字
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- 方案 04-B：标尺测控贯穿轨                                       -->
+    <!-- ============================================================== -->
+    <div class="concept-card">
+      <div class="concept-tag glow">方案 04-B</div>
+      <div class="concept-title">测控标尺贯穿轨 (Prepress Track)</div>
+      <div class="concept-desc">13px 稍宽光轨，两端带 4C / 1K 印前微刻度，兼备光纤流光与印刷机标尺质感。</div>
+
+      <div class="sim-card">
+        <div class="sim-ctrl-row">
+          <div class="impo-icon-btn">📐</div>
+          <div style="font-size: 10px; color: var(--text-muted);">自动排版矩阵</div>
+          <div class="mini-capsule"><span class="on">平张</span><span>卷装</span></div>
+          <div class="mini-capsule"><span class="on">连拼</span><span>折手</span></div>
+          <div style="font-size: 10px; color: var(--text-muted);">标识页</div>
+        </div>
+
+        <div class="metrics-anchor-wrap">
+          <!-- 5 宫格参数看板 -->
+          <div class="metrics-5-strip glow-color" id="board4B">
+            <div class="metric-cell"><span>网格</span><strong class="c-grid">5 × 3</strong></div>
+            <div class="metric-cell"><span>布局数</span><strong class="c-count">15</strong></div>
+            <div class="metric-cell clickable"><span>角度 ↺</span><strong class="c-rot">0°</strong></div>
+            <div class="metric-cell"><span>尺寸</span><strong class="c-dim">80×45</strong></div>
+            <div class="metric-cell clickable"><span>出血 ▾</span><strong class="c-bleed">2.0mm</strong></div>
+          </div>
+
+          <!-- 核心：带微刻度的贯穿光轨 -->
+          <div class="bottom-rail-scale" onclick="toggleConcept('4B')" title="点击贯穿标尺轨：切换色彩模式">
+            <span class="rail-legend" id="legend4B_L">CMYK</span>
+            <div class="rail-scale-core"></div>
+            <span class="rail-legend" id="legend4B_R">4C</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-list">
+        • <b>印前仪器 DNA</b>：两端微型等宽刻度字符，极具车间操作台调色板质感<br>
+        • <b>触感更厚实</b>：13px 高度更适合大鼠标热区，手感扎实<br>
+        • <b>双态标识</b>：彩色显示 CMYK 4C；黑白自动折叠为 MONO 1K
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- 方案 03（对比）：右侧一体化呼吸微舱                             -->
+    <!-- ============================================================== -->
+    <div class="concept-card">
+      <div class="concept-tag" style="background: #6e7681;">方案 03 (参考基准)</div>
+      <div class="concept-title">边框右侧内嵌 · 呼吸微舱 (Ambient Pod)</div>
+      <div class="concept-desc">您刚才觉得有意思的原版方案 03，作为样式参照，方便对比竖向内嵌与横向贯穿。</div>
+
+      <div class="sim-card">
+        <div class="sim-ctrl-row">
+          <div class="impo-icon-btn">📐</div>
+          <div style="font-size: 10px; color: var(--text-muted);">自动排版矩阵</div>
+          <div class="mini-capsule"><span class="on">平张</span><span>卷装</span></div>
+          <div class="mini-capsule"><span class="on">连拼</span><span>折手</span></div>
+          <div style="font-size: 10px; color: var(--text-muted);">标识页</div>
+        </div>
+
+        <div class="metrics-anchor-wrap">
+          <div class="metrics-5-strip glow-color" id="board3" style="padding-right: 14px;">
+            <div class="metric-cell"><span>网格</span><strong class="c-grid">5 × 3</strong></div>
+            <div class="metric-cell"><span>布局数</span><strong class="c-count">15</strong></div>
+            <div class="metric-cell clickable"><span>角度 ↺</span><strong class="c-rot">0°</strong></div>
+            <div class="metric-cell"><span>尺寸</span><strong class="c-dim">80×45</strong></div>
+            <div class="metric-cell clickable"><span>出血 ▾</span><strong class="c-bleed">2.0mm</strong></div>
+
+            <!-- 右侧内嵌呼吸微按键 -->
+            <div class="pod-trigger-btn" onclick="toggleConcept(3)" title="轻触流体色舱：切换全局色彩模式">
+              <div class="pod-pip"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-list">
+        • <b>样式来源</b>：方案 04 的光纤质感正是由这里的 <code>pod-pip</code> 演化而来<br>
+        • <b>形态差异</b>：方案 03 是右边框内嵌的 12px 竖条；方案 04 是底部外挂的 332px 贯穿横轨<br>
+        • <b>空间差异</b>：方案 04 把右侧空间完全还给 5 宫格
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const state = { '4A': 'color', '4B': 'color', 3: 'color' };
+
+    function toggleConcept(id) {
+      state[id] = (state[id] === 'color') ? 'mono' : 'color';
+      renderConcept(id);
+    }
+
+    function renderConcept(id) {
+      const mode = state[id];
+      const isMono = (mode === 'mono');
+
+      if (id === '4A') {
+        const b = document.getElementById('board4A');
+        b.classList.toggle('glow-color', !isMono);
+        b.classList.toggle('glow-mono', isMono);
+      } else if (id === '4B') {
+        const b = document.getElementById('board4B');
+        const lL = document.getElementById('legend4B_L');
+        const lR = document.getElementById('legend4B_R');
+        b.classList.toggle('glow-color', !isMono);
+        b.classList.toggle('glow-mono', isMono);
+        lL.textContent = isMono ? 'MONO' : 'CMYK';
+        lR.textContent = isMono ? '1K' : '4C';
+      } else if (id === 3) {
+        const b = document.getElementById('board3');
+        b.classList.toggle('glow-color', !isMono);
+        b.classList.toggle('glow-mono', isMono);
+      }
+    }
+
+    function syncAll(mode) {
+      state['4A'] = mode;
+      state['4B'] = mode;
+      state[3] = mode;
+      renderConcept('4A');
+      renderConcept('4B');
+      renderConcept(3);
+    }
+
+    function setTheme(theme) {
+      document.body.setAttribute('data-theme', theme);
+      document.getElementById('btnDark').classList.toggle('active', theme === 'dark');
+      document.getElementById('btnLight').classList.toggle('active', theme === 'light');
+    }
+  </script>
+</body>
+</html>

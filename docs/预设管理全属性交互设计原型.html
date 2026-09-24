@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>预设管理工作台：极简属性检查器架构设计 (Simplified Inspector Pro)</title>
+  <style>
+    :root {
+      --bg: #f2f5f8;
+      --surface: #ffffff;
+      --card-bg: #ffffff;
+      --border: #d4dbe4;
+      --border-light: #e6ebf2;
+      --text-main: #1f2429;
+      --text-secondary: #4b525d;
+      --text-muted: #8c95a0;
+      --primary: #1677ff;
+      --primary-hover: #4096ff;
+      --primary-light: #e6f4ff;
+      --primary-border: #91caff;
+      --success: #52c41a;
+      --danger: #ff4d4f;
+      --purple: #722ed1;
+      --purple-light: #f9f0ff;
+      --purple-border: #d3adf7;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0c0e12;
+      --surface: #151921;
+      --card-bg: #1c212c;
+      --border: #28303e;
+      --border-light: #202632;
+      --text-main: #f0f4fc;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --primary: #58a6ff;
+      --primary-hover: #79c0ff;
+      --primary-light: rgba(88, 166, 255, 0.12);
+      --primary-border: rgba(88, 166, 255, 0.35);
+      --purple: #bc8cff;
+      --purple-light: rgba(188, 140, 255, 0.12);
+      --purple-border: rgba(188, 140, 255, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px 20px 60px;
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 18px;
+      max-width: 960px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    p.lead {
+      margin: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .btn-tool {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 5px 14px;
+      border-radius: 16px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      transition: all 0.2s;
+    }
+    .btn-tool:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-tool.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    /* ================================================================ */
+    /* 核心工作台主窗口外壳 (1040 × 640px 现代桌面视窗)                  */
+    /* ================================================================ */
+    .manager-window {
+      width: 1040px;
+      height: 640px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.08);
+      display: grid;
+      grid-template-rows: 44px 1fr 48px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .win-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .win-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .win-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .win-search-box {
+      position: relative;
+      width: 240px;
+    }
+    .win-search-input {
+      width: 100%;
+      height: 28px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text-main);
+      font-size: 12px;
+      padding: 0 10px 0 28px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .win-search-input:focus {
+      border-color: var(--primary);
+      background: var(--surface);
+      box-shadow: 0 0 0 2px var(--primary-light);
+    }
+    .search-icon {
+      position: absolute;
+      left: 9px;
+      top: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* 三栏架构：分组导轨 (180px) + 预设卡片列表 (360px) + 极简属性舱 (500px) */
+    .win-body {
+      display: grid;
+      grid-template-columns: 180px 360px 1fr;
+      overflow: hidden;
+      background: var(--bg);
+      position: relative;
+    }
+
+    /* 栏 1: 分组导轨 */
+    .group-sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .group-head {
+      height: 38px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+    .btn-group-action {
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--primary);
+      font-size: 10.5px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-group-action:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+    }
+
+    .group-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .group-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .group-item:hover {
+      background: var(--bg);
+      color: var(--text-main);
+    }
+    .group-item.active {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .group-badge {
+      font-size: 10px;
+      background: rgba(0,0,0,0.06);
+      padding: 1px 6px;
+      border-radius: 10px;
+      color: var(--text-muted);
+    }
+    [data-theme="dark"] .group-badge { background: rgba(255,255,255,0.08); }
+    .group-item.active .group-badge {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    /* 栏 2: 预设列表矩阵 */
+    .preset-center-deck {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+      border-right: 1px solid var(--border);
+      position: relative;
+    }
+    .deck-head {
+      height: 38px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-light);
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .deck-head-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chk-select-all {
+      cursor: pointer;
+      width: 14px;
+      height: 14px;
+      accent-color: var(--primary);
+    }
+
+    .deck-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-bottom: 60px;
+    }
+
+    .preset-row-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 10px;
+      display: grid;
+      grid-template-columns: 18px 16px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+      user-select: none;
+    }
+    .preset-row-card:hover {
+      border-color: var(--primary-border);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+      transform: translateX(2px);
+    }
+    .preset-row-card.active {
+      border-color: var(--primary);
+      background: var(--surface);
+      box-shadow: inset 3px 0 0 var(--primary), 0 3px 10px rgba(22, 119, 255, 0.08);
+    }
+    .preset-row-card.checked-item {
+      background: #f0f7ff;
+      border-color: #91caff;
+    }
+    [data-theme="dark"] .preset-row-card.checked-item {
+      background: rgba(88, 166, 255, 0.08);
+      border-color: #1f6feb;
+    }
+
+    .card-checkbox {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+    .drag-grip {
+      color: var(--text-muted);
+      cursor: grab;
+      font-size: 11px;
+      display: grid;
+      place-items: center;
+    }
+
+    .preset-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+    .preset-name-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .preset-title-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .group-pill-tag {
+      font-size: 9px;
+      padding: 0 5px;
+      border-radius: 3px;
+      background: #f0f0f0;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    [data-theme="dark"] .group-pill-tag { background: rgba(255,255,255,0.08); }
+
+    .preset-chips {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      font-size: 9.5px;
+      padding: 1px 5px;
+      border-radius: 2px;
+      background: rgba(0,0,0,0.04);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-light);
+      white-space: nowrap;
+    }
+    [data-theme="dark"] .chip { background: rgba(255,255,255,0.04); }
+    .chip.mat { color: var(--primary); font-weight: 600; }
+    .chip.impo { color: #fa8c16; }
+    .chip.ignored {
+      color: var(--text-muted);
+      background: transparent;
+      border-style: dashed;
+      text-decoration: line-through;
+    }
+
+    .btn-pin {
+      width: 26px;
+      height: 26px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .btn-pin:hover {
+      background: rgba(0,0,0,0.05);
+      color: var(--text-main);
+    }
+    .btn-pin.pinned {
+      color: var(--primary);
+      background: var(--primary-light);
+      border-color: var(--primary-border);
+    }
+
+    /* 吸附式批量操作浮层 */
+    .batch-floating-bar {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      height: 40px;
+      background: #1f2429;
+      color: #fff;
+      border-radius: 20px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      z-index: 50;
+      transform: translateY(60px);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .batch-floating-bar.show {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .btn-batch-action {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-batch-action:hover {
+      background: rgba(255, 255, 255, 0.22);
+      border-color: #fff;
+    }
+    .batch-group-popup {
+      position: absolute;
+      bottom: 48px;
+      right: 40px;
+      width: 170px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+      z-index: 60;
+    }
+    .batch-group-popup.open { display: flex; }
+    .bgp-item {
+      padding: 6px 8px;
+      font-size: 11.5px;
+      color: var(--text-main);
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .bgp-item:hover { background: var(--primary-light); color: var(--primary); }
+
+    /* ================================================================ */
+    /* 核心精简重构：极简模块化属性舱 (Compact Inspector)               */
+    /* ================================================================ */
+    .inspector-pane {
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 14px 18px;
+      gap: 12px;
+    }
+
+    .compact-header-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .header-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .preset-name-input {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      border: 1px solid transparent;
+      background: transparent;
+      padding: 2px 4px;
+      border-radius: 4px;
+      outline: none;
+      width: 240px;
+    }
+    .preset-name-input:focus, .preset-name-input:hover {
+      background: var(--surface);
+      border-color: var(--primary);
+    }
+    .header-bottom-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 11.5px;
+    }
+
+    /* 3 大紧凑工位卡片舱 (Compact Module Pods) */
+    .compact-module-pod {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    .pod-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .pod-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      letter-spacing: 0.5px;
+    }
+    .pod-quick-rule {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .pod-quick-rule:hover { color: var(--primary); text-decoration: underline; }
+
+    /* 极简参数微网格 (2 列并排，告别 14 行长单列) */
+    .pod-fields-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 14px;
+    }
+    .pod-field-full {
+      grid-column: span 2;
+    }
+
+    /* ------------------------------------------------------------- */
+    /* 核心极简创新：参数微单元 (带有微型跟随锁定状态标)               */
+    /* ------------------------------------------------------------- */
+    .compact-field-unit {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      position: relative;
+    }
+    .field-label-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+    }
+    .field-name {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    /* 极简微型锁头标签 (点击一键切换跟随/保持，零多余胶囊！) */
+    .micro-follow-latch {
+      font-size: 9.5px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.15s ease;
+      font-weight: 600;
+    }
+    /* 跟随状态：清爽淡蓝 */
+    .micro-follow-latch.active-follow {
+      background: var(--primary-light);
+      color: var(--primary);
+      border: 1px solid var(--primary-border);
+    }
+    /* 保持状态：低调中性灰锁 */
+    .micro-follow-latch.active-ignore {
+      background: #f1f5f9;
+      color: var(--text-muted);
+      border: 1px solid #cbd5e1;
+    }
+    [data-theme="dark"] .micro-follow-latch.active-ignore {
+      background: rgba(255,255,255,0.06);
+      border-color: #384252;
+    }
+
+    /* 输入控件 */
+    .field-control {
+      height: 27px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text-main);
+      font-size: 11.5px;
+      padding: 0 8px;
+      outline: none;
+      width: 100%;
+      transition: all 0.2s;
+    }
+    .field-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-light);
+    }
+    /* 被忽略（保持原值）时的优雅防呆态 */
+    .compact-field-unit.ignored .field-control {
+      background: rgba(0,0,0,0.03);
+      color: var(--text-muted);
+      border-style: dashed;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    .compact-field-unit.ignored .field-name {
+      color: var(--text-muted);
+    }
+
+    /* 一式N联与高级参数的内嵌折叠卡片 */
+    .foldable-sub-panel {
+      background: var(--bg);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      padding: 8px 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .win-footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body data-theme="light">
+
+  <header>
+    <div class="badge">SIMPLIFIED INSPECTOR · 极简三舱重构方案</div>
+    <h1>预设管理工作台：极简属性检查器架构设计</h1>
+    <p class="lead">
+      彻底消解“14行重复大胶囊”的视觉噪音。将平铺长表单收敛为 <b>3 大工位舱（印刷工艺 ＋ 排版参数 ＋ 导出路径）</b>，<br>
+      将跟随控制浓缩为标签右侧的 <b>微型状态锁 `[⚡跟随改变]` ⇄ `[🔒保持原值]`</b>，两列并排，一屏全览无需滚动！
+    </p>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn-tool active" id="btnLight" onclick="setTheme('light')">☀️ 浅色主题</button>
+    <button class="btn-tool" id="btnDark" onclick="setTheme('dark')">🌙 暗色主题</button>
+    <span style="font-size:11px; color:var(--text-muted); margin-left:10px;">👉 <b>极简体验</b>：在右侧点击参数名称旁边的 <b>[⚡跟随] / [🔒保持]</b> 锁标，一秒切换跟随状态！</span>
+  </div>
+
+  <div class="manager-window">
+
+    <!-- 1. 顶栏 -->
+    <div class="win-header">
+      <div class="win-title-group">
+        <span style="font-size: 16px;">⚙️</span>
+        <span class="win-title">材料预设管理与配置中心 (极简检查器架构)</span>
+      </div>
+
+      <div class="win-search-box">
+        <span class="search-icon">🔍</span>
+        <input class="win-search-input" type="text" placeholder="按名称、材料、工艺搜索预设..." oninput="filterPresets(this.value)">
+      </div>
+    </div>
+
+    <!-- 2. 主体三栏 Master-Detail 结构 -->
+    <div class="win-body">
+
+      <!-- 栏 1: 分组导轨 (180px) -->
+      <div class="group-sidebar">
+        <div class="group-head">
+          <span>预设分组 (4)</span>
+          <button class="btn-group-action" onclick="promptAddGroup()">＋ 新建组</button>
+        </div>
+
+        <div class="group-list" id="groupList">
+          <div class="group-item active" onclick="switchGroup('未命名', this)">
+            <span>📁 未命名 (默认)</span>
+            <span class="group-badge" id="badge_未命名">4</span>
+          </div>
+          <div class="group-item" onclick="switchGroup('常用标签', this)">
+            <span>🏷️ 常用标签</span>
+            <span class="group-badge" id="badge_常用标签">0</span>
+          </div>
+          <div class="group-item" onclick="switchGroup('卷装专区', this)">
+            <span>🔄 卷装专区</span>
+            <span class="group-badge" id="badge_卷装专区">0</span>
+          </div>
+          <div class="group-item" onclick="switchGroup('特种模切', this)">
+            <span>✨ 特种模切</span>
+            <span class="group-badge" id="badge_特种模切">0</span>
+          </div>
+        </div>
+
+        <div style="padding: 10px; font-size: 10.5px; color: var(--text-muted); border-top: 1px solid var(--border-light);">
+          💡 提示：分组直接映射到 V5 主界面上方预设 Tab 的分类标签与排序。
+        </div>
+      </div>
+
+      <!-- 栏 2: 预设列表矩阵 (360px) -->
+      <div class="preset-center-deck">
+        <div class="deck-head">
+          <div class="deck-head-left">
+            <input type="checkbox" class="chk-select-all" id="chkSelectAll" onchange="toggleSelectAll(this.checked)" title="全选当前分组预设">
+            <span>全选 · <b id="deckCurrentGroupName" style="color:var(--text-main);">未命名</b></span>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-tool" style="padding:2px 8px; font-size:11px;" onclick="showToast('↕️ 已按名称重新排序')">排序 ▾</button>
+            <button class="btn-tool active" style="padding:2px 8px; font-size:11px;" onclick="addNewPreset()">＋ 新建预设</button>
+          </div>
+        </div>
+
+        <div class="deck-scroll" id="presetDeckList">
+          <!-- 卡片 1 -->
+          <div class="preset-row-card active" onclick="handleCardClick(event, this, '威-A4')" data-name="威-A4" data-group="未命名">
+            <div class="drag-grip" title="按住拖拽排序">⋮⋮</div>
+            <input type="checkbox" class="card-checkbox" onclick="handleCheckboxClick(event, this)">
+            <div class="preset-info">
+              <div class="preset-name-row">
+                <span class="preset-title-text">威-A4</span>
+                <span class="group-pill-tag">未命名</span>
+              </div>
+              <div class="preset-chips">
+                <span class="chip mat">PET透明</span>
+                <span class="chip">光膜</span>
+                <span class="chip impo">连拼</span>
+                <span class="chip">出血 2.0</span>
+              </div>
+            </div>
+            <button class="btn-pin pinned" title="点击取消：不在 V5 界面显示为快捷药丸按钮" onclick="togglePin(event, this, '威-A4')">📌</button>
+          </div>
+
+          <!-- 卡片 2 -->
+          <div class="preset-row-card" onclick="handleCardClick(event, this, '威-卷-折手')" data-name="威-卷-折手" data-group="未命名">
+            <div class="drag-grip" title="按住拖拽排序">⋮⋮</div>
+            <input type="checkbox" class="card-checkbox" onclick="handleCheckboxClick(event, this)">
+            <div class="preset-info">
+              <div class="preset-name-row">
+                <span class="preset-title-text">威-卷-折手</span>
+                <span class="group-pill-tag">未命名</span>
+              </div>
+              <div class="preset-chips">
+                <span class="chip mat">PP环保</span>
+                <span class="chip">哑膜</span>
+                <span class="chip impo">卷装 · 折手</span>
+                <span class="chip ignored" title="此预设不改动路径">路径保持</span>
+              </div>
+            </div>
+            <button class="btn-pin pinned" title="点击取消：不在 V5 界面显示为快捷药丸按钮" onclick="togglePin(event, this, '威-卷-折手')">📌</button>
+          </div>
+
+          <!-- 卡片 3 -->
+          <div class="preset-row-card" onclick="handleCardClick(event, this, '圆角不干胶R5')" data-name="圆角不干胶R5" data-group="未命名">
+            <div class="drag-grip" title="按住拖拽排序">⋮⋮</div>
+            <input type="checkbox" class="card-checkbox" onclick="handleCheckboxClick(event, this)">
+            <div class="preset-info">
+              <div class="preset-name-row">
+                <span class="preset-title-text">圆角不干胶R5</span>
+                <span class="group-pill-tag">未命名</span>
+              </div>
+              <div class="preset-chips">
+                <span class="chip mat">PET哑光</span>
+                <span class="chip" style="color:var(--primary); font-weight:700;">▢ 圆角 R5</span>
+                <span class="chip">一式2联</span>
+              </div>
+            </div>
+            <button class="btn-pin pinned" title="点击取消：不在 V5 界面显示为快捷药丸按钮" onclick="togglePin(event, this, '圆角不干胶R5')">📌</button>
+          </div>
+
+          <!-- 卡片 4 -->
+          <div class="preset-row-card" onclick="handleCardClick(event, this, '异形特种刀模')" data-name="异形特种刀模" data-group="未命名">
+            <div class="drag-grip" title="按住拖拽排序">⋮⋮</div>
+            <input type="checkbox" class="card-checkbox" onclick="handleCheckboxClick(event, this)">
+            <div class="preset-info">
+              <div class="preset-name-row">
+                <span class="preset-title-text">异形特种刀模</span>
+                <span class="group-pill-tag">未命名</span>
+              </div>
+              <div class="preset-chips">
+                <span class="chip mat">PVC 材料</span>
+                <span class="chip special">◇ 异形</span>
+                <span class="chip ignored" title="此预设不更改材料">材料保持</span>
+              </div>
+            </div>
+            <button class="btn-pin" title="点击启用：在 V5 界面显示为快捷药丸按钮" onclick="togglePin(event, this, '异形特种刀模')">📌</button>
+          </div>
+        </div>
+
+        <!-- 批量浮层 -->
+        <div class="batch-floating-bar" id="batchFloatingBar">
+          <div><span>✨ 已选中 <b id="batchSelectedCount" style="color:#58a6ff;">2</b> 项</span></div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-batch-action" onclick="toggleBatchGroupPopup(event)">📁 批量移动分组 ▾</button>
+            <button class="btn-batch-action" onclick="batchTogglePin(true)">📌 批量上屏</button>
+            <button class="btn-batch-action" onclick="batchDeleteSelected()">🗑️ 批量删除</button>
+          </div>
+          <div class="batch-group-popup" id="batchGroupPopup">
+            <div style="font-size:10px; color:var(--text-muted); padding:3px 6px;">移动到目标分组:</div>
+            <div class="bgp-item" onclick="executeBatchMove('未命名')">📁 未命名</div>
+            <div class="bgp-item" onclick="executeBatchMove('常用标签')">🏷️ 常用标签</div>
+            <div class="bgp-item" onclick="executeBatchMove('卷装专区')">🔄 卷装专区</div>
+            <div class="bgp-item" onclick="executeBatchMove('特种模切')">✨ 特种模切</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 栏 3: 核心极简重构属性检查器 (一屏全览，两列并排，无滚动条压力) -->
+      <div class="inspector-pane">
+
+        <!-- 1. 顶层轻量身份栏 -->
+        <div class="compact-header-card">
+          <div class="header-top-row">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:14px;">🏷️</span>
+              <input class="preset-name-input" id="inpPresetName" value="威-A4" placeholder="预设名称..." title="点击直接修改预设名称">
+            </div>
+            <button class="btn-tool" style="color:var(--danger); border-color:var(--border); padding:2px 8px; font-size:11px;" onclick="deleteCurrentPreset()">删除预设</button>
+          </div>
+
+          <div class="header-bottom-row">
+            <div style="display:flex; align-items:center; gap:4px;">
+              <span style="color:var(--text-muted);">所属分组:</span>
+              <select class="c-select" id="selGroupName" style="width:120px; height:24px; font-size:11px;" onchange="syncPresetGroup(this.value)">
+                <option value="未命名" selected>未命名 (默认)</option>
+                <option value="常用标签">常用标签</option>
+                <option value="卷装专区">卷装专区</option>
+                <option value="特种模切">特种模切</option>
+              </select>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:4px;">
+              <input type="checkbox" id="chkShowInButtons" checked onchange="syncPresetPinFromInspector(this.checked)" style="width:14px; height:14px; cursor:pointer;">
+              <label for="chkShowInButtons" style="color:var(--text-secondary); cursor:pointer;">在 V5 快捷药丸显示</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. 印刷工艺舱 (Material & Finish Pod) -->
+        <div class="compact-module-pod">
+          <div class="pod-header">
+            <span class="pod-title">🎨 材料与表面工艺 (Material & Finish)</span>
+            <span class="pod-quick-rule" onclick="togglePodRule('craft')">一键全部跟随 / 保持</span>
+          </div>
+
+          <div class="pod-fields-grid">
+            <!-- 材料选择 -->
+            <div class="compact-field-unit" id="unit_Material">
+              <div class="field-label-bar">
+                <span class="field-name">指定材料</span>
+                <span class="micro-follow-latch active-follow" onclick="toggleUnitFollow(this, 'unit_Material')">⚡ 跟随</span>
+              </div>
+              <select class="field-control" id="ctrl_Material">
+                <option selected>PET透明</option>
+                <option>PP环保</option>
+                <option>PET哑光</option>
+                <option>PVC 材料</option>
+              </select>
+            </div>
+
+            <!-- 颜色模式 -->
+            <div class="compact-field-unit" id="unit_ColorMode">
+              <div class="field-label-bar">
+                <span class="field-name">颜色模式</span>
+                <span class="micro-follow-latch active-follow" onclick="toggleUnitFollow(this, 'unit_ColorMode')">⚡ 跟随</span>
+              </div>
+              <select class="field-control" id="ctrl_ColorMode">
+                <option selected>彩色</option>
+                <option>黑白</option>
+              </select>
+            </div>
+
+            <!-- 覆膜类型 -->
+            <div class="compact-field-unit" id="unit_FilmType">
+              <div class="field-label-bar">
+                <span class="field-name">膜类型</span>
+                <span class="micro-follow-latch active-follow" onclick="toggleUnitFollow(this, 'unit_FilmType')">⚡ 跟随</span>
+              </div>
+              <select class="field-control" id="ctrl_FilmType">
+                <option selected>光膜</option>
+                <option>哑膜</option>
+                <option>红膜</option>
+                <option>不过膜</option>
+              </select>
+            </div>
+
+            <!-- 模切形状与圆角 R (两项合一！) -->
+            <div class="compact-field-unit" id="unit_Shape">
+              <div class="field-label-bar">
+                <span class="field-name">模切形状 / 半径</span>
+                <span class="micro-follow-latch active-follow" onclick="toggleUnitFollow(this, 'unit_Shape')">⚡ 跟随</span>
+              </div>
+              <div style="display:flex; gap:4px;">
+                <select class="field-control" style="flex:1;" id="ctrl_Shape" onchange="document.getElementById('ctrl_R_val').style.display = (this.value==='RoundRect'?'block':'none')">
+                  <option value="RightAngle" selected>▢ 直角</option>
+                  <option value="RoundRect">▢ 圆角 R</option>
+                  <option value="Circle">○ 圆形</option>
+                  <option value="Special">◇ 异形</option>
+                </select>
+                <input class="field-control" id="ctrl_R_val" type="number" value="5" min="0" max="50" style="width:48px; display:none;" placeholder="R">
+              </div>
+            </div>
+
+            <!-- 标识页 (单行全宽轻量呈现) -->
+            <div class="compact-field-unit pod-field-full" id="unit_IdentifierPage" style="flex-direction:row; align-items:center; justify-content:space-between;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <input type="checkbox" id="ctrl_IdentifierPage" style="width:14px; height:14px; cursor:pointer;">
+                <label for="ctrl_IdentifierPage" style="font-size:11.5px; color:var(--text-secondary); cursor:pointer;">大版首尾插入标识页</label>
+              </div>
+              <span class="micro-follow-latch active-follow" onclick="toggleUnitFollow(this, 'unit_IdentifierPage')">⚡ 跟随</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. 排版几何与倍数舱 (Imposition & Duplicate Pod) -->
+        <div class="compact-module-pod">
+          <div class="pod-header">
+            <span class="pod-title">📐 排版开料与倍数 (Imposition & Duplicate)</span>
+            <span class="pod-quick-rule" onclick="togglePodRule('impo')">一键全部跟随 / 保持</span>
+          </div>
+
+          <div class="pod-fields-grid">
+            <!-- 排版引擎启用 -->
+            <div class="compact-field-unit" id="unit_EnableImposition">
+              <div class="field-label-bar">
+                <span class="field-name">启用自动排版</span>
+                <span class="micro-follow-latch active-follow" onclick="toggleUnitFollow(this, 'unit_EnableImposition')">⚡ 跟随</span>
+              </div>
+              <select class="field-control" id="ctrl_EnableImposition">
+                <option value="true" selected>启用计算</option>
+                <option value="false">停用计算</option>
+              </select>
+            </div>
+
+            <!-- 单边出血量 -->
+            <div class="compact-field-unit" id="unit_TetBleed">
+              <div class="field-label-bar">
+                <span class="field-name">出血位 (mm)</span>
+                <span class="micro-follow-latch active-follow" onclick="toggleUnitFollow(this, 'unit_TetBleed')">⚡ 跟随</span>
+              </div>
+              <input class="field-control" id="ctrl_TetBleed" type="number" value="2.0" step="0.5" min="0" max="50">
+            </div>
+
+            <!-- 材料形态 -->
+            <div class="compact-field-unit" id="unit_MaterialType">
+              <div class="field-label-bar">
+                <span class="field-name">材料形态</span>
+                <span class="micro-follow-latch active-follow" onclick="toggleUnitFollow(this, 'unit_MaterialType')">⚡ 跟随</span>
+              </div>
+              <select class="field-control" id="ctrl_MaterialType">
+                <option value="FlatSheet" selected>平张</option>
+                <option value="RollMaterial">卷装</option>
+              </select>
+            </div>
+
+            <!-- 排版模式 -->
+            <div class="compact-field-unit" id="unit_LayoutMode">
+              <div class="field-label-bar">
+                <span class="field-name">排版模式</span>
+                <span class="micro-follow-latch active-follow" onclick="toggleUnitFollow(this, 'unit_LayoutMode')">⚡ 跟随</span>
+              </div>
+              <select class="field-control" id="ctrl_LayoutMode">
+                <option value="Continuous" selected>连拼</option>
+                <option value="Folding">折手</option>
+              </select>
+            </div>
+
+            <!-- 一式N联开关 (按需折叠！) -->
+            <div class="compact-field-unit pod-field-full" id="unit_IsDualCopy">
+              <div class="field-label-bar">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <input type="checkbox" id="ctrl_IsDualCopy" onchange="toggleDualCopyFold(this.checked)" style="width:14px; height:14px; cursor:pointer;">
+                  <label for="ctrl_IsDualCopy" style="font-size:11.5px; font-weight:600; color:var(--text-secondary); cursor:pointer;">开启一式N联拼版</label>
+                </div>
+                <span class="micro-follow-latch active-follow" onclick="toggleUnitFollow(this, 'unit_IsDualCopy')">⚡ 跟随</span>
+              </div>
+
+              <!-- 折叠子面板：仅勾选时显现，零多余空间占用 -->
+              <div class="foldable-sub-panel" id="dualCopyPanel" style="display:none;">
+                <div>
+                  <div style="font-size:10px; color:var(--text-muted); margin-bottom:2px;">联数 (份数):</div>
+                  <input class="field-control" type="number" value="2" min="2" max="16" style="height:24px;">
+                </div>
+                <div>
+                  <div style="font-size:10px; color:var(--text-muted); margin-bottom:2px;">一式类型:</div>
+                  <select class="field-control" style="height:24px;">
+                    <option selected>联</option>
+                    <option>份</option>
+                  </select>
+                </div>
+                <div>
+                  <div style="font-size:10px; color:var(--text-muted); margin-bottom:2px;">倍数方向:</div>
+                  <select class="field-control" style="height:24px;">
+                    <option selected>自适应列</option>
+                    <option>自适应行</option>
+                    <option>不旋转</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- 临时排版高级参数链接 -->
+            <div class="pod-field-full" style="display:flex; justify-content:flex-end;">
+              <span style="font-size:11px; color:var(--primary); cursor:pointer; text-decoration:underline;" onclick="alert('📐 临时大版参数已配置就绪')">📐 配置大版开料尺寸与边距参数 (TemporaryImposition)...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. 导出路径舱 (Export Path Pod) -->
+        <div class="compact-module-pod">
+          <div class="compact-field-unit" id="unit_ExportPath">
+            <div class="field-label-bar">
+              <span class="field-name">📁 目标导出路径</span>
+              <span class="micro-follow-latch active-follow" onclick="toggleUnitFollow(this, 'unit_ExportPath')">⚡ 跟随改变</span>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <input class="field-control" id="ctrl_ExportPath" value="D:\生产输出\今日输出">
+              <button class="btn-tool" style="padding:2px 8px; font-size:11px; white-space:nowrap;" onclick="showToast('📂 打开文件夹选择')">浏览...</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部快捷操作组 -->
+        <div style="display:flex; gap:8px; margin-top:2px;">
+          <button class="btn-tool active" style="flex:1; height:32px; font-size:12px;" onclick="showToast('💾 预设全量修改已即时保存！')">保存预设参数</button>
+          <button class="btn-tool" style="height:32px; font-size:12px;" onclick="showToast('📋 已另存为新预设副本')">另存副本</button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- 3. 底栏 -->
+    <div class="win-footer">
+      <div class="footer-left">
+        <span>💡 规则极简感知：每项右上角的 <b>[⚡跟随]</b> 表示应用预设时覆盖工单；<b>[🔒保持]</b> 表示保留工单既有值不变。</span>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-tool" onclick="showToast('已关闭')">关闭</button>
+        <button class="btn-tool active" onclick="showToast('✅ 预设与分组变更已全部同步回主程序配置！')">应用并返回</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function setTheme(theme) {
+      document.body.setAttribute('data-theme', theme);
+      document.getElementById('btnThemeLight').classList.toggle('active', theme === 'light');
+      document.getElementById('btnThemeDark').classList.toggle('active', theme === 'dark');
+    }
+
+    // 核心微型锁切换：极简一键切换跟随/保持
+    function toggleUnitFollow(latch, unitId) {
+      const isFollowing = latch.classList.contains('active-follow');
+      const newState = !isFollowing;
+
+      latch.classList.toggle('active-follow', newState);
+      latch.classList.toggle('active-ignore', !newState);
+      latch.textContent = newState ? '⚡ 跟随' : '🔒 保持';
+
+      const unit = document.getElementById(unitId);
+      if (unit) {
+        unit.classList.toggle('ignored', !newState);
+        const inputs = unit.querySelectorAll('.field-control');
+        inputs.forEach(inp => { inp.disabled = !newState; });
+      }
+
+      showToast(newState
+        ? `⚡ 已设为【跟随】：应用此预设时将覆盖更新该参数`
+        : `🔒 已设为【保持】：应用此预设时将忽略此项，保留工单原值`);
+    }
+
+    function toggleDualCopyFold(show) {
+      const p = document.getElementById('dualCopyPanel');
+      if (p) p.style.display = show ? 'grid' : 'none';
+    }
+
+    function togglePodRule(podType) {
+      const targetIds = (podType === 'craft')
+        ? ['unit_Material', 'unit_ColorMode', 'unit_FilmType', 'unit_Shape', 'unit_IdentifierPage']
+        : ['unit_EnableImposition', 'unit_TetBleed', 'unit_MaterialType', 'unit_LayoutMode', 'unit_IsDualCopy'];
+
+      const firstLatch = document.querySelector(`#${targetIds[0]} .micro-follow-latch`);
+      const willFollow = !firstLatch.classList.contains('active-follow');
+
+      targetIds.forEach(id => {
+        const u = document.getElementById(id);
+        if (u) {
+          const l = u.querySelector('.micro-follow-latch');
+          if (l) {
+            l.classList.toggle('active-follow', willFollow);
+            l.classList.toggle('active-ignore', !willFollow);
+            l.textContent = willFollow ? '⚡ 跟随' : '🔒 保持';
+          }
+          u.classList.toggle('ignored', !willFollow);
+          u.querySelectorAll('.field-control').forEach(inp => { inp.disabled = !willFollow; });
+        }
+      });
+      showToast(willFollow ? '⚡ 已一键开启该模块全部跟随' : '🔒 已一键将该模块全部设为保持原值');
+    }
+
+    // 批量多选
+    function handleCardClick(event, card, name) {
+      if (event.target.classList.contains('card-checkbox') || event.target.classList.contains('btn-pin')) return;
+      document.querySelectorAll('.preset-row-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      document.getElementById('inpPresetName').value = name;
+    }
+
+    function handleCheckboxClick(event, chk) {
+      event.stopPropagation();
+      const card = chk.closest('.preset-row-card');
+      card.classList.toggle('checked-item', chk.checked);
+      updateBatchFloatingBar();
+    }
+
+    function toggleSelectAll(selectAll) {
+      document.querySelectorAll('.preset-row-card').forEach(card => {
+        if (card.style.display !== 'none') {
+          const chk = card.querySelector('.card-checkbox');
+          if (chk) {
+            chk.checked = selectAll;
+            card.classList.toggle('checked-item', selectAll);
+          }
+        }
+      });
+      updateBatchFloatingBar();
+    }
+
+    function getSelectedCards() {
+      return Array.from(document.querySelectorAll('.preset-row-card')).filter(c => {
+        const chk = c.querySelector('.card-checkbox');
+        return chk && chk.checked;
+      });
+    }
+
+    function updateBatchFloatingBar() {
+      const selected = getSelectedCards();
+      const bar = document.getElementById('batchFloatingBar');
+      const countLabel = document.getElementById('batchSelectedCount');
+      const chkAll = document.getElementById('chkSelectAll');
+
+      countLabel.textContent = selected.length;
+      bar.classList.toggle('show', selected.length > 0);
+
+      const visibleCards = Array.from(document.querySelectorAll('.preset-row-card')).filter(c => c.style.display !== 'none');
+      if (visibleCards.length > 0) {
+        chkAll.checked = (selected.length === visibleCards.length);
+        chkAll.indeterminate = (selected.length > 0 && selected.length < visibleCards.length);
+      }
+    }
+
+    function toggleBatchGroupPopup(event) {
+      event.stopPropagation();
+      document.getElementById('batchGroupPopup').classList.toggle('open');
+    }
+
+    document.addEventListener('click', () => {
+      const p = document.getElementById('batchGroupPopup');
+      if (p) p.classList.remove('open');
+    });
+
+    function executeBatchMove(targetGroupName) {
+      const selected = getSelectedCards();
+      selected.forEach(card => {
+        card.setAttribute('data-group', targetGroupName);
+        const tag = card.querySelector('.group-pill-tag');
+        if (tag) tag.textContent = targetGroupName;
+        const chk = card.querySelector('.card-checkbox');
+        if (chk) chk.checked = false;
+        card.classList.remove('checked-item');
+      });
+      updateBatchFloatingBar();
+      showToast(`📁 已将选中的 <b>${selected.length} 个预设</b> 批量转移至【${targetGroupName}】`);
+    }
+
+    function showToast(msg) {
+      let toast = document.getElementById('appToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'appToast';
+        toast.style.cssText = `
+          position: fixed;
+          bottom: 24px;
+          background: #1f2429;
+          color: #fff;
+          padding: 8px 16px;
+          border-radius: 6px;
+          font-size: 12px;
+          box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+          z-index: 9999;
+          transition: all 0.25s ease;
+          opacity: 0;
+          transform: translateY(10px);
+        `;
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = msg;
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+      }, 2200);
+    }
+  </script>
+</body>
+</html>

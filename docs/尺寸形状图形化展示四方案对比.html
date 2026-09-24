@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>尺寸药丸 4 方案 × 4 形状（直角/圆角/圆形/异形）全景效果设计</title>
+  <style>
+    :root {
+      --bg: #f4f6fa;
+      --card-bg: #ffffff;
+      --border: #d4dbe4;
+      --border-light: #e6ecf2;
+      --text-main: #1f2429;
+      --text-secondary: #4b525d;
+      --text-muted: #8c95a0;
+      --primary: #1677ff;
+      --primary-light: #e6f4ff;
+      --primary-border: #91caff;
+      --purple: #722ed1;
+      --purple-light: #f9f0ff;
+      --purple-border: #d3adf7;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0c0e12;
+      --card-bg: #151921;
+      --border: #28303e;
+      --border-light: #1f2530;
+      --text-main: #f0f4fc;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --primary: #58a6ff;
+      --primary-light: rgba(88, 166, 255, 0.12);
+      --primary-border: rgba(88, 166, 255, 0.35);
+      --purple: #bc8cff;
+      --purple-light: rgba(188, 140, 255, 0.12);
+      --purple-border: rgba(188, 140, 255, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 28px 16px 60px;
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+      max-width: 860px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 25px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    p.lead {
+      margin: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    /* 顶部多功能工具条 */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      background: var(--card-bg);
+      padding: 8px 16px;
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      margin-bottom: 24px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    }
+
+    .shape-switch-group {
+      display: flex;
+      gap: 4px;
+      background: rgba(0,0,0,0.03);
+      padding: 2px;
+      border-radius: 16px;
+      border: 1px solid var(--border-light);
+    }
+    [data-theme="dark"] .shape-switch-group {
+      background: rgba(255,255,255,0.04);
+    }
+    .btn-shape-toggle {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-shape-toggle:hover { color: var(--primary); }
+    .btn-shape-toggle.active {
+      background: var(--primary);
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 2px 6px rgba(22, 119, 255, 0.25);
+    }
+
+    .radius-selector-wrap {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      padding-left: 8px;
+      border-left: 1px solid var(--border);
+    }
+    .radius-select {
+      height: 22px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text-main);
+      font-size: 11px;
+      padding: 0 4px;
+      font-weight: bold;
+    }
+
+    .theme-toggle-group {
+      display: flex;
+      gap: 4px;
+      margin-left: 6px;
+      padding-left: 8px;
+      border-left: 1px solid var(--border);
+    }
+    .btn-tool-sm {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .btn-tool-sm.active { background: var(--text-main); color: var(--card-bg); font-weight: bold; }
+
+    /* 四栏对比方案展示 */
+    .concept-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      width: 100%;
+      max-width: 1160px;
+      margin-bottom: 32px;
+    }
+
+    .concept-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+      transition: all 0.25s;
+    }
+    .concept-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 8px 20px rgba(22, 119, 255, 0.08);
+      transform: translateY(-2px);
+    }
+    .concept-card.featured {
+      border-color: #69b1ff;
+      box-shadow: inset 0 3px 0 var(--primary), 0 6px 18px rgba(22, 119, 255, 0.08);
+    }
+
+    .concept-tag {
+      position: absolute;
+      top: -9px;
+      left: 12px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 8px;
+    }
+
+    .concept-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      margin: 4px 0 2px;
+      text-align: center;
+    }
+    .concept-desc {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.4;
+      margin-bottom: 12px;
+      min-height: 28px;
+    }
+
+    /* 5X 放大镜显微舞台 */
+    .mag-stage {
+      width: 100%;
+      height: 84px;
+      border-radius: 6px;
+      background: radial-gradient(circle, rgba(22, 119, 255, 0.05) 0%, transparent 80%);
+      border: 1px dashed var(--border);
+      display: grid;
+      place-items: center;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .mag-tag {
+      position: absolute;
+      bottom: 2px;
+      right: 4px;
+      font-size: 8px;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    /* 1:1 实机药丸单元 (55×44px 精确规格) */
+    .real-pill-box {
+      width: 55px;
+      height: 44px;
+      position: relative;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      user-select: none;
+      overflow: hidden;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+
+    /* 通用文字排版 */
+    .pill-title {
+      font-size: 9.5px;
+      color: var(--text-muted);
+      line-height: 1;
+      margin-bottom: 6px;
+      z-index: 2;
+      letter-spacing: -0.2px;
+      white-space: nowrap;
+    }
+    .pill-value {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #0958d9;
+      line-height: 1;
+      z-index: 2;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      white-space: nowrap;
+    }
+    [data-theme="dark"] .pill-value { color: #58a6ff; }
+
+    /* ============================================================== */
+    /* 方案 A：工件微轮廓 + 标题微标                                   */
+    /* ============================================================== */
+    .pill-a .watermark-silhouette {
+      position: absolute;
+      z-index: 1;
+      border: 1.5px solid rgba(22, 119, 255, 0.32);
+      background: rgba(22, 119, 255, 0.05);
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    /* 1:1 尺寸下各形状尺寸 */
+    .pill-a .watermark-rect { width: 44px; height: 18px; bottom: 5px; border-radius: 0; }
+    .pill-a .watermark-round { width: 44px; height: 18px; bottom: 5px; border-radius: 6px; }
+    .pill-a .watermark-circle { width: 22px; height: 22px; bottom: 3px; border-radius: 50%; }
+    .pill-a .watermark-special {
+      width: 22px; height: 22px; bottom: 3px; border-radius: 2px;
+      border-color: rgba(114, 46, 209, 0.4);
+      background: rgba(114, 46, 209, 0.06);
+      transform: rotate(45deg);
+    }
+
+    /* 5X 放大各形状尺寸 */
+    .mag-a .watermark-silhouette {
+      position: absolute;
+      z-index: 1;
+      border: 2.5px solid rgba(22, 119, 255, 0.38);
+      background: rgba(22, 119, 255, 0.08);
+      pointer-events: none;
+      transition: all 0.25s;
+    }
+    .mag-a .watermark-rect { width: 84px; height: 36px; border-radius: 0; }
+    .mag-a .watermark-round { width: 84px; height: 36px; border-radius: 12px; }
+    .mag-a .watermark-circle { width: 42px; height: 42px; border-radius: 50%; }
+    .mag-a .watermark-special {
+      width: 40px; height: 40px; border-radius: 3px;
+      border-color: rgba(114, 46, 209, 0.45);
+      background: rgba(114, 46, 209, 0.08);
+      transform: rotate(45deg);
+    }
+
+    /* 方案 A 标题微标小点缀 */
+    .pill-a .title-shape-tag {
+      font-weight: 700;
+      color: var(--primary);
+      margin-left: 2px;
+    }
+    .pill-a.mode-special .title-shape-tag { color: var(--purple); }
+    .pill-a.mode-special .pill-value { color: var(--purple); }
+
+    /* ============================================================== */
+    /* 方案 B：规线裁切角标 + 右上角微标胶囊                          */
+    /* ============================================================== */
+    .pill-b .micro-tag-corner {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      height: 11px;
+      padding: 0 3px;
+      border-radius: 3px;
+      background: #e6f4ff;
+      border: 1px solid #91caff;
+      color: #0958d9;
+      font-size: 7.5px;
+      font-weight: 800;
+      line-height: 9px;
+      font-family: ui-monospace, Consolas, monospace;
+      z-index: 3;
+    }
+    .pill-b.mode-special .micro-tag-corner {
+      background: var(--purple-light);
+      border-color: var(--purple-border);
+      color: var(--purple);
+    }
+    .pill-b .watermark-crosshair {
+      position: absolute;
+      z-index: 1;
+      pointer-events: none;
+      border: 1px dashed rgba(22, 119, 255, 0.35);
+      transition: all 0.25s;
+    }
+    .pill-b .cross-rect { width: 44px; height: 18px; bottom: 5px; border-radius: 0; }
+    .pill-b .cross-round { width: 44px; height: 18px; bottom: 5px; border-radius: 6px; }
+    .pill-b .cross-circle { width: 22px; height: 22px; bottom: 3px; border-radius: 50%; }
+    .pill-b .cross-special {
+      width: 20px; height: 20px; bottom: 4px; border-radius: 0;
+      border-color: rgba(114, 46, 209, 0.4);
+      transform: rotate(45deg);
+    }
+
+    .mag-b .micro-tag-corner {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      height: 18px;
+      padding: 0 6px;
+      border-radius: 4px;
+      background: #e6f4ff;
+      border: 1px solid #91caff;
+      color: #0958d9;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 16px;
+    }
+    .mag-b .watermark-crosshair {
+      border: 2px dashed rgba(22, 119, 255, 0.4);
+    }
+    .mag-b .cross-rect { width: 84px; height: 36px; border-radius: 0; }
+    .mag-b .cross-round { width: 84px; height: 36px; border-radius: 12px; }
+    .mag-b .cross-circle { width: 42px; height: 42px; border-radius: 50%; }
+    .mag-b .cross-special {
+      width: 40px; height: 40px;
+      border-color: rgba(114, 46, 209, 0.45);
+      transform: rotate(45deg);
+    }
+
+    /* ============================================================== */
+    /* 方案 C：全态图腾线框 (精炼工程符号线)                          */
+    /* ============================================================== */
+    .pill-c .shape-totem-glyph {
+      position: absolute;
+      z-index: 1;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .pill-c .totem-rect {
+      width: 42px; height: 18px; bottom: 5px;
+      border: 1.5px solid rgba(22, 119, 255, 0.35);
+      border-radius: 0;
+    }
+    .pill-c .totem-round {
+      width: 44px; height: 18px; bottom: 5px;
+      border: 1.5px solid rgba(22, 119, 255, 0.35);
+      border-radius: 6px;
+      box-shadow: inset 0 0 4px rgba(22, 119, 255, 0.15);
+    }
+    .pill-c .totem-circle {
+      width: 22px; height: 22px; bottom: 3px;
+      border: 1.5px solid rgba(22, 119, 255, 0.4);
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+    }
+    .pill-c .totem-special {
+      width: 22px; height: 22px; bottom: 3px;
+      border: 1.5px solid rgba(114, 46, 209, 0.4);
+      transform: rotate(45deg);
+      border-radius: 2px;
+      box-shadow: 0 0 0 2px rgba(114, 46, 209, 0.1);
+    }
+
+    .mag-c .shape-totem-glyph { border-width: 2.5px; }
+    .mag-c .totem-rect { width: 84px; height: 36px; border-radius: 0; }
+    .mag-c .totem-round { width: 84px; height: 36px; border-radius: 12px; }
+    .mag-c .totem-circle { width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 0 0 4px rgba(22, 119, 255, 0.1); }
+    .mag-c .totem-special { width: 40px; height: 40px; transform: rotate(45deg); box-shadow: 0 0 0 4px rgba(114, 46, 209, 0.1); }
+
+    /* ============================================================== */
+    /* 方案 D：柔光呼吸色舱 (光斑形态随形状变形)                       */
+    /* ============================================================== */
+    .pill-d .shape-glow-halo {
+      position: absolute;
+      z-index: 1;
+      pointer-events: none;
+      transition: all 0.3s;
+    }
+    .pill-d .halo-rect {
+      width: 44px; height: 18px; bottom: 5px; border-radius: 2px;
+      background: radial-gradient(ellipse at center, rgba(22, 119, 255, 0.2) 0%, transparent 80%);
+    }
+    .pill-d .halo-round {
+      width: 46px; height: 20px; bottom: 4px; border-radius: 10px;
+      background: radial-gradient(ellipse at center, rgba(22, 119, 255, 0.28) 0%, transparent 80%);
+      box-shadow: 0 0 8px rgba(22, 119, 255, 0.2);
+    }
+    .pill-d .halo-circle {
+      width: 26px; height: 26px; bottom: 2px; border-radius: 50%;
+      background: radial-gradient(circle at center, rgba(22, 119, 255, 0.32) 0%, transparent 80%);
+      box-shadow: 0 0 10px rgba(22, 119, 255, 0.25);
+    }
+    .pill-d .halo-special {
+      width: 26px; height: 26px; bottom: 2px; border-radius: 4px;
+      transform: rotate(45deg);
+      background: radial-gradient(circle at center, rgba(114, 46, 209, 0.35) 0%, transparent 80%);
+      box-shadow: 0 0 10px rgba(114, 46, 209, 0.25);
+    }
+
+    .mag-d .shape-glow-halo { transform: scale(1.9); }
+
+    /* 方案 D 数值右角上标 */
+    .pill-d .dim-sub-tag {
+      font-size: 8.5px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-left: 2px;
+      vertical-align: top;
+    }
+    .pill-d.mode-special .dim-sub-tag { color: var(--purple); }
+
+    /* 4×4 全景矩阵对比表格 */
+    .matrix-section {
+      width: 100%;
+      max-width: 1160px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.03);
+    }
+    .matrix-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .matrix-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: center;
+    }
+    .matrix-table th {
+      padding: 10px 8px;
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      border-bottom: 2px solid var(--border);
+      background: rgba(0,0,0,0.02);
+    }
+    [data-theme="dark"] .matrix-table th { background: rgba(255,255,255,0.02); }
+    .matrix-table td {
+      padding: 12px 8px;
+      border-bottom: 1px solid var(--border-light);
+      vertical-align: middle;
+    }
+    .matrix-shape-lbl {
+      font-size: 12px;
+      font-weight: 700;
+      text-align: left;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pill-center-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  </style>
+</head>
+<body data-theme="light">
+
+  <header>
+    <div class="badge">4 SCHEMES × 4 SHAPES · MATRIX LAB</div>
+    <h1>排版看板“尺寸”图形化：4 套方案 × 4 种形状全景展示</h1>
+    <p class="lead">
+      彻底解决“文字过长导致两端截断”的物理缺陷。主尺寸统一显示纯净 <b>80×45</b>（或圆 <b>Ф45</b>），<br>
+      <b>直角 / 圆角 / 圆形 / 异形</b> 全部通过<b>文字后半透明微轮廓与图形特效</b>优雅表达，零截断且直观秒懂。
+    </p>
+  </header>
+
+  <!-- 顶部交互控制栏 -->
+  <div class="toolbar">
+    <span style="font-size:11px; font-weight:700; color:var(--text-secondary);">当前联动形状：</span>
+    <div class="shape-switch-group">
+      <button class="btn-shape-toggle" onclick="setGlobalShape('rect', this)">▢ 直角</button>
+      <button class="btn-shape-toggle active" onclick="setGlobalShape('round', this)">▢ 圆角</button>
+      <button class="btn-shape-toggle" onclick="setGlobalShape('circle', this)">○ 圆形</button>
+      <button class="btn-shape-toggle" onclick="setGlobalShape('special', this)">◇ 异形</button>
+    </div>
+
+    <!-- 圆角半径选择 (仅圆角激活时生效) -->
+    <div class="radius-selector-wrap" id="radiusWrap">
+      <span>半径：</span>
+      <select class="radius-select" onchange="setGlobalRadius(this.value)">
+        <option value="3">R3</option>
+        <option value="5" selected>R5</option>
+        <option value="8">R8</option>
+        <option value="12">R12</option>
+      </select>
+    </div>
+
+    <div class="theme-toggle-group">
+      <button class="btn-tool-sm active" id="btnThemeLight" onclick="setTheme('light')">☀️ 浅色</button>
+      <button class="btn-tool-sm" id="btnThemeDark" onclick="setTheme('dark')">🌙 暗色</button>
+    </div>
+  </div>
+
+  <!-- 第一部分：4 方案动态联动卡片 -->
+  <div class="concept-grid">
+
+    <!-- 方案 A -->
+    <div class="concept-card featured">
+      <div class="concept-tag">👑 方案 A · 首选推荐</div>
+      <div class="concept-title">方案 A · 半透明工件微轮廓</div>
+      <div class="concept-desc">文字背后绘制一张半透明刀模线框；标题带轻量形状微标。字符极短，居中舒展。</div>
+
+      <div class="mag-stage mag-a">
+        <div class="watermark-silhouette watermark-round" id="magA_shape"></div>
+        <span class="dim-value" id="magA_val" style="font-size:22px; font-weight:700; color:#0958d9; z-index:2;">80×45</span>
+        <span class="mag-tag">5X 放大</span>
+      </div>
+
+      <div class="real-pill-box pill-a" id="pillA_box">
+        <div class="watermark-silhouette watermark-round" id="realA_shape"></div>
+        <span class="pill-title" id="realA_title">尺寸<b class="title-shape-tag" id="realA_tag">·R5</b></span>
+        <strong class="pill-value" id="realA_val">80×45</strong>
+      </div>
+      <div style="font-size:10px; color:var(--text-muted); text-align:center;">1:1 药丸 (55×44px)</div>
+    </div>
+
+    <!-- 方案 B -->
+    <div class="concept-card">
+      <div class="concept-tag" style="background:#0969da;">方案 B</div>
+      <div class="concept-title">方案 B · 规线裁切 + 角标微胶囊</div>
+      <div class="concept-desc">右上角悬浮微型形状胶囊，文字背景带印刷十字对位与裁切虚线，极具菲林图纸感。</div>
+
+      <div class="mag-stage mag-b">
+        <div class="micro-tag-corner" id="magB_badge">R5</div>
+        <div class="watermark-crosshair cross-round" id="magB_shape"></div>
+        <span class="dim-value" id="magB_val" style="font-size:22px; font-weight:700; color:#0958d9; z-index:2;">80×45</span>
+        <span class="mag-tag">5X 放大</span>
+      </div>
+
+      <div class="real-pill-box pill-b" id="pillB_box">
+        <div class="micro-tag-corner" id="realB_badge">R5</div>
+        <div class="watermark-crosshair cross-round" id="realB_shape"></div>
+        <span class="pill-title">尺寸</span>
+        <strong class="pill-value" id="realB_val">80×45</strong>
+      </div>
+      <div style="font-size:10px; color:var(--text-muted); text-align:center;">1:1 药丸 (55×44px)</div>
+    </div>
+
+    <!-- 方案 C -->
+    <div class="concept-card">
+      <div class="concept-tag" style="background:var(--purple);">方案 C</div>
+      <div class="concept-title">方案 C · 全态图腾线框 (Totem)</div>
+      <div class="concept-desc">4 大形状全套几何同构：直角方框、圆角圆矩、圆形双环、异形紫晶菱形。</div>
+
+      <div class="mag-stage mag-c">
+        <div class="shape-totem-glyph totem-round" id="magC_shape"></div>
+        <span class="dim-value" id="magC_val" style="font-size:22px; font-weight:700; color:#0958d9; z-index:2;">80×45</span>
+        <span class="mag-tag">5X 放大</span>
+      </div>
+
+      <div class="real-pill-box pill-c" id="pillC_box">
+        <div class="shape-totem-glyph totem-round" id="realC_shape"></div>
+        <span class="pill-title">尺寸</span>
+        <strong class="pill-value" id="realC_val">80×45</strong>
+      </div>
+      <div style="font-size:10px; color:var(--text-muted); text-align:center;">1:1 药丸 (55×44px)</div>
+    </div>
+
+    <!-- 方案 D -->
+    <div class="concept-card">
+      <div class="concept-tag" style="background:#13c2c2;">方案 D</div>
+      <div class="concept-title">方案 D · 柔光呼吸色舱 (Halo)</div>
+      <div class="concept-desc">无生硬线条！通过向外扩散的几何光斑包裹数字，右上方紧贴微型字母角标。</div>
+
+      <div class="mag-stage mag-d">
+        <div class="shape-glow-halo halo-round" id="magD_shape"></div>
+        <span class="dim-value" id="magD_val" style="font-size:22px; font-weight:700; color:#0958d9; z-index:2;">80×45<span class="dim-sub-tag" id="magD_sub" style="font-size:13px;">R5</span></span>
+        <span class="mag-tag">5X 放大</span>
+      </div>
+
+      <div class="real-pill-box pill-d" id="pillD_box">
+        <div class="shape-glow-halo halo-round" id="realD_shape"></div>
+        <span class="pill-title">尺寸</span>
+        <strong class="pill-value" id="realD_val">80×45<span class="dim-sub-tag" id="realD_sub">R5</span></strong>
+      </div>
+      <div style="font-size:10px; color:var(--text-muted); text-align:center;">1:1 药丸 (55×44px)</div>
+    </div>
+
+  </div>
+
+  <!-- 第二部分：4×4 全景矩阵直观总览表 (16 种组合一目了然) -->
+  <div class="matrix-section">
+    <div class="matrix-title">📊 4×4 全景矩阵总览 (4 套方案 × 4 种形状真实 1:1 对照)</div>
+    <div class="matrix-subtitle">无需切换，下方直接陈列 16 种不同组合在 55×44px 实际药丸单元中的最终呈现效果。</div>
+
+    <table class="matrix-table">
+      <thead>
+        <tr>
+          <th style="width: 130px; text-align: left;">模切形状</th>
+          <th>方案 A (微轮廓+微标) <span style="color:#0958d9;">[首选]</span></th>
+          <th>方案 B (规线+微标)</th>
+          <th>方案 C (图腾线框)</th>
+          <th>方案 D (柔光色舱)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- 行 1: 直角 -->
+        <tr>
+          <td><div class="matrix-shape-lbl"><span style="color:#1677ff;">▢</span> 直角矩形</div></td>
+          <td>
+            <div class="pill-center-wrap">
+              <div class="real-pill-box pill-a">
+                <div class="watermark-silhouette watermark-rect"></div>
+                <span class="pill-title">尺寸</span>
+                <strong class="pill-value">80×45</strong>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="pill-center-wrap">
+              <div class="real-pill-box pill-b">
+                <div class="watermark-crosshair cross-rect"></div>
+                <span class="pill-title">尺寸</span>
+                <strong class="pill-value">80×45</strong>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="pill-center-wrap">
+              <div class="real-pill-box pill-c">
+                <div class="shape-totem-glyph totem-rect"></div>
+                <span class="pill-title">尺寸</span>
+                <strong class="pill-value">80×45</strong>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="pill-center-wrap">
+              <div class="real-pill-box pill-d">
+                <div class="shape-glow-halo halo-rect"></div>
+                <span class="pill-title">尺寸</span>
+                <strong class="pill-value">80×45</strong>
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- 行 2: 圆角 -->
+        <tr>
+          <td><div class="matrix-shape-lbl"><span style="color:#1677ff;">▢</span> 圆角 (R5)</div></td>
+          <td>
+            <div class="pill-center-wrap">
+              <div class="real-pill-box pill-a">
+                <div class="watermark-silhouette watermark-round"></div>
+                <span class="pill-title">尺寸<b class="title-shape-tag">·R5</b></span>
+                <strong class="pill-value">80×45</strong>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="pill-center-wrap">
+              <div class="real-pill-box pill-b">
+                <div class="micro-tag-corner">R5</div>
+                <div class="watermark-crosshair cross-round"></div>
+                <span class="pill-title">尺寸</span>
+                <strong class="pill-value">80×45</strong>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="pill-center-wrap">
+              <div class="real-pill-box pill-c">
+                <div class="shape-totem-glyph totem-round"></div>
+                <span class="pill-title">尺寸</span>
+                <strong class="pill-value">80×45</strong>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="pill-center-wrap">
+              <div class="real-pill-box pill-d">
+                <div class="shape-glow-halo halo-round"></div>
+                <span class="pill-title">尺寸</span>
+                <strong class="pill-value">80×45<span class="dim-sub-tag">R5</span></strong>
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- 行 3: 圆形 -->
+        <tr>
+          <td><div class="matrix-shape-lbl"><span style="color:#1677ff;">○</span> 圆形 (Ф45)</div></td>
+          <td>
+            <div class="pill-center-wrap">
+              <div class="real-pill-box pill-a">
+                <div class="watermark-silhouette watermark-circle"></div>
+                <span class="pill-title">尺寸<b class="title-shape-tag">·○</b></span>
+                <strong class="pill-value">Ф45</strong>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="pill-center-wrap">
+              <div class="real-pill-box pill-b">
+                <div class="micro-tag-corner">○</div>
+                <div class="watermark-crosshair cross-circle"></div>
+                <span class="pill-title">尺寸</span>
+                <strong class="pill-value">Ф45</strong>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="pill-center-wrap">
+              <div class="real-pill-box pill-c">
+                <div class="shape-totem-glyph totem-circle"></div>
+                <span class="pill-title">尺寸</span>
+                <strong class="pill-value">Ф45</strong>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="pill-center-wrap">
+              <div class="real-pill-box pill-d">
+                <div class="shape-glow-halo halo-circle"></div>
+                <span class="pill-title">尺寸</span>
+                <strong class="pill-value">Ф45<span class="dim-sub-tag">○</span></strong>
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- 行 4: 异形 -->
+        <tr>
+          <td><div class="matrix-shape-lbl"><span style="color:var(--purple);">◇</span> 异形刀模</div></td>
+          <td>
+            <div class="pill-center-wrap">
+              <div class="real-pill-box pill-a mode-special">
+                <div class="watermark-silhouette watermark-special"></div>
+                <span class="pill-title">尺寸<b class="title-shape-tag">·◇</b></span>
+                <strong class="pill-value" style="color:var(--purple);">80×45</strong>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="pill-center-wrap">
+              <div class="real-pill-box pill-b mode-special">
+                <div class="micro-tag-corner">◇</div>
+                <div class="watermark-crosshair cross-special"></div>
+                <span class="pill-title">尺寸</span>
+                <strong class="pill-value" style="color:var(--purple);">80×45</strong>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="pill-center-wrap">
+              <div class="real-pill-box pill-c">
+                <div class="shape-totem-glyph totem-special"></div>
+                <span class="pill-title">尺寸</span>
+                <strong class="pill-value" style="color:var(--purple);">80×45</strong>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="pill-center-wrap">
+              <div class="real-pill-box pill-d mode-special">
+                <div class="shape-glow-halo halo-special"></div>
+                <span class="pill-title">尺寸</span>
+                <strong class="pill-value" style="color:var(--purple);">80×45<span class="dim-sub-tag">◇</span></strong>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    let currentShape = 'round';
+    let currentRadius = 5;
+
+    function setTheme(theme) {
+      document.body.setAttribute('data-theme', theme);
+      document.getElementById('btnThemeLight').classList.toggle('active', theme === 'light');
+      document.getElementById('btnThemeDark').classList.toggle('active', theme === 'dark');
+    }
+
+    function setGlobalShape(shape, btn) {
+      currentShape = shape;
+      document.querySelectorAll('.btn-shape-toggle').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      document.getElementById('radiusWrap').style.display = (shape === 'round') ? 'flex' : 'none';
+      updateLiveShowcase();
+    }
+
+    function setGlobalRadius(r) {
+      currentRadius = r;
+      updateLiveShowcase();
+    }
+
+    function updateLiveShowcase() {
+      const isRound = (currentShape === 'round');
+      const isRect = (currentShape === 'rect');
+      const isCircle = (currentShape === 'circle');
+      const isSpecial = (currentShape === 'special');
+
+      const valText = isCircle ? 'Ф45' : '80×45';
+
+      // 1. 方案 A
+      const realA_shape = document.getElementById('realA_shape');
+      const magA_shape = document.getElementById('magA_shape');
+      const realA_val = document.getElementById('realA_val');
+      const magA_val = document.getElementById('magA_val');
+      const realA_tag = document.getElementById('realA_tag');
+      const pillA_box = document.getElementById('pillA_box');
+
+      realA_val.textContent = valText;
+      magA_val.textContent = valText;
+
+      realA_shape.className = 'watermark-silhouette ' + (isRect ? 'watermark-rect' : isRound ? 'watermark-round' : isCircle ? 'watermark-circle' : 'watermark-special');
+      magA_shape.className = 'watermark-silhouette ' + (isRect ? 'watermark-rect' : isRound ? 'watermark-round' : isCircle ? 'watermark-circle' : 'watermark-special');
+
+      if (isRound) {
+        realA_shape.style.borderRadius = `${Math.max(3, currentRadius * 1.1)}px`;
+        magA_shape.style.borderRadius = `${Math.max(6, currentRadius * 2.2)}px`;
+        realA_tag.textContent = `·R${currentRadius}`;
+      } else if (isCircle) {
+        realA_tag.textContent = '·○';
+      } else if (isSpecial) {
+        realA_tag.textContent = '·◇';
+      } else {
+        realA_tag.textContent = '';
+      }
+      pillA_box.classList.toggle('mode-special', isSpecial);
+
+      // 2. 方案 B
+      const realB_shape = document.getElementById('realB_shape');
+      const magB_shape = document.getElementById('magB_shape');
+      const realB_badge = document.getElementById('realB_badge');
+      const magB_badge = document.getElementById('magB_badge');
+      const realB_val = document.getElementById('realB_val');
+      const magB_val = document.getElementById('magB_val');
+      const pillB_box = document.getElementById('pillB_box');
+
+      realB_val.textContent = valText;
+      magB_val.textContent = valText;
+
+      realB_shape.className = 'watermark-crosshair ' + (isRect ? 'cross-rect' : isRound ? 'cross-round' : isCircle ? 'cross-circle' : 'cross-special');
+      magB_shape.className = 'watermark-crosshair ' + (isRect ? 'cross-rect' : isRound ? 'cross-round' : isCircle ? 'cross-circle' : 'cross-special');
+
+      if (isRound) {
+        realB_badge.style.display = 'block'; magB_badge.style.display = 'block';
+        realB_badge.textContent = `R${currentRadius}`; magB_badge.textContent = `R${currentRadius}`;
+      } else if (isCircle) {
+        realB_badge.style.display = 'block'; magB_badge.style.display = 'block';
+        realB_badge.textContent = '○'; magB_badge.textContent = '○';
+      } else if (isSpecial) {
+        realB_badge.style.display = 'block'; magB_badge.style.display = 'block';
+        realB_badge.textContent = '◇'; magB_badge.textContent = '◇';
+      } else {
+        realB_badge.style.display = 'none'; magB_badge.style.display = 'none';
+      }
+      pillB_box.classList.toggle('mode-special', isSpecial);
+
+      // 3. 方案 C
+      const realC_shape = document.getElementById('realC_shape');
+      const magC_shape = document.getElementById('magC_shape');
+      const realC_val = document.getElementById('realC_val');
+      const magC_val = document.getElementById('magC_val');
+      realC_val.textContent = valText;
+      magC_val.textContent = valText;
+      realC_shape.className = 'shape-totem-glyph ' + (isRect ? 'totem-rect' : isRound ? 'totem-round' : isCircle ? 'totem-circle' : 'totem-special');
+      magC_shape.className = 'shape-totem-glyph ' + (isRect ? 'totem-rect' : isRound ? 'totem-round' : isCircle ? 'totem-circle' : 'totem-special');
+
+      // 4. 方案 D
+      const realD_shape = document.getElementById('realD_shape');
+      const magD_shape = document.getElementById('magD_shape');
+      const realD_val = document.getElementById('realD_val');
+      const magD_val = document.getElementById('magD_val');
+      const realD_sub = document.getElementById('realD_sub');
+      const magD_sub = document.getElementById('magD_sub');
+      const pillD_box = document.getElementById('pillD_box');
+
+      realD_shape.className = 'shape-glow-halo ' + (isRect ? 'halo-rect' : isRound ? 'halo-round' : isCircle ? 'halo-circle' : 'halo-special');
+      magD_shape.className = 'shape-glow-halo ' + (isRect ? 'halo-rect' : isRound ? 'halo-round' : isCircle ? 'halo-circle' : 'halo-special');
+
+      let subText = isRound ? `R${currentRadius}` : isCircle ? '○' : isSpecial ? '◇' : '';
+      realD_sub.textContent = subText;
+      magD_sub.textContent = subText;
+      realD_val.childNodes[0].nodeValue = valText;
+      magD_val.childNodes[0].nodeValue = valText;
+      pillD_box.classList.toggle('mode-special', isSpecial);
+    }
+  </script>
+</body>
+</html>

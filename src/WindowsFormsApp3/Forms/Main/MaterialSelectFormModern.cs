@@ -55,11 +55,14 @@ namespace WindowsFormsApp3
         private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
         [DllImport("user32.dll")]
         private static extern bool SetLayeredWindowAttributes(IntPtr hWnd, uint crKey, byte bAlpha, uint dwFlags);
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
         private const int GWL_EXSTYLE = -20;
         private const int WS_EX_LAYERED = 0x80000;
         private const int LWA_COLORKEY = 0x1;
         private const int LWA_ALPHA = 0x2;
+        private const int WM_SETREDRAW = 0x000B;
 
         // 窗体拖动相关字段
         private bool _isDragging = false;
@@ -130,10 +133,19 @@ namespace WindowsFormsApp3
         // 标记是否明确选择了形状（用于区分默认状态和用户主动选择）
         private bool _isShapeExplicitlySelected = false;
 
+        // V5 尺寸契约常量体系（单位：像素 px，严格以 ClientSize 为准）
+        public const int BATCH_PANEL_WIDTH = 520;
+        public const int STATION_WIDTH = 360;
+        public const int WORKBENCH_WIDTH = BATCH_PANEL_WIDTH + STATION_WIDTH; // 880
+        public const int BASE_CLIENT_HEIGHT = 508;
+        public const int MAX_PREVIEW_HEIGHT = 245;
+        public const int EXPANDED_CLIENT_HEIGHT = BASE_CLIENT_HEIGHT + MAX_PREVIEW_HEIGHT; // 753
+        public const int COLLAPSE_BAR_HEIGHT = 16;
+        public const int TITLE_BAR_HEIGHT = 26;
+
         // PDF 预览相关字段
         private bool _isPreviewExpanded = false;  // 预览是否展开
-        private const int BASE_FORM_HEIGHT = 859; // 匹配设计器中的ClientSize设置 (400, 859) // 调整基础高度使运行时窗口高度匹配设计器896px (896 - 276系统边框) // 调整基础高度使运行时窗口高度匹配设计器896px (638 - 53) // 窗体基础高度（不含预览面板，包括折叠按钮）(661-23)
-        private const int MAX_PREVIEW_HEIGHT = 245; // 预览最大高度（匹配设计器设置） // 预览最大高度（调整填满底部）
+        private const int BASE_FORM_HEIGHT = BASE_CLIENT_HEIGHT; // 兼容旧代码引用
         private string _cachedPdfPath; // 缓存的 PDF 路径（用于检查是否为新文件）
         private string _pendingPdfToLoad; // 待加载的PDF文件路径（用于窗体加载完成后）
         private System.Windows.Forms.Timer _batchPreviewDebounceTimer;
@@ -262,8 +274,8 @@ namespace WindowsFormsApp3
         private string _batchMonitorDirectory;
         private bool _isCancellingBatchItems;
         private bool _isBatchPanelExpanded = false;
+        private int? _singleStationWindowLeft;
         private ThemeDefinition _activeTheme;
-        private const int BATCH_PANEL_WIDTH = 520;
 
         public bool IsApplyToAll { get; private set; } = false;
         public List<BatchFileItem> BatchFileItems => _batchItems.ToList();
@@ -323,6 +335,7 @@ namespace WindowsFormsApp3
         public MaterialSelectFormModern()
         {
             InitializeComponent();
+            EnableOptimizedWindowPainting();
 
             ApplySavedTopMostPreference();
 
@@ -348,6 +361,7 @@ namespace WindowsFormsApp3
             // 初始化订单号模式与批量列表面板
             InitializeOrderNumberControls();
             InitializeBatchFileListPanel();
+            InitializeV5RightStation();
 
             // 初始化预设右键菜单
             InitializePresetContextMenu();
@@ -382,88 +396,78 @@ namespace WindowsFormsApp3
             }
         }
 
+        private void EnableOptimizedWindowPainting()
+        {
+            SetStyle(ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.ResizeRedraw, true);
+            DoubleBuffered = true;
+            UpdateStyles();
+        }
+
         /// <summary>
         /// 预定位窗口位置，在窗体显示前直接设置目标位置，完全避免视觉跳跃
+        /// <summary>
+        /// 预定位窗口：恢复窗口位置，并严格按照 V5 尺寸契约初始化 ClientSize
         /// </summary>
         private void PrePositionWindow()
         {
             try
             {
-                LogHelper.Debug("[MaterialSelectFormModern] ========== 开始预定位窗口 ==========");
+                LogHelper.Debug("[MaterialSelectFormModern] ========== 开始预定位窗口 (V5 尺寸系统) ==========");
 
-                // 读取保存的位置设置
+                // 1. 读取保存的预览展开状态
+                bool shouldExpand = WindowPositionManager.ShouldExpandPreview();
+                _isPreviewExpanded = shouldExpand;
+
+                // 2. 根据 V5 尺寸契约计算标准 ClientSize
+                int targetWidth = _isBatchPanelExpanded ? WORKBENCH_WIDTH : STATION_WIDTH;
+                int targetHeight = _isPreviewExpanded ? EXPANDED_CLIENT_HEIGHT : BASE_CLIENT_HEIGHT;
+                this.ClientSize = new Size(targetWidth, targetHeight);
+
+                // 3. 读取保存的窗口位置
                 int savedX = AppSettings.MaterialFormX;
                 int savedY = AppSettings.MaterialFormY;
-                int savedWidth = AppSettings.MaterialFormWidth;
-                if (savedWidth > 450) savedWidth = 400;
-                if (savedWidth > 450) savedWidth = 400;
-                int savedHeight = AppSettings.MaterialFormHeight;
                 bool savedMaximized = AppSettings.MaterialFormMaximized;
 
-                LogHelper.Debug($"[MaterialSelectFormModern] 预定位读取设置: X={savedX}, Y={savedY}, Width={savedWidth}, Height={savedHeight}, Maximized={savedMaximized}");
+                LogHelper.Debug($"[MaterialSelectFormModern] 预定位读取设置: X={savedX}, Y={savedY}, Width={targetWidth}, Height={targetHeight}, PreviewExpanded={_isPreviewExpanded}");
 
-                // 如果有保存的位置信息
                 if (savedX >= 0 && savedY >= 0)
                 {
-                    // 强制设置为Manual模式，确保Location设置生效
                     this.StartPosition = FormStartPosition.Manual;
-                    LogHelper.Debug("[MaterialSelectFormModern] 预定位设置StartPosition为Manual");
-
-                    // 计算安全的窗口位置（确保在屏幕范围内）
                     var workingArea = Screen.PrimaryScreen.WorkingArea;
-                    int targetX = Math.Max(workingArea.Left, Math.Min(savedX, workingArea.Right - this.MinimumSize.Width));
-                    int targetY = Math.Max(workingArea.Top, Math.Min(savedY, workingArea.Bottom - this.MinimumSize.Height));
+                    int targetX = Math.Max(workingArea.Left, Math.Min(savedX, workingArea.Right - this.Width));
+                    int targetY = Math.Max(workingArea.Top, Math.Min(savedY, workingArea.Bottom - this.Height));
 
-                    // 直接设置窗体位置
                     this.Location = new Point(targetX, targetY);
-                    LogHelper.Debug($"[MaterialSelectFormModern] 预定位设置Location: ({targetX}, {targetY})");
 
-                    // 恢复窗口大小（如果有效）
-                    if (savedWidth > 0 && savedHeight > 0)
-                    {
-                        int width = Math.Max(this.MinimumSize.Width, savedWidth);
-                        int height = Math.Max(this.MinimumSize.Height, savedHeight);
-
-                        // 确保窗口大小不超过工作区域
-                        width = Math.Min(width, workingArea.Width);
-                        height = Math.Min(height, workingArea.Height);
-
-                        this.Size = new Size(width, height);
-                        LogHelper.Debug($"[MaterialSelectFormModern] 预定位设置Size: ({width}, {height})");
-                    }
-
-                    // 恢复窗口最大化状态
                     if (savedMaximized)
                     {
                         this.WindowState = FormWindowState.Maximized;
-                        LogHelper.Debug("[MaterialSelectFormModern] 预定位设置WindowState为Maximized");
                     }
                     else
                     {
                         this.WindowState = FormWindowState.Normal;
-                        LogHelper.Debug("[MaterialSelectFormModern] 预定位设置WindowState为Normal");
                     }
 
                     LogHelper.Debug("[MaterialSelectFormModern] ========== 预定位完成，窗口将直接在目标位置显示 ==========");
                 }
                 else
                 {
-                    // 首次运行，保持居中显示
                     this.StartPosition = FormStartPosition.CenterScreen;
                     LogHelper.Debug("[MaterialSelectFormModern] 首次运行或无保存位置，保持居中显示");
                 }
 
-                // 🔧 关键新增：在预定位阶段同时恢复预览状态
+                // 4. 应用预览面板与折叠条的尺寸与位置
                 RestorePreviewStateInPrePosition();
             }
             catch (Exception ex)
             {
                 LogHelper.Error($"[MaterialSelectFormModern] 预定位失败: {ex.Message}", ex);
-                // 异常时确保窗口至少可见
                 try
                 {
                     this.StartPosition = FormStartPosition.CenterScreen;
-                    LogHelper.Debug("[MaterialSelectFormModern] 预定位异常处理：设置StartPosition为CenterScreen");
+                    this.ClientSize = new Size(STATION_WIDTH, BASE_CLIENT_HEIGHT);
                 }
                 catch (Exception fallbackEx)
                 {
@@ -472,19 +476,73 @@ namespace WindowsFormsApp3
             }
         }
 
-        private void UpdateFormSizeBasedOnPreviewState()
+        private void UpdateFormSizeBasedOnPreviewState(bool updateWindowSize = true)
         {
-            if (_isPreviewExpanded)
+            int contentHeight = CalculateStationContentHeight();
+            int currentBaseHeight = TITLE_BAR_HEIGHT + contentHeight + COLLAPSE_BAR_HEIGHT;
+            int targetHeight = _isPreviewExpanded ? currentBaseHeight + MAX_PREVIEW_HEIGHT : currentBaseHeight;
+            int targetWidth = _isBatchPanelExpanded ? WORKBENCH_WIDTH : STATION_WIDTH;
+            int rightStationX = _isBatchPanelExpanded ? BATCH_PANEL_WIDTH : 0;
+
+            // 1. 常规调用负责设置窗体尺寸；批量模式切换会先原子设置 Bounds，再只更新内部布局。
+            if (updateWindowSize)
             {
-                pdfPreviewPanel.Height = MAX_PREVIEW_HEIGHT;
-                this.ClientSize = new Size(this.ClientSize.Width, pdfPreviewPanel.Bottom);
-                previewCollapseButton.Text = "▲";
+                this.ClientSize = new Size(targetWidth, targetHeight);
             }
-            else
+
+            // 2. 更新左侧批量文件列表面板
+            if (pnlFileList != null && _isBatchPanelExpanded)
             {
-                pdfPreviewPanel.Height = 0;
-                this.ClientSize = new Size(this.ClientSize.Width, pdfPreviewPanel.Top);
-                previewCollapseButton.Text = "▼";
+                SetControlBoundsSafe(pnlFileList, 0, 0, BATCH_PANEL_WIDTH, targetHeight);
+            }
+
+            // 3. 更新右侧工位主容器尺寸 (宽 360, 高 targetHeight)
+            if (pnlRightStation != null)
+            {
+                SetControlBoundsSafe(pnlRightStation, rightStationX, 0, STATION_WIDTH, targetHeight);
+            }
+
+            // 4. 内容区容器高度严格自适应贴合所有卡片
+            if (pnlStationContent != null)
+            {
+                SetControlBoundsSafe(pnlStationContent, 0, TITLE_BAR_HEIGHT, STATION_WIDTH, contentHeight);
+            }
+
+            // 5. 预览折叠条直接紧贴在内容区（操作栏）底边下方（间距精确为 0px，彻底消除确认按钮与折叠条之间的空白）
+            int collapseTop = TITLE_BAR_HEIGHT + contentHeight;
+            if (pnlCollapseBar != null)
+            {
+                SetControlBoundsSafe(pnlCollapseBar, 0, collapseTop, STATION_WIDTH, COLLAPSE_BAR_HEIGHT);
+            }
+            if (previewCollapseButton != null)
+            {
+                int collapseX = (previewCollapseButton.Parent == pnlRightStation) ? 0 : rightStationX;
+                SetControlBoundsSafe(previewCollapseButton, collapseX, collapseTop, STATION_WIDTH, COLLAPSE_BAR_HEIGHT);
+            }
+            if (lblCollapseArrow != null)
+            {
+                lblCollapseArrow.Text = _isPreviewExpanded ? "▲ 点击折叠预览" : "▼ 点击展开预览 (+245px)";
+            }
+            if (lblCollapsePageNumber != null)
+            {
+                lblCollapsePageNumber.Text = string.IsNullOrEmpty(label1?.Text) ? "页码: —" : label1.Text;
+            }
+
+            // 6. PDF 预览面板位于折叠条正下方 (展开时高度 245，折叠时高度 0)
+            if (pdfPreviewPanel != null)
+            {
+                int previewX = (pdfPreviewPanel.Parent == pnlRightStation) ? 0 : rightStationX;
+                int previewTop = TITLE_BAR_HEIGHT + contentHeight + COLLAPSE_BAR_HEIGHT;
+                if (_isPreviewExpanded)
+                {
+                    pdfPreviewPanel.Visible = true;
+                    SetControlBoundsSafe(pdfPreviewPanel, previewX, previewTop, STATION_WIDTH, MAX_PREVIEW_HEIGHT);
+                }
+                else
+                {
+                    pdfPreviewPanel.Visible = false;
+                    SetControlBoundsSafe(pdfPreviewPanel, previewX, previewTop, STATION_WIDTH, 0);
+                }
             }
         }
 
@@ -495,35 +553,15 @@ namespace WindowsFormsApp3
         {
             try
             {
-                // 读取保存的预览状态
                 bool shouldExpand = WindowPositionManager.ShouldExpandPreview();
-
-                // 安全检查：确保控件已初始化
-                if (pdfPreviewPanel == null || previewCollapseButton == null)
-                {
-                    LogHelper.Debug("[预定位] 预览控件未初始化，跳过状态恢复");
-                    return;
-                }
-
-                // 在窗口显示前设置预览面板高度和按钮状态
-                if (shouldExpand)
-                {
-                    _isPreviewExpanded = true;
-                    UpdateFormSizeBasedOnPreviewState();
-                    LogHelper.Debug("[预定位] 恢复预览展开状态和窗体大小");
-                }
-                else
-                {
-                    _isPreviewExpanded = false;
-                    UpdateFormSizeBasedOnPreviewState();
-                    LogHelper.Debug("[预定位] 恢复预览折叠状态和窗体大小");
-                }
+                _isPreviewExpanded = shouldExpand;
+                UpdateFormSizeBasedOnPreviewState();
             }
             catch (Exception ex)
             {
                 LogHelper.Error($"[预定位] 恢复预览状态失败: {ex.Message}");
-                // 失败时保持默认状态（折叠）
                 _isPreviewExpanded = false;
+                UpdateFormSizeBasedOnPreviewState();
             }
         }
 
@@ -631,7 +669,7 @@ namespace WindowsFormsApp3
         {
             var formattedWidth = FormatDimension(width);
             var formattedHeight = FormatDimension(height);
-            return $"PDF尺寸: {formattedWidth}×{formattedHeight}mm";
+            return $"{formattedWidth}×{formattedHeight}";
         }
 
         /// <summary>
@@ -901,6 +939,7 @@ namespace WindowsFormsApp3
             bool isColumnCombineMode = false)
         {
             InitializeComponent();
+            EnableOptimizedWindowPainting();
 
             ApplySavedTopMostPreference();
 
@@ -972,6 +1011,7 @@ namespace WindowsFormsApp3
             // 初始化订单号模式与批量列表面板
             InitializeOrderNumberControls();
             InitializeBatchFileListPanel();
+            InitializeV5RightStation();
 
             // 初始化预设右键菜单
             InitializePresetContextMenu();
@@ -1353,7 +1393,7 @@ namespace WindowsFormsApp3
         /// 选择形状（新的枚举版本）
         /// </summary>
         /// <param name="shapeType">形状类型</param>
-        private void SelectShape(ShapeType shapeType)
+        public void SelectShape(ShapeType shapeType)
         {
             try
             {
@@ -1574,6 +1614,8 @@ namespace WindowsFormsApp3
                         break;
                 }
             }
+
+            UpdateV5InplaceRoundRadiusUI(selectedIndex == 3);
         }
 
     /// <summary>
@@ -1900,6 +1942,7 @@ namespace WindowsFormsApp3
 
                     // 保存选择的导出路径到设置
                     SaveSelectedExportPath();
+                    SyncOutputPathDisplay();
                     SyncCurrentSelectionsToActiveGroup();
 
                     LogHelper.Debug($"选择导出路径: {SelectedExportPath}");
@@ -2305,59 +2348,15 @@ namespace WindowsFormsApp3
                     if (isCurrentlySelected)
                     {
                         // 取消选择
-                        SelectedMaterial = null;
-                        // 重置所有Tab页中所有按钮状态为默认
-                        var tabControl = Controls.OfType<AntdUI.Tabs>().FirstOrDefault();
-                        if (tabControl != null)
-                        {
-                            foreach (var tabPage in tabControl.Pages)
-                            {
-                                foreach (var btn in tabPage.Controls.OfType<AntdUI.Button>())
-                                {
-                                    btn.Type = AntdUI.TTypeMini.Default; // 重置为默认样式
-                                    // 重新应用主题样式以更新ForeColor
-                                    if (theme != null) ApplyThemeToMaterialButton(btn, theme, isDark);
-                                }
-                            }
-                        }
-
-                        // 保存取消选择的状态到AppSettings
-                        AppSettings.Set("LastSelectedMaterial", "");
-                        AppSettings.Save();
-
+                        SelectMaterialByName(null);
                         LogHelper.Debug($"取消选择材料: {clickedButton.Text}");
-                        SyncCurrentSelectionsToActiveGroup();
                     }
-                else
-                {
-                    // 重置所有Tab页中所有按钮的状态
-                    var tabControl = Controls.OfType<AntdUI.Tabs>().FirstOrDefault();
-                    if (tabControl != null)
+                    else
                     {
-                        foreach (var tabPage in tabControl.Pages)
-                        {
-                            foreach (var btn in tabPage.Controls.OfType<AntdUI.Button>())
-                            {
-                                btn.Type = AntdUI.TTypeMini.Default; // 重置为默认样式
-                                // 重新应用主题样式以更新ForeColor
-                                if (theme != null) ApplyThemeToMaterialButton(btn, theme, isDark);
-                            }
-                        }
+                        // 选中新材料
+                        SelectMaterialByName(clickedButton.Text);
+                        LogHelper.Debug($"选择材料: {SelectedMaterial}");
                     }
-
-                    // 设置选中按钮状态
-                    SelectedMaterial = clickedButton.Text;
-                    clickedButton.Type = AntdUI.TTypeMini.Primary; // 高亮显示选中状态
-                    // 重新应用主题样式以更新选中按钮的ForeColor
-                    if (theme != null) ApplyThemeToMaterialButton(clickedButton, theme, isDark);
-
-                    // 保存选择的材料
-                    AppSettings.Set("LastSelectedMaterial", SelectedMaterial);
-                    AppSettings.Save();
-
-                    LogHelper.Debug($"选择材料: {SelectedMaterial}");
-                    SyncCurrentSelectionsToActiveGroup();
-                }
                 }
                 else
                 {
@@ -2386,102 +2385,23 @@ namespace WindowsFormsApp3
                     // 检查是否选择了"取消选择"选项
                     if (dropdown16.Text == "取消选择")
                     {
-                        // 取消选择
-                        SelectedMaterial = null;
-                        dropdown16.Text = "更多材料";
-
-                        // 重置所有Tab页中所有按钮的状态
-                        var tabControl = Controls.OfType<AntdUI.Tabs>().FirstOrDefault();
-                        if (tabControl != null)
-                        {
-                            foreach (var tabPage in tabControl.Pages)
-                            {
-                                foreach (var btn in tabPage.Controls.OfType<AntdUI.Button>())
-                                {
-                                    btn.Type = AntdUI.TTypeMini.Default;
-                                    // 重新应用主题样式以更新ForeColor
-                                    if (theme != null) ApplyThemeToMaterialButton(btn, theme, isDark);
-                                }
-                            }
-                        }
-
-                        // 重置下拉框为默认状态
-                        ResetDropdown16Style();
-
-                        // 保存取消选择的状态到AppSettings
-                        AppSettings.Set("LastSelectedMaterial", "");
-                        AppSettings.Save();
-
+                        SelectMaterialByName(null);
                         LogHelper.Debug("通过'取消选择'选项清空材料选择");
-                        SyncCurrentSelectionsToActiveGroup();
                         return;
                     }
 
                     string selectedMaterial = dropdown16.Text;
-
-                    // 检查是否点击了已选中的材料（用于取消选择）
                     bool isCurrentlySelected = SelectedMaterial == selectedMaterial;
 
                     if (isCurrentlySelected)
                     {
-                        // 取消选择
-                        SelectedMaterial = null;
-                        dropdown16.Text = "更多材料";
-
-                        // 重置所有Tab页中所有按钮的状态
-                        var tabControl = Controls.OfType<AntdUI.Tabs>().FirstOrDefault();
-                        if (tabControl != null)
-                        {
-                            foreach (var tabPage in tabControl.Pages)
-                            {
-                                foreach (var btn in tabPage.Controls.OfType<AntdUI.Button>())
-                                {
-                                    btn.Type = AntdUI.TTypeMini.Default;
-                                    // 重新应用主题样式以更新ForeColor
-                                    if (theme != null) ApplyThemeToMaterialButton(btn, theme, isDark);
-                                }
-                            }
-                        }
-
-                        // 重置下拉框为默认状态
-                        ResetDropdown16Style();
-
-                        // 保存取消选择的状态到AppSettings
-                        AppSettings.Set("LastSelectedMaterial", "");
-                        AppSettings.Save();
-
+                        SelectMaterialByName(null);
                         LogHelper.Debug($"取消选择材料: {selectedMaterial}");
-                        SyncCurrentSelectionsToActiveGroup();
                     }
                     else
                     {
-                        // 重置所有Tab页中所有按钮的状态
-                        var tabControl = Controls.OfType<AntdUI.Tabs>().FirstOrDefault();
-                        if (tabControl != null)
-                        {
-                            foreach (var tabPage in tabControl.Pages)
-                            {
-                                foreach (var btn in tabPage.Controls.OfType<AntdUI.Button>())
-                                {
-                                    btn.Type = AntdUI.TTypeMini.Default;
-                                    // 重新应用主题样式以更新ForeColor
-                                    if (theme != null) ApplyThemeToMaterialButton(btn, theme, isDark);
-                                }
-                            }
-                        }
-
-                        // 设置选择的材料
-                        SelectedMaterial = selectedMaterial;
-                        
-                        // ✅ 设置下拉框为激活状态（与材料按钮一致）
-                        SetDropdown16ActiveStyle();
-
-                        // 保存选择的材料
-                        AppSettings.Set("LastSelectedMaterial", SelectedMaterial);
-                        AppSettings.Save();
-
+                        SelectMaterialByName(selectedMaterial);
                         LogHelper.Debug($"从下拉框选择材料: {SelectedMaterial}");
-                        SyncCurrentSelectionsToActiveGroup();
                     }
                 }
             }
@@ -4488,6 +4408,7 @@ namespace WindowsFormsApp3
         /// </summary>
         public void ToggleBatchFileListPanel(bool expand)
         {
+            bool redrawSuspended = false;
             try
             {
                 if (expand == _isBatchPanelExpanded) return;
@@ -4497,8 +4418,22 @@ namespace WindowsFormsApp3
                     InitializeBatchFileListPanel();
                 }
 
+                if (Visible && IsHandleCreated)
+                {
+                    SendMessage(Handle, WM_SETREDRAW, IntPtr.Zero, IntPtr.Zero);
+                    redrawSuspended = true;
+                }
+                SuspendLayout();
+                pnlFileList?.SuspendLayout();
+                pnlRightStation?.SuspendLayout();
+
                 _isBatchPanelExpanded = expand;
                 pnlFileList.Visible = expand;
+                int contentHeight = CalculateStationContentHeight();
+                int targetHeight = TITLE_BAR_HEIGHT + contentHeight + COLLAPSE_BAR_HEIGHT +
+                    (_isPreviewExpanded ? MAX_PREVIEW_HEIGHT : 0);
+                int targetWidth = expand ? WORKBENCH_WIDTH : STATION_WIDTH;
+                int targetLeft;
 
                 if (expand)
                 {
@@ -4511,31 +4446,61 @@ namespace WindowsFormsApp3
                     RefreshGroupSummaryHeader();
                     RenderGroupCards();
 
-                    int targetLeft = Math.Max(0, this.Left - BATCH_PANEL_WIDTH);
-                    this.SetBounds(targetLeft, this.Top, this.Width + BATCH_PANEL_WIDTH, this.Height, BoundsSpecified.All);
+                    _singleStationWindowLeft = this.Left;
+                    targetLeft = Math.Max(0, this.Left - BATCH_PANEL_WIDTH);
+                    pnlFileList.SetBounds(0, 0, BATCH_PANEL_WIDTH, targetHeight);
                     ShiftMainControls(BATCH_PANEL_WIDTH);
                 }
                 else
                 {
                     ShiftMainControls(-BATCH_PANEL_WIDTH);
-                    this.SetBounds(this.Left + BATCH_PANEL_WIDTH, this.Top, this.Width - BATCH_PANEL_WIDTH, this.Height, BoundsSpecified.All);
+                    targetLeft = _singleStationWindowLeft ?? (this.Left + BATCH_PANEL_WIDTH);
+                    _singleStationWindowLeft = null;
                 }
+
+                // 位置与尺寸一次性提交，避免桌面合成器显示移动和缩放的中间帧。
+                this.SetBounds(
+                    targetLeft,
+                    this.Top,
+                    targetWidth,
+                    targetHeight,
+                    BoundsSpecified.X | BoundsSpecified.Width | BoundsSpecified.Height);
+
+                UpdateFormSizeBasedOnPreviewState(updateWindowSize: false);
+
+                if (btnApplyToAll != null)
+                {
+                    UpdateBatchScopeButtonAppearance();
+                }
+
             }
             catch (Exception ex)
             {
                 LogHelper.Error($"[MaterialSelectFormModern] 切换左侧面板失败: {ex.Message}", ex);
             }
+            finally
+            {
+                pnlRightStation?.ResumeLayout(false);
+                pnlFileList?.ResumeLayout(false);
+                ResumeLayout(false);
+                if (redrawSuspended && !IsDisposed && IsHandleCreated)
+                {
+                    SendMessage(Handle, WM_SETREDRAW, new IntPtr(1), IntPtr.Zero);
+                    Invalidate(true);
+                    Update();
+                }
+            }
         }
 
         /// <summary>
-        /// 平移除左侧面板外的所有控件，保证视觉位置不变
+        /// 平移除左侧面板与右侧工位外的所有旧控件，保证视觉位置不变
         /// </summary>
         private void ShiftMainControls(int deltaX)
         {
             this.SuspendLayout();
             foreach (Control c in this.Controls)
             {
-                if (c != pnlFileList)
+                if (c != pnlFileList && c != pnlRightStation)
                 {
                     c.Location = new Point(c.Left + deltaX, c.Top);
                 }
@@ -5213,6 +5178,10 @@ namespace WindowsFormsApp3
 
                 // ✅ 持久化序号搜索复选框状态
                 AppSettings.MaterialEnableSerialSearchCheckbox = enableSerialSearchCheckbox.Checked;
+                if (btnSearchSerialAction != null)
+                {
+                    btnSearchSerialAction.IsSearchActive = enableSerialSearchCheckbox.Checked;
+                }
             }
             catch (Exception ex)
             {
@@ -5420,9 +5389,14 @@ namespace WindowsFormsApp3
             TopMost = isTopMost;
             if (pinTopMostButton != null)
             {
-                pinTopMostButton.Type = isTopMost
-                    ? AntdUI.TTypeMini.Primary
-                    : AntdUI.TTypeMini.Default;
+                pinTopMostButton.Type = AntdUI.TTypeMini.Default;
+                pinTopMostButton.Ghost = true;
+                pinTopMostButton.BorderWidth = 0F;
+                pinTopMostButton.DefaultBack = Color.Transparent;
+                pinTopMostButton.DefaultBorderColor = Color.Transparent;
+                pinTopMostButton.ForeColor = isTopMost
+                    ? Color.FromArgb(22, 119, 255)
+                    : Color.FromArgb(140, 149, 163);
                 pinTopMostButton.Text = "📌";
                 folderTreeViewToolTip?.SetToolTip(
                     pinTopMostButton,
@@ -5491,6 +5465,10 @@ namespace WindowsFormsApp3
             {
                 enableSerialSearchCheckbox.Checked = AppSettings.MaterialEnableSerialSearchCheckbox;
                 LogHelper.Debug($"[Load] 恢复序号搜索复选框状态: {AppSettings.MaterialEnableSerialSearchCheckbox}");
+            }
+            if (btnSearchSerialAction != null)
+            {
+                btnSearchSerialAction.IsSearchActive = AppSettings.MaterialEnableSerialSearchCheckbox;
             }
 
             // ✅ 初始化预览面板为折叠状态（设计器中为180px，需要运行时重置）
@@ -5736,13 +5714,12 @@ namespace WindowsFormsApp3
                 // 如果左侧列表展开过，先计算并恢复到无左侧列表时的基准位置与宽度，再进行持久化保存
                 int saveX = this.Location.X;
                 int saveY = this.Location.Y;
-                int saveWidth = this.Size.Width;
-                int saveHeight = this.Size.Height;
+                int saveWidth = STATION_WIDTH;
+                int saveHeight = _isPreviewExpanded ? EXPANDED_CLIENT_HEIGHT : BASE_CLIENT_HEIGHT;
 
                 if (_isBatchPanelExpanded)
                 {
                     saveX += BATCH_PANEL_WIDTH;
-                    saveWidth -= BATCH_PANEL_WIDTH;
                 }
 
                 if (this.WindowState == FormWindowState.Normal)
@@ -5852,6 +5829,7 @@ namespace WindowsFormsApp3
             }
 
             AdjustedDimensions = finalDimensions;
+            UpdateV5ImpositionDashboard();
 
             if (_batchItems != null && _batchItems.Count > 0)
             {
@@ -5996,82 +5974,7 @@ namespace WindowsFormsApp3
             {
                 // 加载上次选择的材料
                 string lastMaterial = AppSettings.GetValue<string>("LastSelectedMaterial");
-                
-                // 如果配置中保存的是空字符串或null，表示上次没有选择材料
-                if (string.IsNullOrEmpty(lastMaterial))
-                {
-                    SelectedMaterial = null;
-                    // 确保所有按钮都是默认状态
-                    ResetAllMaterialButtonsToDefault();
-                    // 重置下拉框为默认状态
-                    if (dropdown16 != null)
-                    {
-                        dropdown16.Text = "更多材料";
-                        // ✅ 重置下拉框为默认状态
-                        ResetDropdown16Style();
-                    }
-                    LogHelper.Debug("没有上次选择的材料记录，已清空所有选择状态");
-                    return;
-                }
-
-                bool foundInButtons = false;
-
-                // 先查找TabControl中的材料按钮
-                var tabControl = Controls.OfType<AntdUI.Tabs>().FirstOrDefault();
-                if (tabControl != null)
-                {
-                    // 遍历所有TabPage
-                    foreach (var tabPage in tabControl.Pages)
-                    {
-                        // 查找TabPage中的材料按钮
-                        foreach (var btn in tabPage.Controls.OfType<AntdUI.Button>())
-                        {
-                            if (btn.Text == lastMaterial)
-                            {
-                                SelectedMaterial = btn.Text;
-                                btn.Type = AntdUI.TTypeMini.Primary;
-                                foundInButtons = true;
-                                LogHelper.Debug($"从按钮恢复材料选择: {SelectedMaterial}");
-                                break;
-                            }
-                        }
-                        if (foundInButtons) break;
-                    }
-                }
-
-                // 如果在按钮中没有找到，检查dropdown16
-                if (!foundInButtons && dropdown16 != null)
-                {
-                    for (int i = 0; i < dropdown16.Items.Count; i++)
-                    {
-                        if (dropdown16.Items[i].ToString() == lastMaterial)
-                        {
-                            SelectedMaterial = lastMaterial;
-                            dropdown16.Text = lastMaterial;
-                            
-                            // ✅ 设置下拉框为激活状态
-                            SetDropdown16ActiveStyle();
-                            
-                            LogHelper.Debug($"从下拉框恢复材料选择: {SelectedMaterial}");
-                            foundInButtons = true; // 标记为已找到
-                            break;
-                        }
-                    }
-                }
-
-                // 如果没有找到任何匹配的材料，清除选择并重置UI
-                if (!foundInButtons)
-                {
-                    SelectedMaterial = null;
-                    ResetAllMaterialButtonsToDefault();
-                    if (dropdown16 != null)
-                    {
-                        dropdown16.Text = "更多材料";
-                        // ✅ 重置下拉框为默认状态
-                        ResetDropdown16Style();
-                    }
-                    LogHelper.Debug($"未找到上次选择的材料: {lastMaterial}，已清空选择状态");
-                }
+                SelectMaterialByName(lastMaterial);
             }
             catch (Exception ex)
             {
@@ -6081,27 +5984,113 @@ namespace WindowsFormsApp3
         }
 
         /// <summary>
+        /// 获取所有 15 个常用材料按钮
+        /// </summary>
+        private IEnumerable<AntdUI.Button> GetAllMaterialButtons()
+        {
+            var buttons = new[]
+            {
+                materialButton1, materialButton2, materialButton3, materialButton4, materialButton5,
+                materialButton6, materialButton7, materialButton8, materialButton9, materialButton10,
+                materialButton11, materialButton12, materialButton13, materialButton14, materialButton15
+            };
+            return buttons.Where(b => b != null);
+        }
+
+        /// <summary>
         /// 重置所有材料按钮为默认状态
         /// </summary>
         private void ResetAllMaterialButtonsToDefault()
         {
             try
             {
-                var tabControl = Controls.OfType<AntdUI.Tabs>().FirstOrDefault();
-                if (tabControl != null)
+                var themeManager = ServiceLocator.Instance.GetThemeManager();
+                ThemeDefinition theme = themeManager?.GetCurrentTheme();
+                bool isDark = theme != null && IsThemeDark(theme);
+
+                foreach (var btn in GetAllMaterialButtons())
                 {
-                    foreach (var tabPage in tabControl.Pages)
-                    {
-                        foreach (var btn in tabPage.Controls.OfType<AntdUI.Button>())
-                        {
-                            btn.Type = AntdUI.TTypeMini.Default;
-                        }
-                    }
+                    btn.Type = AntdUI.TTypeMini.Default;
+                    if (theme != null) ApplyThemeToMaterialButton(btn, theme, isDark);
                 }
             }
             catch (Exception ex)
             {
                 LogHelper.Error($"重置材料按钮状态失败: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// 根据材料名称选中对应材料（支持 15 个常用按钮及更多材料下拉框）
+        /// </summary>
+        public void SelectMaterialByName(string materialName)
+        {
+            try
+            {
+                var themeManager = ServiceLocator.Instance.GetThemeManager();
+                ThemeDefinition theme = themeManager?.GetCurrentTheme();
+                bool isDark = theme != null && IsThemeDark(theme);
+
+                ResetAllMaterialButtonsToDefault();
+                ResetDropdown16Style();
+
+                if (string.IsNullOrWhiteSpace(materialName))
+                {
+                    SelectedMaterial = null;
+                    if (dropdown16 != null) dropdown16.Text = "更多材料";
+                    AppSettings.Set("LastSelectedMaterial", "");
+                    AppSettings.Save();
+                    SyncCurrentSelectionsToActiveGroup();
+                    return;
+                }
+
+                bool found = false;
+
+                // 1. 查找常用 15 个按钮
+                foreach (var btn in GetAllMaterialButtons())
+                {
+                    if (btn.Text == materialName)
+                    {
+                        btn.Type = AntdUI.TTypeMini.Primary;
+                        if (theme != null) ApplyThemeToMaterialButton(btn, theme, isDark);
+                        SelectedMaterial = materialName;
+                        if (dropdown16 != null) dropdown16.Text = "更多材料";
+                        found = true;
+                        break;
+                    }
+                }
+
+                // 2. 查找更多材料下拉框
+                if (!found && dropdown16 != null)
+                {
+                    foreach (var item in dropdown16.Items)
+                    {
+                        if (item?.ToString() == materialName)
+                        {
+                            SelectedMaterial = materialName;
+                            dropdown16.Text = materialName;
+                            SetDropdown16ActiveStyle();
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                // 3. 若均未在列表，依然更新属性
+                if (!found)
+                {
+                    SelectedMaterial = materialName;
+                }
+
+                AppSettings.Set("LastSelectedMaterial", SelectedMaterial);
+                AppSettings.Save();
+                UpdateFixedField();
+                SyncCurrentSelectionsToActiveGroup();
+                LogHelper.Debug($"[SelectMaterialByName] 成功选中材料: {SelectedMaterial} (foundInControls: {found})");
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[MaterialSelectFormModern] 选择材料失败: {ex.Message}", ex);
             }
         }
 
@@ -6525,6 +6514,11 @@ namespace WindowsFormsApp3
                             AppSettings.Set("LastRoundRadius", RoundRadius.ToString());
                             AppSettings.Save();
 
+                            if (txtInplaceRoundRadius != null && txtInplaceRoundRadius.Text != radiusTextBox.Text)
+                            {
+                                txtInplaceRoundRadius.Text = radiusTextBox.Text;
+                            }
+
                             LogHelper.Debug($"圆角值已更新并保存: {RoundRadius}");
 
                             // 更新尺寸显示
@@ -6769,72 +6763,157 @@ namespace WindowsFormsApp3
             _isPresetContextMenuInitialized = true;
         }
 
+        private bool _isPresetTabSubscribed = false;
+        private bool _isPresetTabSwitching = false;
+
         /// <summary>
-        /// 加载预设按钮到按钮区域
+        /// 加载预设按钮到按钮区域，并支持按分组过滤（当前默认将所有已有预设归入“未命名”组）
         /// </summary>
         private void LoadPresetButtons()
         {
             if (presetButtonsPanel == null) return;
 
-            // 清除现有按钮
-            presetButtonsPanel.Controls.Clear();
-
             var presets = AppSettings.MaterialPresets;
-            if (presets == null || presets.Count == 0) 
+            if (presets == null || presets.Count == 0)
             {
+                presetButtonsPanel.Controls.Clear();
                 LogHelper.Debug("[LoadPresetButtons] 预设列表为空或为 null。");
                 AdjustLayoutForPresetButtons();
                 return;
             }
 
-            LogHelper.Debug($"[LoadPresetButtons] 加载预设按钮开始，共发现 {presets.Count} 个预设");
-
-            // 获取当前主题
-            ThemeDefinition currentTheme = null;
-            bool isDark = false;
-            try
-            {
-                var themeManager = ServiceLocator.Instance.GetThemeManager();
-                if (themeManager != null)
-                {
-                    currentTheme = themeManager.GetThemeByName(AppSettings.CurrentThemeName) ?? themeManager.GetThemeByName("浅色");
-                    isDark = currentTheme != null && IsThemeDark(currentTheme);
-                }
-            }
-            catch { /* 忽略获取主题失败 */ }
-
-            int addedCount = 0;
+            // 1. 确保所有预设都有有效分组，未设置的统一归入"未命名"
             foreach (var preset in presets)
             {
-                // 只添加 ShowInPresetButtons 为 true 的预设
-                if (preset.ShowInPresetButtons)
+                if (string.IsNullOrWhiteSpace(preset.GroupName))
                 {
-                    var button = CreatePresetButton(preset);
-                    presetButtonsPanel.Controls.Add(button);
-                    
-                    // 🔧 在添加时直接应用主题
-                    if (currentTheme != null)
-                    {
-                        ApplyThemeToMaterialButton(button, currentTheme, isDark);
-                    }
-                    
-                    // 强制按钮可见
-                    button.Visible = true;
-                    addedCount++;
+                    preset.GroupName = "未命名";
                 }
             }
-            
-            LogHelper.Debug($"[LoadPresetButtons] 加载完成，添加了 {addedCount} 个预设按钮到面板");
 
-            // 🔧 强制设置可见性，以防设计器默认隐藏
+            // 2. 提取所有显示在按钮区域的预设分组
+            var availableGroups = presets
+                .Where(p => p.ShowInPresetButtons)
+                .Select(p => string.IsNullOrWhiteSpace(p.GroupName) ? "未命名" : p.GroupName.Trim())
+                .Distinct()
+                .ToList();
+
+            if (availableGroups.Count == 0)
+            {
+                availableGroups.Add("未命名");
+            }
+
+            // 3. 同步到上方 tabs1 标签页
+            if (tabs1 != null)
+            {
+                bool pagesMatch = tabs1.Pages.Count == availableGroups.Count;
+                if (pagesMatch)
+                {
+                    for (int i = 0; i < availableGroups.Count; i++)
+                    {
+                        if (tabs1.Pages[i].Text != availableGroups[i])
+                        {
+                            pagesMatch = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (!pagesMatch)
+                {
+                    _isPresetTabSwitching = true;
+                    try
+                    {
+                        tabs1.Pages.Clear();
+                        foreach (var groupName in availableGroups)
+                        {
+                            tabs1.Pages.Add(new AntdUI.TabPage { Text = groupName });
+                        }
+                        tabs1.SelectedIndex = 0;
+                    }
+                    finally
+                    {
+                        _isPresetTabSwitching = false;
+                    }
+                }
+
+                if (!_isPresetTabSubscribed)
+                {
+                    tabs1.SelectedIndexChanged += (s, e) =>
+                    {
+                        if (_isPresetTabSwitching) return;
+                        string selectedGroup = tabs1.SelectedTab?.Text ?? "未命名";
+                        RenderPresetButtonsForGroup(selectedGroup);
+                    };
+                    _isPresetTabSubscribed = true;
+                }
+            }
+
+            // 4. 根据当前激活标签渲染预设按钮
+            string currentActiveGroup = (tabs1?.SelectedTab != null && !string.IsNullOrWhiteSpace(tabs1.SelectedTab.Text))
+                ? tabs1.SelectedTab.Text
+                : (availableGroups.FirstOrDefault() ?? "未命名");
+
+            RenderPresetButtonsForGroup(currentActiveGroup);
+        }
+
+        /// <summary>
+        /// 渲染指定分组下的预设按钮
+        /// </summary>
+        private void RenderPresetButtonsForGroup(string groupName)
+        {
+            if (presetButtonsPanel == null) return;
+
+            presetButtonsPanel.SuspendLayout();
+            presetButtonsPanel.Controls.Clear();
+
+            var presets = AppSettings.MaterialPresets;
+            if (presets != null && presets.Count > 0)
+            {
+                // 获取当前主题
+                ThemeDefinition currentTheme = null;
+                bool isDark = false;
+                try
+                {
+                    var themeManager = ServiceLocator.Instance.GetThemeManager();
+                    if (themeManager != null)
+                    {
+                        currentTheme = themeManager.GetThemeByName(AppSettings.CurrentThemeName) ?? themeManager.GetThemeByName("浅色");
+                        isDark = currentTheme != null && IsThemeDark(currentTheme);
+                    }
+                }
+                catch { /* 忽略获取主题失败 */ }
+
+                int addedCount = 0;
+                foreach (var preset in presets)
+                {
+                    if (preset.ShowInPresetButtons)
+                    {
+                        string pGroup = string.IsNullOrWhiteSpace(preset.GroupName) ? "未命名" : preset.GroupName.Trim();
+                        if (pGroup == groupName)
+                        {
+                            var button = CreatePresetButton(preset);
+                            presetButtonsPanel.Controls.Add(button);
+
+                            if (currentTheme != null)
+                            {
+                                ApplyThemeToMaterialButton(button, currentTheme, isDark);
+                            }
+
+                            button.Visible = true;
+                            addedCount++;
+                        }
+                    }
+                }
+                LogHelper.Debug($"[RenderPresetButtonsForGroup] 分组 [{groupName}] 加载完成，添加了 {addedCount} 个预设按钮");
+            }
+
             presetButtonsPanel.Visible = true;
-            presetButtonsPanel.BringToFront(); // 确保不被其他控件遮挡
-
-            // 🔧 强制重绘面板以确保按钮显示
+            presetButtonsPanel.BringToFront();
+            presetButtonsPanel.ResumeLayout(true);
             presetButtonsPanel.PerformLayout();
             presetButtonsPanel.Refresh();
 
-            // 调整预设按钮面板及下方控件的位置和窗体高度
             AdjustLayoutForPresetButtons();
         }
 
@@ -6844,6 +6923,12 @@ namespace WindowsFormsApp3
         private void AdjustLayoutForPresetButtons()
         {
             if (presetButtonsPanel == null) return;
+
+            if (pnlRightStation != null)
+            {
+                AdjustV5StationLayout();
+                return;
+            }
 
             int oldHeight = presetButtonsPanel.Height;
             
@@ -6907,10 +6992,12 @@ namespace WindowsFormsApp3
                 Text = preset.Name,
                 BorderWidth = 1F,
                 Type = AntdUI.TTypeMini.Default,
-                Size = new System.Drawing.Size(buttonWidth, 28),
+                Size = new System.Drawing.Size(buttonWidth, 22),
+                Radius = 3,
+                Font = new Font("Microsoft YaHei UI", 8F),
                 Tag = preset.Name,
                 WaveSize = 0,
-                Margin = new Padding(3, 1, 3, 1),
+                Margin = new Padding(2, 1, 2, 1),
                 Visible = true
             };
             button.Click += (s, e) => PresetButton_Click(preset.Name);
@@ -7162,7 +7249,7 @@ namespace WindowsFormsApp3
         /// </summary>
         /// <param name="presetName">预设名称</param>
         /// <param name="ignoreOptions">需要忽略的参数（为空时使用预设中保存的禁用设置）</param>
-        private void LoadPreset(string presetName, PresetIgnoreOptions ignoreOptions = PresetIgnoreOptions.None)
+        internal void LoadPreset(string presetName, PresetIgnoreOptions ignoreOptions = PresetIgnoreOptions.None)
         {
             var presets = AppSettings.MaterialPresets;
             if (presets == null) return;
@@ -7178,57 +7265,10 @@ namespace WindowsFormsApp3
 
             try
             {
-                // 加载材料 - 直接设置属性并更新UI样式，不触发点击事件
+                // 加载材料 - 直接调用 SelectMaterialByName 选中对应材料并同步
                 if (!string.IsNullOrEmpty(preset.SelectedMaterial) && !ignoreOptions.HasFlag(PresetIgnoreOptions.Material))
                 {
-                    // 获取主题信息
-                    var themeManager = ServiceLocator.Instance.GetThemeManager();
-                    ThemeDefinition theme = themeManager?.GetCurrentTheme();
-                    bool isDark = theme != null && IsThemeDark(theme);
-
-                    // 重置所有材料按钮的样式
-                    var tabControl = Controls.OfType<AntdUI.Tabs>().FirstOrDefault();
-                    if (tabControl != null)
-                    {
-                        foreach (var tabPage in tabControl.Pages)
-                        {
-                            foreach (var btn in tabPage.Controls.OfType<AntdUI.Button>())
-                            {
-                                btn.Type = AntdUI.TTypeMini.Default;
-                                if (theme != null) ApplyThemeToMaterialButton(btn, theme, isDark);
-                            }
-                        }
-                    }
-
-                    // 查找并选中预设的材料按钮
-                    AntdUI.Button targetButton = null;
-                    if (tabControl != null)
-                    {
-                        foreach (var tabPage in tabControl.Pages)
-                        {
-                            foreach (var btn in tabPage.Controls.OfType<AntdUI.Button>())
-                            {
-                                if (btn.Text == preset.SelectedMaterial)
-                                {
-                                    targetButton = btn;
-                                    break;
-                                }
-                            }
-                            if (targetButton != null) break;
-                        }
-                    }
-
-                    // 设置选中状态
-                    SelectedMaterial = preset.SelectedMaterial;
-                    if (targetButton != null)
-                    {
-                        targetButton.Type = AntdUI.TTypeMini.Primary;
-                        if (theme != null) ApplyThemeToMaterialButton(targetButton, theme, isDark);
-                    }
-
-                    // 保存材料选择到AppSettings
-                    AppSettings.Set("LastSelectedMaterial", SelectedMaterial);
-                    AppSettings.Save();
+                    SelectMaterialByName(preset.SelectedMaterial);
                 }
 
                 // 加载出血值
@@ -7557,6 +7597,7 @@ namespace WindowsFormsApp3
                     // 在TreeView中查找并选中上次选择的路径
                     SelectNodeByPath(folderTreeView, lastPath);
                     SelectedExportPath = lastPath;
+                    SyncOutputPathDisplay();
                     LogHelper.Debug($"恢复导出路径: {lastPath}");
                 }
             }
@@ -7962,12 +8003,12 @@ namespace WindowsFormsApp3
                 // 如果是选中状态，使用高亮背景色
                 if ((e.State & TreeNodeStates.Selected) != 0)
                 {
-                    backgroundColor = Color.FromArgb(24, 144, 255); // 主色调背景
-                    textColor = Color.White;
+                    backgroundColor = Color.FromArgb(230, 244, 255); // 轻量蓝色选中态
+                    textColor = Color.FromArgb(9, 88, 217);
                 }
                 else if ((e.State & TreeNodeStates.Hot) != 0)
                 {
-                    backgroundColor = Color.FromArgb(240, 240, 240); // 鼠标悬停背景色
+                    backgroundColor = Color.FromArgb(247, 249, 252);
                 }
 
                 // 绘制完整背景 - 覆盖整个节点区域，使用平滑的绘制方式
@@ -8038,7 +8079,7 @@ namespace WindowsFormsApp3
 
                 // 设置文本格式 - 使用更好的文本格式选项避免截断
                 TextFormatFlags flags = TextFormatFlags.Left | TextFormatFlags.VerticalCenter |
-                                       TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix;
+                                       TextFormatFlags.EndEllipsis | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix;
 
                 // 启用文本渲染的抗锯齿效果，使文字更加平滑
                 e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
@@ -8052,18 +8093,6 @@ namespace WindowsFormsApp3
                     e.Bounds.Y, 
                     Math.Max(e.Bounds.Width - textOffset, 100), 
                     e.Bounds.Height);
-
-                // 如果文本太长，自动扩展TreeView宽度
-                Size textSize = TextRenderer.MeasureText(e.Graphics, e.Node.Text, e.Node.NodeFont, textRect.Size, flags);
-
-                if (textSize.Width > textRect.Width && folderTreeView.Width < textSize.Width + e.Bounds.X + textOffset + 20)
-                {
-                    int newWidth = Math.Min(textSize.Width + e.Bounds.X + textOffset + 20, 800);
-                    if (newWidth > folderTreeView.Width)
-                    {
-                        folderTreeView.Width = newWidth;
-                    }
-                }
 
                 TextRenderer.DrawText(e.Graphics, e.Node.Text, e.Node.NodeFont,
                     textRect, textColor, backgroundColor, flags);
@@ -8156,6 +8185,7 @@ namespace WindowsFormsApp3
                     SelectNodeByPath(folderTreeView, path);
                     SelectedExportPath = path;
                     SaveSelectedExportPath();
+                    SyncOutputPathDisplay();
                     return true;
                 }
                 return false;
@@ -9461,6 +9491,9 @@ namespace WindowsFormsApp3
 
                 // 显示计算结果验证和提示
                 DisplayCalculationValidationAndTips(result);
+
+                // 同步刷新 V5 纯净 6 宫格看板指标显示
+                UpdateV5ImpositionDashboard();
             }
             catch (Exception ex)
             {
@@ -10357,60 +10390,61 @@ namespace WindowsFormsApp3
         }
 
         /// <summary>
-        /// 折叠按钮点击事件 - 控制 PDF 预览可见性（立即显示/隐藏，无动画）
+        /// 展开或折叠 PDF 预览状态（向下增加 245px 展开，收起时恢复基准高度，内容绝对不向上位移）
         /// </summary>
-        private void PreviewCollapseButton_Click(object sender, EventArgs e)
+        public void TogglePreviewState(bool? expand = null)
         {
             try
             {
-                _isPreviewExpanded = !_isPreviewExpanded;
+                if (expand.HasValue)
+                {
+                    if (_isPreviewExpanded == expand.Value) return;
+                    _isPreviewExpanded = expand.Value;
+                }
+                else
+                {
+                    _isPreviewExpanded = !_isPreviewExpanded;
+                }
+
+                UpdateFormSizeBasedOnPreviewState();
 
                 if (_isPreviewExpanded)
                 {
-                    // ✅ 展开预览（立即显示，无动画）
-                    UpdateFormSizeBasedOnPreviewState();
-
-                    // ✅ 如果有待加载的PDF，现在加载它
                     if (!string.IsNullOrEmpty(_pendingPdfToLoad))
                     {
                         _ = TryLoadPendingPdf();
                         LogHelper.Debug("[PDF 预览] 展开时调用TryLoadPendingPdf");
                     }
 
-                    // ✅ 展开后触发最优适应缩放（延迟执行确保控件尺寸稳定）
                     this.BeginInvoke(new Action(async () =>
                     {
-                        await Task.Delay(100); // 等待布局完成
+                        await Task.Delay(100);
                         if ((PdfPreview?.PageCount ?? 0) > 0)
                         {
-                            PdfPreview.GoToPage(1); // 导航到首页
+                            PdfPreview.GoToPage(1);
                             PdfPreview?.ApplyBestFitZoomPublic();
                             LogHelper.Debug("[PDF 预览] 展开后应用最优适应缩放并导航到首页");
                         }
                     }));
                 }
-                else
-                {
-                    // ✅ 折叠预览（立即隐藏，无动画）
-                    UpdateFormSizeBasedOnPreviewState();
-                }
 
-                // 保存预览状态到设置
                 SavePreviewStateToSettings(_isPreviewExpanded);
-
-                // 同步窗口位置和预览状态到WindowPositionManager
                 WindowPositionManager.SaveWindowPosition(this, _isPreviewExpanded);
-
-                // 🔧 关键修复：直接提交预览状态更改，不依赖5秒自动保存
                 AppSettings.CommitChanges();
-                LogHelper.Debug("[PDF 预览] 已立即提交预览状态设置到文件");
-
                 LogHelper.Debug($"[PDF 预览] 折叠变换: {(_isPreviewExpanded ? "展开" : "折叠")} (无动画)");
             }
             catch (Exception ex)
             {
                 LogHelper.Error($"[PDF 预览] 折叠失败: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// 折叠按钮点击事件 - 控制 PDF 预览可见性（立即显示/隐藏，无动画）
+        /// </summary>
+        private void PreviewCollapseButton_Click(object sender, EventArgs e)
+        {
+            TogglePreviewState();
         }
 
 
@@ -10804,7 +10838,7 @@ namespace WindowsFormsApp3
                 string displayText;
                 if (totalPages > 0)
                 {
-                    displayText = $"页码: 第{currentPage}页 / 共{totalPages}页";
+                    displayText = $"页码: {currentPage}/{totalPages}";
                     LogHelper.Debug($"[PDF 页码] 更新显示: {displayText}");
                 }
                 else
@@ -10812,10 +10846,14 @@ namespace WindowsFormsApp3
                     displayText = "页码: —";
                 }
 
-                // 更新页码标签
+                // 更新页码标签与折叠条左侧页码
                 if (label1 != null)
                 {
                     label1.Text = displayText;
+                }
+                if (lblCollapsePageNumber != null)
+                {
+                    lblCollapsePageNumber.Text = displayText;
                 }
             }
             catch (Exception ex)
@@ -10909,6 +10947,11 @@ namespace WindowsFormsApp3
                 // 13. 应用滚动条主题
                 ThemeHelper.ApplyScrollBarThemeRecursive(this, isDark);
 
+                // V5 排版参数内陷光使用主题表面色与边框色，需要在主题切换后立即重绘。
+                // 先重建彩环位图再重绘，避免把耗时的高斯模糊留在 Paint 里造成闪烁。
+                RefreshV5MetricsGlowCache();
+                tlpMetrics?.Invalidate(true);
+
                 LogHelper.Debug($"[MaterialSelectFormModern] 主题应用完成: {theme.Name}");
             }
             catch (Exception ex)
@@ -10934,7 +10977,8 @@ namespace WindowsFormsApp3
         {
             if (tabs1 != null)
             {
-                tabs1.BackColor = theme.Background;
+                // V5 预设标签栏固定使用白底，避免主题背景覆盖后出现灰色条带。
+                tabs1.BackColor = Color.White;
                 tabs1.ForeColor = theme.TextPrimary;
 
                 // 设置标签页
@@ -10942,7 +10986,7 @@ namespace WindowsFormsApp3
                 {
                     if (tabPage is AntdUI.TabPage antdTabPage)
                     {
-                        antdTabPage.BackColor = theme.Background;
+                        antdTabPage.BackColor = Color.White;
                         antdTabPage.ForeColor = theme.TextPrimary;
                     }
                 }

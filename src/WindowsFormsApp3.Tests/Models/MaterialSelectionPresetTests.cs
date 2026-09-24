@@ -25,7 +25,8 @@ namespace WindowsFormsApp3.Tests.Models
                 MaterialType = "RollMaterial",
                 LayoutMode = "Folding",
                 EnableImposition = true,
-                DisabledOptions = PresetIgnoreOptions.TetBleed | PresetIgnoreOptions.ExportPath
+                DisabledOptions = PresetIgnoreOptions.TetBleed | PresetIgnoreOptions.ExportPath,
+                GroupName = "未命名"
             };
 
             // Act
@@ -47,6 +48,7 @@ namespace WindowsFormsApp3.Tests.Models
             Assert.Equal(original.LayoutMode, clone.LayoutMode);
             Assert.Equal(original.EnableImposition, clone.EnableImposition);
             Assert.Equal(original.DisabledOptions, clone.DisabledOptions);
+            Assert.Equal(original.GroupName, clone.GroupName);
         }
 
         [Fact]
@@ -57,7 +59,8 @@ namespace WindowsFormsApp3.Tests.Models
             {
                 Name = "Old Name",
                 SelectedMaterial = "Old Material",
-                DisabledOptions = PresetIgnoreOptions.None
+                DisabledOptions = PresetIgnoreOptions.None,
+                GroupName = "旧分组"
             };
 
             var source = new MaterialSelectionPreset
@@ -75,7 +78,8 @@ namespace WindowsFormsApp3.Tests.Models
                 MaterialType = "FlatSheet",
                 LayoutMode = "Continuous",
                 EnableImposition = false,
-                DisabledOptions = PresetIgnoreOptions.ColorMode | PresetIgnoreOptions.Shape
+                DisabledOptions = PresetIgnoreOptions.ColorMode | PresetIgnoreOptions.Shape,
+                GroupName = "未命名"
             };
 
             // Act
@@ -96,6 +100,7 @@ namespace WindowsFormsApp3.Tests.Models
             Assert.Equal(source.LayoutMode, target.LayoutMode);
             Assert.Equal(source.EnableImposition, target.EnableImposition);
             Assert.Equal(source.DisabledOptions, target.DisabledOptions);
+            Assert.Equal(source.GroupName, target.GroupName);
         }
     }
 }

@@ -114,3 +114,6 @@ Thumbs.db
 temp_analysis/
 TestResults/
 analyze_tool/
+
+# WorkBuddy AI 工作区数据（记忆、技能等，仅保留在本地）
+.workbuddy-ai/

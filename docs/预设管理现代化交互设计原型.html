@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>预设管理工作台：现代交互设计原型 (Preset Manager Pro)</title>
+  <style>
+    :root {
+      --bg: #f0f3f6;
+      --surface: #ffffff;
+      --card-bg: #ffffff;
+      --border: #d4dbe4;
+      --border-light: #e6ebf2;
+      --text-main: #1f2429;
+      --text-secondary: #4b525d;
+      --text-muted: #8c95a0;
+      --primary: #1677ff;
+      --primary-hover: #4096ff;
+      --primary-light: #e6f4ff;
+      --primary-border: #91caff;
+      --success: #52c41a;
+      --danger: #ff4d4f;
+      --purple: #722ed1;
+      --purple-light: #f9f0ff;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0c0e12;
+      --surface: #151921;
+      --card-bg: #1c212c;
+      --border: #28303e;
+      --border-light: #202632;
+      --text-main: #f0f4fc;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --primary: #58a6ff;
+      --primary-hover: #79c0ff;
+      --primary-light: rgba(88, 166, 255, 0.12);
+      --primary-border: rgba(88, 166, 255, 0.35);
+      --purple: #bc8cff;
+      --purple-light: rgba(188, 140, 255, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+      max-width: 900px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    p.lead {
+      margin: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    /* 顶部控制栏 */
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .btn-tool {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 5px 14px;
+      border-radius: 16px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      transition: all 0.2s;
+    }
+    .btn-tool:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-tool.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    /* ================================================================ */
+    /* 核心工作台主窗口外壳 (960 × 600px 现代桌面视窗)                  */
+    /* ================================================================ */
+    .manager-window {
+      width: 960px;
+      height: 600px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+      display: grid;
+      grid-template-rows: 44px 1fr 48px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* 1. 窗口标题栏与全局搜索 */
+    .win-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .win-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .win-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .win-search-box {
+      position: relative;
+      width: 220px;
+    }
+    .win-search-input {
+      width: 100%;
+      height: 28px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text-main);
+      font-size: 12px;
+      padding: 0 10px 0 28px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .win-search-input:focus {
+      border-color: var(--primary);
+      background: var(--surface);
+      box-shadow: 0 0 0 2px var(--primary-light);
+    }
+    .search-icon {
+      position: absolute;
+      left: 9px;
+      top: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* 2. 主体三栏工作台结构 (Master-Detail) */
+    .win-body {
+      display: grid;
+      grid-template-columns: 200px 1fr 340px;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    /* 栏 1: 左侧分组侧边栏 (Group Rail) */
+    .group-sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .group-head {
+      height: 38px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+    .btn-add-group {
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--primary);
+      font-size: 10.5px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-add-group:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+    }
+
+    .group-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .group-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+      position: relative;
+    }
+    .group-item:hover {
+      background: var(--bg);
+      color: var(--text-main);
+    }
+    .group-item.active {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .group-badge {
+      font-size: 10px;
+      background: rgba(0,0,0,0.06);
+      padding: 1px 6px;
+      border-radius: 10px;
+      color: var(--text-muted);
+    }
+    [data-theme="dark"] .group-badge { background: rgba(255,255,255,0.08); }
+    .group-item.active .group-badge {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    /* 栏 2: 中间预设卡片矩阵 (Preset Deck) */
+    .preset-center-deck {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+      border-right: 1px solid var(--border);
+    }
+    .deck-action-bar {
+      height: 38px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-light);
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .deck-tools {
+      display: flex;
+      gap: 6px;
+    }
+    .btn-action-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 500;
+    }
+    .btn-action-ghost:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-light);
+    }
+    .btn-action-primary {
+      background: var(--primary);
+      border: 1px solid var(--primary);
+      color: #fff;
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-action-primary:hover { background: var(--primary-hover); }
+
+    .preset-card-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* 预设行卡片 (支持拖拽排布、所见即所得图钉) */
+    .preset-row-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: 20px 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+      user-select: none;
+    }
+    .preset-row-card:hover {
+      border-color: var(--primary-border);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+      transform: translateX(2px);
+    }
+    .preset-row-card.active {
+      border-color: var(--primary);
+      background: var(--surface);
+      box-shadow: inset 3px 0 0 var(--primary), 0 3px 10px rgba(22, 119, 255, 0.08);
+    }
+
+    .drag-grip {
+      color: var(--text-muted);
+      cursor: grab;
+      font-size: 12px;
+      display: grid;
+      place-items: center;
+    }
+    .drag-grip:active { cursor: grabbing; }
+
+    .preset-info-block {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+    .preset-name-line {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .preset-main-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .preset-group-pill {
+      font-size: 9px;
+      padding: 0 5px;
+      border-radius: 3px;
+      background: #f0f0f0;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    [data-theme="dark"] .preset-group-pill { background: rgba(255,255,255,0.08); }
+
+    .preset-chips-line {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .meta-chip {
+      font-size: 9.5px;
+      padding: 1px 5px;
+      border-radius: 2px;
+      background: rgba(0,0,0,0.04);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-light);
+    }
+    [data-theme="dark"] .meta-chip { background: rgba(255,255,255,0.04); }
+    .meta-chip.mat { color: var(--primary); font-weight: 600; }
+    .meta-chip.impo { color: #fa8c16; }
+
+    /* 图钉切换开关 (决定是否在 V5 主界面呈现) */
+    .btn-pin-toggle {
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .btn-pin-toggle:hover {
+      background: rgba(0,0,0,0.05);
+      color: var(--text-main);
+    }
+    .btn-pin-toggle.pinned {
+      color: var(--primary);
+      background: var(--primary-light);
+      border-color: var(--primary-border);
+    }
+
+    /* 栏 3: 右侧参数检查器 (Property Inspector / 免弹窗原地编辑) */
+    .inspector-pane {
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 16px;
+      box-shadow: inset 1px 0 0 var(--border-light);
+    }
+    .inspector-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .inspector-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* 属性表单栅格 */
+    .prop-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .prop-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .prop-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+    }
+    .prop-input, .prop-select {
+      height: 28px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text-main);
+      font-size: 12px;
+      padding: 0 8px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .prop-input:focus, .prop-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-light);
+    }
+
+    .prop-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    /* 沉底底部操作脚标 */
+    .win-footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-hints {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ================================================================ */
+    /* V5 真机药丸按钮联动预览 (所见即所得)                             */
+    /* ================================================================ */
+    .preview-v5-dock {
+      margin-top: 24px;
+      width: 960px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+    }
+    .dock-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .v5-pills-flow {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      min-height: 32px;
+      padding: 6px 10px;
+      background: var(--bg);
+      border-radius: 6px;
+      border: 1px solid var(--border-light);
+    }
+    .v5-sim-btn {
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: #3b444f;
+      display: inline-flex;
+      align-items: center;
+      user-select: none;
+    }
+    [data-theme="dark"] .v5-sim-btn {
+      background: #1c212c;
+      color: #d1d5db;
+    }
+    .v5-sim-btn.active {
+      border-color: var(--primary-border);
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body data-theme="light">
+
+  <header>
+    <div class="badge">PRESET MANAGEMENT PRO · INTERACTION REDESIGN</div>
+    <h1>预设管理工作台：现代交互设计原型</h1>
+    <p class="lead">
+      彻底淘汰古旧的 12 列平铺 DataGridView 与 850px 溢出弹窗。<br>
+      引入 <b>Master-Detail（左侧分组导轨 + 中间流式卡片/拖拽调序 + 右侧免弹窗检查器）</b>，支持 <b>📌 一键磁贴上屏</b> 与实时预览。
+    </p>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn-tool active" id="btnLight" onclick="setTheme('light')">☀️ 浅色主题</button>
+    <button class="btn-tool" id="btnDark" onclick="setTheme('dark')">🌙 暗色主题</button>
+    <span style="font-size:11px; color:var(--text-muted); margin-left:10px;">快速体验：在中间卡片点击 <b>📌 图钉</b>，实时观察底部 V5 主界面的药丸出现/消失！</span>
+  </div>
+
+  <!-- 预设管理核心工作台视窗 -->
+  <div class="manager-window">
+
+    <!-- 1. 窗口顶栏 -->
+    <div class="win-header">
+      <div class="win-title-group">
+        <span style="font-size: 16px;">⚙️</span>
+        <span class="win-title">材料预设与快捷方案工作台</span>
+      </div>
+
+      <div class="win-search-box">
+        <span class="search-icon">🔍</span>
+        <input class="win-search-input" type="text" placeholder="搜索预设名称、材料、工艺..." oninput="filterPresets(this.value)">
+      </div>
+    </div>
+
+    <!-- 2. 主体三栏 Master-Detail 结构 -->
+    <div class="win-body">
+
+      <!-- 栏 1: 分组导轨 (Group Sidebar) -->
+      <div class="group-sidebar">
+        <div class="group-head">
+          <span>预设分组 (4)</span>
+          <button class="btn-add-group" onclick="promptAddGroup()">＋ 新建组</button>
+        </div>
+
+        <div class="group-list" id="groupList">
+          <div class="group-item active" onclick="switchGroup('未命名', this)">
+            <span>📁 未命名 (默认)</span>
+            <span class="group-badge" id="badge_unnamed">5</span>
+          </div>
+          <div class="group-item" onclick="switchGroup('标签类', this)">
+            <span>🏷️ 标签类</span>
+            <span class="group-badge">4</span>
+          </div>
+          <div class="group-item" onclick="switchGroup('特种不干胶', this)">
+            <span>✨ 特种不干胶</span>
+            <span class="group-badge">3</span>
+          </div>
+          <div class="group-item" onclick="switchGroup('画册书籍', this)">
+            <span>📖 画册书籍</span>
+            <span class="group-badge">2</span>
+          </div>
+        </div>
+
+        <div style="padding: 10px; font-size: 10.5px; color: var(--text-muted); border-top: 1px solid var(--border-light);">
+          💡 提示：分组决定了 V5 主界面上方 Tab 的分类标签与显示顺序。
+        </div>
+      </div>
+
+      <!-- 栏 2: 预设卡片矩阵 (Preset Deck) -->
+      <div class="preset-center-deck">
+        <div class="deck-action-bar">
+          <div>当前分组：<b id="deckCurrentGroupName" style="color:var(--text-main);">未命名</b></div>
+          <div class="deck-tools">
+            <button class="btn-action-ghost" onclick="showToast('↕️ 已按拼音首字母重排')">排序 ▾</button>
+            <button class="btn-action-primary" onclick="addNewPreset()">＋ 新建预设</button>
+          </div>
+        </div>
+
+        <!-- 预设卡片滚动列表 -->
+        <div class="preset-card-scroll" id="presetCardDeck">
+          <!-- 卡片 1 -->
+          <div class="preset-row-card active" onclick="selectPresetItem(this, '威-A4')" data-name="威-A4" data-group="未命名">
+            <div class="drag-grip" title="按住拖拽调整前后顺序">⋮⋮</div>
+            <div class="preset-info-block">
+              <div class="preset-name-line">
+                <span class="preset-main-name">威-A4</span>
+                <span class="preset-group-pill">未命名</span>
+              </div>
+              <div class="preset-chips-line">
+                <span class="meta-chip mat">PET透明</span>
+                <span class="meta-chip">光膜</span>
+                <span class="meta-chip impo">连拼 (80×45)</span>
+                <span class="meta-chip">出血 2.0</span>
+              </div>
+            </div>
+            <button class="btn-pin-toggle pinned" title="点击取消：不显示在 V5 主界面药丸区" onclick="togglePin(event, this, '威-A4')">📌</button>
+          </div>
+
+          <!-- 卡片 2 -->
+          <div class="preset-row-card" onclick="selectPresetItem(this, '威-卷-折手')" data-name="威-卷-折手" data-group="未命名">
+            <div class="drag-grip" title="按住拖拽调整前后顺序">⋮⋮</div>
+            <div class="preset-info-block">
+              <div class="preset-name-line">
+                <span class="preset-main-name">威-卷-折手</span>
+                <span class="preset-group-pill">未命名</span>
+              </div>
+              <div class="preset-chips-line">
+                <span class="meta-chip mat">PP环保</span>
+                <span class="meta-chip">哑膜</span>
+                <span class="meta-chip impo">折手 · 卷装</span>
+                <span class="meta-chip">出血 1.5</span>
+              </div>
+            </div>
+            <button class="btn-pin-toggle pinned" title="点击取消：不显示在 V5 主界面药丸区" onclick="togglePin(event, this, '威-卷-折手')">📌</button>
+          </div>
+
+          <!-- 卡片 3 -->
+          <div class="preset-row-card" onclick="selectPresetItem(this, '圆角不干胶R5')" data-name="圆角不干胶R5" data-group="未命名">
+            <div class="drag-grip" title="按住拖拽调整前后顺序">⋮⋮</div>
+            <div class="preset-info-block">
+              <div class="preset-name-line">
+                <span class="preset-main-name">圆角不干胶R5</span>
+                <span class="preset-group-pill">未命名</span>
+              </div>
+              <div class="preset-chips-line">
+                <span class="meta-chip mat">PET哑光</span>
+                <span class="meta-chip" style="color:var(--primary); font-weight:700;">▢ 圆角 R5</span>
+                <span class="meta-chip">不过膜</span>
+                <span class="meta-chip">一式2联</span>
+              </div>
+            </div>
+            <button class="btn-pin-toggle pinned" title="点击取消：不显示在 V5 主界面药丸区" onclick="togglePin(event, this, '圆角不干胶R5')">📌</button>
+          </div>
+
+          <!-- 卡片 4 (未加图钉) -->
+          <div class="preset-row-card" onclick="selectPresetItem(this, '异形特种刀模')" data-name="异形特种刀模" data-group="未命名">
+            <div class="drag-grip" title="按住拖拽调整前后顺序">⋮⋮</div>
+            <div class="preset-info-block">
+              <div class="preset-name-line">
+                <span class="preset-main-name">异形特种刀模</span>
+                <span class="preset-group-pill">未命名</span>
+              </div>
+              <div class="preset-chips-line">
+                <span class="meta-chip mat">PVC 材料</span>
+                <span class="meta-chip" style="color:var(--purple); font-weight:700;">◇ 异形</span>
+                <span class="meta-chip">红膜</span>
+                <span class="meta-chip">黑白单色</span>
+              </div>
+            </div>
+            <button class="btn-pin-toggle" title="点击启用：在 V5 主界面药丸区显示为快捷按钮" onclick="togglePin(event, this, '异形特种刀模')">📌</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 栏 3: 右侧免弹窗参数检查器 (Property Inspector) -->
+      <div class="inspector-pane">
+        <div class="inspector-head">
+          <div class="inspector-title">
+            <span>📝</span>
+            <span id="inspectTitle">预设属性检查器</span>
+          </div>
+          <button class="btn-action-ghost" style="color:var(--danger); border-color:var(--border);" onclick="deleteCurrentPreset()">删除</button>
+        </div>
+
+        <div class="prop-form">
+          <!-- 预设名称 -->
+          <div class="prop-item">
+            <span class="prop-label">预设名称</span>
+            <input class="prop-input" id="inpPresetName" value="威-A4" oninput="syncActiveName(this.value)">
+          </div>
+
+          <!-- 所属分组 (彻底打通分组归属！) -->
+          <div class="prop-item">
+            <span class="prop-label">所属分组 (可下拉或直接输入新分组)</span>
+            <select class="prop-select" id="selGroupName">
+              <option value="未命名" selected>📁 未命名 (默认组)</option>
+              <option value="标签类">🏷️ 标签类</option>
+              <option value="特种不干胶">✨ 特种不干胶</option>
+              <option value="画册书籍">📖 画册书籍</option>
+              <option value="_custom_">＋ 新建并移入新组...</option>
+            </select>
+          </div>
+
+          <!-- 材料与颜色 -->
+          <div class="prop-2col">
+            <div class="prop-item">
+              <span class="prop-label">指定材料</span>
+              <select class="prop-select" id="selMaterial">
+                <option selected>PET透明</option>
+                <option>PP环保</option>
+                <option>PET哑光</option>
+                <option>PVC 材料</option>
+              </select>
+            </div>
+            <div class="prop-item">
+              <span class="prop-label">颜色模式</span>
+              <select class="prop-select">
+                <option selected>彩色</option>
+                <option>黑白</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 模切形状与圆角 R -->
+          <div class="prop-2col">
+            <div class="prop-item">
+              <span class="prop-label">模切形状</span>
+              <select class="prop-select" onchange="toggleRadiusField(this.value)">
+                <option value="RightAngle">▢ 直角</option>
+                <option value="RoundRect">▢ 圆角矩形</option>
+                <option value="Circle">○ 圆形</option>
+                <option value="Special">◇ 异形</option>
+              </select>
+            </div>
+            <div class="prop-item" id="propRadiusBox">
+              <span class="prop-label">圆角半径 (R)</span>
+              <input class="prop-input" type="number" value="5" min="0" max="50">
+            </div>
+          </div>
+
+          <!-- 覆膜与出血 -->
+          <div class="prop-2col">
+            <div class="prop-item">
+              <span class="prop-label">膜类型</span>
+              <select class="prop-select">
+                <option selected>光膜</option>
+                <option>哑膜</option>
+                <option>红膜</option>
+                <option>不过膜</option>
+              </select>
+            </div>
+            <div class="prop-item">
+              <span class="prop-label">出血位 (mm)</span>
+              <input class="prop-input" type="number" value="2.0" step="0.5">
+            </div>
+          </div>
+
+          <!-- 排版与一式N联 -->
+          <div class="prop-2col">
+            <div class="prop-item">
+              <span class="prop-label">材料形态</span>
+              <select class="prop-select">
+                <option selected>平张</option>
+                <option>卷装</option>
+              </select>
+            </div>
+            <div class="prop-item">
+              <span class="prop-label">排版模式</span>
+              <select class="prop-select">
+                <option selected>连拼</option>
+                <option>折手</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="margin-top: 12px; display:flex; gap:8px;">
+            <button class="btn-action-primary" style="flex:1; height:30px;" onclick="showToast('💾 预设修改已即时保存！')">保存修改</button>
+            <button class="btn-action-ghost" style="height:30px;" onclick="showToast('📋 已将当前参数另存为新预设副本')">另存副本</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 3. 窗口底栏 -->
+    <div class="win-footer">
+      <div class="footer-hints">
+        <span>💡 拖动卡片左侧图标可调整在主界面的按钮顺序</span>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-tool" onclick="showToast('已取消')">关闭</button>
+        <button class="btn-tool active" onclick="showToast('✅ 预设与分组变更已全部同步并更新配置！')">应用并返回</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 所见即所得联动效果测试区 (V5 真实主界面卡片预览) -->
+  <div class="preview-v5-dock">
+    <div class="dock-title">
+      <span>🖥️ V5 主界面预设卡片【所见即所得实时效果】</span>
+      <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">(上述管理面板的设置会即时呈现在此处)</span>
+    </div>
+
+    <div class="v5-pills-flow" id="v5PillContainer">
+      <span class="v5-sim-btn active" id="pill_威-A4">威-A4</span>
+      <span class="v5-sim-btn" id="pill_威-卷-折手">威-卷-折手</span>
+      <span class="v5-sim-btn" id="pill_圆角不干胶R5">圆角不干胶R5</span>
+    </div>
+  </div>
+
+  <script>
+    function setTheme(theme) {
+      document.body.setAttribute('data-theme', theme);
+      document.getElementById('btnThemeLight').classList.toggle('active', theme === 'light');
+      document.getElementById('btnThemeDark').classList.toggle('active', theme === 'dark');
+    }
+
+    // 选中预设卡片
+    function selectPresetItem(card, name) {
+      document.querySelectorAll('.preset-row-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+
+      document.getElementById('inpPresetName').value = name;
+      document.getElementById('inspectTitle').textContent = `编辑预设 · ${name}`;
+    }
+
+    // 切换分组
+    function switchGroup(groupName, item) {
+      document.querySelectorAll('.group-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      document.getElementById('deckCurrentGroupName').textContent = groupName;
+
+      // 简单模拟卡片过滤
+      document.querySelectorAll('.preset-row-card').forEach(card => {
+        const cGroup = card.getAttribute('data-group');
+        card.style.display = (groupName === '未命名' || cGroup === groupName) ? 'grid' : 'none';
+      });
+    }
+
+    // 图钉点击联动 (决定是否在 V5 主界面药丸区出现)
+    function togglePin(e, btn, presetName) {
+      e.stopPropagation();
+      const isPinned = btn.classList.contains('pinned');
+      btn.classList.toggle('pinned', !isPinned);
+      btn.title = isPinned ? '点击启用：在 V5 主界面药丸区显示为快捷按钮' : '点击取消：不显示在 V5 主界面药丸区';
+
+      // 联动下方 V5 药丸容器
+      const container = document.getElementById('v5PillContainer');
+      const existing = document.getElementById(`pill_${presetName}`);
+
+      if (isPinned) {
+        // 取消钉住 -> 移除
+        if (existing) existing.remove();
+        showToast(`已将 <b>${presetName}</b> 从主界面快捷按钮中移除`);
+      } else {
+        // 钉住 -> 增加
+        if (!existing) {
+          const newBtn = document.createElement('span');
+          newBtn.className = 'v5-sim-btn';
+          newBtn.id = `pill_${presetName}`;
+          newBtn.textContent = presetName;
+          container.appendChild(newBtn);
+        }
+        showToast(`已将 <b>${presetName}</b> 钉选到主界面快捷按钮！`);
+      }
+    }
+
+    function syncActiveName(newName) {
+      const activeCard = document.querySelector('.preset-row-card.active .preset-main-name');
+      if (activeCard && newName) {
+        activeCard.textContent = newName;
+      }
+    }
+
+    function promptAddGroup() {
+      const name = prompt('请输入新分组名称 (例如：特种标签、卷装专区)：');
+      if (name && name.trim()) {
+        const list = document.getElementById('groupList');
+        const newItem = document.createElement('div');
+        newItem.className = 'group-item';
+        newItem.innerHTML = `<span>📁 ${name.trim()}</span><span class="group-badge">0</span>`;
+        newItem.onclick = function() { switchGroup(name.trim(), newItem); };
+        list.appendChild(newItem);
+
+        // 同步添加到右侧下拉
+        const sel = document.getElementById('selGroupName');
+        const opt = document.createElement('option');
+        opt.value = name.trim();
+        opt.textContent = `📁 ${name.trim()}`;
+        sel.insertBefore(opt, sel.lastElementChild);
+        showToast(`已新建分组：<b>${name.trim()}</b>`);
+      }
+    }
+
+    function addNewPreset() {
+      const name = prompt('请输入新预设名称：', '新自定义方案');
+      if (name && name.trim()) {
+        const deck = document.getElementById('presetCardDeck');
+        const newCard = document.createElement('div');
+        newCard.className = 'preset-row-card';
+        newCard.setAttribute('data-name', name.trim());
+        newCard.setAttribute('data-group', '未命名');
+        newCard.innerHTML = `
+          <div class="drag-grip" title="按住拖拽调整前后顺序">⋮⋮</div>
+          <div class="preset-info-block">
+            <div class="preset-name-line">
+              <span class="preset-main-name">${name.trim()}</span>
+              <span class="preset-group-pill">未命名</span>
+            </div>
+            <div class="preset-chips-line">
+              <span class="meta-chip mat">PET透明</span>
+              <span class="meta-chip">光膜</span>
+              <span class="meta-chip impo">连拼</span>
+            </div>
+          </div>
+          <button class="btn-pin-toggle pinned" onclick="togglePin(event, this, '${name.trim()}')">📌</button>
+        `;
+        newCard.onclick = function() { selectPresetItem(newCard, name.trim()); };
+        deck.insertBefore(newCard, deck.firstChild);
+        selectPresetItem(newCard, name.trim());
+
+        // 默认也钉到下方
+        togglePin(new Event('click'), newCard.querySelector('.btn-pin-toggle'), name.trim());
+      }
+    }
+
+    function deleteCurrentPreset() {
+      const activeCard = document.querySelector('.preset-row-card.active');
+      if (activeCard) {
+        const name = activeCard.getAttribute('data-name');
+        if (confirm(`确定要删除预设 [${name}] 吗？`)) {
+          const pill = document.getElementById(`pill_${name}`);
+          if (pill) pill.remove();
+          activeCard.remove();
+          showToast(`已删除预设：${name}`);
+        }
+      }
+    }
+
+    function showToast(msg) {
+      let toast = document.getElementById('appToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'appToast';
+        toast.style.cssText = `
+          position: fixed;
+          bottom: 24px;
+          background: #1f2429;
+          color: #fff;
+          padding: 8px 16px;
+          border-radius: 6px;
+          font-size: 12px;
+          box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+          z-index: 9999;
+          transition: all 0.25s ease;
+          opacity: 0;
+          transform: translateY(10px);
+        `;
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = msg;
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+      }, 2000);
+    }
+  </script>
+</body>
+</html>

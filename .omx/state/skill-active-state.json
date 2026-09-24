@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "active": false,
+  "skill": "autopilot",
+  "keyword": "",
+  "phase": "cancelled",
+  "activated_at": "2026-09-19T21:42:38.011Z",
+  "updated_at": "2026-09-19T21:47:11.322Z",
+  "source": "state-operations",
+  "active_skills": [
+    {
+      "skill": "autopilot",
+      "phase": "cancelled",
+      "active": false,
+      "activated_at": "2026-09-19T21:42:38.011Z",
+      "updated_at": "2026-09-19T21:47:11.322Z"
+    }
+  ],
+  "current_phase": "cancelled",
+  "completed_at": "2026-09-19T21:56:13.753Z",
+  "last_turn_at": "2026-09-19T21:56:13.753Z"
+}

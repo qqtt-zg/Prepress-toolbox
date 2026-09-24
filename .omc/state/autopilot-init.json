@@ -1,0 +1,14 @@
+{
+  "mode": "autopilot",
+  "active": true,
+  "current_phase": "deep-interview",
+  "state": {
+    "phase_cycle": ["deep-interview", "ralplan", "ultragoal"],
+    "handoff_artifacts": {
+      "deep_interview": null,
+      "ralplan": null,
+      "ultragoal": null
+    },
+    "return_to_ralplan_reason": null
+  }
+}

@@ -102,6 +102,11 @@ namespace WindowsFormsApp3.Models
         public bool ShowInPresetButtons { get; set; } = false;
 
         /// <summary>
+        /// 预设所属分组名称（默认为"未命名"）
+        /// </summary>
+        public string GroupName { get; set; } = "未命名";
+
+        /// <summary>
         /// 创建当前预设的深度副本
         /// </summary>
         public MaterialSelectionPreset Clone()
@@ -126,7 +131,8 @@ namespace WindowsFormsApp3.Models
                 EnableImposition = this.EnableImposition,
                 TemporaryImpositionParameters = this.TemporaryImpositionParameters?.Clone(),
                 DisabledOptions = this.DisabledOptions,
-                ShowInPresetButtons = this.ShowInPresetButtons
+                ShowInPresetButtons = this.ShowInPresetButtons,
+                GroupName = string.IsNullOrWhiteSpace(this.GroupName) ? "未命名" : this.GroupName
             };
         }
 
@@ -156,6 +162,7 @@ namespace WindowsFormsApp3.Models
             this.TemporaryImpositionParameters = other.TemporaryImpositionParameters?.Clone();
             this.DisabledOptions = other.DisabledOptions;
             this.ShowInPresetButtons = other.ShowInPresetButtons;
+            this.GroupName = string.IsNullOrWhiteSpace(other.GroupName) ? "未命名" : other.GroupName;
         }
     }
 

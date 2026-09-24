@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>排版参数看板 5 宫格与色彩胶囊交互方案设计</title>
+  <style>
+    :root {
+      --primary: #1677ff;
+      --primary-hover: #4096ff;
+      --primary-light: #e6f4ff;
+      --text-main: #1f2429;
+      --text-secondary: #4b525d;
+      --text-muted: #8c95a0;
+      --border: #d4dbe4;
+      --border-light: #e6ecf2;
+      --card-bg: #ffffff;
+      --page-bg: #f3f6f9;
+      --mono-base: #262a30;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: var(--page-bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", sans-serif;
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+      max-width: 820px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: #e6f4ff;
+      color: #0958d9;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 24px;
+      font-weight: 700;
+      color: #111b26;
+      letter-spacing: -0.5px;
+    }
+    p.subtitle {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .theme-switch-bar {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      background: #fff;
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .theme-btn {
+      border: 1px solid var(--border);
+      background: #f7f9fa;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .theme-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* 对比工作台主舞台 */
+    .showcase-stage {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      width: 100%;
+      max-width: 820px;
+      margin-bottom: 24px;
+    }
+
+    .column-box {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .column-box.recommended {
+      border-color: #91caff;
+      box-shadow: 0 6px 18px rgba(22, 119, 255, 0.08);
+      position: relative;
+    }
+    .recom-tag {
+      position: absolute;
+      top: -10px;
+      right: 14px;
+      background: linear-gradient(135deg, #1677ff, #36cfc9);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(22, 119, 255, 0.3);
+    }
+
+    .column-header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px dashed var(--border-light);
+    }
+    .column-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1f2429;
+    }
+    .column-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* 模拟真实的 340px 卡片容器 */
+    .card-sim-wrap {
+      width: 340px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    /* 顶部控制行 (高 26px) */
+    .ctrl-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 26px;
+      margin-bottom: 4px;
+      padding: 0 2px;
+      position: relative;
+    }
+
+    .btn-impo-toggle {
+      width: 28px;
+      height: 24px;
+      border: 1px solid #91caff;
+      background: #e6f4ff;
+      color: #1677ff;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    /* 微型分段胶囊 */
+    .mini-seg {
+      display: inline-flex;
+      height: 24px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: #fff;
+      overflow: hidden;
+    }
+    .mini-seg-btn {
+      border: none;
+      background: transparent;
+      padding: 0 6px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      line-height: 22px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .mini-seg-btn + .mini-seg-btn {
+      border-left: 1px solid var(--border-light);
+    }
+    .mini-seg-btn.active {
+      background: #e6f4ff;
+      color: #1677ff;
+      font-weight: 700;
+    }
+
+    /* 专属颜色模式胶囊 (高光强调) */
+    .mini-seg-color {
+      display: inline-flex;
+      height: 24px;
+      border: 1px solid #b7eb8f;
+      border-radius: 3px;
+      background: #fff;
+      overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      transition: all 0.25s ease;
+    }
+    .mini-seg-color.mode-color {
+      border-color: #87e8de;
+    }
+    .mini-seg-color.mode-mono {
+      border-color: #bfbfbf;
+    }
+    .mini-seg-color .mini-seg-btn.active-color {
+      background: linear-gradient(135deg, #e6fffb 0%, #e6f4ff 100%);
+      color: #13c2c2;
+      font-weight: 700;
+    }
+    .mini-seg-color .mini-seg-btn.active-mono {
+      background: #f0f0f0;
+      color: #434343;
+      font-weight: 700;
+    }
+
+    .chk-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+    }
+
+    /* 下方指标看板面板 */
+    .metrics-board {
+      height: 44px;
+      position: relative;
+      border-radius: 5px;
+      display: grid;
+      align-items: center;
+      text-align: center;
+      user-select: none;
+      overflow: hidden;
+      isolation: isolate;
+      background: #fff;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* 6 宫格布局 */
+    .metrics-board.grid-6 {
+      grid-template-columns: repeat(6, 1fr);
+    }
+    /* 5 宫格布局 */
+    .metrics-board.grid-5 {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    /* 真实 SDF 边框内陷光晕模拟 (CSS 伪元素) */
+    .metrics-board::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 5px;
+      padding: 2px;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      transition: background 0.35s ease;
+      z-index: 2;
+    }
+    .metrics-board::after {
+      content: "";
+      position: absolute;
+      inset: 2px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: inset 0 0 8px rgba(22, 31, 42, 0.04);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* 彩色模式彩环 */
+    .metrics-board.glow-color::before {
+      background: conic-gradient(
+        from 0deg,
+        #ff9a9a,
+        #8de2dc,
+        #83cee1,
+        #bde4d2,
+        #ffe08a,
+        #ffc8f2,
+        #ff9a9a
+      );
+      filter: blur(0.5px);
+    }
+
+    /* 黑白模式金属冷灰光晕 */
+    .metrics-board.glow-mono::before {
+      background: conic-gradient(
+        from 0deg,
+        #74797e,
+        #b5b9be,
+        #f0f1f2,
+        #b5b9be,
+        #74797e
+      );
+      filter: blur(0.5px);
+    }
+    .metrics-board.glow-mono::after {
+      background: rgba(250, 251, 252, 0.88);
+      box-shadow: inset 0 0 9px rgba(0, 0, 0, 0.06);
+    }
+
+    /* 药丸指标单格 */
+    .metric-pill {
+      position: relative;
+      z-index: 3;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2px;
+      cursor: default;
+    }
+    .metric-pill.clickable {
+      cursor: pointer;
+    }
+    .metric-pill.clickable:hover .pill-value {
+      opacity: 0.8;
+      text-decoration: underline;
+    }
+
+    .pill-title {
+      font-size: 9.5px;
+      color: #6f7885;
+      line-height: 1;
+      margin-bottom: 7px;
+      white-space: nowrap;
+      letter-spacing: -0.2px;
+    }
+    .pill-value {
+      font-size: 12.5px;
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", sans-serif;
+      transition: color 0.3s ease;
+    }
+
+    /* 正常彩色主题数值颜色 */
+    .val-grid { color: #1677ff; }
+    .val-count { color: #fa8c16; }
+    .val-rot { color: #722ed1; }
+    .val-dim { color: #0958d9; }
+    .val-bleed { color: #eb2f96; }
+    .val-color { color: #13c2c2; }
+
+    /* 黑白模式下的全息降饱和状态 */
+    .glow-mono .val-grid { color: #383e45; }
+    .glow-mono .val-count { color: #434950; }
+    .glow-mono .val-rot { color: #4e555e; }
+    .glow-mono .val-dim { color: #202428; }
+    .glow-mono .val-bleed { color: #434950; }
+    .glow-mono .val-color { color: #595959; }
+
+    /* 宽度对比标尺卡片 */
+    .diff-table {
+      width: 100%;
+      max-width: 820px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 12px;
+    }
+    .diff-table table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    .diff-table th, .diff-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .diff-table th {
+      background: #fafafa;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .tag-plus {
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+      color: #389e0d;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-weight: 600;
+      font-size: 11px;
+    }
+    .tag-minus {
+      background: #fff1f0;
+      border: 1px solid #ffa39e;
+      color: #cf1322;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+
+    /* 交互提示气泡 */
+    .interact-hint {
+      margin-top: 10px;
+      font-size: 11px;
+      color: #0958d9;
+      background: #e6f4ff;
+      padding: 6px 12px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="badge">V5 WORKBENCH · INTERACTION REDESIGN</div>
+    <h1>排版参数看板：纯净 5 宫格与色彩胶囊方案设计</h1>
+    <p class="subtitle">
+      将非几何属性的“颜色”从参数看板中抽离，提升至顶部控制行作为微型分段胶囊；<br>
+      下方看板收敛为纯粹的 5 大物理几何参数，单列宽度暴增 20%，并保持整圈光晕的全局全息联动。
+    </p>
+  </header>
+
+  <div class="theme-switch-bar">
+    <span>💡 快速测试联动状态：</span>
+    <button class="theme-btn active" id="btnSyncColor" onclick="setGlobalColorMode('color')">🌈 切换为【彩色模式】</button>
+    <button class="theme-btn" id="btnSyncMono" onclick="setGlobalColorMode('mono')">⚫ 切换为【黑白模式】</button>
+  </div>
+
+  <div class="showcase-stage">
+    <!-- 方案 A：现有 6 宫格方案 -->
+    <div class="column-box">
+      <div class="column-header">
+        <div>
+          <div class="column-title">方案 A：现有 6 宫格方案</div>
+          <div class="column-desc">文字占 1 列 · 顶部留白 72px</div>
+        </div>
+      </div>
+
+      <div class="card-sim-wrap">
+        <!-- 顶部控制行：中间明显空旷 -->
+        <div class="ctrl-row">
+          <div class="btn-impo-toggle" title="排版开关">📐</div>
+          <!-- 中间空缺 72px -->
+          <div style="flex: 1;"></div>
+          <div class="mini-seg" style="margin-right: 4px;">
+            <button class="mini-seg-btn active">平张</button>
+            <button class="mini-seg-btn">卷装</button>
+          </div>
+          <div class="mini-seg" style="margin-right: 4px;">
+            <button class="mini-seg-btn active">连拼</button>
+            <button class="mini-seg-btn">折手</button>
+          </div>
+          <label class="chk-label"><input type="checkbox">标识页</label>
+        </div>
+
+        <!-- 6 宫格看板：每列约 55.3px，尺寸偏紧凑 -->
+        <div class="metrics-board grid-6 glow-color" id="boardA">
+          <div class="metric-pill">
+            <span class="pill-title">网格</span>
+            <span class="pill-value val-grid">5 × 3</span>
+          </div>
+          <div class="metric-pill">
+            <span class="pill-title">布局数</span>
+            <span class="pill-value val-count">15</span>
+          </div>
+          <div class="metric-pill clickable" title="点击切换旋转角度">
+            <span class="pill-title">角度 ↺</span>
+            <span class="pill-value val-rot">0°</span>
+          </div>
+          <div class="metric-pill" title="成品尺寸">
+            <span class="pill-title">尺寸</span>
+            <span class="pill-value val-dim" style="font-size: 11.5px;">80×45</span>
+          </div>
+          <div class="metric-pill clickable" title="点击切换出血">
+            <span class="pill-title">出血 ▾</span>
+            <span class="pill-value val-bleed">2.0mm</span>
+          </div>
+          <!-- 混杂在几何参数里的颜色项 -->
+          <div class="metric-pill clickable" onclick="toggleColorModeA()" title="点击切换颜色模式">
+            <span class="pill-title">颜色 ▾</span>
+            <span class="pill-value val-color" id="valColorA">彩色</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 14px; font-size: 11px; color: #8c95a0; text-align: left; width: 100%; line-height: 1.6;">
+        • 单列宽度仅 <b>55.3px</b>，遇到 <code>105.5×75.0</code> 会逼近边界<br>
+        • 顶部图标与平张之间留白 <b>72px</b> 未被利用<br>
+        • “颜色”占据 1/6 面积，与旁边几何参数语义冲突
+      </div>
+    </div>
+
+    <!-- 方案 B：推荐 5 宫格 + 顶部色彩微型分段 -->
+    <div class="column-box recommended">
+      <div class="recom-tag">RECOMMENDED 推荐方案</div>
+      <div class="column-header">
+        <div>
+          <div class="column-title" style="color: #0958d9;">方案 B：纯净 5 宫格 + 顶部色彩胶囊</div>
+          <div class="column-desc">几何与色彩解耦 · 单列宽 66.4px (+20%)</div>
+        </div>
+      </div>
+
+      <div class="card-sim-wrap">
+        <!-- 顶部控制行：紧凑工整，色彩胶囊填补空缺 -->
+        <div class="ctrl-row">
+          <div class="btn-impo-toggle" title="排版开关">📐</div>
+
+          <!-- 专属微型色彩分段胶囊：直接填补原本的72px空白！ -->
+          <div class="mini-seg-color mode-color" id="segColorControl">
+            <button class="mini-seg-btn active-color" id="btnColorPart" onclick="setModeB('color')">彩色</button>
+            <button class="mini-seg-btn" id="btnMonoPart" onclick="setModeB('mono')">黑白</button>
+          </div>
+
+          <div class="mini-seg">
+            <button class="mini-seg-btn active">平张</button>
+            <button class="mini-seg-btn">卷装</button>
+          </div>
+          <div class="mini-seg">
+            <button class="mini-seg-btn active">连拼</button>
+            <button class="mini-seg-btn">折手</button>
+          </div>
+          <label class="chk-label"><input type="checkbox">标识页</label>
+        </div>
+
+        <!-- 纯净 5 宫格看板：每列达到 66.4px，极度舒展 -->
+        <div class="metrics-board grid-5 glow-color" id="boardB">
+          <div class="metric-pill">
+            <span class="pill-title">网格</span>
+            <span class="pill-value val-grid">5 × 3</span>
+          </div>
+          <div class="metric-pill">
+            <span class="pill-title">布局数</span>
+            <span class="pill-value val-count">15</span>
+          </div>
+          <div class="metric-pill clickable" title="点击切换旋转角度">
+            <span class="pill-title">角度 ↺</span>
+            <span class="pill-value val-rot">0°</span>
+          </div>
+          <div class="metric-pill" title="成品尺寸">
+            <span class="pill-title">尺寸</span>
+            <!-- 空间变大，长尺寸极度舒适，字号不用缩成豆粒 -->
+            <span class="pill-value val-dim" style="font-size: 13px;">80×45</span>
+          </div>
+          <div class="metric-pill clickable" title="点击切换出血">
+            <span class="pill-title">出血 ▾</span>
+            <span class="pill-value val-bleed">2.0mm</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="interact-hint">
+        <span>👆 试点击上方 <b>[ 彩色 | 黑白 ]</b> 胶囊，查看下方 5 宫格全息光晕联动！</span>
+      </div>
+
+      <div style="margin-top: 10px; font-size: 11px; color: #595959; text-align: left; width: 100%; line-height: 1.6;">
+        • 单列宽度提升至 <b style="color: #389e0d;">66.4px (+20%)</b>，大字号、长尺寸完全舒展<br>
+        • 顶部 5 组开关一次性配齐（排版、色彩、材料、排法、标识页）<br>
+        • 色彩状态由下方<b>整圈光晕（彩虹 ⇄ 冷银）</b>全息呈现，沉浸感极强
+      </div>
+    </div>
+  </div>
+
+  <!-- 参数对比表格 -->
+  <div class="diff-table">
+    <div style="font-size: 13px; font-weight: 700; margin-bottom: 10px;">📊 方案量化收益对照</div>
+    <table>
+      <thead>
+        <tr>
+          <th>对比维度</th>
+          <th>方案 A（当前 6 宫格）</th>
+          <th>方案 B（推荐 5 宫格 + 顶部胶囊）</th>
+          <th>设计收益</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>看板列数</b></td>
+          <td>6 列</td>
+          <td><b style="color: #0958d9;">5 列</b> (纯粹排版几何参数)</td>
+          <td><span class="tag-plus">语义纯粹，无工艺混杂</span></td>
+        </tr>
+        <tr>
+          <td><b>单列宽度</b></td>
+          <td>55.3 px</td>
+          <td><b style="color: #389e0d;">66.4 px</b></td>
+          <td><span class="tag-plus">每列多出 11.1px (+20%) 空间</span></td>
+        </tr>
+        <tr>
+          <td><b>顶部空闲空间</b></td>
+          <td>72px 闲置空档</td>
+          <td>严丝合缝配齐 5 组开关</td>
+          <td><span class="tag-plus">消除空间浪费，对称工整</span></td>
+        </tr>
+        <tr>
+          <td><b>色彩视觉表达</b></td>
+          <td>小格子里写“彩色/黑白”</td>
+          <td>整圈彩虹/冷银全息光晕 + 顶部明示</td>
+          <td><span class="tag-plus">告别信息重复，工业质感拔高</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    let currentMode = 'color';
+
+    function setGlobalColorMode(mode) {
+      setModeA(mode);
+      setModeB(mode);
+      document.getElementById('btnSyncColor').classList.toggle('active', mode === 'color');
+      document.getElementById('btnSyncMono').classList.toggle('active', mode === 'mono');
+    }
+
+    // 方案 A 交互
+    function toggleColorModeA() {
+      const newMode = (currentMode === 'color') ? 'mono' : 'color';
+      setModeA(newMode);
+    }
+    function setModeA(mode) {
+      const boardA = document.getElementById('boardA');
+      const valA = document.getElementById('valColorA');
+      if (mode === 'color') {
+        boardA.classList.remove('glow-mono');
+        boardA.classList.add('glow-color');
+        valA.textContent = '彩色';
+      } else {
+        boardA.classList.remove('glow-color');
+        boardA.classList.add('glow-mono');
+        valA.textContent = '黑白';
+      }
+    }
+
+    // 方案 B 交互 (顶部胶囊驱动)
+    function setModeB(mode) {
+      currentMode = mode;
+      const boardB = document.getElementById('boardB');
+      const segWrap = document.getElementById('segColorControl');
+      const btnC = document.getElementById('btnColorPart');
+      const btnM = document.getElementById('btnMonoPart');
+
+      if (mode === 'color') {
+        boardB.classList.remove('glow-mono');
+        boardB.classList.add('glow-color');
+        segWrap.className = 'mini-seg-color mode-color';
+        btnC.className = 'mini-seg-btn active-color';
+        btnM.className = 'mini-seg-btn';
+      } else {
+        boardB.classList.remove('glow-color');
+        boardB.classList.add('glow-mono');
+        segWrap.className = 'mini-seg-color mode-mono';
+        btnC.className = 'mini-seg-btn';
+        btnM.className = 'mini-seg-btn active-mono';
+      }
+    }
+  </script>
+</body>
+</html>

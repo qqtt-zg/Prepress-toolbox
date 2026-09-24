@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>黑白模式边框内陷光：高级质感调优对比</title>
+  <style>
+    :root {
+      --bg: #0c0e12;
+      --card-bg: #151921;
+      --border: #28303e;
+      --border-light: #1f2530;
+      --text-white: #f0f4fc;
+      --text-muted: #7e899b;
+      --accent: #58a6ff;
+    }
+
+    [data-theme="light"] {
+      --bg: #f4f6fa;
+      --card-bg: #ffffff;
+      --border: #d2dbe5;
+      --border-light: #e4ebf3;
+      --text-white: #171d26;
+      --text-muted: #647082;
+      --accent: #1677ff;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 30px 20px 60px;
+      background: var(--bg);
+      color: var(--text-white);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+      max-width: 860px;
+    }
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #58a6ff;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    p.lead {
+      margin: 0;
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      background: var(--card-bg);
+      padding: 8px 18px;
+      border-radius: 30px;
+      border: 1px solid var(--border);
+      margin-bottom: 30px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+    .btn-tool {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-white);
+      padding: 5px 12px;
+      border-radius: 16px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-tool:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-tool.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* 四栏对比网格 */
+    .lab-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 22px;
+      width: 100%;
+      max-width: 900px;
+      margin-bottom: 40px;
+    }
+
+    .concept-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.05);
+    }
+    .concept-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.12);
+      border-color: rgba(88, 166, 255, 0.4);
+    }
+    .concept-card.featured {
+      border-color: #58a6ff;
+      box-shadow: 0 6px 24px rgba(88, 166, 255, 0.12);
+    }
+
+    .card-tag {
+      position: absolute;
+      top: -9px;
+      left: 14px;
+      background: #30363d;
+      color: #c9d1d9;
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 8px;
+      letter-spacing: 0.5px;
+    }
+    .card-tag.gold { background: linear-gradient(135deg, #1f6feb, #238636); color: #fff; }
+    .card-tag.cyan { background: linear-gradient(135deg, #0969da, #13c2c2); color: #fff; }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin: 4px 0 4px;
+      text-align: center;
+    }
+    .card-desc {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.5;
+      margin-bottom: 18px;
+      min-height: 34px;
+    }
+
+    /* 340px 仿真工作台卡片外壳 */
+    .sim-card {
+      width: 332px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .sim-ctrl-row {
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      padding: 0 2px;
+    }
+    .impo-icon-btn {
+      width: 26px;
+      height: 24px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      background: rgba(88, 166, 255, 0.1);
+      color: var(--accent);
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+    }
+    .mini-capsule {
+      display: inline-flex;
+      height: 22px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+    .mini-capsule span {
+      padding: 0 6px;
+      font-size: 10px;
+      line-height: 20px;
+      color: var(--text-muted);
+    }
+    .mini-capsule span.on {
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* 5 宫格参数看板核心区域 */
+    .metrics-5-strip {
+      height: 44px;
+      position: relative;
+      border-radius: 5px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      align-items: center;
+      text-align: center;
+      overflow: hidden;
+      isolation: isolate;
+      user-select: none;
+    }
+
+    .metrics-5-strip::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 5px;
+      padding: 2px;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .metric-cell {
+      position: relative;
+      z-index: 3;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .metric-cell span {
+      font-size: 9.5px;
+      color: var(--text-muted);
+      line-height: 1;
+      margin-bottom: 7px;
+    }
+    .metric-cell strong {
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1;
+      font-family: ui-monospace, SFMono-Regular, Consolas, sans-serif;
+    }
+
+    /* ============================================================== */
+    /* 调色方案 A：现状基准 (塑料中灰 · 偏暗偏平)                     */
+    /* ============================================================== */
+    .style-a::before {
+      background: conic-gradient(from 0deg, #74797e, #b5b9be, #f0f1f2, #b5b9be, #74797e);
+    }
+    .style-a::after {
+      content: "";
+      position: absolute;
+      inset: 2px;
+      border-radius: 3px;
+      background: rgba(22, 27, 34, 0.90);
+      box-shadow: inset 0 0 9px rgba(0, 0, 0, 0.4);
+      z-index: 1;
+    }
+    [data-theme="light"] .style-a::after {
+      background: rgba(246, 248, 250, 0.88);
+      box-shadow: inset 0 0 9px rgba(22, 31, 42, 0.08);
+    }
+    .style-a .metric-cell strong { color: #8b949e; }
+    [data-theme="light"] .style-a .metric-cell strong { color: #595959; }
+
+    /* ============================================================== */
+    /* 调色方案 B：推荐 · 阳极氧化钛 (高动态对比 · 各向异性镜面高光)   */
+    /* ============================================================== */
+    .style-b::before {
+      background: conic-gradient(
+        from 135deg,
+        #121518 0%,
+        #484f58 20%,
+        #ffffff 45%,
+        #484f58 70%,
+        #121518 100%
+      );
+      filter: blur(0.2px);
+    }
+    .style-b::after {
+      content: "";
+      position: absolute;
+      inset: 2px;
+      border-radius: 3px;
+      background: rgba(18, 22, 28, 0.94);
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8), inset 0 0 1px rgba(255, 255, 255, 0.2);
+      z-index: 1;
+    }
+    [data-theme="light"] .style-b::after {
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06), inset 0 0 1px rgba(0, 0, 0, 0.1);
+    }
+    .style-b .metric-cell strong {
+      color: #e6edf3;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    [data-theme="light"] .style-b .metric-cell strong {
+      color: #1f2328;
+    }
+
+    /* ============================================================== */
+    /* 调色方案 C：极客冷钢 (2% 工业冷靛蓝 · 精密仪表质感)             */
+    /* ============================================================== */
+    .style-c::before {
+      background: conic-gradient(
+        from 135deg,
+        #0d1117 0%,
+        #30363d 25%,
+        #79c0ff 50%,
+        #e1e4e8 53%,
+        #38444d 75%,
+        #0d1117 100%
+      );
+      filter: blur(0.3px);
+    }
+    .style-c::after {
+      content: "";
+      position: absolute;
+      inset: 2px;
+      border-radius: 3px;
+      background: rgba(13, 17, 23, 0.92);
+      box-shadow: inset 0 0 8px rgba(56, 139, 253, 0.08);
+      z-index: 1;
+    }
+    [data-theme="light"] .style-c::after {
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: inset 0 0 8px rgba(9, 105, 218, 0.04);
+    }
+    .style-c .metric-cell strong {
+      color: #79c0ff;
+    }
+    [data-theme="light"] .style-c .metric-cell strong {
+      color: #0969da;
+    }
+
+    /* ============================================================== */
+    /* 调色方案 D：黑曜石与通透微晶 (极简黑边 + 通透底盘)             */
+    /* ============================================================== */
+    .style-d::before {
+      background: linear-gradient(135deg, #484f58, #161b22, #8b949e);
+    }
+    .style-d::after {
+      content: "";
+      position: absolute;
+      inset: 1.5px;
+      border-radius: 3.5px;
+      background: var(--card-bg);
+      box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.2);
+      z-index: 1;
+    }
+    .style-d .metric-cell strong {
+      color: var(--text-white);
+    }
+
+    /* 细节特性解析 */
+    .feature-list {
+      margin-top: 14px;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      width: 100%;
+      border-top: 1px dashed var(--border-light);
+      padding-top: 10px;
+    }
+    .feature-list b { color: var(--text-white); }
+    .tag-val {
+      font-family: ui-monospace, monospace;
+      font-size: 10px;
+      background: rgba(255,255,255,0.06);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    [data-theme="light"] .tag-val { background: #eef2f6; }
+  </style>
+</head>
+<body data-theme="dark">
+
+  <header>
+    <div class="badge">PRECISION FINISH · COLOR METRICS</div>
+    <h1>黑白模式边框内陷光：告别死灰的 4 套高级调优</h1>
+    <p class="lead">
+      彻底消除“中灰边框 + 灰色底”的粘滞感。引入<b>高动态对比度（HDR）、各向异性金属切角高光、微量工业冷靛调</b>。<br>
+      下方可在 <b>🌙 暗色极客工位</b> 与 <b>☀️ 亮色生产工位</b> 自由切换检视真实光影效果。
+    </p>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn-tool active" id="btnDark" onclick="setTheme('dark')">🌙 暗色极客工位</button>
+    <button class="btn-tool" id="btnLight" onclick="setTheme('light')">☀️ 亮色生产工位</button>
+  </div>
+
+  <div class="lab-grid">
+
+    <!-- 方案 A：现状基准 -->
+    <div class="concept-card">
+      <div class="card-tag">现状基准</div>
+      <div class="card-title">方案 A · 现状中灰 (Neutral Cement)</div>
+      <div class="card-desc">当前版本的调色：停靠点在 116~240 之间。动态范围窄，暗部下不去，亮部上不来，发灰发平。</div>
+
+      <div class="sim-card">
+        <div class="sim-ctrl-row">
+          <div class="impo-icon-btn">📐</div>
+          <div style="font-size: 10px; color: var(--text-muted);">自动排版矩阵</div>
+          <div class="mini-capsule"><span class="on">平张</span><span>卷装</span></div>
+          <div class="mini-capsule"><span class="on">连拼</span><span>折手</span></div>
+          <div style="font-size: 10px; color: var(--text-muted);">标识页</div>
+        </div>
+
+        <div class="metrics-5-strip style-a">
+          <div class="metric-cell"><span>网格</span><strong>5 × 3</strong></div>
+          <div class="metric-cell"><span>布局数</span><strong>15</strong></div>
+          <div class="metric-cell"><span>角度 ↺</span><strong>0°</strong></div>
+          <div class="metric-cell"><span>尺寸</span><strong>80×45</strong></div>
+          <div class="metric-cell"><span>出血 ▾</span><strong>2.0mm</strong></div>
+        </div>
+      </div>
+
+      <div class="feature-list">
+        • <b>色阶范围</b>：<span class="tag-val">#74797E → #F0F1F2</span>（暗度只有 116）<br>
+        • <b>视觉痛点</b>：缺乏反差，内表面泛灰，像受潮的水泥板<br>
+        • <b>对比度</b>：★☆☆☆☆ (过分平淡)
+      </div>
+    </div>
+
+    <!-- 方案 B：推荐 · 阳极氧化钛 -->
+    <div class="concept-card featured">
+      <div class="card-tag gold">⭐ 方案 B (强烈推荐)</div>
+      <div class="card-title">方案 B · 阳极氧化钛 (Titanium Specular)</div>
+      <div class="card-desc">拉开极致黑白对比：暗部直潜深邃碳黑 #121518，高光角爆发纯白 #FFFFFF 镜面反光。</div>
+
+      <div class="sim-card">
+        <div class="sim-ctrl-row">
+          <div class="impo-icon-btn">📐</div>
+          <div style="font-size: 10px; color: var(--text-muted);">自动排版矩阵</div>
+          <div class="mini-capsule"><span class="on">平张</span><span>卷装</span></div>
+          <div class="mini-capsule"><span class="on">连拼</span><span>折手</span></div>
+          <div style="font-size: 10px; color: var(--text-muted);">标识页</div>
+        </div>
+
+        <div class="metrics-5-strip style-b">
+          <div class="metric-cell"><span>网格</span><strong>5 × 3</strong></div>
+          <div class="metric-cell"><span>布局数</span><strong>15</strong></div>
+          <div class="metric-cell"><span>角度 ↺</span><strong>0°</strong></div>
+          <div class="metric-cell"><span>尺寸</span><strong>80×45</strong></div>
+          <div class="metric-cell"><span>出血 ▾</span><strong>2.0mm</strong></div>
+        </div>
+      </div>
+
+      <div class="feature-list">
+        • <b>色阶范围</b>：<span class="tag-val">#121518 → #484F58 → #FFFFFF</span><br>
+        • <b>质感来源</b>：类似苹果深空灰/高级单反金属机身的<b>铣削光切</b>，光泽感极强<br>
+        • <b>对比度</b>：★★★★★ (沉稳深邃，高光通透)
+      </div>
+    </div>
+
+    <!-- 方案 C：冷钢蓝调 -->
+    <div class="concept-card">
+      <div class="concept-tag cyan">方案 C</div>
+      <div class="concept-title">方案 C · 极客冷钢 (Cool Slate Steel)</div>
+      <div class="concept-desc">注入 2% 工业冷靛蓝微调色。打破死寂纯灰，呈现类似德国精密测量仪器的高级冷冽感。</div>
+
+      <div class="sim-card">
+        <div class="sim-ctrl-row">
+          <div class="impo-icon-btn">📐</div>
+          <div style="font-size: 10px; color: var(--text-muted);">自动排版矩阵</div>
+          <div class="mini-capsule"><span class="on">平张</span><span>卷装</span></div>
+          <div class="mini-capsule"><span class="on">连拼</span><span>折手</span></div>
+          <div style="font-size: 10px; color: var(--text-muted);">标识页</div>
+        </div>
+
+        <div class="metrics-5-strip style-c">
+          <div class="metric-cell"><span>网格</span><strong>5 × 3</strong></div>
+          <div class="metric-cell"><span>布局数</span><strong>15</strong></div>
+          <div class="metric-cell"><span>角度 ↺</span><strong>0°</strong></div>
+          <div class="metric-cell"><span>尺寸</span><strong>80×45</strong></div>
+          <div class="metric-cell"><span>出血 ▾</span><strong>2.0mm</strong></div>
+        </div>
+      </div>
+
+      <div class="feature-list">
+        • <b>色阶范围</b>：深冷靛灰 <span class="tag-val">#0D1117</span> ⇄ 冰蓝高光 <span class="tag-val">#79C0FF</span><br>
+        • <b>质感来源</b>：克制的冷色调消除了灰色的脏感，带有电子荧光屏科技感<br>
+        • <b>对比度</b>：★★★★☆ (冷峻高级，适合印前高精度环境)
+      </div>
+    </div>
+
+    <!-- 方案 D：黑曜石与通透微晶 -->
+    <div class="concept-card">
+      <div class="concept-tag">方案 D</div>
+      <div class="concept-title">方案 D · 黑曜石晶格 (Obsidian Crystal)</div>
+      <div class="concept-desc">极简细黑外框 + 内部极致通透高亮。内凹处采用极细切削阴影，形成类似宝石刻面般的立体视窗。</div>
+
+      <div class="sim-card">
+        <div class="sim-ctrl-row">
+          <div class="impo-icon-btn">📐</div>
+          <div style="font-size: 10px; color: var(--text-muted);">自动排版矩阵</div>
+          <div class="mini-capsule"><span class="on">平张</span><span>卷装</span></div>
+          <div class="mini-capsule"><span class="on">连拼</span><span>折手</span></div>
+          <div style="font-size: 10px; color: var(--text-muted);">标识页</div>
+        </div>
+
+        <div class="metrics-5-strip style-d">
+          <div class="metric-cell"><span>网格</span><strong>5 × 3</strong></div>
+          <div class="metric-cell"><span>布局数</span><strong>15</strong></div>
+          <div class="metric-cell"><span>角度 ↺</span><strong>0°</strong></div>
+          <div class="metric-cell"><span>尺寸</span><strong>80×45</strong></div>
+          <div class="metric-cell"><span>出血 ▾</span><strong>2.0mm</strong></div>
+        </div>
+      </div>
+
+      <div class="feature-list">
+        • <b>色阶范围</b>：黑曜石外轮廓 + 纯净内晶格<br>
+        • <b>质感来源</b>：消除内表面发灰雾化，内部底盘 100% 保持清透纯白<br>
+        • <b>对比度</b>：★★★★☆ (干净纯粹，无杂质)
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function setTheme(theme) {
+      document.body.setAttribute('data-theme', theme);
+      document.getElementById('btnDark').classList.toggle('active', theme === 'dark');
+      document.getElementById('btnLight').classList.toggle('active', theme === 'light');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>颜色模式视觉方案对比</title>
+  <style>
+    :root {
+      --blue: #1677ff;
+      --ink: #172033;
+      --muted: #6f7785;
+      --line: #d9e0e8;
+      --canvas: #eef2f6;
+      --surface: #fff;
+      --coral: #ff5d52;
+      --amber: #ffb52e;
+      --mint: #34c7a1;
+      --cyan: #2b9bea;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(22, 119, 255, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(22, 119, 255, .035) 1px, transparent 1px),
+        var(--canvas);
+      background-size: 24px 24px;
+      font-family: "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+    }
+
+    main { width: min(1120px, calc(100% - 32px)); margin: 28px auto 42px; }
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: end;
+      padding: 0 2px 20px;
+      border-bottom: 1px solid #ccd5df;
+    }
+    .eyebrow { margin: 0 0 8px; color: var(--blue); font-size: 12px; font-weight: 700; letter-spacing: .12em; }
+    h1 { margin: 0; font-size: clamp(24px, 3vw, 38px); line-height: 1.15; letter-spacing: -.04em; }
+    .lead { max-width: 680px; margin: 10px 0 0; color: #687180; font-size: 13px; line-height: 1.75; }
+    .legend { display: flex; align-items: center; gap: 12px; color: #7a8390; font-size: 11px; white-space: nowrap; }
+    .legend i { display: block; width: 68px; height: 5px; border-radius: 10px; background: linear-gradient(90deg,var(--coral),var(--amber),var(--mint),var(--cyan)); }
+
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+    .scheme {
+      position: relative;
+      overflow: hidden;
+      min-height: 246px;
+      padding: 18px;
+      border: 1px solid #d6dde6;
+      border-radius: 12px;
+      background: rgba(255,255,255,.94);
+      box-shadow: 0 8px 24px rgba(31,48,73,.055);
+      transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+    .scheme:hover { transform: translateY(-2px); border-color: #a8c9f8; box-shadow: 0 12px 28px rgba(31,48,73,.09); }
+    .scheme.recommended { border-color: #78acf4; box-shadow: inset 0 3px 0 var(--blue), 0 10px 28px rgba(22,119,255,.09); }
+    .badge { position: absolute; right: 14px; top: 13px; padding: 4px 8px; border-radius: 4px; color: #096dd9; background: #e6f4ff; font-size: 10px; font-weight: 700; }
+    .scheme h2 { margin: 0; font-size: 15px; }
+    .scheme p { min-height: 40px; margin: 7px 0 14px; color: #737c89; font-size: 11px; line-height: 1.7; }
+
+    .stage {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      min-height: 108px;
+      padding: 14px;
+      border: 1px solid #e4e8ed;
+      border-radius: 8px;
+      background: #f7f9fb;
+    }
+    .state { display: grid; justify-items: center; gap: 7px; }
+    .state small { color: #8a929e; font-size: 9px; }
+    .metric {
+      position: relative;
+      display: grid;
+      grid-template-rows: 15px 22px;
+      align-content: center;
+      width: 78px;
+      height: 58px;
+      overflow: hidden;
+      border: 1px solid #d6dde5;
+      border-radius: 5px;
+      background: #fff;
+      text-align: center;
+      cursor: pointer;
+      isolation: isolate;
+    }
+    .metric .title { z-index: 2; align-self: end; color: #5c6370; font-size: 10px; line-height: 14px; }
+    .metric .value { z-index: 2; align-self: start; font-size: 13px; font-weight: 700; line-height: 20px; }
+    .note { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; color: #87909d; font-size: 10px; }
+    .note strong { color: #475161; }
+
+    /* 01：微环境色。颜色扩散到文字周边，但不污染整个卡片。 */
+    .s1.color::before, .s1.mono::before {
+      content: ""; position: absolute; z-index: 0; inset: 17px 10px 5px; border-radius: 50%; filter: blur(9px); opacity: .24;
+    }
+    .s1.color::before { background: linear-gradient(100deg,var(--coral),var(--amber) 42%,var(--mint) 68%,var(--cyan)); }
+    .s1.mono::before { background: linear-gradient(100deg,#171717,#888 55%,#e9e9e9); }
+    .s1.color .value { color: #087eae; }
+    .s1.mono .value { color: #30343a; }
+
+    /* 02：印刷色带。用边缘连续色序表达彩色，用灰阶序表达黑白。 */
+    .s2::after { content:""; position:absolute; z-index:2; left:7px; right:7px; bottom:5px; height:3px; border-radius:4px; }
+    .s2.color::after { background: linear-gradient(90deg,var(--coral),var(--amber),var(--mint),var(--cyan)); }
+    .s2.mono::after { background: linear-gradient(90deg,#222,#777,#d8d8d8); }
+    .s2.color .value { color: #087eae; }
+    .s2.mono .value { color: #30343a; }
+
+    /* 03：色域边框。小面积但识别最快，推荐用于现有六宫格。 */
+    .s3 { border: 0; padding: 1px; }
+    .s3::before { content:""; position:absolute; z-index:-2; inset:0; }
+    .s3::after { content:""; position:absolute; z-index:-1; inset:1px; border-radius:4px; background:#fff; }
+    .s3.color::before { background: linear-gradient(135deg,var(--coral),var(--amber) 35%,var(--mint) 66%,var(--cyan)); }
+    .s3.mono::before { background: linear-gradient(135deg,#111,#858585 58%,#dedede); }
+    .s3.color .value { background: linear-gradient(100deg,#ea5148,#db8c16 45%,#159e91 72%,#1677c9); }
+    .s3.mono .value { background: linear-gradient(100deg,#222,#888); }
+
+    /* 04：柔和底场。整个单元承担状态，不再只依赖两个字。 */
+    .s4.color { border-color:#c7e7e1; background: linear-gradient(135deg,#fff5f3 0%,#fff9e8 42%,#eafaf5 70%,#eef8ff 100%); }
+    .s4.mono { border-color:#cfd3d8; background: linear-gradient(135deg,#f6f6f6,#e4e6e8 55%,#fafafa); }
+    .s4.color .value { color:#087f83; }
+    .s4.mono .value { color:#25282d; }
+
+    /* 05：四色切片。不是图标，而是直接呈现颜色组成关系。 */
+    .s5 .value { display:flex; justify-content:center; letter-spacing:.06em; }
+    .s5.color .value span:first-child { color:#ef5d4e; }
+    .s5.color .value span:last-child { color:#188fbd; }
+    .s5.mono .value span:first-child { color:#202124; }
+    .s5.mono .value span:last-child { color:#9ca0a5; }
+    .s5::after { content:""; position:absolute; left:50%; bottom:7px; width:26px; height:2px; transform:translateX(-50%); border-radius:3px; }
+    .s5.color::after { background:linear-gradient(90deg,#ef5d4e,#f3aa28,#28b68f,#188fbd); }
+    .s5.mono::after { background:linear-gradient(90deg,#222,#d4d4d4); }
+
+    /* 06：印色轨迹。利用轻微通道错位表达彩印，黑白则保持单一墨层。 */
+    .s6.color .value { color:#273442; text-shadow:-1px 0 rgba(255,74,74,.62), 1px 0 rgba(0,174,210,.65); }
+    .s6.mono .value { color:#272727; text-shadow:1px 1px 0 #c9c9c9; }
+    .s6::before { content:""; position:absolute; left:14px; right:14px; bottom:7px; height:1px; }
+    .s6.color::before { background:linear-gradient(90deg,transparent,#ef5d4e,#2fbd9a,#2597dd,transparent); }
+    .s6.mono::before { background:linear-gradient(90deg,transparent,#333,#bbb,transparent); }
+
+    .gradient-text { color: transparent !important; -webkit-background-clip:text !important; background-clip:text !important; }
+
+    footer { margin-top: 18px; padding: 14px 16px; border: 1px solid #cfe0f5; border-radius: 8px; background: #f7fbff; color: #566274; font-size: 11px; line-height: 1.75; }
+    footer strong { color: #0958d9; }
+
+    @media (max-width: 760px) {
+      header { grid-template-columns:1fr; }
+      .legend { display:none; }
+      .grid { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <p class="eyebrow">COLOR MODE / VISUAL EXPLORATION</p>
+        <h1>不只读文字，也能识别颜色模式</h1>
+        <p class="lead">六种方案均取消前置图标，在现有排版指标的小尺寸里，通过色域、灰阶、边界与背景关系区分“彩色 / 黑白”。点击任意小卡可切换状态。</p>
+      </div>
+      <div class="legend"><i></i><span>屏幕预览 · 实际实现仍使用 GDI+</span></div>
+    </header>
+
+    <section class="grid">
+      <article class="scheme">
+        <h2>01 · 微光扩散</h2>
+        <p>文字周围出现低饱和色雾；黑白状态则是中性灰雾。柔和，但在很小的控件里识别度一般。</p>
+        <div class="stage"><div class="state"><div class="metric s1 color"><span class="title">颜色</span><strong class="value">彩色</strong></div><small>彩色</small></div><div class="state"><div class="metric s1 mono"><span class="title">颜色</span><strong class="value">黑白</strong></div><small>黑白</small></div></div>
+        <div class="note"><span>感受：柔和 / 轻盈</span><strong>识别度 3/5</strong></div>
+      </article>
+
+      <article class="scheme">
+        <h2>02 · 印刷色带</h2>
+        <p>底部色带呈现连续色域或连续灰阶，文字保持稳定清晰。信息关系直接，实施成本低。</p>
+        <div class="stage"><div class="state"><div class="metric s2 color"><span class="title">颜色</span><strong class="value">彩色</strong></div><small>彩色</small></div><div class="state"><div class="metric s2 mono"><span class="title">颜色</span><strong class="value">黑白</strong></div><small>黑白</small></div></div>
+        <div class="note"><span>感受：克制 / 工具化</span><strong>识别度 4/5</strong></div>
+      </article>
+
+      <article class="scheme recommended">
+        <span class="badge">推荐</span>
+        <h2>03 · 色域边框</h2>
+        <p>整个指标边界显示彩色色域或灰阶色域，文字也做同系渐变。不会占用内部空间，和六宫格边框逻辑最一致。</p>
+        <div class="stage"><div class="state"><div class="metric s3 color"><span class="title">颜色</span><strong class="value gradient-text">彩色</strong></div><small>彩色</small></div><div class="state"><div class="metric s3 mono"><span class="title">颜色</span><strong class="value gradient-text">黑白</strong></div><small>黑白</small></div></div>
+        <div class="note"><span>感受：完整 / 明确</span><strong>识别度 5/5</strong></div>
+      </article>
+
+      <article class="scheme">
+        <h2>04 · 模式底场</h2>
+        <p>整块背景承载状态：彩色为极浅暖冷过渡，黑白为银灰层次。无需看文字也能快速扫视。</p>
+        <div class="stage"><div class="state"><div class="metric s4 color"><span class="title">颜色</span><strong class="value">彩色</strong></div><small>彩色</small></div><div class="state"><div class="metric s4 mono"><span class="title">颜色</span><strong class="value">黑白</strong></div><small>黑白</small></div></div>
+        <div class="note"><span>感受：醒目 / 状态化</span><strong>识别度 5/5</strong></div>
+      </article>
+
+      <article class="scheme">
+        <h2>05 · 色彩切片</h2>
+        <p>“彩”“色”分属暖色与冷色，并用极细色序连接；黑白则分属深墨与浅灰，强调二者的组成差异。</p>
+        <div class="stage"><div class="state"><div class="metric s5 color"><span class="title">颜色</span><strong class="value"><span>彩</span><span>色</span></strong></div><small>彩色</small></div><div class="state"><div class="metric s5 mono"><span class="title">颜色</span><strong class="value"><span>黑</span><span>白</span></strong></div><small>黑白</small></div></div>
+        <div class="note"><span>感受：文字化 / 精巧</span><strong>识别度 4/5</strong></div>
+      </article>
+
+      <article class="scheme">
+        <h2>06 · 印色轨迹</h2>
+        <p>彩色状态模拟轻微套印通道，黑白保持单一墨层。最有印前行业含义，但小字号下需控制错位幅度。</p>
+        <div class="stage"><div class="state"><div class="metric s6 color"><span class="title">颜色</span><strong class="value">彩色</strong></div><small>彩色</small></div><div class="state"><div class="metric s6 mono"><span class="title">颜色</span><strong class="value">黑白</strong></div><small>黑白</small></div></div>
+        <div class="note"><span>感受：印前 / 有性格</span><strong>识别度 4/5</strong></div>
+      </article>
+    </section>
+
+    <footer><strong>建议：</strong>当前工作台优先考虑 03“色域边框”。它不增加图形、不压缩文字空间，彩色与黑白两种状态都能从外围关系直接识别；如果更强调一眼可见，则选择 04“模式底场”。</footer>
+  </main>
+  <script>
+    document.querySelectorAll('.metric').forEach(metric => {
+      metric.addEventListener('click', () => {
+        const isColor = metric.classList.contains('color');
+        metric.classList.toggle('color', !isColor);
+        metric.classList.toggle('mono', isColor);
+        const value = metric.querySelector('.value');
+        value.innerHTML = isColor
+          ? (metric.classList.contains('s5') ? '<span>黑</span><span>白</span>' : '黑白')
+          : (metric.classList.contains('s5') ? '<span>彩</span><span>色</span>' : '彩色');
+      });
+    });
+  </script>
+</body>
+</html>

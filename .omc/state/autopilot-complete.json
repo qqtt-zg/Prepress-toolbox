@@ -1,0 +1,47 @@
+{
+  "mode": "autopilot",
+  "active": false,
+  "current_phase": "complete",
+  "session_id": "material-select-v5-session",
+  "completed_at": "2026-09-20T00:05:00.000Z",
+  "state": {
+    "session_id": "material-select-v5-session",
+    "phase_cycle": ["deep-interview", "ralplan", "ultragoal"],
+    "deep_interview_gate": {
+      "status": "complete",
+      "rationale": "Requirements crystallized and approved via V5 final workbench HTML prototype"
+    },
+    "ralplan_consensus_gate": {
+      "complete": true,
+      "ralplan_architect_review": {
+        "agent_role": "architect",
+        "verdict": "approve",
+        "sequence_index": 1,
+        "review_cycle": 1,
+        "session_id": "material-select-v5-session"
+      },
+      "ralplan_critic_review": {
+        "agent_role": "critic",
+        "verdict": "approve",
+        "sequence_index": 2,
+        "review_cycle": 1,
+        "session_id": "material-select-v5-session"
+      }
+    },
+    "ralplan_execution_handoff": {
+      "authorized": true,
+      "source": "autopilot",
+      "session_id": "material-select-v5-session",
+      "review_cycle": 1,
+      "authorized_at": "2026-09-20T00:01:00.000Z"
+    },
+    "handoff_artifacts": {
+      "deep_interview": ".omx/specs/prd-material-select-v5-workbench.md",
+      "ralplan": {
+        "plan_path": ".omx/plans/plan-material-select-v5-workbench.md"
+      },
+      "ultragoal": ".omx/plans/ultragoal-completion-report.md"
+    },
+    "return_to_ralplan_reason": null
+  }
+}

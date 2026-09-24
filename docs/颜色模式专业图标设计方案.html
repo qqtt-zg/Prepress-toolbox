@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>颜色模式专业图标设计实验室 (Prepress Icon Lab)</title>
+  <style>
+    :root {
+      --bg: #0c0e12;
+      --card-bg: #151921;
+      --border: #28303e;
+      --border-light: #1f2530;
+      --text-white: #f0f4fc;
+      --text-muted: #7e899b;
+      --accent: #1677ff;
+    }
+
+    [data-theme="light"] {
+      --bg: #f4f6fa;
+      --card-bg: #ffffff;
+      --border: #d2dbe5;
+      --border-light: #e4ebf3;
+      --text-white: #171d26;
+      --text-muted: #647082;
+      --accent: #1677ff;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 30px 20px 60px;
+      background: var(--bg);
+      color: var(--text-white);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+      max-width: 860px;
+    }
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #58a6ff;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    p.lead {
+      margin: 0;
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      background: var(--card-bg);
+      padding: 8px 18px;
+      border-radius: 30px;
+      border: 1px solid var(--border);
+      margin-bottom: 30px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+    .btn-tool {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-white);
+      padding: 5px 12px;
+      border-radius: 16px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-tool:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-tool.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* 四栏图标网格 */
+    .icon-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      width: 100%;
+      max-width: 1180px;
+      margin-bottom: 40px;
+    }
+
+    .icon-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.05);
+    }
+    .icon-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.12);
+      border-color: rgba(88, 166, 255, 0.4);
+    }
+
+    .card-tag {
+      position: absolute;
+      top: -9px;
+      left: 14px;
+      background: #1f6feb;
+      color: #fff;
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 8px;
+      letter-spacing: 0.5px;
+    }
+    .card-tag.gold { background: linear-gradient(135deg, #d29922, #db61a2); }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin: 4px 0 4px;
+      text-align: center;
+    }
+    .card-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.45;
+      margin-bottom: 16px;
+      min-height: 32px;
+    }
+
+    /* 显微镜大图展示台 (5X 放大) */
+    .magnifier-stage {
+      width: 90px;
+      height: 90px;
+      background: radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%);
+      border: 1px dashed var(--border);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      margin-bottom: 14px;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+    .magnifier-stage:hover {
+      border-color: var(--accent);
+      transform: scale(1.06);
+    }
+    .zoom-hint {
+      position: absolute;
+      bottom: 4px;
+      font-size: 8.5px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    /* 真机 1:1 仿真嵌入小盒 (20px 真实工位中的形态) */
+    .real-slot-wrap {
+      width: 100%;
+      background: rgba(0,0,0,0.15);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    [data-theme="light"] .real-slot-wrap {
+      background: #f8fafc;
+    }
+
+    .real-btn {
+      width: 26px;
+      height: 24px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      transition: all 0.2s;
+    }
+    .real-btn:hover {
+      border-color: var(--accent);
+      transform: scale(1.08);
+    }
+
+    .real-meta {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-align: right;
+    }
+    .real-meta strong {
+      display: block;
+      color: var(--text-white);
+      font-size: 11px;
+    }
+
+    /* 细节解析列表 */
+    .detail-list {
+      width: 100%;
+      border-top: 1px dashed var(--border-light);
+      padding-top: 10px;
+      font-size: 10.5px;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+    .detail-list b { color: var(--text-white); }
+
+    /* SVG 矢量图标通用样式与微动效 */
+    svg.icon-symbol {
+      overflow: visible;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+  </style>
+</head>
+<body data-theme="dark">
+
+  <header>
+    <div class="badge">PREPRESS ICON LAB · VECTOR STUDY</div>
+    <h1>颜色模式图标设计：4 种专业印前与光学方案</h1>
+    <p class="lead">
+      告别普通的“调色盘/油漆桶”消费级玩具隐喻，引入<b>CMYK 叠印减色法、同源锥形光谱、印前挂网角度、偏振双色镜</b>。<br>
+      下方可在 <b>5X 显微镜</b> 与 <b>1:1 实际 24px 工位按钮</b> 中点击交互测试状态切换。
+    </p>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn-tool active" id="btnDark" onclick="setTheme('dark')">🌙 暗色极客工位</button>
+    <button class="btn-tool" id="btnLight" onclick="setTheme('light')">☀️ 亮色生产工位</button>
+    <span style="font-size: 11px; color: var(--text-muted); margin-left: 8px;">| 一键对比：</span>
+    <button class="btn-tool" onclick="syncAll(false)">🌈 全彩 4C 态</button>
+    <button class="btn-tool" onclick="syncAll(true)">⚫ 黑白 1K 态</button>
+  </div>
+
+  <div class="icon-grid">
+
+    <!-- ============================================================== -->
+    <!-- 方案 01：CMYK 减色法叠印三环                                    -->
+    <!-- ============================================================== -->
+    <div class="icon-card">
+      <div class="card-tag gold">👑 殿堂级推荐</div>
+      <div class="card-title">方案 01 · 叠印三环 (Venn Rings)</div>
+      <div class="card-desc">印前减色法图腾：青品黄三环交叠，相交处自然混色。点击坍缩为 45° 阴阳灰阶分界圆。</div>
+
+      <!-- 显微镜 5X 放大台 -->
+      <div class="magnifier-stage" onclick="toggleIcon(1)" title="点击测试状态切换">
+        <svg class="icon-symbol" id="magSvg1" width="46" height="46" viewBox="0 0 46 46">
+          <!-- 彩色三环 (Cyan, Magenta, Yellow 混合叠印) -->
+          <g id="mag1_color" style="mix-blend-mode: screen;">
+            <circle cx="19" cy="18" r="11" fill="none" stroke="#00e5ff" stroke-width="2.5" opacity="0.9" />
+            <circle cx="27" cy="18" r="11" fill="none" stroke="#ff007f" stroke-width="2.5" opacity="0.9" />
+            <circle cx="23" cy="27" r="11" fill="none" stroke="#ffea00" stroke-width="2.5" opacity="0.9" />
+            <circle cx="23" cy="21" r="2.5" fill="#ffffff" />
+          </g>
+          <!-- 黑白阴阳圆 (隐藏) -->
+          <g id="mag1_mono" style="display: none;">
+            <circle cx="23" cy="23" r="14" fill="#151921" stroke="#8b949e" stroke-width="2" />
+            <path d="M23 9 A 14 14 0 0 1 23 37 Z" fill="#8b949e" />
+          </g>
+        </svg>
+        <span class="zoom-hint">5X 点击切换</span>
+      </div>
+
+      <!-- 1:1 真实尺寸 (24px 按钮) -->
+      <div class="real-slot-wrap">
+        <div class="real-btn" onclick="toggleIcon(1)">
+          <svg class="icon-symbol" id="realSvg1" width="18" height="18" viewBox="0 0 46 46">
+            <g id="real1_color" style="mix-blend-mode: screen;">
+              <circle cx="19" cy="18" r="11" fill="none" stroke="#00e5ff" stroke-width="3" />
+              <circle cx="27" cy="18" r="11" fill="none" stroke="#ff007f" stroke-width="3" />
+              <circle cx="23" cy="27" r="11" fill="none" stroke="#ffea00" stroke-width="3" />
+            </g>
+            <g id="real1_mono" style="display: none;">
+              <circle cx="23" cy="23" r="15" fill="#151921" stroke="#8b949e" stroke-width="3" />
+              <path d="M23 8 A 15 15 0 0 1 23 38 Z" fill="#8b949e" />
+            </g>
+          </svg>
+        </div>
+        <div class="real-meta">
+          <span style="font-size:9px;">当前状态</span>
+          <strong id="label1" style="color: #00e5ff;">4C 全彩</strong>
+        </div>
+      </div>
+
+      <div class="detail-list">
+        • <b>符号血统</b>：全球印刷行业标准识别符号<br>
+        • <b>黑白演进</b>：三环合一，演变为经典的半黑半白灰阶对角圆<br>
+        • <b>微尺寸清晰度</b>：在 16~18px 即使不放大也棱角分明
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- 方案 02：同源锥形色相环                                         -->
+    <!-- ============================================================== -->
+    <div class="icon-card">
+      <div class="card-tag">同源几何</div>
+      <div class="card-title">方案 02 · 锥形色相甜甜圈 (Donut)</div>
+      <div class="card-desc">与看板边框采用完全相同的 360° 锥形渐变算法。点击瞬间褪火为冷银高反差环。</div>
+
+      <!-- 显微镜 5X 放大台 -->
+      <div class="magnifier-stage" onclick="toggleIcon(2)" title="点击测试状态切换">
+        <svg class="icon-symbol" id="magSvg2" width="46" height="46" viewBox="0 0 46 46">
+          <defs>
+            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ff4081" />
+              <stop offset="33%" stop-color="#ffea00" />
+              <stop offset="66%" stop-color="#00e5ff" />
+              <stop offset="100%" stop-color="#7c4dff" />
+            </linearGradient>
+            <linearGradient id="monoRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#222" />
+              <stop offset="50%" stop-color="#888" />
+              <stop offset="100%" stop-color="#eee" />
+            </linearGradient>
+          </defs>
+          <circle id="magRing" cx="23" cy="23" r="13" fill="none" stroke="url(#ringGrad)" stroke-width="4.5" />
+          <circle id="magCore" cx="23" cy="23" r="6" fill="#151921" />
+        </svg>
+        <span class="zoom-hint">5X 点击切换</span>
+      </div>
+
+      <!-- 1:1 真实尺寸 (24px 按钮) -->
+      <div class="real-slot-wrap">
+        <div class="real-btn" onclick="toggleIcon(2)">
+          <svg class="icon-symbol" width="18" height="18" viewBox="0 0 46 46">
+            <circle id="realRing" cx="23" cy="23" r="14" fill="none" stroke="url(#ringGrad)" stroke-width="5" />
+          </svg>
+        </div>
+        <div class="real-meta">
+          <span style="font-size:9px;">当前状态</span>
+          <strong id="label2" style="color: #ff4081;">全彩环</strong>
+        </div>
+      </div>
+
+      <div class="detail-list">
+        • <b>视觉统一性</b>：图标是下方 5 宫格边框光环的“微缩母体”<br>
+        • <b>极简克制</b>：中心镂空中空，线条极具当代科技软件感<br>
+        • <b>黑白演进</b>：全彩渐变环瞬间冷却为钛银冷金属质感
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- 方案 03：印前四色网点                                           -->
+    <!-- ============================================================== -->
+    <div class="icon-card">
+      <div class="card-tag">硬核微观</div>
+      <div class="card-title">方案 03 · 挂网色点阵 (Halftone Grid)</div>
+      <div class="card-desc">显微镜下的印刷网点。四颗带挂网角度的 CMYK 网点，黑白态折叠为单黑递进梯点。</div>
+
+      <!-- 显微镜 5X 放大台 -->
+      <div class="magnifier-stage" onclick="toggleIcon(3)" title="点击测试状态切换">
+        <svg class="icon-symbol" id="magSvg3" width="46" height="46" viewBox="0 0 46 46">
+          <g id="mag3_dots">
+            <circle cx="16" cy="16" r="4.5" fill="#00e5ff" id="dotC" />
+            <circle cx="30" cy="16" r="4.5" fill="#ff007f" id="dotM" />
+            <circle cx="16" cy="30" r="4.5" fill="#ffea00" id="dotY" />
+            <circle cx="30" cy="30" r="4.5" fill="#ffffff" id="dotK" stroke="#333" stroke-width="1" />
+          </g>
+        </svg>
+        <span class="zoom-hint">5X 点击切换</span>
+      </div>
+
+      <!-- 1:1 真实尺寸 (24px 按钮) -->
+      <div class="real-slot-wrap">
+        <div class="real-btn" onclick="toggleIcon(3)">
+          <svg class="icon-symbol" width="18" height="18" viewBox="0 0 46 46">
+            <g id="real3_dots">
+              <circle cx="16" cy="16" r="5" fill="#00e5ff" id="r_dotC" />
+              <circle cx="30" cy="16" r="5" fill="#ff007f" id="r_dotM" />
+              <circle cx="16" cy="30" r="5" fill="#ffea00" id="r_dotY" />
+              <circle cx="30" cy="30" r="5" fill="#ffffff" id="r_dotK" stroke="#333" stroke-width="1" />
+            </g>
+          </svg>
+        </div>
+        <div class="real-meta">
+          <span style="font-size:9px;">当前状态</span>
+          <strong id="label3" style="color: #ff007f;">4C 墨点</strong>
+        </div>
+      </div>
+
+      <div class="detail-list">
+        • <b>显微镜视觉</b>：把印刷放大镜下的 Rosette 网点艺术化<br>
+        • <b>直达本质</b>：彩色是四色墨滴共存，黑白是单色墨层<br>
+        • <b>极简阵列</b>：4 点方形构图极其稳定平衡
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- 方案 04：光学偏振光圈镜片                                       -->
+    <!-- ============================================================== -->
+    <div class="icon-card">
+      <div class="card-tag">光学仪器</div>
+      <div class="card-title">方案 04 · 光学偏振光圈 (Aperture)</div>
+      <div class="card-desc">徕卡镜头般的精密切片。圆形镜片一分为二，左侧彩光/黑，右侧冷光/白。</div>
+
+      <!-- 显微镜 5X 放大台 -->
+      <div class="magnifier-stage" onclick="toggleIcon(4)" title="点击测试状态切换">
+        <svg class="icon-symbol" id="magSvg4" width="46" height="46" viewBox="0 0 46 46">
+          <circle cx="23" cy="23" r="14" fill="none" stroke="var(--border)" stroke-width="2" />
+          <path id="mag4_left" d="M23 10 A 13 13 0 0 0 23 36 Z" fill="#ff4081" />
+          <path id="mag4_right" d="M23 10 A 13 13 0 0 1 23 36 Z" fill="#00e5ff" />
+          <line x1="23" y1="9" x2="23" y2="37" stroke="#ffffff" stroke-width="1" opacity="0.6" />
+        </svg>
+        <span class="zoom-hint">5X 点击切换</span>
+      </div>
+
+      <!-- 1:1 真实尺寸 (24px 按钮) -->
+      <div class="real-slot-wrap">
+        <div class="real-btn" onclick="toggleIcon(4)">
+          <svg class="icon-symbol" width="18" height="18" viewBox="0 0 46 46">
+            <circle cx="23" cy="23" r="15" fill="none" stroke="var(--border)" stroke-width="2" />
+            <path id="real4_left" d="M23 9 A 14 14 0 0 0 23 37 Z" fill="#ff4081" />
+            <path id="real4_right" d="M23 9 A 14 14 0 0 1 23 37 Z" fill="#00e5ff" />
+          </svg>
+        </div>
+        <div class="real-meta">
+          <span style="font-size:9px;">当前状态</span>
+          <strong id="label4" style="color: #7c4dff;">光谱透镜</strong>
+        </div>
+      </div>
+
+      <div class="detail-list">
+        • <b>对半几何</b>：天然具备“A/B 切换”的心智模型<br>
+        • <b>冷暖对撞</b>：彩色时呈现洋红与青蓝的高级撞色<br>
+        • <b>黑白态</b>：变为绝对的炭黑与纸白对半，对比极其鲜明
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const isMono = { 1: false, 2: false, 3: false, 4: false };
+
+    function toggleIcon(id) {
+      isMono[id] = !isMono[id];
+      renderIconState(id);
+    }
+
+    function renderIconState(id) {
+      const mono = isMono[id];
+
+      if (id === 1) {
+        document.getElementById('mag1_color').style.display = mono ? 'none' : 'block';
+        document.getElementById('mag1_mono').style.display = mono ? 'block' : 'none';
+        document.getElementById('real1_color').style.display = mono ? 'none' : 'block';
+        document.getElementById('real1_mono').style.display = mono ? 'block' : 'none';
+        const lbl = document.getElementById('label1');
+        lbl.textContent = mono ? '1K 单黑' : '4C 全彩';
+        lbl.style.color = mono ? '#8b949e' : '#00e5ff';
+      } else if (id === 2) {
+        const ring = document.getElementById('magRing');
+        const rRing = document.getElementById('realRing');
+        ring.setAttribute('stroke', mono ? 'url(#monoRingGrad)' : 'url(#ringGrad)');
+        rRing.setAttribute('stroke', mono ? 'url(#monoRingGrad)' : 'url(#ringGrad)');
+        const lbl = document.getElementById('label2');
+        lbl.textContent = mono ? '单色环' : '全彩环';
+        lbl.style.color = mono ? '#8b949e' : '#ff4081';
+      } else if (id === 3) {
+        const dC = document.getElementById('dotC'), dM = document.getElementById('dotM'), dY = document.getElementById('dotY'), dK = document.getElementById('dotK');
+        const rdC = document.getElementById('r_dotC'), rdM = document.getElementById('r_dotM'), rdY = document.getElementById('r_dotY'), rdK = document.getElementById('r_dotK');
+        if (mono) {
+          dC.setAttribute('fill', '#222'); dM.setAttribute('fill', '#666'); dY.setAttribute('fill', '#aaa'); dK.setAttribute('fill', '#eee');
+          rdC.setAttribute('fill', '#222'); rdM.setAttribute('fill', '#666'); rdY.setAttribute('fill', '#aaa'); rdK.setAttribute('fill', '#eee');
+        } else {
+          dC.setAttribute('fill', '#00e5ff'); dM.setAttribute('fill', '#ff007f'); dY.setAttribute('fill', '#ffea00'); dK.setAttribute('fill', '#fff');
+          rdC.setAttribute('fill', '#00e5ff'); rdM.setAttribute('fill', '#ff007f'); rdY.setAttribute('fill', '#ffea00'); rdK.setAttribute('fill', '#fff');
+        }
+        const lbl = document.getElementById('label3');
+        lbl.textContent = mono ? '1K 灰阶' : '4C 墨点';
+        lbl.style.color = mono ? '#8b949e' : '#ff007f';
+      } else if (id === 4) {
+        const mL = document.getElementById('mag4_left'), mR = document.getElementById('mag4_right');
+        const rL = document.getElementById('real4_left'), rR = document.getElementById('real4_right');
+        if (mono) {
+          mL.setAttribute('fill', '#222'); mR.setAttribute('fill', '#ddd');
+          rL.setAttribute('fill', '#222'); rR.setAttribute('fill', '#ddd');
+        } else {
+          mL.setAttribute('fill', '#ff4081'); mR.setAttribute('fill', '#00e5ff');
+          rL.setAttribute('fill', '#ff4081'); rR.setAttribute('fill', '#00e5ff');
+        }
+        const lbl = document.getElementById('label4');
+        lbl.textContent = mono ? '黑白镜片' : '光谱透镜';
+        lbl.style.color = mono ? '#8b949e' : '#7c4dff';
+      }
+    }
+
+    function syncAll(mono) {
+      for (let i = 1; i <= 4; i++) {
+        isMono[i] = mono;
+        renderIconState(i);
+      }
+    }
+
+    function setTheme(theme) {
+      document.body.setAttribute('data-theme', theme);
+      document.getElementById('btnDark').classList.toggle('active', theme === 'dark');
+      document.getElementById('btnLight').classList.toggle('active', theme === 'light');
+    }
+  </script>
+</body>
+</html>
