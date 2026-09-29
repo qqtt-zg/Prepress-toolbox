@@ -925,6 +925,7 @@ namespace WindowsFormsApp3
             EnsureTemporaryImpositionParameters();
             _temporaryImpositionParameters.RequestedRows = rows;
             _temporaryImpositionParameters.RequestedColumns = columns;
+            SaveTemporaryImpositionParameters(_temporaryImpositionParameters);
             OnImpositionSettingsChanged(sender, e);
         }
 
@@ -6026,65 +6027,6 @@ namespace WindowsFormsApp3
         }
 
         /// <summary>
-        /// 自动恢复上次成功使用的材料预设（自动继承材料、工艺、大版开料尺寸并高亮对应按钮）
-        /// </summary>
-        private void RestoreLastUsedPreset()
-        {
-            try
-            {
-                string lastPresetName = AppSettings.LastUsedMaterialPreset;
-                if (string.IsNullOrWhiteSpace(lastPresetName))
-                {
-                    UpdateCustomImpositionCapsule();
-                    return;
-                }
-
-                var presets = AppSettings.MaterialPresets;
-                if (presets == null || presets.Count == 0)
-                {
-                    UpdateCustomImpositionCapsule();
-                    return;
-                }
-
-                var preset = presets.FirstOrDefault(p => p.Name.Equals(lastPresetName, StringComparison.OrdinalIgnoreCase));
-                if (preset != null)
-                {
-                    // 1. 如果该预设属于特定分组，先自动定位到对应分组标签
-                    string pGroup = string.IsNullOrWhiteSpace(preset.GroupName) ? "未命名" : preset.GroupName.Trim();
-                    if (tabs1 != null && tabs1.Pages != null)
-                    {
-                        for (int i = 0; i < tabs1.Pages.Count; i++)
-                        {
-                            if (tabs1.Pages[i].Text == pGroup)
-                            {
-                                if (tabs1.SelectedIndex != i)
-                                {
-                                    tabs1.SelectedIndex = i;
-                                }
-                                break;
-                            }
-                        }
-                    }
-
-                    // 2. 加载预设（包括专属材料、大版尺寸等全部参数）
-                    LoadPreset(preset.Name);
-
-                    // 3. 高亮对应按钮
-                    UpdateActivePresetButton(preset.Name);
-                }
-                else
-                {
-                    UpdateCustomImpositionCapsule();
-                }
-            }
-            catch (Exception ex)
-            {
-                LogHelper.Warn($"[RestoreLastUsedPreset] 自动恢复上次预设失败: {ex.Message}");
-                UpdateCustomImpositionCapsule();
-            }
-        }
-
-        /// <summary>
         /// 窗体显示事件处理
         /// </summary>
         private void MaterialSelectFormModern_Shown(object sender, EventArgs e)
@@ -6095,8 +6037,8 @@ namespace WindowsFormsApp3
             // 🔧 强制重新加载预设按钮，确保它们在窗体显示后可见
             LoadPresetButtons();
 
-            // 自动恢复上次选用的预设（包括其专属大版开料尺寸、排版模式并高亮对应按钮）
-            RestoreLastUsedPreset();
+            // 临时大版参数由独立快照恢复；预设只在用户点击后应用。
+            UpdateCustomImpositionCapsule();
 
             // 在窗体显示后设置焦点，确保句柄已创建
             this.BeginInvoke(new Action(SetOrderTextBoxFocus));
@@ -7056,12 +6998,58 @@ namespace WindowsFormsApp3
 
         // 右键菜单消息常量
         private const int WM_CONTEXTMENU = 0x007B;
+        private const string TemporaryImpositionSnapshotKey = "MaterialFormTemporaryImpositionParameters";
+
+        private void SaveTemporaryImpositionParameters(TemporaryImpositionParameters parameters)
+        {
+            try
+            {
+                string snapshot = parameters == null ? string.Empty : JsonConvert.SerializeObject(parameters);
+                AppSettings.SetValue(TemporaryImpositionSnapshotKey, snapshot);
+                AppSettings.Save();
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Warn($"保存临时大版参数失败: {ex.Message}");
+            }
+        }
 
         private void EnsureTemporaryImpositionParameters()
         {
             if (_temporaryImpositionParameters != null)
             {
                 return;
+            }
+
+            string snapshot = AppSettings.GetValue<string>(TemporaryImpositionSnapshotKey);
+            if (snapshot == null)
+            {
+                // 旧版本只把临时大版参数保存在上次预设中；首次升级时仅迁移这份参数。
+                var lastPreset = AppSettings.MaterialPresets?.FirstOrDefault(p =>
+                    string.Equals(p.Name, AppSettings.LastUsedMaterialPreset, StringComparison.OrdinalIgnoreCase));
+                if (lastPreset?.TemporaryImpositionParameters != null)
+                {
+                    _temporaryImpositionParameters = lastPreset.TemporaryImpositionParameters.Clone();
+                    _forceRotationEnabled = _temporaryImpositionParameters.IsForceRotationEnabled;
+                    SaveTemporaryImpositionParameters(_temporaryImpositionParameters);
+                    return;
+                }
+            }
+            if (!string.IsNullOrWhiteSpace(snapshot))
+            {
+                try
+                {
+                    _temporaryImpositionParameters = JsonConvert.DeserializeObject<TemporaryImpositionParameters>(snapshot);
+                    if (_temporaryImpositionParameters != null)
+                    {
+                        _forceRotationEnabled = _temporaryImpositionParameters.IsForceRotationEnabled;
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogHelper.Warn($"恢复临时大版参数失败，使用全局默认值: {ex.Message}");
+                }
             }
 
             _temporaryImpositionParameters = new TemporaryImpositionParameters
@@ -7120,6 +7108,7 @@ namespace WindowsFormsApp3
                 }
                 _temporaryImpositionParameters = updated;
                 _forceRotationEnabled = _temporaryImpositionParameters.IsForceRotationEnabled;
+                SaveTemporaryImpositionParameters(_temporaryImpositionParameters);
                 _isUpdatingLayoutInputs = true;
                 _rowsInput.Text = _temporaryImpositionParameters.RequestedRows > 0 ? _temporaryImpositionParameters.RequestedRows.ToString() : string.Empty;
                 _columnsInput.Text = _temporaryImpositionParameters.RequestedColumns > 0 ? _temporaryImpositionParameters.RequestedColumns.ToString() : string.Empty;
@@ -7964,6 +7953,7 @@ namespace WindowsFormsApp3
                 {
                     _temporaryImpositionParameters = preset.TemporaryImpositionParameters.Clone();
                     _forceRotationEnabled = _temporaryImpositionParameters.IsForceRotationEnabled;
+                    SaveTemporaryImpositionParameters(_temporaryImpositionParameters);
                     _isUpdatingLayoutInputs = true;
                     if (_rowsInput != null)
                         _rowsInput.Text = _temporaryImpositionParameters.RequestedRows > 0 ? _temporaryImpositionParameters.RequestedRows.ToString() : string.Empty;
@@ -7973,6 +7963,7 @@ namespace WindowsFormsApp3
                 }
                 else
                 {
+                    SaveTemporaryImpositionParameters(null);
                     _temporaryImpositionParameters = null;
                     EnsureTemporaryImpositionParameters();
                     _forceRotationEnabled = false;
@@ -9187,6 +9178,7 @@ namespace WindowsFormsApp3
                         if (_temporaryImpositionParameters != null)
                         {
                             _temporaryImpositionParameters.IsForceRotationEnabled = false;
+                            SaveTemporaryImpositionParameters(_temporaryImpositionParameters);
                         }
                         LogHelper.Debug("[MaterialSelectFormModern] 材料类型切换到平张，重置强制旋转标志");
                     }
@@ -9195,7 +9187,9 @@ namespace WindowsFormsApp3
                 // 当任何排版设置改变时，自动重新计算并更新显示
                 if (enableImpositionCheckbox != null && enableImpositionCheckbox.Checked)
                 {
-                    Task.Run(() => CalculateAndUpdateLayout());
+                    Task.Run(() => _isDuplicateLayoutEnabled && _copyType == CopyType.Layout
+                        ? CalculateDuplicateLayout()
+                        : CalculateAndUpdateLayout());
                 }
                 else
                 {
@@ -10276,7 +10270,7 @@ namespace WindowsFormsApp3
         /// <returns>联数（如果未启用一式N联则返回0）</returns>
         public int GetCopyCount()
         {
-            return _isDuplicateLayoutEnabled ? _copyCount : 0;
+            return _isDuplicateLayoutEnabled && _copyType == CopyType.Layout ? _copyCount : 0;
         }
 
         /// <summary>
@@ -10303,7 +10297,7 @@ namespace WindowsFormsApp3
         /// <returns>份数（如果未选择份模式则返回0）</returns>
         public int GetDuplicateCount()
         {
-            return _copyType == CopyType.Duplicate ? _copyCount : 0;
+            return _isDuplicateLayoutEnabled && _copyType == CopyType.Duplicate ? _copyCount : 0;
         }
 
         /// <summary>
@@ -10506,15 +10500,10 @@ namespace WindowsFormsApp3
                     LogHelper.Debug($"[MaterialSelectFormModern] 恢复一式类型: {_copyType}");
                 }
 
-                // 如果一式N联模式已启用且为联模式，自动将联数填入数量字段
-                // 份模式不自动填入数量，由用户手动输入
-                if (_isDuplicateLayoutEnabled && AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
+                if (_isDuplicateLayoutEnabled && _copyType == CopyType.Layout &&
+                    AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
                 {
-                    if (_copyType == CopyType.Layout)
-                    {
-                        quantityTextBox.Text = _copyCount.ToString();
-                    }
-                    // 份模式不自动填入
+                    quantityTextBox.Text = _copyCount.ToString();
                 }
 
                 LogHelper.Debug("[MaterialSelectFormModern] 排版控件状态已从AppSettings恢复");
@@ -10551,60 +10540,23 @@ namespace WindowsFormsApp3
 
                 if (_isDuplicateLayoutEnabled)
                 {
-                    LogHelper.Info("[MaterialSelectFormModern] 一式N联模式已激活，开始重新计算布局");
-
-                    // 自动将联数填入数量字段（根据设置决定）
-                    if (AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
+                    LogHelper.Info("[MaterialSelectFormModern] PDF页序重复已启用");
+                    if (_copyType == CopyType.Layout && AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
                     {
                         quantityTextBox.Text = _copyCount.ToString();
                     }
-
-                    // 检查当前是否启用排版
-                    if (enableImpositionCheckbox?.Checked != true)
-                    {
-                        MessageBox.Show("请先启用排版功能", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        if (duplicateLayoutCheckbox != null)
-                        {
-                            duplicateLayoutCheckbox.Checked = false;
-                        }
-                        _isDuplicateLayoutEnabled = false;
-                        return;
-                    }
-
-                    // 获取当前配置
-                    var config = GetCurrentImpositionConfiguration();
-                    if (config == null)
-                    {
-                        MessageBox.Show("无法获取当前排版配置", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        if (duplicateLayoutCheckbox != null)
-                        {
-                            duplicateLayoutCheckbox.Checked = false;
-                        }
-                        _isDuplicateLayoutEnabled = false;
-                        return;
-                    }
-
-                    // 异步计算一式N联布局
-                    Task.Run(async () => await CalculateDuplicateLayout());
                 }
                 else
                 {
-                    LogHelper.Info("[MaterialSelectFormModern] 一式N联模式已取消，恢复标准布局计算");
-
-                    // 联模式恢复数量为1，份模式不清空（保留用户输入的数量）
-                    if (quantityTextBox != null && _copyType == CopyType.Layout)
+                    LogHelper.Info("[MaterialSelectFormModern] PDF页序重复已关闭");
+                    if (_copyType == CopyType.Layout && AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
                     {
                         quantityTextBox.Text = "1";
-                    }
-
-                    // 恢复标准布局计算
-                    if (enableImpositionCheckbox?.Checked == true)
-                    {
-                        Task.Run(async () => await CalculateAndUpdateLayout());
                     }
                 }
 
                 UpdateJoinGroupEnabledState(_isDuplicateLayoutEnabled);
+                OnImpositionSettingsChanged(sender, EventArgs.Empty);
             }
             catch (Exception ex)
             {
@@ -10632,16 +10584,15 @@ namespace WindowsFormsApp3
                     _copyCount = (int)copyCountNumericUpDown.Value;
                     LogHelper.Debug($"[MaterialSelectFormModern] 联数已更改: {_copyCount}");
 
-                    // 如果一式N联模式已启用，自动将联数填入数量字段（根据设置决定）
-                    if (_isDuplicateLayoutEnabled && AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
+                    if (_isDuplicateLayoutEnabled && _copyType == CopyType.Layout &&
+                        AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
                     {
                         quantityTextBox.Text = _copyCount.ToString();
                     }
 
-                    // 如果一式N联模式已启用，重新计算布局
-                    if (_isDuplicateLayoutEnabled && enableImpositionCheckbox?.Checked == true)
+                    if (_isDuplicateLayoutEnabled)
                     {
-                        Task.Run(async () => await CalculateDuplicateLayout());
+                        OnImpositionSettingsChanged(sender, EventArgs.Empty);
                     }
                 }
             }
@@ -10672,9 +10623,9 @@ namespace WindowsFormsApp3
                     LogHelper.Debug($"[MaterialSelectFormModern] 倍数方向已更改: {modeDesc}");
 
                     // 如果一式N联模式已启用，重新计算布局
-                    if (_isDuplicateLayoutEnabled && enableImpositionCheckbox?.Checked == true)
+                    if (_isDuplicateLayoutEnabled && _copyType == CopyType.Layout)
                     {
-                        Task.Run(async () => await CalculateDuplicateLayout());
+                        OnImpositionSettingsChanged(sender, EventArgs.Empty);
                     }
                 }
             }
@@ -10700,21 +10651,15 @@ namespace WindowsFormsApp3
                     // 保存设置
                     AppSettings.Set("LastCopyType", (int)_copyType);
 
-                    // 如果一式N联模式已启用且为联模式，自动将联数填入数量字段
-                    // 份模式不自动填入数量，由用户手动输入
-                    if (_isDuplicateLayoutEnabled && AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
+                    if (_isDuplicateLayoutEnabled && _copyType == CopyType.Layout &&
+                        AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
                     {
-                        if (_copyType == CopyType.Layout)
-                        {
-                            quantityTextBox.Text = _copyCount.ToString();
-                        }
-                        // 份模式不自动填入
+                        quantityTextBox.Text = _copyCount.ToString();
                     }
 
-                    // 如果一式N联模式已启用，重新计算布局
-                    if (_isDuplicateLayoutEnabled && enableImpositionCheckbox?.Checked == true)
+                    if (_isDuplicateLayoutEnabled)
                     {
-                        Task.Run(async () => await CalculateDuplicateLayout());
+                        OnImpositionSettingsChanged(sender, EventArgs.Empty);
                     }
                 }
             }
@@ -10752,6 +10697,7 @@ namespace WindowsFormsApp3
                 _forceRotationEnabled = !_forceRotationEnabled;
                 EnsureTemporaryImpositionParameters();
                 _temporaryImpositionParameters.IsForceRotationEnabled = _forceRotationEnabled;
+                SaveTemporaryImpositionParameters(_temporaryImpositionParameters);
                 LogHelper.Debug($"[MaterialSelectFormModern] 旋转角度切换: {_forceRotationEnabled}");
 
                 // 重新计算布局

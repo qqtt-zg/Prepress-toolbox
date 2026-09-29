@@ -136,6 +136,58 @@ namespace WindowsFormsApp3.Tests.Forms
         }
 
         [StaFact]
+        public void PdfPageRepeat_ShouldWorkWithoutImposition_AndPreserveQuantity()
+        {
+            AppSettings.AutoFillQuantityForDuplicateLayout = false;
+            using (var form = new MaterialSelectFormModern(
+                materials: new List<string> { "PET" },
+                fileName: @"C:\test\PageOrder_80x45mm.pdf",
+                regexResult: "PageOrder",
+                opacity: 1.0,
+                width: "80",
+                height: "45",
+                excelData: null,
+                searchColumnIndex: -1,
+                returnColumnIndex: -1,
+                serialColumnIndex: -1,
+                newColumnIndex: -1,
+                serialNumber: "P01"))
+            {
+                var handle = form.Handle;
+                var repeatCheckbox = form.Controls.Find("duplicateLayoutCheckbox", true).Single() as AntdUI.Checkbox;
+                var impositionCheckbox = form.Controls.Find("enableImpositionCheckbox", true).Single() as AntdUI.Checkbox;
+                var quantityInput = form.Controls.Find("quantityTextBox", true).Single() as AntdUI.Input;
+                var copyType = form.Controls.Find("copyTypeComboBox", true).Single() as ComboBox;
+
+                impositionCheckbox.Checked = false;
+                quantityInput.Text = "1000";
+                repeatCheckbox.Checked = true;
+
+                Assert.True(repeatCheckbox.Checked);
+                Assert.Equal(2, form.GetCopyCount());
+                Assert.Equal(0, form.GetDuplicateCount());
+                Assert.Equal("1000", quantityInput.Text);
+
+                copyType.SelectedIndex = 1;
+                Assert.Equal(0, form.GetCopyCount());
+                Assert.Equal(2, form.GetDuplicateCount());
+                Assert.Equal("1000", quantityInput.Text);
+
+                repeatCheckbox.Checked = false;
+                Assert.Equal(0, form.GetCopyCount());
+                Assert.Equal(0, form.GetDuplicateCount());
+                Assert.Equal("1000", quantityInput.Text);
+
+                // 已启用的旧设置继续生效，联模式才按联数填充制作数量。
+                AppSettings.AutoFillQuantityForDuplicateLayout = true;
+                copyType.SelectedIndex = 0;
+                quantityInput.Text = "1000";
+                repeatCheckbox.Checked = true;
+                Assert.Equal("2", quantityInput.Text);
+            }
+        }
+
+        [StaFact]
         public void TogglePreview_ShouldPreserveStationContentPosition_AndNotCoverContent()
         {
             AppSettings.MaterialFormPreviewExpanded = false;
@@ -543,6 +595,7 @@ namespace WindowsFormsApp3.Tests.Forms
                 Name = "定制大版预设",
                 GroupName = "未命名",
                 ShowInPresetButtons = true,
+                SelectedMaterial = "PET",
                 MaterialType = "FlatSheet",
                 TemporaryImpositionParameters = new TemporaryImpositionParameters
                 {
@@ -576,7 +629,7 @@ namespace WindowsFormsApp3.Tests.Forms
                 var capsule = form.Controls.Find("_customSizeCapsule", true).FirstOrDefault() as CustomSizeCapsule;
                 Assert.NotNull(capsule);
 
-                // 2. 初始使用常规默认预设，尺寸与全局设置一致 -> 胶囊隐藏！
+                // 上次预设不自动应用；没有独立快照时使用全局尺寸。
                 Assert.False(capsule.Visible);
 
                 // 3. 点击切换至定制大版预设 (440x590 != 320x464) -> 胶囊浮现！
@@ -586,9 +639,12 @@ namespace WindowsFormsApp3.Tests.Forms
                 Assert.Contains("590", capsule.CapsuleText);
             }
 
-            // 4. 持久性验证：关闭后再打开另一个文件，自动恢复上次使用的定制大版预设，胶囊直接显现！
+            // 大版快照独立持久化；上次预设仍被记录，但不会在新窗口自动应用。
             AppSettings.LastUsedMaterialPreset = "定制大版预设";
+            AppSettings.Set("LastSelectedMaterial", "PP");
             AppSettings.Save();
+            AppSettings.ResetForTesting();
+            AppSettings.Initialize(new FileLogger(Path.Combine(_testRoot, "reopened.log")));
 
             using (var form2 = new MaterialSelectFormModern(
                 materials: new List<string> { "PET", "PP" },
@@ -607,24 +663,76 @@ namespace WindowsFormsApp3.Tests.Forms
                 var handle2 = form2.Handle;
                 form2.Visible = true;
 
-                // 模拟窗体 Shown 事件触发恢复
-                var shownMethod = typeof(MaterialSelectFormModern).GetMethod("MaterialSelectFormModern_Shown",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                shownMethod?.Invoke(form2, new object[] { form2, EventArgs.Empty });
-
                 var capsule2 = form2.Controls.Find("_customSizeCapsule", true).FirstOrDefault() as CustomSizeCapsule;
                 Assert.NotNull(capsule2);
 
-                // 验证胶囊自动显现，且大版尺寸自动继承 440x590
+                // 只恢复临时大版尺寸，不选中 PET，也不高亮预设按钮。
                 Assert.True(capsule2.Visible);
                 Assert.Contains("440", capsule2.CapsuleText);
                 Assert.Contains("590", capsule2.CapsuleText);
+                Assert.Equal("PP", form2.SelectedMaterial);
+                var presetPanel = form2.Controls.Find("presetButtonsPanel", true).FirstOrDefault();
+                Assert.NotNull(presetPanel);
+                Assert.All(presetPanel.Controls.OfType<AntdUI.Button>(),
+                    button => Assert.NotEqual(AntdUI.TTypeMini.Primary, button.Type));
 
                 using (var bmp = new Bitmap(form2.Width, form2.Height))
                 {
                     form2.DrawToBitmap(bmp, new Rectangle(0, 0, form2.Width, form2.Height));
                     bmp.Save(@"D:\vibe_codeing\Prepress-toolbox\output\playwright\actual-v5-whole-window-latest.png", System.Drawing.Imaging.ImageFormat.Png);
                 }
+            }
+        }
+
+        [StaFact]
+        public void LegacyPresetSize_ShouldMigrateWithoutApplyingThePreset()
+        {
+            AppSettings.Set("Imposition_PaperWidth", "320");
+            AppSettings.Set("Imposition_PaperHeight", "464");
+            AppSettings.MaterialPresets = new List<MaterialSelectionPreset>
+            {
+                new MaterialSelectionPreset
+                {
+                    Name = "旧版大版预设",
+                    GroupName = "未命名",
+                    ShowInPresetButtons = true,
+                    SelectedMaterial = "PET",
+                    TemporaryImpositionParameters = new TemporaryImpositionParameters
+                    {
+                        IsPaperSizeUnlocked = true,
+                        PaperWidth = 440,
+                        PaperHeight = 590
+                    }
+                }
+            };
+            AppSettings.LastUsedMaterialPreset = "旧版大版预设";
+            AppSettings.Set("LastSelectedMaterial", "PP");
+            AppSettings.Save();
+
+            using (var form = new MaterialSelectFormModern(
+                materials: new List<string> { "PET", "PP" },
+                fileName: @"C:\test\LegacySize_80x45mm.pdf",
+                regexResult: "LegacySize",
+                opacity: 1.0,
+                width: "80",
+                height: "45",
+                excelData: null,
+                searchColumnIndex: -1,
+                returnColumnIndex: -1,
+                serialColumnIndex: -1,
+                newColumnIndex: -1,
+                serialNumber: "L01"))
+            {
+                var handle = form.Handle;
+                form.Visible = true;
+
+                Assert.Equal("PP", form.SelectedMaterial);
+                var capsule = form.Controls.Find("_customSizeCapsule", true).FirstOrDefault() as CustomSizeCapsule;
+                Assert.NotNull(capsule);
+                Assert.True(capsule.Visible);
+                Assert.Contains("440", capsule.CapsuleText);
+                Assert.Contains("590", capsule.CapsuleText);
+                Assert.Contains("440", AppSettings.GetValue<string>("MaterialFormTemporaryImpositionParameters"));
             }
         }
 
@@ -692,6 +800,37 @@ namespace WindowsFormsApp3.Tests.Forms
 
                 // 3. 加载卷装定长预设 (仅高度调整为 150，幅宽保持 320) -> 胶囊浮现，且突出显示高度 "高 150"
                 form.LoadPreset("卷装定长预设");
+                Assert.True(capsule.Visible);
+                Assert.True(capsule.IsRoll);
+                Assert.Equal("高 150", capsule.CapsuleText);
+            }
+
+            AppSettings.ResetForTesting();
+            AppSettings.Initialize(new FileLogger(Path.Combine(_testRoot, "roll-reopened.log")));
+
+            using (var reopened = new MaterialSelectFormModern(
+                materials: new List<string> { "PET", "PP" },
+                fileName: @"C:\test\AnotherRollJob_50x30mm.pdf",
+                regexResult: "AnotherRollJob",
+                opacity: 1.0,
+                width: "50",
+                height: "30",
+                excelData: null,
+                searchColumnIndex: -1,
+                returnColumnIndex: -1,
+                serialColumnIndex: -1,
+                newColumnIndex: -1,
+                serialNumber: "R02"))
+            {
+                var handle = reopened.Handle;
+                reopened.Visible = true;
+                var rollRadio = reopened.Controls.Find("rollMaterialRadioButton", true).FirstOrDefault() as AntdUI.Radio;
+                Assert.NotNull(rollRadio);
+                rollRadio.Checked = true;
+                reopened.UpdateCustomImpositionCapsule();
+
+                var capsule = reopened.Controls.Find("_customSizeCapsule", true).FirstOrDefault() as CustomSizeCapsule;
+                Assert.NotNull(capsule);
                 Assert.True(capsule.Visible);
                 Assert.True(capsule.IsRoll);
                 Assert.Equal("高 150", capsule.CapsuleText);

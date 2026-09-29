@@ -79,6 +79,11 @@ namespace WindowsFormsApp3.Presenters
         // ✅ 添加份数字段
         private int _currentDuplicateCount = 2;
 
+        internal static bool NeedsPageRepetition(CopyType copyType, int copyCount, int duplicateCount)
+        {
+            return copyType == CopyType.Layout ? copyCount > 1 : duplicateCount > 1;
+        }
+
         /// <summary>
         /// 构造函数
         /// </summary>
@@ -1212,7 +1217,7 @@ namespace WindowsFormsApp3.Presenters
 
                     bool itemNeedsRotation = itemRotationAngle != 0;
                     bool isPdfFile = item.FilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
-                    bool needsPdfProcessing = isPdfFile && (_currentIsShapeSelected || itemNeedsRotation || _currentAddIdentifierPage ||
+                    bool needsPdfProcessing = isPdfFile && (NeedsPageRepetition(_currentCopyType, _currentCopyCount, _currentDuplicateCount) || _currentIsShapeSelected || itemNeedsRotation || _currentAddIdentifierPage ||
                         (_currentEnableImposition && _currentLayoutMode == LayoutMode.Folding && itemLayoutQuantity > 0));
 
                     // 准备最终目标文件路径（处理重命名冲突）
@@ -2022,7 +2027,7 @@ namespace WindowsFormsApp3.Presenters
 
                 // 判断是否为PDF文件以及是否需要PDF处理
                 bool isPdfFile = fileInfo.FullPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
-                bool needsPdfProcessing = isPdfFile && (_currentIsShapeSelected || _currentNeedsRotation || 
+                bool needsPdfProcessing = isPdfFile && (NeedsPageRepetition(_currentCopyType, _currentCopyCount, _currentDuplicateCount) || _currentIsShapeSelected || _currentNeedsRotation ||
                     (_currentEnableImposition && _currentLayoutMode == LayoutMode.Folding && _currentLayoutQuantity > 0));
 
                 _logger?.LogInformation($"[RenameFileAsync] isPdfFile={isPdfFile}, needsPdfProcessing={needsPdfProcessing}");

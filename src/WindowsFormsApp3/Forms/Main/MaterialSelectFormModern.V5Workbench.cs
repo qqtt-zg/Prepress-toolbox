@@ -634,12 +634,15 @@ namespace WindowsFormsApp3
                 }
                 else
                 {
-                    // 已启用时点击弹出快捷联数与模式选择菜单
+                    // 已启用时提供页序说明、重复次数和联/份模式切换。
                     var cms = new System.Windows.Forms.ContextMenuStrip();
-                    for (int count = 2; count <= 8; count++)
+                    cms.Items.Add("联：1122　份：123123").Enabled = false;
+                    cms.Items.Add(new ToolStripSeparator());
+                    for (int count = 2; count <= 16; count++)
                     {
                         int c = count;
-                        var item = cms.Items.Add($"{c}联", null, (s2, e2) =>
+                        string unit = _copyType == CopyType.Duplicate ? "份" : "联";
+                        var item = cms.Items.Add($"{c}{unit}", null, (s2, e2) =>
                         {
                             _copyCount = c;
                             if (copyCountNumericUpDown != null) copyCountNumericUpDown.Value = c;
@@ -647,7 +650,7 @@ namespace WindowsFormsApp3
                             UpdateCopyCountPillDisplay();
                             OnImpositionSettingsChanged(s2, e2);
                         });
-                        if (_copyCount == c && _copyType == CopyType.Layout) item.Font = new Font(item.Font, FontStyle.Bold);
+                        if (_copyCount == c) item.Font = new Font(item.Font, FontStyle.Bold);
                     }
                     cms.Items.Add(new ToolStripSeparator());
                     cms.Items.Add(_copyType == CopyType.Layout ? "切换为【份】模式" : "切换为【联】模式", null, (s2, e2) =>
@@ -665,7 +668,7 @@ namespace WindowsFormsApp3
                     cms.Show(lblCopyCountPill, new Point(0, lblCopyCountPill.Height + 2));
                 }
             };
-            folderTreeViewToolTip?.SetToolTip(lblCopyCountPill, "点击开启/切换一式N联拼版规格");
+            folderTreeViewToolTip?.SetToolTip(lblCopyCountPill, "PDF页序复制：联为1122，份为123123；联模式可按设置同步制作数量");
             pnlBoxImpo.Controls.Add(lblCopyCountPill);
 
             // 排版模式下拉 [ 自适应 ▾ ] (无缝右对齐)
@@ -709,7 +712,7 @@ namespace WindowsFormsApp3
                 if (duplicateLayoutCheckbox?.Checked != true) return;
                 cmsCopyMode.Show(lblCopyModePill, new Point(lblCopyModePill.Width - cmsCopyMode.Width, lblCopyModePill.Height + 2));
             };
-            folderTreeViewToolTip?.SetToolTip(lblCopyModePill, "一式N联排版策略：自适应、列优先、不旋转");
+            folderTreeViewToolTip?.SetToolTip(lblCopyModePill, "自动排版的行列策略；PDF页序由联/份决定");
             pnlBoxImpo.Controls.Add(lblCopyModePill);
 
             pnlRow2.Controls.Add(pnlBoxImpo);

@@ -15,6 +15,7 @@ using iText.Kernel.Pdf.Canvas.Parser.Listener;
 using WindowsFormsApp3.Services;
 using WindowsFormsApp3.Models;
 using WindowsFormsApp3.Interfaces;
+using WindowsFormsApp3.Presenters;
 using WindowsFormsApp3.Utils;
 
 namespace WindowsFormsApp3.Tests.Services
@@ -217,6 +218,113 @@ namespace WindowsFormsApp3.Tests.Services
             // 验证目标导出目录下只有这 1 个最终文件，没有任何残留的临时文件
             var filesInExportDir = Directory.GetFiles(_exportDirectory, "*folding*");
             Assert.Single(filesInExportDir);
+        }
+
+        [Theory]
+        [InlineData(CopyType.Layout, 2, 0, "PAGE_1,PAGE_1,PAGE_2,PAGE_2,PAGE_3,PAGE_3")]
+        [InlineData(CopyType.Layout, 3, 0, "PAGE_1,PAGE_1,PAGE_1,PAGE_2,PAGE_2,PAGE_2,PAGE_3,PAGE_3,PAGE_3")]
+        [InlineData(CopyType.Duplicate, 0, 2, "PAGE_1,PAGE_2,PAGE_3,PAGE_1,PAGE_2,PAGE_3")]
+        [InlineData(CopyType.Duplicate, 0, 3, "PAGE_1,PAGE_2,PAGE_3,PAGE_1,PAGE_2,PAGE_3,PAGE_1,PAGE_2,PAGE_3")]
+        public void RenameFileImmediately_ShouldApplySelectedPdfPageOrder(
+            CopyType copyType, int copyCount, int duplicateCount, string expectedOrder)
+        {
+            string sourcePath = Path.Combine(_testDirectory, $"page_order_{copyType}.pdf");
+            string outputName = $"page_order_{copyType}_processed.pdf";
+            using (var writer = new PdfWriter(sourcePath))
+            using (var document = new PdfDocument(writer))
+            {
+                var font = PdfFontFactory.CreateFont();
+                for (int pageNumber = 1; pageNumber <= 3; pageNumber++)
+                {
+                    DrawText(document.AddNewPage(), font, 10, 20, $"PAGE_{pageNumber}");
+                }
+            }
+
+            var fileInfo = new FileRenameInfo
+            {
+                FullPath = sourcePath,
+                OriginalName = Path.GetFileName(sourcePath),
+                NewName = outputName
+            };
+            var options = new PdfProcessingOptions
+            {
+                AddPdfLayers = false,
+                AddIdentifierPage = false,
+                LayoutMode = LayoutMode.Continuous,
+                CopyType = copyType,
+                CopyCount = copyCount,
+                DuplicateCount = duplicateCount
+            };
+
+            bool success = _fileRenameService.RenameFileImmediately(fileInfo, _exportDirectory, true, options);
+
+            Assert.True(success, fileInfo.ErrorMessage);
+            using (var reader = new PdfReader(Path.Combine(_exportDirectory, outputName)))
+            using (var document = new PdfDocument(reader))
+            {
+                var actualOrder = Enumerable.Range(1, document.GetNumberOfPages())
+                    .Select(pageNumber => PdfTextExtractor.GetTextFromPage(document.GetPage(pageNumber)).Trim())
+                    .ToArray();
+                Assert.Equal(expectedOrder.Split(','), actualOrder);
+            }
+        }
+
+        [Theory]
+        [InlineData(CopyType.Layout, 2, 0, "PAGE_1,PAGE_1,PAGE_2,PAGE_2,PAGE_3,PAGE_3")]
+        [InlineData(CopyType.Duplicate, 0, 2, "PAGE_1,PAGE_2,PAGE_3,PAGE_1,PAGE_2,PAGE_3")]
+        public async Task RenameFileImmediatelyAsync_ShouldApplySelectedPdfPageOrder(
+            CopyType copyType, int copyCount, int duplicateCount, string expectedOrder)
+        {
+            string sourcePath = Path.Combine(_testDirectory, $"async_page_order_{copyType}.pdf");
+            string outputName = $"async_page_order_{copyType}_processed.pdf";
+            using (var writer = new PdfWriter(sourcePath))
+            using (var document = new PdfDocument(writer))
+            {
+                var font = PdfFontFactory.CreateFont();
+                for (int pageNumber = 1; pageNumber <= 3; pageNumber++)
+                {
+                    DrawText(document.AddNewPage(), font, 10, 20, $"PAGE_{pageNumber}");
+                }
+            }
+
+            var fileInfo = new FileRenameInfo
+            {
+                FullPath = sourcePath,
+                OriginalName = Path.GetFileName(sourcePath),
+                NewName = outputName
+            };
+            var options = new PdfProcessingOptions
+            {
+                AddPdfLayers = false,
+                AddIdentifierPage = false,
+                LayoutMode = LayoutMode.Continuous,
+                CopyType = copyType,
+                CopyCount = copyCount,
+                DuplicateCount = duplicateCount
+            };
+
+            bool success = await _fileRenameService.RenameFileImmediatelyAsync(fileInfo, _exportDirectory, true, options);
+
+            Assert.True(success, fileInfo.ErrorMessage);
+            using (var reader = new PdfReader(Path.Combine(_exportDirectory, outputName)))
+            using (var document = new PdfDocument(reader))
+            {
+                var actualOrder = Enumerable.Range(1, document.GetNumberOfPages())
+                    .Select(pageNumber => PdfTextExtractor.GetTextFromPage(document.GetPage(pageNumber)).Trim())
+                    .ToArray();
+                Assert.Equal(expectedOrder.Split(','), actualOrder);
+            }
+        }
+
+        [Theory]
+        [InlineData(CopyType.Layout, 2, 0, true)]
+        [InlineData(CopyType.Duplicate, 0, 2, true)]
+        [InlineData(CopyType.Layout, 0, 0, false)]
+        [InlineData(CopyType.Duplicate, 0, 0, false)]
+        public void PdfPageOrder_ShouldTriggerProcessingWithoutOtherPdfOptions(
+            CopyType copyType, int copyCount, int duplicateCount, bool expected)
+        {
+            Assert.Equal(expected, FileRenamePanelPresenter.NeedsPageRepetition(copyType, copyCount, duplicateCount));
         }
 
         [Fact]

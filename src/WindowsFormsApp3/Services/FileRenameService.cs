@@ -23,6 +23,13 @@ namespace WindowsFormsApp3.Services
         private static readonly string[] CompatibleTargetLayerNames = { "Dots_L_N_轮廓线", "Dots_L_C_切割线", "Dots_L_B_出血线" };
         private IEventBus _eventBus;
         private readonly IPdfDimensionService _pdfDimensionService;
+
+        private static bool HasPdfPageRepeat(PdfProcessingOptions options)
+        {
+            return options.CopyType == CopyType.Layout
+                ? options.CopyCount > 1
+                : options.DuplicateCount > 1;
+        }
         
         /// <summary>
         /// 当文件重命名成功时触发的事件
@@ -425,7 +432,7 @@ namespace WindowsFormsApp3.Services
             }
 
             // 如果没有PDF处理选项，直接使用原有的简单重命名方法
-            if (pdfOptions == null || (!pdfOptions.AddPdfLayers && !pdfOptions.AddIdentifierPage && pdfOptions.RotationAngle == 0 && !(pdfOptions.LayoutMode == LayoutMode.Folding && pdfOptions.LayoutQuantity > 0)))
+            if (pdfOptions == null || (!HasPdfPageRepeat(pdfOptions) && !pdfOptions.AddPdfLayers && !pdfOptions.AddIdentifierPage && pdfOptions.RotationAngle == 0 && !(pdfOptions.LayoutMode == LayoutMode.Folding && pdfOptions.LayoutQuantity > 0)))
             {
                 LogHelper.Debug("没有PDF处理需求，使用标准重命名方法");
                 return await RenameFileImmediatelyAsync(fileInfo, exportPath, isCopyMode, cancellationToken);
@@ -788,7 +795,7 @@ namespace WindowsFormsApp3.Services
             }
 
             // 如果没有PDF处理选项，直接使用原有的简单重命名方法
-            if (pdfOptions == null || (!pdfOptions.AddPdfLayers && !pdfOptions.AddIdentifierPage && pdfOptions.RotationAngle == 0 && !(pdfOptions.LayoutMode == LayoutMode.Folding && pdfOptions.LayoutQuantity > 0)))
+            if (pdfOptions == null || (!HasPdfPageRepeat(pdfOptions) && !pdfOptions.AddPdfLayers && !pdfOptions.AddIdentifierPage && pdfOptions.RotationAngle == 0 && !(pdfOptions.LayoutMode == LayoutMode.Folding && pdfOptions.LayoutQuantity > 0)))
             {
                 LogHelper.Debug("没有PDF处理需求，使用标准重命名方法");
                 return RenameFileImmediately(fileInfo, exportPath, isCopyMode);
@@ -1211,38 +1218,39 @@ namespace WindowsFormsApp3.Services
                 }
 
                 // 步骤4：一式N联/份页面复制（在形状处理完成后执行）
-                // 联模式：CopyCount > 1，使用CopyPdfPagesAsync
-                // 份模式：DuplicateCount > 1，使用CopyPagesWithPattern（交替循环123123123）
+                // 联模式：每页连续重复 N 次（1122）；份模式：整套循环 N 次（123123）。
+                // CopyCount 或 DuplicateCount 大于 1 时执行对应页序复制。
                 if (pdfOptions.CopyType == CopyType.Layout && pdfOptions.CopyCount > 1)
                 {
-                    // 联模式：使用CopyPdfPagesAsync复制
+                    // 联模式：直接按页连续重复，输出实际的 1122 页序。
                     LogHelper.Debug($"=== 步骤4：一式N联页面复制（联模式） ===");
                     LogHelper.Debug($"复制前文件页数: {GetPdfPageCount(tempFileInfo.FullPath)}");
                     LogHelper.Debug($"联数: {pdfOptions.CopyCount}");
 
-                    var pdfService = ServiceLocator.Instance.GetPdfProcessingService();
-                    if (pdfService == null)
-                    {
-                        LogHelper.Debug("无法获取PDF处理服务");
-                        tempFileInfo.ErrorMessage = "无法获取PDF处理服务";
-                        return false;
-                    }
-
                     string nCopyTempFile = Path.Combine(
                         Path.GetDirectoryName(tempFileInfo.FullPath) ?? Path.GetTempPath(),
-                        $"ncopy_{Path.GetFileNameWithoutExtension(tempFileInfo.FullPath)}_{DateTime.Now:HHmmssffff}.pdf");
+                        $"ncopy_{Guid.NewGuid():N}.pdf");
 
-                    bool copySuccess = pdfService.CopyPdfPagesAsync(
-                        tempFileInfo.FullPath,
-                        nCopyTempFile,
-                        pdfOptions.CopyCount).GetAwaiter().GetResult();
+                    int pageCount = GetPdfPageCount(tempFileInfo.FullPath) ?? 0;
+                    bool copySuccess = pageCount > 0 && new PdfSplitService().CopyPagesWithPattern(
+                        tempFileInfo.FullPath, nCopyTempFile, 1, pageCount,
+                        pdfOptions.CopyCount, PdfSplitService.PageCopyPattern.ContinuousRepeat);
 
                     if (copySuccess && File.Exists(nCopyTempFile))
                     {
                         LogHelper.Debug($"✓ 一式N联页面复制成功，复制后文件页数: {GetPdfPageCount(nCopyTempFile)}");
 
-                        File.Delete(tempFileInfo.FullPath);
-                        File.Move(nCopyTempFile, tempFileInfo.FullPath);
+                        try
+                        {
+                            File.Replace(nCopyTempFile, tempFileInfo.FullPath, null);
+                        }
+                        finally
+                        {
+                            if (File.Exists(nCopyTempFile))
+                            {
+                                try { File.Delete(nCopyTempFile); } catch (Exception) { }
+                            }
+                        }
 
                         LogHelper.Debug($"已替换原文件: {tempFileInfo.FullPath}");
                     }
@@ -1272,7 +1280,9 @@ namespace WindowsFormsApp3.Services
                     if (pageCount > 0)
                     {
                         var pdfSplitService = new PdfSplitService();
-                        string tempOutputPath = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(tempFileInfo.FullPath) + "_copy.pdf");
+                        string tempOutputPath = Path.Combine(
+                            Path.GetDirectoryName(tempFileInfo.FullPath) ?? Path.GetTempPath(),
+                            $"copy_{Guid.NewGuid():N}.pdf");
 
                         bool copySuccess = pdfSplitService.CopyPagesWithPattern(
                             tempFileInfo.FullPath,
@@ -1284,8 +1294,17 @@ namespace WindowsFormsApp3.Services
 
                         if (copySuccess && File.Exists(tempOutputPath))
                         {
-                            File.Delete(tempFileInfo.FullPath);
-                            File.Move(tempOutputPath, tempFileInfo.FullPath);
+                            try
+                            {
+                                File.Replace(tempOutputPath, tempFileInfo.FullPath, null);
+                            }
+                            finally
+                            {
+                                if (File.Exists(tempOutputPath))
+                                {
+                                    try { File.Delete(tempOutputPath); } catch (Exception) { }
+                                }
+                            }
                             LogHelper.Debug($"✓ 一式N份页面复制成功，最终页数: {GetPdfPageCount(tempFileInfo.FullPath)}");
                         }
                         else
@@ -1298,6 +1317,11 @@ namespace WindowsFormsApp3.Services
                             }
                             return false;
                         }
+                    }
+                    else
+                    {
+                        tempFileInfo.ErrorMessage = "无法读取待复制的PDF页数";
+                        return false;
                     }
                 }
 

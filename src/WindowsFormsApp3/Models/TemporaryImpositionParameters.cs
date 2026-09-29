@@ -1,7 +1,7 @@
 namespace WindowsFormsApp3.Models
 {
     /// <summary>
-    /// 材料选择对话框本次使用的临时排版参数，不写入全局自动排版设置。
+    /// 材料选择对话框的临时排版参数，独立保留上次值，不写入全局自动排版设置。
     /// </summary>
     public class TemporaryImpositionParameters
     {

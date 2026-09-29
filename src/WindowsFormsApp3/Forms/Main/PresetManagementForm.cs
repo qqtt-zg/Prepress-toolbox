@@ -2662,7 +2662,7 @@ namespace WindowsFormsApp3.Forms.Main
                         var backupData = new
                         {
                             ExportTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                            Version = "2.6.8",
+                            Version = "2.7.0",
                             PresetGroups = _groups,
                             Presets = _presets
                         };
