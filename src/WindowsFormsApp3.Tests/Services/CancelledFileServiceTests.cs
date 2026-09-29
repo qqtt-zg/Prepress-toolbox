@@ -10,6 +10,7 @@ namespace WindowsFormsApp3.Tests.Services
         [Fact]
         public void MoveToCancelledFolder_ShouldCreateFolderAndMoveFile()
         {
+            Assert.Equal("取消文件", CancelledFileService.CancelledFolderName);
             string monitorDirectory = Path.Combine(Path.GetTempPath(), $"cancelled-file-{Guid.NewGuid():N}");
             Directory.CreateDirectory(monitorDirectory);
             string sourcePath = Path.Combine(monitorDirectory, "待处理.pdf");
@@ -23,7 +24,7 @@ namespace WindowsFormsApp3.Tests.Services
 
                 Assert.True(result.Success, result.ErrorMessage);
                 Assert.False(File.Exists(sourcePath));
-                Assert.True(File.Exists(Path.Combine(monitorDirectory, "取消处理", "待处理.pdf")));
+                Assert.True(File.Exists(Path.Combine(monitorDirectory, CancelledFileService.CancelledFolderName, "待处理.pdf")));
             }
             finally
             {
@@ -50,7 +51,7 @@ namespace WindowsFormsApp3.Tests.Services
 
                 Assert.False(result.Success);
                 Assert.True(File.Exists(sourcePath));
-                Assert.False(Directory.Exists(Path.Combine(monitorDirectory, "取消处理")));
+                Assert.False(Directory.Exists(Path.Combine(monitorDirectory, CancelledFileService.CancelledFolderName)));
             }
             finally
             {
@@ -62,7 +63,7 @@ namespace WindowsFormsApp3.Tests.Services
         public void MoveToCancelledFolder_WhenNameExists_ShouldPreserveBothFiles()
         {
             string monitorDirectory = Path.Combine(Path.GetTempPath(), $"cancelled-file-duplicate-{Guid.NewGuid():N}");
-            string cancelledDirectory = Path.Combine(monitorDirectory, "取消处理");
+            string cancelledDirectory = Path.Combine(monitorDirectory, CancelledFileService.CancelledFolderName);
             Directory.CreateDirectory(cancelledDirectory);
             string sourcePath = Path.Combine(monitorDirectory, "重复.pdf");
             File.WriteAllText(sourcePath, "new");

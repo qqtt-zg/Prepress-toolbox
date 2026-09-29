@@ -12,11 +12,11 @@ namespace WindowsFormsApp3.Services
     }
 
     /// <summary>
-    /// 将用户取消处理的文件移入监控目录下的“取消处理”文件夹。
+    /// 将用户取消处理的文件移入监控目录下的“取消文件”文件夹。
     /// </summary>
     public sealed class CancelledFileService
     {
-        public const string CancelledFolderName = "取消处理";
+        public const string CancelledFolderName = "取消文件";
 
         public CancelledFileMoveResult MoveToCancelledFolder(string sourcePath, string monitorDirectory)
         {
@@ -60,7 +60,7 @@ namespace WindowsFormsApp3.Services
                 Directory.CreateDirectory(cancelledDirectory);
                 if ((new DirectoryInfo(cancelledDirectory).Attributes & FileAttributes.ReparsePoint) != 0)
                 {
-                    result.ErrorMessage = "取消处理文件夹不能是重解析点";
+                    result.ErrorMessage = "取消文件文件夹不能是重解析点";
                     return result;
                 }
                 string destinationPath = GetAvailableDestinationPath(cancelledDirectory, Path.GetFileName(resolvedSourcePath));

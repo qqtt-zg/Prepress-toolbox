@@ -22,6 +22,7 @@ namespace WindowsFormsApp3.Forms.Main
         private readonly Input _marginLeftInput = CreateInput();
         private readonly Input _marginRightInput = CreateInput();
         private readonly Checkbox _unlockPaperSizeCheckbox = new Checkbox { Text = "解锁纸张尺寸" };
+        private readonly Checkbox _unlockRollSizeCheckbox = new Checkbox { Text = "解锁幅宽尺寸" };
         private readonly System.Windows.Forms.Panel _contentPanel = new System.Windows.Forms.Panel();
 
         public TemporaryImpositionParameters Parameters { get; private set; }
@@ -31,7 +32,7 @@ namespace WindowsFormsApp3.Forms.Main
             _isFlatSheet = isFlatSheet;
             Parameters = (parameters ?? throw new ArgumentNullException(nameof(parameters))).Clone();
 
-            Text = "临时排版参数";
+            Text = "大版开料参数配置";
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
@@ -81,10 +82,14 @@ namespace WindowsFormsApp3.Forms.Main
             {
                 _contentPanel.Controls.Add(new AntdUI.Label
                 {
-                    Text = "卷装材料参数（mm）",
+                    Text = "卷装材料规格（mm）",
                     Location = new Point(0, 5),
                     Size = new Size(150, 28)
                 });
+                _unlockRollSizeCheckbox.Location = new Point(180, 5);
+                _unlockRollSizeCheckbox.Size = new Size(140, 28);
+                _unlockRollSizeCheckbox.CheckedChanged += (s, e) => UpdateRollSizeEnabled();
+                _contentPanel.Controls.Add(_unlockRollSizeCheckbox);
 
                 AddField(_contentPanel, "固定宽度", _fixedWidthInput, 0, 42);
                 AddField(_contentPanel, "最小长度", _minLengthInput, 225, 42);
@@ -145,9 +150,10 @@ namespace WindowsFormsApp3.Forms.Main
             }
             else
             {
+                _unlockRollSizeCheckbox.Checked = Parameters.IsRollSizeUnlocked;
                 _fixedWidthInput.Text = Format(Parameters.FixedWidth);
                 _minLengthInput.Text = Format(Parameters.MinLength);
-                _fixedWidthInput.Enabled = false;
+                UpdateRollSizeEnabled();
             }
 
             _marginTopInput.Text = Format(Parameters.MarginTop);
@@ -160,6 +166,11 @@ namespace WindowsFormsApp3.Forms.Main
         {
             _paperWidthInput.Enabled = _isFlatSheet && _unlockPaperSizeCheckbox.Checked;
             _paperHeightInput.Enabled = _isFlatSheet && _unlockPaperSizeCheckbox.Checked;
+        }
+
+        private void UpdateRollSizeEnabled()
+        {
+            _fixedWidthInput.Enabled = !_isFlatSheet && _unlockRollSizeCheckbox.Checked;
         }
 
         private void ApplyButton_Click(object sender, EventArgs e)
@@ -192,12 +203,15 @@ namespace WindowsFormsApp3.Forms.Main
             }
             else
             {
+                updated.IsRollSizeUnlocked = _unlockRollSizeCheckbox.Checked;
+                if (!TryReadFloat(_fixedWidthInput, "固定宽度", out var fixedWidth, true)) return;
                 if (!TryReadFloat(_minLengthInput, "最小长度", out var minLength, true)) return;
-                if (updated.FixedWidth <= marginLeft + marginRight)
+                if (fixedWidth <= marginLeft + marginRight)
                 {
                     MessageBox.Show("固定宽度扣除左右边距后必须大于 0。", "参数无效", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
+                updated.FixedWidth = fixedWidth;
                 updated.MinLength = minLength;
             }
 

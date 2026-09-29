@@ -436,7 +436,21 @@ namespace WindowsFormsApp3.Services
 
             // 创建临时工作目录用于PDF处理
             string tempDir = Path.GetTempPath();
-            string tempFile = Path.Combine(tempDir, $"temp_{Guid.NewGuid()}_{Path.GetFileName(fileInfo.OriginalName)}");
+            string extension = Path.GetExtension(fileInfo.FullPath);
+            if (string.IsNullOrEmpty(extension))
+            {
+                extension = Path.GetExtension(fileInfo.OriginalName);
+            }
+            if (string.IsNullOrEmpty(extension))
+            {
+                extension = Path.GetExtension(fileInfo.NewName) ?? ".pdf";
+            }
+            string safeBaseName = Path.GetFileNameWithoutExtension(fileInfo.FullPath);
+            if (string.IsNullOrEmpty(safeBaseName))
+            {
+                safeBaseName = Path.GetFileNameWithoutExtension(fileInfo.OriginalName) ?? "document";
+            }
+            string tempFile = Path.Combine(tempDir, $"temp_{Guid.NewGuid()}_{safeBaseName}{extension}");
 
             try
             {
@@ -566,15 +580,6 @@ namespace WindowsFormsApp3.Services
                         File.Move(processedTempFile, newFilePath);
                     }
                 }, cancellationToken);
-
-                if (!PdfTools.SetAllPageBoxesToCropBox(newFilePath))
-                {
-                    LogHelper.Debug($"最终输出文件页面框统一失败: {newFilePath}");
-                    fileInfo.Status = "页面统一失败";
-                    fileInfo.ErrorMessage = "页面统一失败";
-                    RaiseFileRenameFailed(fileInfo, "页面统一失败");
-                    return false;
-                }
 
                 // 更新文件信息
                 fileInfo.FullPath = newFilePath;
@@ -794,7 +799,21 @@ namespace WindowsFormsApp3.Services
 
             // 创建临时工作目录用于PDF处理
             string tempDir = Path.GetTempPath();
-            string tempFile = Path.Combine(tempDir, $"temp_{Guid.NewGuid()}_{Path.GetFileName(fileInfo.OriginalName)}");
+            string extension = Path.GetExtension(fileInfo.FullPath);
+            if (string.IsNullOrEmpty(extension))
+            {
+                extension = Path.GetExtension(fileInfo.OriginalName);
+            }
+            if (string.IsNullOrEmpty(extension))
+            {
+                extension = Path.GetExtension(fileInfo.NewName) ?? ".pdf";
+            }
+            string safeBaseName = Path.GetFileNameWithoutExtension(fileInfo.FullPath);
+            if (string.IsNullOrEmpty(safeBaseName))
+            {
+                safeBaseName = Path.GetFileNameWithoutExtension(fileInfo.OriginalName) ?? "document";
+            }
+            string tempFile = Path.Combine(tempDir, $"temp_{Guid.NewGuid()}_{safeBaseName}{extension}");
 
             try
             {
@@ -929,15 +948,6 @@ namespace WindowsFormsApp3.Services
                 {
                     LogHelper.Debug($"移动处理后的文件: {processedTempFile} -> {newFilePath}");
                     File.Move(processedTempFile, newFilePath);
-                }
-
-                if (!PdfTools.SetAllPageBoxesToCropBox(newFilePath))
-                {
-                    LogHelper.Debug($"最终输出文件页面框统一失败: {newFilePath}");
-                    fileInfo.Status = "页面统一失败";
-                    fileInfo.ErrorMessage = "页面统一失败";
-                    RaiseFileRenameFailed(fileInfo, "页面统一失败");
-                    return false;
                 }
 
                 // 更新文件信息

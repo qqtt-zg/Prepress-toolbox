@@ -105,11 +105,20 @@ namespace WindowsFormsApp3.UI
             }
 
             var spec = buttonSpecs.FirstOrDefault(item => item != null && item.Id == name);
-            if (spec != null && button is System.Windows.Forms.IButtonControl buttonControl)
+            if (spec != null)
             {
-                // LayeredFormModal 创建自定义按钮时不会读取 Modal.Btn.DialogResult，
-                // 但 IButtonControl 是 Esc/CancelButton 语义的最终入口。
-                buttonControl.DialogResult = spec.DialogResult;
+                if (button is System.Windows.Forms.IButtonControl buttonControl)
+                {
+                    // LayeredFormModal 创建自定义按钮时不会读取 Modal.Btn.DialogResult，
+                    // 但 IButtonControl 是 Esc/CancelButton 语义的最终入口。
+                    buttonControl.DialogResult = spec.DialogResult;
+                }
+
+                // 统一高对比度文本配色：对于 Error(红)、Primary(蓝)、Success(绿) 实色按钮，确保赋予清晰纯白文字
+                if (spec.Type == AntdUI.TTypeMini.Error || spec.Type == AntdUI.TTypeMini.Primary || spec.Type == AntdUI.TTypeMini.Success)
+                {
+                    button.ForeColor = Color.White;
+                }
             }
 
             var isDefault = defaultButtons.Length == 1 && defaultButtons[0].Id == name;

@@ -145,14 +145,15 @@ namespace WindowsFormsApp3
             //
             this.pinTopMostButton.BorderWidth = 0F;
             this.pinTopMostButton.Dock = System.Windows.Forms.DockStyle.Right;
-            this.pinTopMostButton.Font = new System.Drawing.Font("Segoe UI Emoji", 9F);
+            this.pinTopMostButton.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F);
             this.pinTopMostButton.Location = new System.Drawing.Point(366, 0);
             this.pinTopMostButton.Name = "pinTopMostButton";
             this.pinTopMostButton.Radius = 6;
             this.pinTopMostButton.Size = new System.Drawing.Size(30, 28);
             this.pinTopMostButton.TabIndex = 1;
             this.pinTopMostButton.TabStop = false;
-            this.pinTopMostButton.Text = "📌";
+            this.pinTopMostButton.IconSvg = "PushpinOutlined";
+            this.pinTopMostButton.Text = "";
             this.pinTopMostButton.WaveSize = 0;
             this.pinTopMostButton.Click += new System.EventHandler(this.PinTopMostButton_Click);
             // 

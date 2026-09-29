@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V5工作台 · 纯图标精简分段控件与切换目录线性图标方案</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --panel-bg: #1e293b;
+      --card-bg: #ffffff;
+      --border: #334155;
+      --border-light: #475569;
+      --text: #f8fafc;
+      --text-secondary: #94a3b8;
+      --primary: #38bdf8;
+      --brand-blue: #1677ff;
+      --brand-blue-bg: #e6f4ff;
+      --brand-blue-border: #91caff;
+      --flat-blue: #0284c7;
+      --flat-blue-bg: #e0f2fe;
+      --flat-blue-border: #7dd3fc;
+      --roll-amber: #b45309;
+      --roll-amber-bg: #fef3c7;
+      --roll-amber-border: #fcd34d;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 24px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .header-section {
+      max-width: 1240px;
+      margin: 0 auto 24px;
+      background: var(--panel-bg);
+      padding: 20px 24px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .header-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-subtitle {
+      color: var(--text-secondary);
+      margin-top: 6px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .main-grid {
+      max-width: 1240px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 410px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* 左侧 V5 实机模拟台 */
+    .sim-panel {
+      background: var(--panel-bg);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border);
+    }
+    .sim-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .sim-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #fff;
+    }
+    .sim-badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      font-weight: 600;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    /* 360px 仿真工位白底容器 */
+    .v5-mock-window {
+      width: 360px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      color: #1e293b;
+    }
+    .v5-mock-titlebar {
+      height: 28px;
+      background: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    /* 卡片 2: 输出路径栏 */
+    .v5-card-2 {
+      margin: 10px 10px 0 10px;
+      border: 1px solid #d4dbe4;
+      border-radius: 6px;
+      padding: 4px 6px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      height: 32px;
+    }
+    .path-prefix {
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748b;
+      white-space: nowrap;
+    }
+    .path-content {
+      flex: 1;
+      font-size: 11px;
+      color: #334155;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      background: #f8fafc;
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* 切换目录线性图标按钮 */
+    .btn-browse-folder {
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      user-select: none;
+      border: 1px solid #d3d9e2;
+      background: #ffffff;
+      color: #334155;
+    }
+    .btn-browse-folder:hover {
+      border-color: #1677ff;
+      color: #1677ff;
+      background: #f0f7ff;
+    }
+    .btn-browse-folder svg {
+      width: 13px;
+      height: 13px;
+      fill: currentColor;
+    }
+
+    /* 卡片 5 */
+    .v5-card-5 {
+      margin: 8px 10px 10px 10px;
+      border: 1px solid #d4dbe4;
+      border-radius: 6px;
+      padding: 8px;
+      background: #fff;
+    }
+
+    /* 卡片 5 控制行 */
+    .impo-control-row {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    /* 纯白底无边框扁平图标按钮 */
+    .btn-ghost-icon {
+      width: 26px;
+      height: 24px;
+      border-radius: 4px;
+      border: none;
+      background: transparent;
+      color: #969ba5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+    .btn-ghost-icon:hover {
+      background: #f1f5f9;
+    }
+    .btn-ghost-icon.active {
+      color: #1677ff;
+    }
+    .btn-ghost-icon.active:hover {
+      background: #f0f7ff;
+    }
+    .btn-ghost-icon svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    /* 尺寸胶囊 */
+    .skeuo-capsule {
+      height: 24px;
+      padding: 0 6px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .skeuo-capsule.flat {
+      background: var(--flat-blue-bg);
+      border: 1px solid var(--flat-blue-border);
+      color: #0369a1;
+    }
+    .skeuo-capsule.roll {
+      background: var(--roll-amber-bg);
+      border: 1px solid var(--roll-amber-border);
+      color: #92400e;
+    }
+    .capsule-icon-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 13px;
+      height: 13px;
+      line-height: 0;
+    }
+    .capsule-icon-wrap svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* 【极简精简】：纯图标微型分段胶囊（去文字，双格纯图标） */
+    .mini-seg-pure-icon {
+      height: 24px;
+      display: inline-flex;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      overflow: hidden;
+      background: #ffffff;
+      cursor: pointer;
+      user-select: none;
+    }
+    .seg-icon-item {
+      width: 28px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+    .seg-icon-item svg {
+      width: 14px;
+      height: 14px;
+      display: block;
+      transition: all 0.15s ease;
+    }
+    .seg-icon-item.active {
+      background: #e6f4ff;
+      color: #1677ff;
+    }
+    .seg-icon-item:hover:not(.active) {
+      background: #f8fafc;
+      color: #334155;
+    }
+    .seg-divider {
+      width: 1px;
+      height: 14px;
+      background: #e2e8f0;
+      align-self: center;
+    }
+
+    /* 6 宫格指标 */
+    .metrics-grid-mock {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      height: 42px;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .metric-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid #f1f5f9;
+      font-size: 10px;
+      color: #64748b;
+    }
+    .metric-cell:last-child { border-right: none; }
+    .metric-val { font-size: 12px; font-weight: 700; margin-top: 1px; }
+
+    /* 交互控制器 */
+    .sim-controls {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .ctrl-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .ctrl-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .ctrl-btn-group {
+      display: flex;
+      gap: 6px;
+    }
+    .btn-switch {
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-light);
+      background: #0f172a;
+      color: #cbd5e1;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+    .btn-switch.active {
+      background: #38bdf8;
+      color: #0f172a;
+      border-color: #38bdf8;
+    }
+
+    /* 右侧方案展示区 */
+    .content-area {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .design-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      position: relative;
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .card-tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+    .card-tag.rec { background: #0369a1; color: #e0f2fe; }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .icon-showcase-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .icon-showcase-box {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      text-align: center;
+    }
+    .big-icon-wrap {
+      width: 56px;
+      height: 56px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #38bdf8;
+    }
+    .box-caption {
+      font-size: 13px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+    .box-desc {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    .detail-list {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.7;
+    }
+    .detail-list strong { color: #f1f5f9; }
+
+    .callout-box {
+      background: #1e293b;
+      border-left: 4px solid #38bdf8;
+      padding: 14px 18px;
+      border-radius: 0 8px 8px 0;
+      font-size: 12px;
+      color: #e2e8f0;
+      line-height: 1.8;
+      border-top: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-section">
+    <div class="header-title">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#38bdf8" stroke-width="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+      已升级 · 「平张/卷装」与「连拼/折手」纯图标精简模式 (方案1数字代号)
+    </div>
+    <div class="header-subtitle">
+      <strong>1. 纯图标化极简：</strong>去除文字，单组分段宽度从 72px 压缩到 <strong>57px（每格 28px）</strong>，控制行呼吸感大增！<br>
+      <strong>2. 方案 1 数字代号拼版：</strong>连拼为 <code>[ 1 1 / 1 1 ]</code>（同模复制），折手为 <code>[ 1 2 / 3 4 ]</code>（流水折页次序），印刷语义直击本质！<br>
+      <strong>3. 切换目录线性图标：</strong>全面应用 Ant Design 经典 <code>FolderOpenOutlined</code> 优雅展开文件夹线性图标。
+    </div>
+  </div>
+
+  <div class="main-grid">
+
+    <!-- 左侧 360px 仿真工作台 -->
+    <div class="sim-panel">
+      <div class="sim-header">
+        <div class="sim-title">360px 实机效果模拟看板</div>
+        <div class="sim-badge" id="simBadge">纯图标精简模式</div>
+      </div>
+
+      <div class="v5-mock-window">
+        <div class="v5-mock-titlebar">
+          <span>材料选择 (V5 一体化工作台)</span>
+          <span style="color:#64748b;">📌 012-铭牌</span>
+        </div>
+
+        <!-- 卡片 2: 输出路径栏 (切换目录线性图标) -->
+        <div class="v5-card-2">
+          <span class="path-prefix">输出:</span>
+          <div class="path-content" title="F:\点源自动\威立德\卷装\折手KM\012-铭牌">F:\点源自动\威立德\卷装\折手KM\012-铭牌</div>
+          <div class="btn-browse-folder" onclick="alert('展开级联目录选择树浮层')" title="切换输出保存目录">
+            <!-- Ant Design 经典线性展开文件夹 FolderOpenOutlined -->
+            <svg viewBox="64 64 896 896">
+              <path d="M928 444H820V330.4c0-17.7-14.3-32-32-32H473L389 186.2c-7.9-10.6-20.4-16.8-33.8-16.8H128c-17.7 0-32 14.3-32 32v576c0 17.7 14.3 32 32 32h768c17.7 0 32-14.3 32-32L928 444zm-768-208h177.3l84 112.2c7.9 10.6 20.4 16.8 33.8 16.8H756v106.6H160V236zm696 544H160l60.8-272h680.4l-65.2 272z"/>
+            </svg>
+            <span>切换目录 ▾</span>
+          </div>
+        </div>
+
+        <!-- 卡片 5: 大版控制行 (全部纯图标) -->
+        <div class="v5-card-5">
+          <div class="impo-control-row">
+            <!-- 启动排版 (无边框扁平图标) -->
+            <div class="btn-ghost-icon active" id="btnImpoToggle" onclick="toggleImpoState()" title="点击切换：智能排版计算 (已开启)">
+              <svg viewBox="0 0 1024 1024">
+                <path d="M861.0816 791.296H162.9184a69.8368 69.8368 0 1 0 0 139.6224h698.1632a69.8368 69.8368 0 0 0 0-139.6224z m-232.704-256H162.9184a69.8368 69.8368 0 1 0 0 139.6224h465.408a69.8368 69.8368 0 0 0 0-139.6224z m152.8832-393.1136a20.8896 20.8896 0 0 0-8.2944 8.2944L720.384 246.6304a20.8896 20.8896 0 0 1-8.2944 8.2944L615.936 307.5072a20.8896 20.8896 0 0 0 0 36.608l96.1536 52.5824a20.8896 20.8896 0 0 1 8.2944 8.2944l52.5824 96.1536a20.8896 20.8896 0 0 0 36.608 0L862.208 404.992a20.8896 20.8896 0 0 1 8.2944-8.2944l96.1536-52.5824a20.8896 20.8896 0 0 0 0-36.608L870.4 254.9248a20.8896 20.8896 0 0 1-8.2944-8.2944l-52.5824-96.1536a20.8896 20.8896 0 0 0-28.3136-8.2944zM162.9184 279.296a69.8368 69.8368 0 1 0 0 139.6224h232.704a69.8368 69.8368 0 1 0 0-139.6224H162.9184zM528.9984 48.128a13.056 13.056 0 0 0-5.1712 5.2224l-32.8704 60.0576a13.056 13.056 0 0 1-5.1712 5.1712l-60.1088 32.8704a13.056 13.056 0 0 0 0 22.8864l60.1088 32.8704a13.056 13.056 0 0 1 5.1712 5.2224l32.8704 60.0576a13.056 13.056 0 0 0 22.8864 0l32.8704-60.0576a13.056 13.056 0 0 1 5.1712-5.2224l60.1088-32.8704a13.056 13.056 0 0 0 0-22.8864l-60.1088-32.8704a13.056 13.056 0 0 1-5.1712-5.12l-32.8704-60.1088a13.056 13.056 0 0 0-17.7152-5.2224z"/>
+              </svg>
+            </div>
+
+            <!-- 自定义尺寸胶囊 -->
+            <div class="skeuo-capsule roll" id="liveCapsule" onclick="alert('打开【大版开料参数配置】')" title="非默认尺寸，点击微调">
+              <span class="capsule-icon-wrap" id="liveIconWrap"></span>
+              <span class="capsule-text-wrap" id="liveText">高 150</span>
+            </div>
+
+            <!-- 【纯图标分段 1】：平张 / 卷装 -->
+            <div class="mini-seg-pure-icon" title="材料形态切换 (平张 / 卷装)">
+              <!-- 平张图标 -->
+              <div class="seg-icon-item" id="segFlat" onclick="setMaterial(true)" title="平张 (Sheet 单页纸张)">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 1.5h6.5l3.5 3.5v9.5H3V1.5z"/>
+                  <path d="M9.5 1.5v3.5h3.5"/>
+                </svg>
+              </div>
+              <div class="seg-divider"></div>
+              <!-- 卷装图标 -->
+              <div class="seg-icon-item active" id="segRoll" onclick="setMaterial(false)" title="卷装 (Roll 轮转连续出料)">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="8" cy="7.5" r="4.8"/>
+                  <circle cx="8" cy="7.5" r="1.8"/>
+                  <path d="M8 12.3H2.5"/>
+                </svg>
+              </div>
+            </div>
+
+            <!-- 【纯图标分段 2】：连拼 / 折手 (方案1数字代号) -->
+            <div class="mini-seg-pure-icon" title="排版模式切换 (连拼 / 折手)">
+              <!-- 连拼 (四格 1 1 / 1 1) -->
+              <div class="seg-icon-item active" id="segStep" onclick="setLayout(true)" title="连拼 (Step and Repeat · 同模复制 [1 1 / 1 1])">
+                <svg viewBox="0 0 16 16" fill="none">
+                  <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.3"/>
+                  <line x1="8" y1="1" x2="8" y2="15" stroke="currentColor" stroke-width="1" stroke-dasharray="1.5 1"/>
+                  <line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1" stroke-dasharray="1.5 1"/>
+                  <text x="4.5" y="5.8" font-size="4.4" font-weight="900" fill="currentColor" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Arial">1</text>
+                  <text x="11.5" y="5.8" font-size="4.4" font-weight="900" fill="currentColor" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Arial">1</text>
+                  <text x="4.5" y="12.8" font-size="4.4" font-weight="900" fill="currentColor" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Arial">1</text>
+                  <text x="11.5" y="12.8" font-size="4.4" font-weight="900" fill="currentColor" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Arial">1</text>
+                </svg>
+              </div>
+              <div class="seg-divider"></div>
+              <!-- 折手 (四格 1 2 / 3 4) -->
+              <div class="seg-icon-item" id="segSign" onclick="setLayout(false)" title="折手 (Signature · 流水折叠编排 [1 2 / 3 4])">
+                <svg viewBox="0 0 16 16" fill="none">
+                  <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.3"/>
+                  <line x1="8" y1="1" x2="8" y2="15" stroke="currentColor" stroke-width="1" stroke-dasharray="1.5 1"/>
+                  <line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1" stroke-dasharray="1.5 1"/>
+                  <text x="4.5" y="5.8" font-size="4.4" font-weight="900" fill="currentColor" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Arial">1</text>
+                  <text x="11.5" y="5.8" font-size="4.4" font-weight="900" fill="currentColor" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Arial">2</text>
+                  <text x="4.5" y="12.8" font-size="4.4" font-weight="900" fill="currentColor" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Arial">3</text>
+                  <text x="11.5" y="12.8" font-size="4.4" font-weight="900" fill="currentColor" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Arial">4</text>
+                </svg>
+              </div>
+            </div>
+
+            <!-- 标识页 (无边框扁平图标) -->
+            <div class="btn-ghost-icon active" id="btnIdToggle" onclick="toggleIdState()" title="点击切换：大版首尾插入标识页 (已开启)">
+              <svg viewBox="64 64 896 896">
+                <path d="M854.6 288.6L639.4 73.4c-6-6-14.1-9.4-22.6-9.4H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V311.3c0-8.6-3.4-16.7-9.4-22.7zM790.2 326H602V137.8L790.2 326zM224 896V128h320v224c0 17.7 14.3 32 32 32h224v512H224z"/>
+                <path d="M320 448h384v64H320zm0 144h384v64H320zm0 144h256v64H320z"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- 看板指标格 -->
+          <div class="metrics-grid-mock">
+            <div class="metric-cell">
+              <span>网格</span>
+              <span class="metric-val" style="color:#1677ff;" id="vGrid">2 × 6</span>
+            </div>
+            <div class="metric-cell">
+              <span>布局数</span>
+              <span class="metric-val" style="color:#fa8c16;" id="vCount">12</span>
+            </div>
+            <div class="metric-cell">
+              <span>角度</span>
+              <span class="metric-val" style="color:#722ed1;" id="vRot">270°</span>
+            </div>
+            <div class="metric-cell">
+              <span>尺寸 🅉</span>
+              <span class="metric-val" style="color:#0958d9;">80×45</span>
+            </div>
+            <div class="metric-cell">
+              <span>出血</span>
+              <span class="metric-val" style="color:#eb2f96;">2.0</span>
+            </div>
+            <div class="metric-cell">
+              <span>颜色</span>
+              <span class="metric-val" style="color:#13c2c2;">彩色</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 控制器 -->
+      <div class="sim-controls">
+        <div class="ctrl-row">
+          <div class="ctrl-label">切换材料形态验证：</div>
+          <div class="ctrl-btn-group">
+            <button class="btn-switch" id="btnFlat" onclick="setMaterial(true)">📄 平张 (单页折角)</button>
+            <button class="btn-switch active" id="btnRoll" onclick="setMaterial(false)">🌀 卷装 (轮转料卷)</button>
+          </div>
+        </div>
+
+        <div class="ctrl-row">
+          <div class="ctrl-label">切换排版模式验证：</div>
+          <div class="ctrl-btn-group">
+            <button class="btn-switch active" id="btnStep" onclick="setLayout(true)">连拼 [ 1 1 / 1 1 ]</button>
+            <button class="btn-switch" id="btnSign" onclick="setLayout(false)">折手 [ 1 2 / 3 4 ]</button>
+          </div>
+        </div>
+
+        <div class="ctrl-row">
+          <div class="ctrl-label">模拟尺寸胶囊开闭：</div>
+          <div class="ctrl-btn-group">
+            <button class="btn-switch active" id="btnCapsuleOn" onclick="setDiff(true)">显现自定胶囊</button>
+            <button class="btn-switch" id="btnCapsuleOff" onclick="setDiff(false)">与默认一致隐藏</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧方案详情区 -->
+    <div class="content-area">
+
+      <div class="callout-box">
+        <strong>✨ 纯图标化的空间与视觉巨大收益：</strong><br>
+        1. <strong>告别拥挤，极速认知：</strong>分段控件去除中文文字后，每组宽度从 72px 优化至 <strong>57px</strong>。整行控件即使在同时显示 72px 尺寸胶囊时，剩余可用空间仍超过 <strong>80px</strong>，呼吸感达到前所未有的开阔与现代！<br>
+        2. <strong>代号拼版一眼看透：</strong>连拼显示 <code>[1 1 / 1 1]</code>，折手显示 <code>[1 2 / 3 4]</code>，在仅 14px 的图标内呈现出强烈的拼版结构对比，印刷工人秒懂！<br>
+        3. <strong>全线统一线性语言：</strong>整个卡片 5 从头到尾由五个纯图形元素构成（智能排版 → 尺寸胶囊 → 平/卷分段 → 拼/折分段 → 标识页），整体感比文字混排专业度提升一个世代。
+      </div>
+
+      <!-- 模块 1：平张 / 卷装 纯图标放大展示 -->
+      <div class="design-card">
+        <div class="card-top">
+          <div class="card-title">1. 「平张 / 卷装」纯图标分段设计</div>
+          <span class="card-tag rec">材料形态标识</span>
+        </div>
+
+        <div class="icon-showcase-grid">
+          <div class="icon-showcase-box">
+            <div class="big-icon-wrap" style="color:#0284c7;">
+              <svg viewBox="0 0 16 16" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 1.5h6.5l3.5 3.5v9.5H3V1.5z"/>
+                <path d="M9.5 1.5v3.5h3.5"/>
+              </svg>
+            </div>
+            <div class="box-caption">平张 (Sheet) · 折角单页印张</div>
+            <div class="box-desc">右上角物理折角单页，代表单张平张纸料</div>
+          </div>
+
+          <div class="icon-showcase-box">
+            <div class="big-icon-wrap" style="color:#b45309;">
+              <svg viewBox="0 0 16 16" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="8" cy="7.5" r="4.8"/>
+                <circle cx="8" cy="7.5" r="1.8"/>
+                <path d="M8 12.3H2.5"/>
+              </svg>
+            </div>
+            <div class="box-caption">卷装 (Roll) · 轮转料卷与引纸</div>
+            <div class="box-desc">连续料卷 + 轴心空心圆 + 底部引出纸尾，代表卷筒轮转出料</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 模块 2：连拼 / 折手 纯图标放大展示 -->
+      <div class="design-card">
+        <div class="card-top">
+          <div class="card-title">2. 「连拼 / 折手」纯图标分段设计（方案1数字代号）</div>
+          <span class="card-tag rec">拼版规律呈现</span>
+        </div>
+
+        <div class="icon-showcase-grid">
+          <div class="icon-showcase-box">
+            <div class="big-icon-wrap" style="color:#1677ff;">
+              <svg viewBox="0 0 16 16" width="34" height="34" fill="none">
+                <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.3"/>
+                <line x1="8" y1="1" x2="8" y2="15" stroke="currentColor" stroke-width="1" stroke-dasharray="1.5 1"/>
+                <line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1" stroke-dasharray="1.5 1"/>
+                <text x="4.5" y="5.8" font-size="4.4" font-weight="900" fill="currentColor" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Arial">1</text>
+                <text x="11.5" y="5.8" font-size="4.4" font-weight="900" fill="currentColor" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Arial">1</text>
+                <text x="4.5" y="12.8" font-size="4.4" font-weight="900" fill="currentColor" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Arial">1</text>
+                <text x="11.5" y="12.8" font-size="4.4" font-weight="900" fill="currentColor" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Arial">1</text>
+              </svg>
+            </div>
+            <div class="box-caption">连拼 · [ 1 1 / 1 1 ] 同模复制</div>
+            <div class="box-desc">四个格位全为相同设计代号，精准传达 Step & Repeat</div>
+          </div>
+
+          <div class="icon-showcase-box">
+            <div class="big-icon-wrap" style="color:#722ed1;">
+              <svg viewBox="0 0 16 16" width="34" height="34" fill="none">
+                <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.3"/>
+                <line x1="8" y1="1" x2="8" y2="15" stroke="currentColor" stroke-width="1" stroke-dasharray="1.5 1"/>
+                <line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1" stroke-dasharray="1.5 1"/>
+                <text x="4.5" y="5.8" font-size="4.4" font-weight="900" fill="currentColor" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Arial">1</text>
+                <text x="11.5" y="5.8" font-size="4.4" font-weight="900" fill="currentColor" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Arial">2</text>
+                <text x="4.5" y="12.8" font-size="4.4" font-weight="900" fill="currentColor" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Arial">3</text>
+                <text x="11.5" y="12.8" font-size="4.4" font-weight="900" fill="currentColor" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Arial">4</text>
+              </svg>
+            </div>
+            <div class="box-caption">折手 · [ 1 2 / 3 4 ] 流水顺序</div>
+            <div class="box-desc">四个格位为顺序递增代号，精准传达折页装订与拣货顺序</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    const ICON_SVGS = {
+      flat: `<svg viewBox="0.5 0.5 23 23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="7.5" y1="2" x2="7.5" y2="4.8"/><line x1="22.5" y1="2" x2="22.5" y2="4.8"/><line x1="7.5" y1="3.4" x2="22.5" y2="3.4"/><line x1="2" y1="7.5" x2="4.8" y2="7.5"/><line x1="2" y1="22.5" x2="4.8" y2="22.5"/><line x1="3.4" y1="7.5" x2="3.4" y2="22.5"/><path d="M7.5 7.5h9l6 6V22.5H7.5V7.5z"/><path d="M16.5 7.5v6H22.5"/></svg>`,
+      roll: `<svg viewBox="2.19 2.59 981 997" fill="currentColor"><path d="M983.004 314.501c-25.735-60.845-62.541-115.407-109.422-162.287C826.7 105.333 772.04 68.526 711.294 42.79 648.254 16.16 581.324 2.593 512.399 2.593S376.544 16.06 313.604 42.692c-60.846 25.734-115.407 62.54-162.288 109.422-46.881 46.88-83.688 101.542-109.422 162.288-26.633 63.04-40.198 129.97-40.198 198.895s13.466 135.855 40.098 198.795c17.156 40.298 39 77.902 65.533 112.315 10.773 14.064 32.318 12.867 41.495-2.294 5.287-8.778 4.788-20.05-1.496-28.229-59.948-77.802-95.557-175.155-95.557-280.687-0.1-255.551 206.276-461.329 461.927-460.63C766.753 53.265 972.43 258.943 973.129 512c0.698 254.653-203.583 460.73-458.236 462.127h-0.5v-0.599H27.132c-13.765 0-24.937 11.172-24.937 24.937s11.172 24.937 24.937 24.937h459.633c8.578 0.399 17.057 0.598 25.735 0.598 68.925 0 135.855-13.466 198.795-40.098 60.845-25.735 115.407-62.541 162.288-109.422 46.88-46.881 83.687-101.543 109.422-162.288 26.632-62.94 40.098-129.87 40.098-198.796 0-69.024-13.466-135.954-40.098-198.895z"/><path d="M512.399 727.752c-57.255 0-111.118-22.343-151.615-62.84-40.497-40.497-62.84-94.36-62.84-151.615 0-57.255 22.343-111.118 62.84-151.615 40.497-40.498 94.36-62.84 151.615-62.84 57.255 0 111.118 22.342 151.615 62.84 40.497 40.497 62.84 94.36 62.84 151.615 0 57.254-22.343 111.118-62.84 151.615-40.497 40.497-94.36 62.84-151.615 62.84z m0-379.037c-90.77 0-164.582 73.812-164.582 164.582s73.812 164.582 164.582 164.582 164.582-73.813 164.582-164.582S603.17 348.715 512.4 348.715z"/></svg>`
+    };
+
+    let state = {
+      isFlat: false,
+      isStep: true,
+      hasDiff: true,
+      impoActive: true,
+      idActive: true
+    };
+
+    function updateLive() {
+      const capsule = document.getElementById('liveCapsule');
+      const iconWrap = document.getElementById('liveIconWrap');
+      const textSlot = document.getElementById('liveText');
+
+      if (!state.hasDiff) {
+        capsule.style.display = 'none';
+      } else {
+        capsule.style.display = 'inline-flex';
+        if (state.isFlat) {
+          capsule.className = 'skeuo-capsule flat';
+          iconWrap.innerHTML = ICON_SVGS.flat;
+          textSlot.innerText = '232×320';
+        } else {
+          capsule.className = 'skeuo-capsule roll';
+          iconWrap.innerHTML = ICON_SVGS.roll;
+          textSlot.innerText = '高 150';
+        }
+      }
+
+      document.getElementById('btnImpoToggle').className = state.impoActive ? 'btn-ghost-icon active' : 'btn-ghost-icon';
+      document.getElementById('btnIdToggle').className = state.idActive ? 'btn-ghost-icon active' : 'btn-ghost-icon';
+
+      // 平张/卷装 纯图标
+      document.getElementById('segFlat').className = state.isFlat ? 'seg-icon-item active' : 'seg-icon-item';
+      document.getElementById('segRoll').className = !state.isFlat ? 'seg-icon-item active' : 'seg-icon-item';
+      document.getElementById('btnFlat').className = state.isFlat ? 'btn-switch active' : 'btn-switch';
+      document.getElementById('btnRoll').className = !state.isFlat ? 'btn-switch active' : 'btn-switch';
+
+      // 连拼/折手 纯图标
+      document.getElementById('segStep').className = state.isStep ? 'seg-icon-item active' : 'seg-icon-item';
+      document.getElementById('segSign').className = !state.isStep ? 'seg-icon-item active' : 'seg-icon-item';
+      document.getElementById('btnStep').className = state.isStep ? 'btn-switch active' : 'btn-switch';
+      document.getElementById('btnSign').className = !state.isStep ? 'btn-switch active' : 'btn-switch';
+
+      // 胶囊开关
+      document.getElementById('btnCapsuleOn').className = state.hasDiff ? 'btn-switch active' : 'btn-switch';
+      document.getElementById('btnCapsuleOff').className = !state.hasDiff ? 'btn-switch active' : 'btn-switch';
+
+      // 指标
+      document.getElementById('vGrid').innerText = state.isFlat ? '5 × 2' : '2 × 6';
+      document.getElementById('vCount').innerText = state.isFlat ? '10' : '12';
+      document.getElementById('vRot').innerText = state.isFlat ? '0°' : '270°';
+    }
+
+    function toggleImpoState() {
+      state.impoActive = !state.impoActive;
+      updateLive();
+    }
+
+    function toggleIdState() {
+      state.idActive = !state.idActive;
+      updateLive();
+    }
+
+    function setMaterial(isFlat) {
+      state.isFlat = isFlat;
+      updateLive();
+    }
+
+    function setLayout(isStep) {
+      state.isStep = isStep;
+      updateLive();
+    }
+
+    function setDiff(hasDiff) {
+      state.hasDiff = hasDiff;
+      updateLive();
+    }
+
+    updateLive();
+  </script>
+</body>
+</html>

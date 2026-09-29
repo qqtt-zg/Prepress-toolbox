@@ -169,6 +169,57 @@ namespace WindowsFormsApp3.Tests.Services
         }
 
         [Fact]
+        public void RenameFileImmediately_WithFoldingLayoutMode_NoShape_Should_AddBlankPages_And_OutputSingleCleanFile()
+        {
+            // 准备 3 页的测试 PDF（版数为 4 时应自动补齐 1 页空白页到 4 页）
+            string sourcePdfPath = Path.Combine(_testDirectory, "folding_test.pdf");
+            string outputFilePath = Path.Combine(_exportDirectory, "folding_processed.pdf");
+
+            using (var writer = new PdfWriter(sourcePdfPath))
+            using (var document = new PdfDocument(writer))
+            {
+                document.AddNewPage(new iText.Kernel.Geom.PageSize(200, 300));
+                document.AddNewPage(new iText.Kernel.Geom.PageSize(200, 300));
+                document.AddNewPage(new iText.Kernel.Geom.PageSize(200, 300));
+            }
+
+            var fileInfo = new FileRenameInfo
+            {
+                FullPath = sourcePdfPath,
+                OriginalName = "folding_test.pdf",
+                NewName = "folding_processed.pdf"
+            };
+
+            // 不勾选形状处理（AddPdfLayers = false），但选择折手排版且版数 = 4
+            var pdfOptions = new PdfProcessingOptions
+            {
+                AddPdfLayers = false,
+                AddIdentifierPage = false,
+                RotationAngle = 0,
+                LayoutMode = LayoutMode.Folding,
+                LayoutQuantity = 4,
+                CopyCount = 0,
+                DuplicateCount = 0
+            };
+
+            bool success = _fileRenameService.RenameFileImmediately(fileInfo, _exportDirectory, isCopyMode: true, pdfOptions: pdfOptions);
+
+            Assert.True(success, $"重命名失败原因: {fileInfo.ErrorMessage}");
+            Assert.True(File.Exists(outputFilePath));
+
+            // 验证页数被自动补齐为 4 页
+            using (var reader = new PdfReader(outputFilePath))
+            using (var document = new PdfDocument(reader))
+            {
+                Assert.Equal(4, document.GetNumberOfPages());
+            }
+
+            // 验证目标导出目录下只有这 1 个最终文件，没有任何残留的临时文件
+            var filesInExportDir = Directory.GetFiles(_exportDirectory, "*folding*");
+            Assert.Single(filesInExportDir);
+        }
+
+        [Fact]
         public void SetAllPageBoxesToCropBox_Should_Unify_Mixed_PageSizes()
         {
             string sourcePdfPath = Path.Combine(_testDirectory, "mixed_pages_boxes.pdf");

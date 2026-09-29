@@ -56,11 +56,12 @@ namespace WindowsFormsApp3.Tests.Forms
                 Assert.NotNull(orderLabel);
                 Assert.NotNull(menu);
 
-                // 1. 验证按钮尺寸与对齐坐标（固定布局）
-                Assert.Equal(new Point(300, 329), modeBtn.Location);
-                Assert.Equal(new Size(82, 32), modeBtn.Size);
-                Assert.Equal(new Point(197, 329), orderInput.Location);
-                Assert.Equal(new Point(150, 333), orderLabel.Location);
+                // 1. 验证 V5 等宽组合框内的按钮与输入框位置。
+                Assert.Equal(new Point(103, 1), modeBtn.Location);
+                Assert.Equal(new Size(70, 22), modeBtn.Size);
+                Assert.Equal(new Point(36, 1), orderInput.Location);
+                Assert.Equal(new Size(67, 22), orderInput.Size);
+                Assert.False(orderLabel.Visible);
 
                 // 2. 验证 AntdUI 请求模型的主菜单结构
                 Assert.Equal(3, menu.Count);
@@ -108,7 +109,7 @@ namespace WindowsFormsApp3.Tests.Forms
                 form.SelectOrderNumberMode(OrderNumberMode.AutoIncrement);
                 Assert.Equal(OrderNumberMode.AutoIncrement, form.CurrentOrderNumberMode);
                 Assert.Equal("自动递增 ▾", modeBtn.Text);
-                Assert.Equal(new Point(300, 329), modeBtn.Location);
+                Assert.Equal(new Point(103, 1), modeBtn.Location);
 
                 // 2. 选择具体正则子规则【订单号_PO数字】
                 form.SelectOrderRegexRule("订单号_PO数字", @"PO\d+");
@@ -118,13 +119,13 @@ namespace WindowsFormsApp3.Tests.Forms
                 Assert.Equal("订单号_PO数字 ▾", modeBtn.Text);
                 Assert.Equal("PO998877", orderInput.Text);
                 Assert.Equal("PO998877", form.OrderNumber);
-                Assert.Equal(new Point(300, 329), modeBtn.Location);
+                Assert.Equal(new Point(103, 1), modeBtn.Location);
 
                 // 3. 切换回【无】
                 form.SelectOrderNumberMode(OrderNumberMode.None);
                 Assert.Equal(OrderNumberMode.None, form.CurrentOrderNumberMode);
                 Assert.Equal("无 ▾", modeBtn.Text);
-                Assert.Equal(new Point(300, 329), modeBtn.Location);
+                Assert.Equal(new Point(103, 1), modeBtn.Location);
             }
         }
 

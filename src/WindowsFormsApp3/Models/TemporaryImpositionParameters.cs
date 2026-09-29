@@ -5,7 +5,11 @@ namespace WindowsFormsApp3.Models
     /// </summary>
     public class TemporaryImpositionParameters
     {
+        /// <summary>平张纸张尺寸是否已解锁自定义。</summary>
         public bool IsPaperSizeUnlocked { get; set; }
+
+        /// <summary>卷装材料规格是否已解锁自定义。</summary>
+        public bool IsRollSizeUnlocked { get; set; }
 
         public float PaperWidth { get; set; }
         public float PaperHeight { get; set; }

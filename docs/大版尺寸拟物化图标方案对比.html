@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V5工作台 · 大版尺寸平张与卷装「拟物化」图标方案探索</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel-bg: #1e293b;
+      --card-bg: #ffffff;
+      --border: #334155;
+      --border-light: #475569;
+      --text: #f8fafc;
+      --text-secondary: #94a3b8;
+      --primary: #38bdf8;
+      --primary-dark: #0284c7;
+      --flat-blue: #0284c7;
+      --flat-blue-bg: #e0f2fe;
+      --flat-blue-border: #7dd3fc;
+      --roll-amber: #d97706;
+      --roll-amber-bg: #fef3c7;
+      --roll-amber-border: #fcd34d;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 30px;
+      font-size: 13px;
+    }
+
+    .header-section {
+      max-width: 1280px;
+      margin: 0 auto 28px;
+      background: var(--panel-bg);
+      padding: 24px 28px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    }
+    .header-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-subtitle {
+      color: var(--text-secondary);
+      margin-top: 8px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .main-grid {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    /* 左侧 V5 实机模拟台 */
+    .sim-panel {
+      background: var(--panel-bg);
+      border-radius: 12px;
+      padding: 22px;
+      border: 1px solid var(--border);
+    }
+    .sim-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .sim-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #fff;
+    }
+
+    /* 360px 仿真工位白底容器 */
+    .v5-mock-window {
+      width: 360px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      color: #1e293b;
+    }
+    .v5-mock-titlebar {
+      height: 28px;
+      background: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .v5-card-5 {
+      margin: 10px;
+      border: 1px solid #d4dbe4;
+      border-radius: 6px;
+      padding: 8px;
+      background: #fff;
+    }
+
+    /* 卡片 5 控制行 */
+    .impo-control-row {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .btn-impo-toggle {
+      width: 26px;
+      height: 24px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1677ff;
+      color: #fff;
+      cursor: pointer;
+    }
+    .btn-impo-toggle svg { width: 14px; height: 14px; fill: currentColor; }
+
+    /* 拟物胶囊核心样式 */
+    .skeuo-capsule {
+      height: 24px;
+      padding: 0 7px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      white-space: nowrap;
+      user-select: none;
+    }
+    .skeuo-capsule.flat {
+      background: var(--flat-blue-bg);
+      border: 1px solid var(--flat-blue-border);
+      color: #0369a1;
+    }
+    .skeuo-capsule.flat:hover {
+      background: #bae6fd;
+      border-color: #38bdf8;
+    }
+    .skeuo-capsule.roll {
+      background: var(--roll-amber-bg);
+      border: 1px solid var(--roll-amber-border);
+      color: #92400e;
+    }
+    .skeuo-capsule.roll:hover {
+      background: #fde68a;
+      border-color: #f59e0b;
+    }
+    .skeuo-capsule svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    /* 微型分段 */
+    .mini-seg {
+      width: 72px;
+      height: 24px;
+      display: flex;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .mini-seg-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .mini-seg-item.active {
+      background: #e0f2fe;
+      color: #0284c7;
+      font-weight: 700;
+    }
+
+    /* 标识页按钮 */
+    .btn-id-toggle {
+      width: 26px;
+      height: 24px;
+      border-radius: 3px;
+      border: 1px solid #91caff;
+      background: #e6f4ff;
+      color: #1677ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .btn-id-toggle svg { width: 14px; height: 14px; fill: currentColor; }
+
+    /* 6 宫格指标 */
+    .metrics-grid-mock {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      height: 42px;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .metric-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid #f1f5f9;
+      font-size: 10px;
+      color: #64748b;
+    }
+    .metric-cell:last-child { border-right: none; }
+    .metric-val { font-size: 12px; font-weight: 700; margin-top: 1px; }
+
+    /* 交互控制器 */
+    .sim-controls {
+      margin-top: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .ctrl-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .ctrl-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .ctrl-btn-group {
+      display: flex;
+      gap: 6px;
+    }
+    .btn-switch {
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-light);
+      background: #0f172a;
+      color: #cbd5e1;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+    .btn-switch.active {
+      background: #38bdf8;
+      color: #0f172a;
+      border-color: #38bdf8;
+    }
+
+    /* 右侧方案陈列区 */
+    .content-area {
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .design-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      transition: all 0.2s;
+      cursor: pointer;
+      position: relative;
+    }
+    .design-card:hover {
+      border-color: #38bdf8;
+      transform: translateY(-2px);
+    }
+    .design-card.active {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.4);
+      background: #1e293b;
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .card-tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+    .card-tag.rec { background: #0369a1; color: #e0f2fe; }
+    .card-tag.sub { background: #334155; color: #94a3b8; }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* 放大展示与胶囊实景 */
+    .display-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .display-box {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .big-icon-wrap {
+      width: 56px;
+      height: 56px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .big-icon-wrap svg {
+      width: 38px;
+      height: 38px;
+    }
+    .box-caption {
+      font-size: 12px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .detail-list {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.7;
+    }
+    .detail-list strong { color: #f1f5f9; }
+  </style>
+</head>
+<body>
+
+  <div class="header-section">
+    <div class="header-title">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#38bdf8" stroke-width="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+      V5工作台 · 大版尺寸「平张」与「卷装」拟物化线性图标方案探索
+    </div>
+    <div class="header-subtitle">
+      告别抽象平面几何！通过引入<strong>多层堆叠印张 (Flat Sheet Stack)</strong> 与 <strong>带卷心及拉伸料带的轮转卷筒 (Roll Reel with Web)</strong> 的物理透视结构，让印前操作员一眼即知大版物理介质形态。
+    </div>
+  </div>
+
+  <div class="main-grid">
+
+    <!-- 左侧实机 360px 仿真看板 -->
+    <div class="sim-panel">
+      <div class="sim-header">
+        <div class="sim-title">360px 实机效果模拟看板</div>
+        <div class="sim-badge" id="simBadge">方案 1: 立体透视纸垛 & 卷轴带料</div>
+      </div>
+
+      <div class="v5-mock-window">
+        <div class="v5-mock-titlebar">
+          <span>材料选择 (V5 一体化工作台)</span>
+          <span style="color:#64748b;">📌 012-铭牌</span>
+        </div>
+
+        <div class="v5-card-5">
+          <!-- 卡片 5 控制行 -->
+          <div class="impo-control-row">
+            <!-- 拼版开关 -->
+            <div class="btn-impo-toggle" title="自动排版计算已启用">
+              <svg viewBox="0 0 16 16">
+                <rect x="1" y="1" width="3.5" height="3.5" rx="0.5"/>
+                <rect x="6.25" y="1" width="3.5" height="3.5" rx="0.5"/>
+                <rect x="11.5" y="1" width="3.5" height="3.5" rx="0.5"/>
+                <rect x="1" y="6.25" width="3.5" height="3.5" rx="0.5"/>
+                <rect x="6.25" y="6.25" width="3.5" height="3.5" rx="0.5"/>
+                <rect x="11.5" y="6.25" width="3.5" height="3.5" rx="0.5"/>
+                <rect x="1" y="11.5" width="3.5" height="3.5" rx="0.5"/>
+                <rect x="6.25" y="11.5" width="3.5" height="3.5" rx="0.5"/>
+                <rect x="11.5" y="11.5" width="3.5" height="3.5" rx="0.5"/>
+              </svg>
+            </div>
+
+            <!-- 【主角】：拟物大版尺寸胶囊 -->
+            <div class="skeuo-capsule flat" id="liveCapsule" onclick="alert('原地打开【大版开料参数配置】窗口')" title="当前使用非默认大版尺寸，点击直接调优">
+              <span id="liveIcon"></span>
+              <span id="liveText">232×320</span>
+            </div>
+
+            <!-- 平张 / 卷装 分段胶囊 -->
+            <div class="mini-seg">
+              <div class="mini-seg-item active" id="segFlat" onclick="setMaterial(true)">平张</div>
+              <div class="mini-seg-item" id="segRoll" onclick="setMaterial(false)">卷装</div>
+            </div>
+
+            <!-- 连拼 / 折手 分段胶囊 -->
+            <div class="mini-seg">
+              <div class="mini-seg-item active">连拼</div>
+              <div class="mini-seg-item">折手</div>
+            </div>
+
+            <!-- 标识页开关 -->
+            <div class="btn-id-toggle" title="大版首尾插入标识页 (已开启)">
+              <svg viewBox="64 64 896 896"><path d="M854.6 288.6L639.4 73.4c-6-6-14.1-9.4-22.6-9.4H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V311.3c0-8.6-3.4-16.7-9.4-22.7zM790.2 326H602V137.8L790.2 326zM224 896V128h320v224c0 17.7 14.3 32 32 32h224v512H224z"/><path d="M320 448h384v64H320zm0 144h384v64H320zm0 144h256v64H320z"/></svg>
+            </div>
+          </div>
+
+          <!-- 看板指标格 -->
+          <div class="metrics-grid-mock">
+            <div class="metric-cell">
+              <span>网格</span>
+              <span class="metric-val" style="color:#1677ff;" id="vGrid">5 × 2</span>
+            </div>
+            <div class="metric-cell">
+              <span>布局数</span>
+              <span class="metric-val" style="color:#fa8c16;" id="vCount">10</span>
+            </div>
+            <div class="metric-cell">
+              <span>角度</span>
+              <span class="metric-val" style="color:#722ed1;" id="vRot">0°</span>
+            </div>
+            <div class="metric-cell">
+              <span>尺寸 🅉</span>
+              <span class="metric-val" style="color:#0958d9;">80×45</span>
+            </div>
+            <div class="metric-cell">
+              <span>出血</span>
+              <span class="metric-val" style="color:#eb2f96;">2.0</span>
+            </div>
+            <div class="metric-cell">
+              <span>颜色</span>
+              <span class="metric-val" style="color:#13c2c2;">彩色</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 控制器 -->
+      <div class="sim-controls">
+        <div class="ctrl-row">
+          <div class="ctrl-label">切换工单材料形态：</div>
+          <div class="ctrl-btn-group">
+            <button class="btn-switch active" id="btnFlat" onclick="setMaterial(true)">📄 平张大版 (蓝系)</button>
+            <button class="btn-switch" id="btnRoll" onclick="setMaterial(false)">🌀 卷装大版 (橙系)</button>
+          </div>
+        </div>
+
+        <div class="ctrl-row">
+          <div class="ctrl-label">模拟尺寸一致性：</div>
+          <div class="ctrl-btn-group">
+            <button class="btn-switch active" id="btnDiffOn" onclick="setDiff(true)">非默认尺寸 (浮现胶囊)</button>
+            <button class="btn-switch" id="btnDiffOff" onclick="setDiff(false)">与默认一致 (隐藏保持极简)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧方案矩阵 -->
+    <div class="content-area">
+
+      <!-- 方案 1: 立体透视物象 (强烈推荐) -->
+      <div class="design-card active" id="card-1" onclick="selectScheme(1, this)">
+        <div class="card-top">
+          <div class="card-title">方案 1：【立体透视实景微拟物】(首选推荐)</div>
+          <span class="card-tag rec">⭐ 拟物感最强 · 行业认知第一</span>
+        </div>
+
+        <div class="display-row">
+          <!-- 平张 -->
+          <div class="display-box">
+            <div class="big-icon-wrap" style="color:#38bdf8;">
+              <!-- 拟物平张：等角透视多层堆叠纸张 (Stack of Sheets) -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <!-- 底层纸 -->
+                <path d="M4 14l8 4 8-4" stroke-opacity="0.5"/>
+                <!-- 中层纸 -->
+                <path d="M4 10l8 4 8-4" stroke-opacity="0.75"/>
+                <!-- 顶层纸面 -->
+                <polygon points="12,2 20,6 12,10 4,6"/>
+              </svg>
+            </div>
+            <div class="box-caption">平张 · 立体堆叠纸垛 (Sheet Stack)</div>
+            <div class="skeuo-capsule flat" style="cursor:default;">
+              <svg viewBox="0 0 16 16" fill="none" stroke="#0369a1" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2.5 10l5.5 2.8 5.5-2.8" stroke-opacity="0.6"/>
+                <path d="M2.5 7.2l5.5 2.8 5.5-2.8" stroke-opacity="0.8"/>
+                <polygon points="8,1.5 13.5,4.3 8,7.1 2.5,4.3"/>
+              </svg>
+              <span>232×320</span>
+            </div>
+          </div>
+
+          <!-- 卷装 -->
+          <div class="display-box">
+            <div class="big-icon-wrap" style="color:#fbbf24;">
+              <!-- 拟物卷装：立体圆柱筒身 + 空心纸芯管 + 展开出纸带 (Roll with Core & Web) -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <!-- 顶部卷芯外椭圆 -->
+                <ellipse cx="8" cy="7" rx="5" ry="3"/>
+                <!-- 空心纸芯内孔 -->
+                <ellipse cx="8" cy="7" rx="2" ry="1.2" stroke-width="1.3"/>
+                <!-- 卷筒立面筒身 -->
+                <path d="M3 7v10c0 1.66 2.24 3 5 3s5-1.34 5-3V7"/>
+                <!-- 底部展开平拖出的连续料带 -->
+                <path d="M8 20h11c1.1 0 2-.9 2-2V13"/>
+                <line x1="13" y1="17" x2="21" y2="17" stroke-dasharray="2 2" stroke-opacity="0.6"/>
+              </svg>
+            </div>
+            <div class="box-caption">卷装 · 3D圆柱卷筒+引出料带 (Roll & Web)</div>
+            <div class="skeuo-capsule roll" style="cursor:default;">
+              <svg viewBox="0 0 16 16" fill="none" stroke="#92400e" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="5.5" cy="4.5" rx="3.5" ry="2"/>
+                <ellipse cx="5.5" cy="4.5" rx="1.4" ry="0.8"/>
+                <path d="M2 4.5v6.5c0 1.1 1.57 2 3.5 2s3.5-.9 3.5-2v-6.5"/>
+                <path d="M5.5 13h7c.8 0 1.5-.7 1.5-1.5V8.5"/>
+              </svg>
+              <span>330幅宽</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-list">
+          • <strong>平张物理特征：</strong>采用标准等角透视（Isometric）多层印张堆叠。3 层纸张厚度线条清晰，绝非单薄的扁平文件图标，一眼即看出是印刷车间整整齐齐的<strong>一垛切齐单张纸</strong>。<br>
+          • <strong>卷装物理特征：</strong>具备立体的<strong>圆柱卷身、中空纸管卷芯（Core）、以及从卷底顺滑拉出的连续料带</strong>。印刷工人哪怕隔着半米远看屏幕，都知道这是装在放卷架上的<strong>不干胶大卷料</strong>！
+        </div>
+      </div>
+
+      <!-- 方案 2: 机械机构拟物 -->
+      <div class="design-card" id="card-2" onclick="selectScheme(2, this)">
+        <div class="card-top">
+          <div class="card-title">方案 2：【机械构造与放料工位拟物】</div>
+          <span class="card-tag sub">工业机械风</span>
+        </div>
+
+        <div class="display-row">
+          <!-- 平张 -->
+          <div class="display-box">
+            <div class="big-icon-wrap" style="color:#38bdf8;">
+              <!-- 咬口夹持平张纸 -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <!-- 印刷纸张平板 -->
+                <rect x="3" y="4" width="18" height="14" rx="1"/>
+                <!-- 咬口条与四边规矩标线 -->
+                <line x1="3" y1="8" x2="21" y2="8" stroke-width="1.2"/>
+                <rect x="5" y="5.5" width="2" height="1.5" fill="#38bdf8"/>
+                <rect x="17" y="5.5" width="2" height="1.5" fill="#38bdf8"/>
+                <!-- 纸面开料双十字线 -->
+                <line x1="12" y1="8" x2="12" y2="18" stroke-dasharray="2 2" stroke-opacity="0.6"/>
+              </svg>
+            </div>
+            <div class="box-caption">平张 · 带咬口与规线的印张</div>
+            <div class="skeuo-capsule flat" style="cursor:default;">
+              <svg viewBox="0 0 16 16" fill="none" stroke="#0369a1" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2.5" width="12" height="11" rx="1"/>
+                <line x1="2" y1="5.5" x2="14" y2="5.5"/>
+                <line x1="8" y1="5.5" x2="8" y2="13.5" stroke-dasharray="1.5 1.5" stroke-opacity="0.7"/>
+              </svg>
+              <span>232×320</span>
+            </div>
+          </div>
+
+          <!-- 卷装 -->
+          <div class="display-box">
+            <div class="big-icon-wrap" style="color:#fbbf24;">
+              <!-- 机械双辊放卷压辊结构 -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <!-- 大主卷 -->
+                <circle cx="8" cy="12" r="6"/>
+                <circle cx="8" cy="12" r="2.2" stroke-width="1.2"/>
+                <!-- 上张力过纸小辊 -->
+                <circle cx="18" cy="7" r="2.8"/>
+                <!-- 贯穿走纸料带 S 型曲线 -->
+                <path d="M8 6h10"/>
+                <path d="M20.8 7v10"/>
+              </svg>
+            </div>
+            <div class="box-caption">卷装 · 轮转机放卷辊与过纸张力辊</div>
+            <div class="skeuo-capsule roll" style="cursor:default;">
+              <svg viewBox="0 0 16 16" fill="none" stroke="#92400e" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="5.5" cy="8.5" r="4"/>
+                <circle cx="5.5" cy="8.5" r="1.5"/>
+                <circle cx="12" cy="5" r="2"/>
+                <path d="M5.5 4.5H12"/>
+                <path d="M14 5v6"/>
+              </svg>
+              <span>330幅宽</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-list">
+          • <strong>平张物理特征：</strong>展示带咬口夹爪与四边规线的印刷机进纸平台，突出上机定位感；<br>
+          • <strong>卷装物理特征：</strong>展示轮转印刷机经典的“主放卷盘 + 张力张紧导辊”，突出连续牵引过料。
+        </div>
+      </div>
+
+      <!-- 方案 3: 卷盘螺旋与板幅质感 -->
+      <div class="design-card" id="card-3" onclick="selectScheme(3, this)">
+        <div class="card-top">
+          <div class="card-title">方案 3：【紧实螺旋卷盘 & 双裁切折角张】</div>
+          <span class="card-tag sub">精密图示风</span>
+        </div>
+
+        <div class="display-row">
+          <!-- 平张 -->
+          <div class="display-box">
+            <div class="big-icon-wrap" style="color:#38bdf8;">
+              <!-- 双层折角裁切大张 -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <!-- 后张 -->
+                <path d="M7 3h11a2 2 0 0 1 2 2v11" stroke-opacity="0.5"/>
+                <!-- 前张 -->
+                <path d="M4 7h10l4 4v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/>
+                <path d="M14 7v4h4"/>
+              </svg>
+            </div>
+            <div class="box-caption">平张 · 双层折角裁切张</div>
+            <div class="skeuo-capsule flat" style="cursor:default;">
+              <svg viewBox="0 0 16 16" fill="none" stroke="#0369a1" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 2h7a1 1 0 0 1 1 1v7" stroke-opacity="0.5"/>
+                <path d="M3 5h6l3 3v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>
+                <path d="M9 5v3h3"/>
+              </svg>
+              <span>232×320</span>
+            </div>
+          </div>
+
+          <!-- 卷装 -->
+          <div class="display-box">
+            <div class="big-icon-wrap" style="color:#fbbf24;">
+              <!-- 真实阿基米德螺旋紧密卷料 -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <!-- 真实密集卷绕螺旋线 -->
+                <path d="M12 12a1.5 1.5 0 0 1-1.5-1.5 3 3 0 0 1 3-3 4.5 4.5 0 0 1 4.5 4.5 6 6 0 0 1-6 6 7.5 7.5 0 0 1-7.5-7.5 9 9 0 0 1 9-9h5"/>
+                <polyline points="18 4 21 1.5 18 -1" transform="translate(0, 1)"/>
+              </svg>
+            </div>
+            <div class="box-caption">卷装 · 紧实螺旋紧绕卷盘</div>
+            <div class="skeuo-capsule roll" style="cursor:default;">
+              <svg viewBox="0 0 16 16" fill="none" stroke="#92400e" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="7" cy="8" r="5.5"/>
+                <circle cx="7" cy="8" r="3.2"/>
+                <circle cx="7" cy="8" r="1.3"/>
+                <path d="M7 2.5h6"/>
+              </svg>
+              <span>330幅宽</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-list">
+          • <strong>平张：</strong>强调多层交错折角与裁切质感；<br>
+          • <strong>卷装：</strong>强调高密度盘卷成形的紧实卷筒纸卷。
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // 方案 SVG 映射表 (精确到 16x16 微型视图)
+    const SCHEME_SVGS = {
+      1: {
+        name: "方案 1: 立体透视纸垛 & 卷轴带料",
+        flat: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 10l5.5 2.8 5.5-2.8" stroke-opacity="0.6"/><path d="M2.5 7.2l5.5 2.8 5.5-2.8" stroke-opacity="0.8"/><polygon points="8,1.5 13.5,4.3 8,7.1 2.5,4.3"/></svg>`,
+        roll: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="5.5" cy="4.5" rx="3.5" ry="2"/><ellipse cx="5.5" cy="4.5" rx="1.4" ry="0.8"/><path d="M2 4.5v6.5c0 1.1 1.57 2 3.5 2s3.5-.9 3.5-2v-6.5"/><path d="M5.5 13h7c.8 0 1.5-.7 1.5-1.5V8.5"/></svg>`
+      },
+      2: {
+        name: "方案 2: 咬口印张板 & 轮转机放卷架",
+        flat: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="1"/><line x1="2" y1="5.5" x2="14" y2="5.5"/><line x1="8" y1="5.5" x2="8" y2="13.5" stroke-dasharray="1.5 1.5" stroke-opacity="0.7"/></svg>`,
+        roll: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="8.5" r="4"/><circle cx="5.5" cy="8.5" r="1.5"/><circle cx="12" cy="5" r="2"/><path d="M5.5 4.5H12"/><path d="M14 5v6"/></svg>`
+      },
+      3: {
+        name: "方案 3: 双层折角张 & 紧实螺旋卷盘",
+        flat: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2h7a1 1 0 0 1 1 1v7" stroke-opacity="0.5"/><path d="M3 5h6l3 3v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M9 5v3h3"/></svg>`,
+        roll: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="8" r="5.5"/><circle cx="7" cy="8" r="3.2"/><circle cx="7" cy="8" r="1.3"/><path d="M7 2.5h6"/></svg>`
+      }
+    };
+
+    let state = {
+      schemeId: 1,
+      isFlat: true,
+      hasDiff: true
+    };
+
+    function updateLive() {
+      const capsule = document.getElementById('liveCapsule');
+      const iconSlot = document.getElementById('liveIcon');
+      const textSlot = document.getElementById('liveText');
+      const badge = document.getElementById('simBadge');
+
+      badge.innerText = SCHEME_SVGS[state.schemeId].name;
+
+      if (!state.hasDiff) {
+        capsule.style.display = 'none';
+        return;
+      }
+
+      capsule.style.display = 'inline-flex';
+      if (state.isFlat) {
+        capsule.className = 'skeuo-capsule flat';
+        iconSlot.innerHTML = SCHEME_SVGS[state.schemeId].flat;
+        textSlot.innerText = '232×320';
+      } else {
+        capsule.className = 'skeuo-capsule roll';
+        iconSlot.innerHTML = SCHEME_SVGS[state.schemeId].roll;
+        textSlot.innerText = '330幅宽';
+      }
+
+      // 同步分段胶囊高亮
+      document.getElementById('segFlat').className = state.isFlat ? 'mini-seg-item active' : 'mini-seg-item';
+      document.getElementById('segRoll').className = !state.isFlat ? 'mini-seg-item active' : 'mini-seg-item';
+      document.getElementById('btnFlat').className = state.isFlat ? 'btn-switch active' : 'btn-switch';
+      document.getElementById('btnRoll').className = !state.isFlat ? 'btn-switch active' : 'btn-switch';
+
+      // 同步看板
+      document.getElementById('vGrid').innerText = state.isFlat ? '5 × 2' : '2 × 6';
+      document.getElementById('vCount').innerText = state.isFlat ? '10' : '12';
+      document.getElementById('vRot').innerText = state.isFlat ? '0°' : '270°';
+    }
+
+    function selectScheme(id, cardElem) {
+      state.schemeId = id;
+      document.querySelectorAll('.design-card').forEach(c => c.classList.remove('active'));
+      cardElem.classList.add('active');
+      updateLive();
+    }
+
+    function setMaterial(isFlat) {
+      state.isFlat = isFlat;
+      updateLive();
+    }
+
+    function setDiff(hasDiff) {
+      state.hasDiff = hasDiff;
+      document.getElementById('btnDiffOn').className = hasDiff ? 'btn-switch active' : 'btn-switch';
+      document.getElementById('btnDiffOff').className = !hasDiff ? 'btn-switch active' : 'btn-switch';
+      updateLive();
+    }
+
+    // 初始化
+    updateLive();
+  </script>
+</body>
+</html>

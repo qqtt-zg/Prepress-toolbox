@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V5工作台 · 大版尺寸(平张/卷装)与标识页线性图标方案展示</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --card-bg: #ffffff;
+      --border: #d4dbe4;
+      --border-light: #e2e8f0;
+      --text: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --primary: #1677ff;
+      --primary-hover: #4096ff;
+      --primary-light: #e6f4ff;
+      --primary-border: #91caff;
+      --amber-bg: #fef3c7;
+      --amber-border: #fcd34d;
+      --amber-text: #b45309;
+      --amber-hover: #fde68a;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 24px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .page-header {
+      max-width: 1240px;
+      margin: 0 auto 20px;
+      background: #fff;
+      padding: 20px 24px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      border: 1px solid var(--border-light);
+    }
+    .page-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .page-desc {
+      color: var(--text-secondary);
+      margin-top: 6px;
+      font-size: 13px;
+    }
+
+    .main-layout {
+      max-width: 1240px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 410px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* 模拟器工作台卡片 */
+    .simulator-pane {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      border: 1px solid var(--border-light);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .sim-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .sim-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sim-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* V5 360px 拟真工位容器 */
+    .v5-station-mock {
+      width: 360px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+    .v5-window-title {
+      height: 26px;
+      background: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    /* 卡片 5: 拼版看板真实模拟 */
+    .card-5-wrap {
+      padding: 8px 10px;
+      background: #fff;
+    }
+    .card-5-box {
+      border: 1px solid #d4dbe4;
+      border-radius: 4px;
+      padding: 6px;
+      background: #fff;
+    }
+
+    /* 控制行 26px 高 */
+    .impo-control-row {
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    /* 左侧拼版开关 26x24 */
+    .btn-impo-toggle {
+      width: 26px;
+      height: 24px;
+      border-radius: 3px;
+      border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #1677ff;
+      color: #fff;
+    }
+    .btn-impo-toggle.inactive {
+      background: #f1f3f5;
+      color: #8c95a3;
+      border-color: #d9d9d9;
+    }
+    .btn-impo-toggle svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    /* 尺寸差异胶囊 (平张 vs 卷装 动态变身) */
+    .custom-size-capsule {
+      height: 24px;
+      padding: 0 6px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #e6f4ff;
+      border: 1px solid #91caff;
+      color: #0958d9;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .custom-size-capsule:hover {
+      background: #bae0ff;
+    }
+    .custom-size-capsule svg {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+    }
+    .custom-size-capsule.roll {
+      background: #fef3c7;
+      border-color: #fcd34d;
+      color: #b45309;
+    }
+    .custom-size-capsule.roll:hover {
+      background: #fde68a;
+    }
+
+    /* 微型分段胶囊 72x24 */
+    .mini-segmented {
+      width: 72px;
+      height: 24px;
+      display: flex;
+      background: #fff;
+      border: 1px solid #d3d9e2;
+      border-radius: 2px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .mini-segmented-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #5c6370;
+      user-select: none;
+      transition: all 0.15s;
+    }
+    .mini-segmented-item.active {
+      background: #e6f4ff;
+      color: #1677ff;
+      font-weight: 700;
+    }
+
+    /* 标识页微型开关按钮 26x24 */
+    .btn-identifier-toggle {
+      width: 26px;
+      height: 24px;
+      border-radius: 3px;
+      border: 1px solid #d9d9d9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: transparent;
+      color: #8c95a3;
+      position: relative;
+    }
+    .btn-identifier-toggle:hover {
+      border-color: #4096ff;
+      color: #1677ff;
+    }
+    .btn-identifier-toggle.active {
+      background: #e6f4ff;
+      border-color: #91caff;
+      color: #1677ff;
+    }
+    .btn-identifier-toggle svg {
+      width: 15px;
+      height: 15px;
+      fill: currentColor;
+    }
+
+    /* 6 宫格看板 */
+    .metrics-grid-mock {
+      margin-top: 6px;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      height: 40px;
+      border: 1px solid #dbe2ea;
+      border-radius: 3px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .metric-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid #edf1f5;
+      font-size: 10px;
+      color: #8c95a3;
+    }
+    .metric-cell:last-child { border-right: none; }
+    .metric-val {
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 1px;
+    }
+
+    /* 控制器区域 */
+    .sim-controls {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px dashed var(--border-light);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .ctrl-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .ctrl-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .ctrl-btns {
+      display: flex;
+      gap: 6px;
+    }
+    .ctrl-btn {
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .ctrl-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* 右侧对比与展示区 */
+    .compare-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .section-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      border: 1px solid var(--border-light);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    /* 胶囊对比表格 */
+    .capsule-pairs-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .capsule-pair-card {
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      padding: 14px;
+      background: #f8fafc;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .capsule-pair-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(22, 119, 255, 0.08);
+      transform: translateY(-2px);
+    }
+    .capsule-pair-card.selected {
+      border-color: var(--primary);
+      background: #fafcff;
+      outline: 2px solid rgba(22, 119, 255, 0.25);
+    }
+    .pair-badge {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      color: #475569;
+      font-weight: 600;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+    .pair-badge.rec {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+    .pair-title {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    .pair-samples {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: #fff;
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+      margin-bottom: 10px;
+    }
+    .sample-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .sample-lbl {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .pair-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* 核心对比 Callout */
+    .callout-box {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 12px 16px;
+      border-radius: 0 6px 6px 0;
+      font-size: 12px;
+      color: #1e3a8a;
+      line-height: 1.7;
+    }
+
+    /* Tooltip */
+    .sim-tooltip {
+      position: absolute;
+      top: -30px;
+      right: 0;
+      background: rgba(0, 0, 0, 0.85);
+      color: #fff;
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 3px;
+      pointer-events: none;
+      white-space: nowrap;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: all 0.2s;
+      z-index: 10;
+    }
+    .btn-identifier-toggle:hover .sim-tooltip,
+    .custom-size-capsule:hover .sim-tooltip {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <div class="page-title">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#1677ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+        <line x1="8" y1="21" x2="16" y2="21"></line>
+        <line x1="12" y1="17" x2="12" y2="21"></line>
+      </svg>
+      V5工作台 · 大版尺寸(平张/卷装)与标识页线性图标方案展示
+    </div>
+    <div class="page-desc">
+      将原本平张与卷装通用的 Emoji（<code>📐</code> / <code>🌀</code>）全面升级为具有明显印刷物理属性差别的<strong>矢量线性图标</strong>，并在尺寸与系统设置不一致时浮现高亮微型胶囊，点击直接调优大版参数。
+    </div>
+  </div>
+
+  <div class="main-layout">
+
+    <!-- 左栏：360px 拟真交互台 -->
+    <div class="simulator-pane">
+      <div class="sim-header">
+        <div class="sim-title">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#1677ff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+          实机 360px 看板顶部交互台
+        </div>
+        <div class="sim-badge" id="currentStyleBadge">图元对：1. 纸张与卷筒 (推荐)</div>
+      </div>
+
+      <!-- 拟真 V5 360px 工位 -->
+      <div class="v5-station-mock">
+        <div class="v5-window-title">
+          <span>材料选择 (V5 纯净工位)</span>
+          <span style="color:#64748b;">📌 012-铭牌</span>
+        </div>
+
+        <div class="card-5-wrap">
+          <div class="card-5-box">
+
+            <!-- 卡片 5 控制行 -->
+            <div class="impo-control-row">
+              <!-- 1. 拼版开关 -->
+              <div class="btn-impo-toggle" id="impoToggleBtn" onclick="toggleImposition()" title="启用或停用自动排版计算">
+                <svg viewBox="0 0 16 16">
+                  <rect x="1" y="1" width="3.5" height="3.5" rx="0.5"/>
+                  <rect x="6.25" y="1" width="3.5" height="3.5" rx="0.5"/>
+                  <rect x="11.5" y="1" width="3.5" height="3.5" rx="0.5"/>
+                  <rect x="1" y="6.25" width="3.5" height="3.5" rx="0.5"/>
+                  <rect x="6.25" y="6.25" width="3.5" height="3.5" rx="0.5"/>
+                  <rect x="11.5" y="6.25" width="3.5" height="3.5" rx="0.5"/>
+                  <rect x="1" y="11.5" width="3.5" height="3.5" rx="0.5"/>
+                  <rect x="6.25" y="11.5" width="3.5" height="3.5" rx="0.5"/>
+                  <rect x="11.5" y="11.5" width="3.5" height="3.5" rx="0.5"/>
+                </svg>
+              </div>
+
+              <!-- 2. 【核心焦点 1】：平张 / 卷装 大版尺寸差异胶囊 -->
+              <div class="custom-size-capsule" id="simCapsule" onclick="alert('弹出【大版开料参数配置】窗口进行调参')" title="当前使用非默认大版尺寸，点击直接调优">
+                <span id="capsuleIcon"></span>
+                <span id="capsuleText">232×320</span>
+                <div class="sim-tooltip" id="capsuleTooltip">非默认大版尺寸，点击调优</div>
+              </div>
+
+              <!-- 3. 平张 / 卷装 分段胶囊 -->
+              <div class="mini-segmented">
+                <div class="mini-segmented-item active" id="segFlat" onclick="setMaterialType(true)">平张</div>
+                <div class="mini-segmented-item" id="segRoll" onclick="setMaterialType(false)">卷装</div>
+              </div>
+
+              <!-- 4. 连拼 / 折手 分段胶囊 -->
+              <div class="mini-segmented">
+                <div class="mini-segmented-item active" id="segCont" onclick="setLayoutMode(true)">连拼</div>
+                <div class="mini-segmented-item" id="segFold" onclick="setLayoutMode(false)">折手</div>
+              </div>
+
+              <!-- 5. 【核心焦点 2】：标识页纯线性微型开关按钮 -->
+              <div class="btn-identifier-toggle active" id="btnIdToggle" onclick="toggleIdentifier()">
+                <span id="identifierIconSlot"></span>
+                <div class="sim-tooltip" id="idTooltip">大版首尾插入标识页 (已开启)</div>
+              </div>
+            </div>
+
+            <!-- 6 宫格看板 -->
+            <div class="metrics-grid-mock">
+              <div class="metric-cell">
+                <span>网格</span>
+                <span class="metric-val" style="color:#1677ff;" id="valGrid">5 × 2</span>
+              </div>
+              <div class="metric-cell">
+                <span>布局数</span>
+                <span class="metric-val" style="color:#fa8c16;" id="valCount">10</span>
+              </div>
+              <div class="metric-cell">
+                <span>角度</span>
+                <span class="metric-val" style="color:#722ed1;" id="valRot">0°</span>
+              </div>
+              <div class="metric-cell">
+                <span>尺寸 🅉</span>
+                <span class="metric-val" style="color:#0958d9;">80×45</span>
+              </div>
+              <div class="metric-cell">
+                <span>出血</span>
+                <span class="metric-val" style="color:#eb2f96;">2.0</span>
+              </div>
+              <div class="metric-cell">
+                <span>颜色</span>
+                <span class="metric-val" style="color:#13c2c2;">彩色</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- 实时切换调试面板 -->
+      <div class="sim-controls">
+        <div class="ctrl-group">
+          <div class="ctrl-label">切换材料形态 (平张 vs 卷装)：</div>
+          <div class="ctrl-btns">
+            <button class="ctrl-btn active" id="btnSwitchFlat" onclick="setMaterialType(true)">📄 平张模式 (蓝系)</button>
+            <button class="ctrl-btn" id="btnSwitchRoll" onclick="setMaterialType(false)">🌀 卷装模式 (橙系)</button>
+          </div>
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label">模拟尺寸是否与全局设置一致：</div>
+          <div class="ctrl-btns">
+            <button class="ctrl-btn active" id="btnCapsuleOn" onclick="toggleCapsuleDiff(true)">尺寸不一致 (浮现胶囊)</button>
+            <button class="ctrl-btn" id="btnCapsuleOff" onclick="toggleCapsuleDiff(false)">尺寸一致 (隐藏保持极简)</button>
+          </div>
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label">标识页按钮开关测试：</div>
+          <div class="ctrl-btns">
+            <button class="ctrl-btn active" id="btnIdOn" onclick="setIdentifierState(true)">已开启 (蓝底高亮)</button>
+            <button class="ctrl-btn" id="btnIdOff" onclick="setIdentifierState(false)">已关闭 (浅灰线框)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右栏：平卷大版尺寸图标对比与设计方案 -->
+    <div class="compare-container">
+
+      <!-- 核心设计考量 -->
+      <div class="callout-box">
+        <strong>💡 为什么大版尺寸胶囊必须区分平张与卷装图标？</strong><br>
+        1. <strong>物理属性截然不同：</strong>平张是有限面积的双向纸张（长×宽 mm），卷装是单向固定宽度的连续卷料（幅宽 mm）。使用相同图标会让工人产生概念混淆。<br>
+        2. <strong>告别模糊 Emoji：</strong>原有 Emoji <code>📐</code>（三角板）和 <code>🌀</code>（台风漩涡）在 Windows 各版本上粗细不一且自带彩色，升级为纯线性 SVG 后线宽与文字 100% 严丝合缝。<br>
+        3. <strong>颜色心理暗示：</strong>平张搭配<strong>天蓝色系</strong>（<code>#e6f4ff</code>），卷装搭配<strong>琥珀金/落料橙色系</strong>（<code>#fef3c7</code>），双重强化物理感知！
+      </div>
+
+      <!-- 3组候选线性图标对比 -->
+      <div class="section-card">
+        <div class="section-title">
+          <span>大版尺寸胶囊 · 3 组平张/卷装线性图标方案对比</span>
+          <span style="font-size:11px; color:#1677ff; font-weight:600;">点击卡片可直接应用到左侧实机</span>
+        </div>
+
+        <div class="capsule-pairs-grid">
+
+          <!-- 方案 1: 印刷物理实物图元 (强烈推荐) -->
+          <div class="capsule-pair-card selected" id="pair-1" onclick="selectPair(1, this)">
+            <span class="pair-badge rec">⭐ 方案 1 (行业实景推荐)</span>
+            <div class="pair-title">印张纸板 vs 轮转卷筒</div>
+
+            <div class="pair-samples">
+              <div class="sample-row">
+                <span class="sample-lbl">平张大版:</span>
+                <div class="custom-size-capsule" style="cursor:default;">
+                  <!-- 平张折角纸板 SVG -->
+                  <svg viewBox="0 0 16 16" fill="none" stroke="#0958d9" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 2h6.5l3.5 3.5V14H3V2z"/>
+                    <path d="M9.5 2v3.5H13"/>
+                  </svg>
+                  <span>232×320</span>
+                </div>
+              </div>
+
+              <div class="sample-row">
+                <span class="sample-lbl">卷装大版:</span>
+                <div class="custom-size-capsule roll" style="cursor:default;">
+                  <!-- 轮转卷筒出纸带 SVG -->
+                  <svg viewBox="0 0 16 16" fill="none" stroke="#b45309" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="6" cy="8" r="4.5"/>
+                    <circle cx="6" cy="8" r="1.6"/>
+                    <path d="M6 3.5h7v5"/>
+                  </svg>
+                  <span>330幅宽</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="pair-desc">
+              • <strong>平张：</strong>折角单张印张几何图元，直指物理裁切平板纸；<br>
+              • <strong>卷装：</strong>卷筒同心轴核 + 连续走纸切线，地道体现标签机进纸辊与连续料带。
+            </div>
+          </div>
+
+          <!-- 方案 2: 平面几何与回环 -->
+          <div class="capsule-pair-card" id="pair-2" onclick="selectPair(2, this)">
+            <span class="pair-badge">方案 2 (纯几何形态)</span>
+            <div class="pair-title">矩形画板 vs 旋转同心卷</div>
+
+            <div class="pair-samples">
+              <div class="sample-row">
+                <span class="sample-lbl">平张大版:</span>
+                <div class="custom-size-capsule" style="cursor:default;">
+                  <!-- 纯矩形边框 SVG -->
+                  <svg viewBox="0 0 16 16" fill="none" stroke="#0958d9" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2.5" y="3" width="11" height="10" rx="1"/>
+                    <line x1="2.5" y1="7" x2="13.5" y2="7" stroke-dasharray="1.5 1.5"/>
+                  </svg>
+                  <span>232×320</span>
+                </div>
+              </div>
+
+              <div class="sample-row">
+                <span class="sample-lbl">卷装大版:</span>
+                <div class="custom-size-capsule roll" style="cursor:default;">
+                  <!-- 同心卷轮 SVG -->
+                  <svg viewBox="0 0 16 16" fill="none" stroke="#b45309" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="8" cy="8" r="5.5"/>
+                    <circle cx="8" cy="8" r="3"/>
+                    <circle cx="8" cy="8" r="1"/>
+                  </svg>
+                  <span>330幅宽</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="pair-desc">
+              • <strong>平张：</strong>带标线开料虚线矩形板；<br>
+              • <strong>卷装：</strong>多层同心连续卷盘，强调卷径与卷盘厚度。
+            </div>
+          </div>
+
+          <!-- 方案 3: 测量工具与流转 -->
+          <div class="capsule-pair-card" id="pair-3" onclick="selectPair(3, this)">
+            <span class="pair-badge">方案 3 (工具隐喻)</span>
+            <div class="pair-title">三角绘图尺 vs 连续循环流</div>
+
+            <div class="pair-samples">
+              <div class="sample-row">
+                <span class="sample-lbl">平张大版:</span>
+                <div class="custom-size-capsule" style="cursor:default;">
+                  <!-- 矢量三角尺 SVG -->
+                  <svg viewBox="0 0 16 16" fill="none" stroke="#0958d9" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="2,14 14,14 2,2"/>
+                    <polygon points="4.5,12.5 10.5,12.5 4.5,6.5"/>
+                  </svg>
+                  <span>232×320</span>
+                </div>
+              </div>
+
+              <div class="sample-row">
+                <span class="sample-lbl">卷装大版:</span>
+                <div class="custom-size-capsule roll" style="cursor:default;">
+                  <!-- 连续循环箭头 SVG -->
+                  <svg viewBox="0 0 16 16" fill="none" stroke="#b45309" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M13 8A5 5 0 1 1 8 3h4.5"/>
+                    <polyline points="10 1 13 3.5 10 6"/>
+                  </svg>
+                  <span>330幅宽</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="pair-desc">
+              • <strong>平张：</strong>经典的三角板几何开料（继承原 <code>📐</code> 语义但改为纯细线）；<br>
+              • <strong>卷装：</strong>顺时针循环流转进料，突出连续印刷属性。
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 标识页线性图标选型推荐 -->
+      <div class="section-card">
+        <div class="section-title">
+          <span>标识页线性开关按钮 (当前搭配图标)</span>
+        </div>
+        <div style="display:flex; gap:16px; align-items:center;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div class="btn-identifier-toggle active" style="pointer-events:none;">
+              <svg viewBox="64 64 896 896"><path d="M854.6 288.6L639.4 73.4c-6-6-14.1-9.4-22.6-9.4H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V311.3c0-8.6-3.4-16.7-9.4-22.7zM790.2 326H602V137.8L790.2 326zM224 896V128h320v224c0 17.7 14.3 32 32 32h224v512H224z"/><path d="M320 448h384v64H320zm0 144h384v64H320zm0 144h256v64H320z"/></svg>
+            </div>
+            <span style="font-weight:600;">FileTextOutlined (文本标牌页)</span>
+          </div>
+          <span style="font-size:12px; color:var(--text-secondary);">
+            与左侧 <code>[⊞]</code> 形成绝对对称，右侧不再有粗苯文本，已释放 50px 宽度。
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // 3 组图标 SVG 定义
+    const PAIR_SVGS = {
+      1: {
+        name: "图元对：1. 纸张与卷筒 (推荐)",
+        flat: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2h6.5l3.5 3.5V14H3V2z"/><path d="M9.5 2v3.5H13"/></svg>`,
+        roll: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="8" r="4.5"/><circle cx="6" cy="8" r="1.6"/><path d="M6 3.5h7v5"/></svg>`
+      },
+      2: {
+        name: "图元对：2. 矩形与同心卷",
+        flat: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3" width="11" height="10" rx="1"/><line x1="2.5" y1="7" x2="13.5" y2="7" stroke-dasharray="1.5 1.5"/></svg>`,
+        roll: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.5"/><circle cx="8" cy="8" r="3"/><circle cx="8" cy="8" r="1"/></svg>`
+      },
+      3: {
+        name: "图元对：3. 三角板与连续流",
+        flat: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><polygon points="2,14 14,14 2,2"/><polygon points="4.5,12.5 10.5,12.5 4.5,6.5"/></svg>`,
+        roll: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8A5 5 0 1 1 8 3h4.5"/><polyline points="10 1 13 3.5 10 6"/></svg>`
+      }
+    };
+
+    const ID_SVG = `<svg viewBox="64 64 896 896"><path d="M854.6 288.6L639.4 73.4c-6-6-14.1-9.4-22.6-9.4H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V311.3c0-8.6-3.4-16.7-9.4-22.7zM790.2 326H602V137.8L790.2 326zM224 896V128h320v224c0 17.7 14.3 32 32 32h224v512H224z"/><path d="M320 448h384v64H320zm0 144h384v64H320zm0 144h256v64H320z"/></svg>`;
+
+    // 状态机
+    let state = {
+      pairId: 1,
+      isFlat: true,
+      hasDiff: true,
+      isIdActive: true,
+      isImpoActive: true
+    };
+
+    function render() {
+      // 1. 胶囊渲染
+      const capsule = document.getElementById('simCapsule');
+      const iconSlot = document.getElementById('capsuleIcon');
+      const textSlot = document.getElementById('capsuleText');
+      const tipSlot = document.getElementById('capsuleTooltip');
+      const badge = document.getElementById('currentStyleBadge');
+
+      badge.innerText = PAIR_SVGS[state.pairId].name;
+
+      if (state.hasDiff) {
+        capsule.style.display = 'flex';
+        capsule.className = 'custom-size-capsule' + (state.isFlat ? '' : ' roll');
+        iconSlot.innerHTML = state.isFlat ? PAIR_SVGS[state.pairId].flat : PAIR_SVGS[state.pairId].roll;
+        textSlot.innerText = state.isFlat ? '232×320' : '330幅宽';
+        tipSlot.innerText = state.isFlat
+          ? '平张非默认尺寸 232×320mm，点击调优大版参数'
+          : '卷装非默认幅宽 330mm，点击调优大版参数';
+      } else {
+        capsule.style.display = 'none';
+      }
+
+      // 2. 标识页按钮渲染
+      const idBtn = document.getElementById('btnIdToggle');
+      const idSlot = document.getElementById('identifierIconSlot');
+      const idTip = document.getElementById('idTooltip');
+      idSlot.innerHTML = ID_SVG;
+      idBtn.className = 'btn-identifier-toggle' + (state.isIdActive ? ' active' : '');
+      idTip.innerText = `大版首尾插入标识页 (${state.isIdActive ? '已开启' : '已关闭'})`;
+
+      // 3. 模式分段同步
+      document.getElementById('segFlat').className = 'mini-segmented-item' + (state.isFlat ? ' active' : '');
+      document.getElementById('segRoll').className = 'mini-segmented-item' + (!state.isFlat ? ' active' : '');
+      document.getElementById('btnSwitchFlat').className = 'ctrl-btn' + (state.isFlat ? ' active' : '');
+      document.getElementById('btnSwitchRoll').className = 'ctrl-btn' + (!state.isFlat ? ' active' : '');
+
+      // 看板数值微调联动
+      document.getElementById('valGrid').innerText = state.isFlat ? '5 × 2' : '2 × 6';
+      document.getElementById('valCount').innerText = state.isFlat ? '10' : '12';
+      document.getElementById('valRot').innerText = state.isFlat ? '0°' : '270°';
+    }
+
+    function selectPair(id, cardElem) {
+      state.pairId = id;
+      document.querySelectorAll('.capsule-pair-card').forEach(c => c.classList.remove('selected'));
+      cardElem.classList.add('selected');
+      render();
+    }
+
+    function setMaterialType(isFlat) {
+      state.isFlat = isFlat;
+      render();
+    }
+
+    function toggleCapsuleDiff(hasDiff) {
+      state.hasDiff = hasDiff;
+      document.getElementById('btnCapsuleOn').className = 'ctrl-btn' + (hasDiff ? ' active' : '');
+      document.getElementById('btnCapsuleOff').className = 'ctrl-btn' + (!hasDiff ? ' active' : '');
+      render();
+    }
+
+    function setIdentifierState(active) {
+      state.isIdActive = active;
+      document.getElementById('btnIdOn').className = 'ctrl-btn' + (active ? ' active' : '');
+      document.getElementById('btnIdOff').className = 'ctrl-btn' + (!active ? ' active' : '');
+      render();
+    }
+
+    function toggleIdentifier() {
+      setIdentifierState(!state.isIdActive);
+    }
+
+    function toggleImposition() {
+      state.isImpoActive = !state.isImpoActive;
+      const btn = document.getElementById('impoToggleBtn');
+      if (state.isImpoActive) {
+        btn.classList.remove('inactive');
+      } else {
+        btn.classList.add('inactive');
+      }
+    }
+
+    function setLayoutMode(isContinuous) {
+      document.getElementById('segCont').className = 'mini-segmented-item' + (isContinuous ? ' active' : '');
+      document.getElementById('segFold').className = 'mini-segmented-item' + (!isContinuous ? ' active' : '');
+    }
+
+    // 初始化渲染
+    render();
+  </script>
+</body>
+</html>

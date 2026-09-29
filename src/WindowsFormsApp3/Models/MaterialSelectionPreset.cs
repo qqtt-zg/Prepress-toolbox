@@ -107,6 +107,16 @@ namespace WindowsFormsApp3.Models
         public string GroupName { get; set; } = "未命名";
 
         /// <summary>
+        /// 订单号模式（None-无 / AutoIncrement-自动递增 / RegexExtraction-正则提取）
+        /// </summary>
+        public OrderNumberMode OrderNumberMode { get; set; } = OrderNumberMode.None;
+
+        /// <summary>
+        /// 选中的订单号正则名称（当 OrderNumberMode 为 RegexExtraction 时使用）
+        /// </summary>
+        public string OrderRegexName { get; set; } = "";
+
+        /// <summary>
         /// 创建当前预设的深度副本
         /// </summary>
         public MaterialSelectionPreset Clone()
@@ -132,7 +142,9 @@ namespace WindowsFormsApp3.Models
                 TemporaryImpositionParameters = this.TemporaryImpositionParameters?.Clone(),
                 DisabledOptions = this.DisabledOptions,
                 ShowInPresetButtons = this.ShowInPresetButtons,
-                GroupName = string.IsNullOrWhiteSpace(this.GroupName) ? "未命名" : this.GroupName
+                GroupName = string.IsNullOrWhiteSpace(this.GroupName) ? "未命名" : this.GroupName,
+                OrderNumberMode = this.OrderNumberMode,
+                OrderRegexName = this.OrderRegexName
             };
         }
 
@@ -163,6 +175,8 @@ namespace WindowsFormsApp3.Models
             this.DisabledOptions = other.DisabledOptions;
             this.ShowInPresetButtons = other.ShowInPresetButtons;
             this.GroupName = string.IsNullOrWhiteSpace(other.GroupName) ? "未命名" : other.GroupName;
+            this.OrderNumberMode = other.OrderNumberMode;
+            this.OrderRegexName = other.OrderRegexName;
         }
     }
 
@@ -188,6 +202,7 @@ namespace WindowsFormsApp3.Models
         MaterialType = 512,
         LayoutMode = 1024,
         EnableImposition = 2048,
-        ShowInPresetButtons = 4096
+        ShowInPresetButtons = 4096,
+        OrderNumberMode = 65536
     }
 }

@@ -10,20 +10,70 @@ namespace WindowsFormsApp3.Utils
     /// </summary>
     public static class AppDataPathManager
     {
+        private static string _autoTestSandboxDir = null;
+
         /// <summary>
         /// 应用根目录：%AppData%\Roaming\大诚重命名工具\
+        /// 当检测到处于单元测试环境（xUnit, VSTest, TestHost 等）或环境变量 CODEX_APPDATA_ROOT 时，
+        /// 物理重定向至独立沙箱，坚决杜绝测试运行触碰或污染用户的真实生产配置文件。
         /// </summary>
         public static string AppRootDirectory
         {
             get
             {
                 var envRoot = Environment.GetEnvironmentVariable("CODEX_APPDATA_ROOT");
-                var path = string.IsNullOrEmpty(envRoot)
-                    ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "大诚重命名工具")
-                    : envRoot;
+                if (!string.IsNullOrEmpty(envRoot))
+                {
+                    EnsureDirectoryExists(envRoot);
+                    return envRoot;
+                }
+
+                if (IsRunningInTestRunner())
+                {
+                    if (string.IsNullOrEmpty(_autoTestSandboxDir))
+                    {
+                        _autoTestSandboxDir = Path.Combine(Path.GetTempPath(), "CodexTests_AutoSandbox_" + Guid.NewGuid().ToString("N").Substring(0, 8));
+                    }
+                    EnsureDirectoryExists(_autoTestSandboxDir);
+                    return _autoTestSandboxDir;
+                }
+
+                var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "大诚重命名工具");
                 EnsureDirectoryExists(path);
                 return path;
             }
+        }
+
+        /// <summary>
+        /// 检查当前进程是否处于单元测试执行环境（xUnit, VSTest, TestHost 等）
+        /// </summary>
+        public static bool IsRunningInTestRunner()
+        {
+            try
+            {
+                var friendlyName = AppDomain.CurrentDomain.FriendlyName ?? "";
+                if (friendlyName.IndexOf("testhost", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    friendlyName.IndexOf("vstest", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    friendlyName.IndexOf("xunit", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+
+                var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+                for (int i = 0; i < assemblies.Length; i++)
+                {
+                    var name = assemblies[i].FullName;
+                    if (name != null && (name.StartsWith("xunit.", StringComparison.OrdinalIgnoreCase) ||
+                                         name.StartsWith("Microsoft.VisualStudio.TestPlatform", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch
+            {
+            }
+            return false;
         }
 
         /// <summary>
@@ -93,6 +143,19 @@ namespace WindowsFormsApp3.Utils
             get
             {
                 var path = Path.Combine(AppRootDirectory, "Logs");
+                EnsureDirectoryExists(path);
+                return path;
+            }
+        }
+
+        /// <summary>
+        /// 配置备份目录：%AppData%\Roaming\大诚重命名工具\Backups\
+        /// </summary>
+        public static string BackupsDirectory
+        {
+            get
+            {
+                var path = Path.Combine(AppRootDirectory, "Backups");
                 EnsureDirectoryExists(path);
                 return path;
             }

@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Drawing.Text;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -48,7 +49,7 @@ namespace WindowsFormsApp3
     public partial class MaterialSelectFormModern : Form
     {
 
-        // Win32 API - 用于设置窗口透明度
+        // Win32 API - 用于设置窗口透明度与置顶/前台激活控制
         [DllImport("user32.dll")]
         private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
         [DllImport("user32.dll")]
@@ -57,6 +58,22 @@ namespace WindowsFormsApp3
         private static extern bool SetLayeredWindowAttributes(IntPtr hWnd, uint crKey, byte bAlpha, uint dwFlags);
         [DllImport("user32.dll")]
         private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+        [DllImport("user32.dll")]
+        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+        [DllImport("user32.dll")]
+        private static extern bool BringWindowToTop(IntPtr hWnd);
+        [DllImport("user32.dll")]
+        private static extern void SwitchToThisWindow(IntPtr hWnd, bool fAltTab);
+
+        private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        private static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
+        private static readonly IntPtr HWND_TOP = new IntPtr(0);
+        private const uint SWP_NOMOVE = 0x0002;
+        private const uint SWP_NOSIZE = 0x0001;
+        private const uint SWP_SHOWWINDOW = 0x0040;
+        private const uint SWP_NOACTIVATE = 0x0010;
 
         private const int GWL_EXSTYLE = -20;
         private const int WS_EX_LAYERED = 0x80000;
@@ -268,8 +285,11 @@ namespace WindowsFormsApp3
         private AntdUI.Button btnMoveDown;
         private AntdUI.Button btnNewGroupDirect;
         private AntdUI.Button btnDeleteBatchRows;
+        private AntdUI.Button btnCancelAllBatchRows;
+        private AntdUI.Button btnRefreshBatch;
         private AntdUI.Label lblBatchTitle;
         private System.Windows.Forms.Label lblBatchHelp;
+        private AntdUI.Spin _spinBatchLoading;
         private BindingList<BatchFileItem> _batchItems = new BindingList<BatchFileItem>();
         private string _batchMonitorDirectory;
         private bool _isCancellingBatchItems;
@@ -3696,50 +3716,96 @@ namespace WindowsFormsApp3
                 };
                 btnMoveUp = new AntdUI.Button
                 {
-                    Text = "▲ 上移",
+                    IconSvg = "UpOutlined",
+                    Text = " 上移",
                     Location = new Point(8, 5),
-                    Size = new Size(62, 28),
+                    Size = new Size(68, 28),
+                    Radius = 4,
                     Font = new Font("Microsoft YaHei UI", 8.5F),
-                    BorderWidth = 1F,
+                    Type = AntdUI.TTypeMini.Default,
+                    Ghost = true,
                     WaveSize = 0
                 };
                 btnMoveUp.Click += BtnMoveUp_Click;
+
                 btnMoveDown = new AntdUI.Button
                 {
-                    Text = "▼ 下移",
-                    Location = new Point(74, 5),
-                    Size = new Size(62, 28),
+                    IconSvg = "DownOutlined",
+                    Text = " 下移",
+                    Location = new Point(80, 5),
+                    Size = new Size(68, 28),
+                    Radius = 4,
                     Font = new Font("Microsoft YaHei UI", 8.5F),
-                    BorderWidth = 1F,
+                    Type = AntdUI.TTypeMini.Default,
+                    Ghost = true,
                     WaveSize = 0
                 };
                 btnMoveDown.Click += BtnMoveDown_Click;
+
                 btnNewGroupDirect = new AntdUI.Button
                 {
-                    Text = "➕ 分出新组",
-                    Location = new Point(142, 5),
-                    Size = new Size(88, 28),
-                    Font = new Font("Microsoft YaHei UI", 8.5F, FontStyle.Bold),
+                    IconSvg = "PlusOutlined",
+                    Text = " 分出新组",
+                    Location = new Point(152, 5),
+                    Size = new Size(96, 28),
+                    Radius = 4,
+                    Font = new Font("Microsoft YaHei UI", 8.5F),
                     Type = AntdUI.TTypeMini.Primary,
-                    BorderWidth = 1F,
+                    Ghost = true,
                     WaveSize = 0
                 };
                 btnNewGroupDirect.Click += (s, e) => CreateGroupFromSelectedFiles();
+
                 btnDeleteBatchRows = new AntdUI.Button
                 {
-                    Text = "删除行",
-                    Location = new Point(236, 5),
-                    Size = new Size(72, 28),
-                    Font = new Font("Microsoft YaHei UI", 8.5F, FontStyle.Bold),
+                    IconSvg = "DeleteOutlined",
+                    Text = " 删除行",
+                    Location = new Point(252, 5),
+                    Size = new Size(86, 28),
+                    Radius = 4,
+                    Font = new Font("Microsoft YaHei UI", 8.5F),
                     Type = AntdUI.TTypeMini.Error,
-                    BorderWidth = 1F,
+                    Ghost = true,
                     WaveSize = 0
                 };
                 btnDeleteBatchRows.Click += async (s, e) => await CancelSelectedBatchItemsAsync();
+
+                btnRefreshBatch = new AntdUI.Button
+                {
+                    IconSvg = "ReloadOutlined",
+                    Text = " 刷新数据",
+                    Location = new Point(342, 5),
+                    Size = new Size(96, 28),
+                    Radius = 4,
+                    Font = new Font("Microsoft YaHei UI", 8.5F),
+                    Type = AntdUI.TTypeMini.Default,
+                    Ghost = true,
+                    WaveSize = 0
+                };
+                btnRefreshBatch.Click += async (s, e) => await RefreshBatchDataAsync();
+                folderTreeViewToolTip?.SetToolTip(btnRefreshBatch, "重新解析所有文件页数与成品尺寸，并重新计算排版布局数");
+
+                btnCancelAllBatchRows = new AntdUI.Button
+                {
+                    Name = "btnCancelAllBatchRows",
+                    Text = "批量取消",
+                    Location = new Point(442, 5),
+                    Size = new Size(72, 28),
+                    Radius = 4,
+                    Font = new Font("Microsoft YaHei UI", 8.5F),
+                    Type = AntdUI.TTypeMini.Error,
+                    Ghost = true,
+                    WaveSize = 0
+                };
+                btnCancelAllBatchRows.Click += async (s, e) => await CancelSelectedBatchItemsAsync(true);
+                folderTreeViewToolTip?.SetToolTip(btnCancelAllBatchRows, "取消左侧列表中的全部文件，成功移动到“取消文件”文件夹");
+
                 pnlBottomToolbar.Controls.Add(btnMoveUp);
                 pnlBottomToolbar.Controls.Add(btnMoveDown);
                 pnlBottomToolbar.Controls.Add(btnNewGroupDirect);
                 pnlBottomToolbar.Controls.Add(btnDeleteBatchRows);
+                pnlBottomToolbar.Controls.Add(btnRefreshBatch);
+                pnlBottomToolbar.Controls.Add(btnCancelAllBatchRows);
 
                 // 3. 最底部帮助提示栏
                 var bottomHelpPanel = new System.Windows.Forms.Panel
@@ -3750,7 +3816,7 @@ namespace WindowsFormsApp3
                 };
                 lblBatchHelp = new System.Windows.Forms.Label
                 {
-                    Text = "点击序号列选中整行；Delete 删除并移入“取消处理”；未匹配行优先置顶",
+                    Text = "点击序号列选中整行；Delete 删除并移入“取消文件”；批量取消处理全部文件",
                     Font = new Font("Microsoft YaHei UI", 8F),
                     ForeColor = Color.DimGray,
                     Dock = DockStyle.Fill,
@@ -3779,6 +3845,8 @@ namespace WindowsFormsApp3
                     AllowUserToAddRows = false,
                     AllowUserToDeleteRows = false,
                     AllowUserToResizeRows = false,
+                    ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing,
+                    ColumnHeadersHeight = 26,
                     AutoGenerateColumns = false,
                     SelectionMode = DataGridViewSelectionMode.CellSelect,
                     MultiSelect = true,
@@ -3835,13 +3903,40 @@ namespace WindowsFormsApp3
                 dgvBatchFiles.CellClick += DgvBatchFiles_CellClick;
                 dgvBatchFiles.CellFormatting += DgvBatchFiles_CellFormatting;
                 dgvBatchFiles.ColumnHeaderMouseClick += DgvBatchFiles_ColumnHeaderMouseClick;
+                dgvBatchFiles.DataError += (s, e) =>
+                {
+                    e.Cancel = true;
+                    e.ThrowException = false;
+                };
 
                 dgvBatchFiles.Visible = false;
+
+                _spinBatchLoading = new AntdUI.Spin
+                {
+                    Name = "_spinBatchLoading",
+                    Dock = DockStyle.Fill,
+                    BackColor = Color.FromArgb(245, 247, 250),
+                    ForeColor = Color.FromArgb(22, 119, 255),
+                    Text = "正在批量解析并排版工单文件...",
+                    Font = new Font("Microsoft YaHei UI", 9.5F, FontStyle.Bold),
+                    Visible = false
+                };
+
+                pnlFileList.Controls.Add(_spinBatchLoading);
                 pnlFileList.Controls.Add(pnlCardsContainer);
                 pnlFileList.Controls.Add(pnlTopBatchHeader);
                 pnlFileList.Controls.Add(pnlBottomToolbar);
                 pnlFileList.Controls.Add(bottomHelpPanel);
                 pnlFileList.Controls.Add(dgvBatchFiles);
+
+                try
+                {
+                    typeof(Control).GetProperty("DoubleBuffered", BindingFlags.NonPublic | BindingFlags.Instance)
+                        ?.SetValue(pnlCardsContainer, true, null);
+                    typeof(Control).GetProperty("DoubleBuffered", BindingFlags.NonPublic | BindingFlags.Instance)
+                        ?.SetValue(pnlFileList, true, null);
+                }
+                catch { }
 
                 this.Controls.Add(pnlFileList);
                 pnlFileList.BringToFront();
@@ -3852,6 +3947,48 @@ namespace WindowsFormsApp3
             catch (Exception ex)
             {
                 LogHelper.Error($"[MaterialSelectFormModern] 初始化批量列表面板失败: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// 显示左侧列表加载动画，防止导入大量文件或动态排队时界面反复白屏刷新与闪烁
+        /// </summary>
+        public void ShowBatchLoading(string text = null)
+        {
+            if (this.IsDisposed) return;
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke(new Action<string>(ShowBatchLoading), text);
+                return;
+            }
+
+            if (_spinBatchLoading != null)
+            {
+                _spinBatchLoading.Text = string.IsNullOrWhiteSpace(text) ? "正在批量解析并排版工单文件..." : text;
+                _spinBatchLoading.Visible = true;
+                _spinBatchLoading.BringToFront();
+            }
+        }
+
+        /// <summary>
+        /// 隐藏左侧列表加载动画并恢复卡片视图呈现
+        /// </summary>
+        public void HideBatchLoading()
+        {
+            if (this.IsDisposed) return;
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke(new Action(HideBatchLoading));
+                return;
+            }
+
+            if (_spinBatchLoading != null)
+            {
+                _spinBatchLoading.Visible = false;
+            }
+            if (pnlCardsContainer != null && !pnlCardsContainer.IsDisposed)
+            {
+                pnlCardsContainer.BringToFront();
             }
         }
 
@@ -3966,6 +4103,12 @@ namespace WindowsFormsApp3
                     list = rawList;
                 }
 
+                if (list.Count > 1 && this.Visible && _isBatchPanelExpanded)
+                {
+                    ShowBatchLoading($"正在加载并排版工单文件 (共 {list.Count} 款)...");
+                    pnlFileList?.Update();
+                }
+
                 _batchItems.Clear();
                 CaptureBatchMonitorDirectory(list);
                 int startSerial = 1;
@@ -4017,6 +4160,10 @@ namespace WindowsFormsApp3
             {
                 LogHelper.Error($"[MaterialSelectFormModern] 设置待处理文件列表失败: {ex.Message}", ex);
             }
+            finally
+            {
+                HideBatchLoading();
+            }
         }
 
         public void SetPendingFiles(IEnumerable<FileRenameInfo> fileInfos)
@@ -4036,7 +4183,7 @@ namespace WindowsFormsApp3
         }
 
         /// <summary>
-        /// 动态向待处理列表批量追加文件（线程安全）
+        /// 动态向待处理列表批量追加文件（线程安全，支持多文件加载动画与防闪烁）
         /// </summary>
         public void AppendPendingFiles(IEnumerable<string> filePaths)
         {
@@ -4050,6 +4197,16 @@ namespace WindowsFormsApp3
 
             try
             {
+                var incoming = filePaths.Where(f => !string.IsNullOrWhiteSpace(f) &&
+                    !_batchItems.Any(item => string.Equals(item.FilePath, f, StringComparison.OrdinalIgnoreCase))).ToList();
+                if (incoming.Count == 0) return;
+
+                if (incoming.Count > 1 && _isBatchPanelExpanded)
+                {
+                    ShowBatchLoading($"正在导入并排版工单文件 (共 {incoming.Count} 款)...");
+                    pnlFileList?.Update();
+                }
+
                 int startSerial = 1;
                 if (!int.TryParse(SerialNumber, out startSerial) || startSerial < 1)
                 {
@@ -4062,16 +4219,11 @@ namespace WindowsFormsApp3
                 {
                     CaptureBatchMonitorDirectory(filePaths);
                 }
-                foreach (var filePath in filePaths)
+
+                int currentFileCount = _batchItems.Select(x => x.FilePath).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+
+                foreach (var filePath in incoming)
                 {
-                    if (string.IsNullOrWhiteSpace(filePath)) continue;
-
-                    // 避免重复追加
-                    if (_batchItems.Any(item => string.Equals(item.FilePath, filePath, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        continue;
-                    }
-
                     string fileName = Path.GetFileName(filePath);
                     var excelMatches = MatchAllExcelDataForFile(fileName);
                     if (excelMatches.Count == 0)
@@ -4080,10 +4232,7 @@ namespace WindowsFormsApp3
                     }
 
                     string itemDimensions = ResolveFileDimensions(filePath, fileName, out double rw, out double rh);
-                    string fallbackSerialNumber = (startSerial + _batchItems
-                        .Select(x => x.FilePath)
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .Count()).ToString();
+                    string fallbackSerialNumber = (startSerial + currentFileCount + addedItems.Count).ToString();
                     foreach (var excelMatch in excelMatches)
                     {
                         var item = new BatchFileItem
@@ -4122,6 +4271,10 @@ namespace WindowsFormsApp3
             catch (Exception ex)
             {
                 LogHelper.Error($"[MaterialSelectFormModern] 动态追加待处理文件失败: {ex.Message}", ex);
+            }
+            finally
+            {
+                HideBatchLoading();
             }
         }
 
@@ -4319,33 +4472,34 @@ namespace WindowsFormsApp3
             SortBatchFilesByProperty(propertyName, GetNextBatchSortDirection(propertyName));
         }
 
-        private async Task CancelSelectedBatchItemsAsync()
+        private async Task CancelSelectedBatchItemsAsync(bool cancelAll = false)
         {
             if (_isCancellingBatchItems) return;
             _isCancellingBatchItems = true;
             if (btnDeleteBatchRows != null) btnDeleteBatchRows.Enabled = false;
+            if (btnCancelAllBatchRows != null) btnCancelAllBatchRows.Enabled = false;
             try
             {
-                List<BatchFileItem> selectedItems = GetSelectedBatchItems();
+                List<BatchFileItem> selectedItems = cancelAll ? _batchItems.ToList() : GetSelectedBatchItems();
                 if (selectedItems.Count == 0)
                 {
-                    AntdUI.Message.warn(this.FindForm(), "请先选择要删除的文件行", autoClose: 3);
+                    AntdUI.Message.warn(this.FindForm(), cancelAll ? "当前没有待取消的文件" : "请先选择要删除的文件行", autoClose: 3);
                     return;
                 }
 
                 if (string.IsNullOrWhiteSpace(_batchMonitorDirectory))
                 {
-                    AntdUI.Message.warn(this.FindForm(), "无法确定唯一的监控目录，未执行删除", autoClose: 4);
+                    AntdUI.Message.warn(this.FindForm(), "无法确定唯一的监控目录，未执行取消", autoClose: 4);
                     return;
                 }
 
                 DialogResult confirmation = AntdUiModalRenderer.Show(new ModalRequest(
                     this,
                     "取消处理文件",
-                    $"确定删除选中的 {selectedItems.Count} 行吗？\n文件将移动到监控目录下的“取消处理”文件夹。",
+                    $"确定取消{(cancelAll ? "全部" : "选中的")} {selectedItems.Count} 个文件吗？\n文件将移动到监控目录下的“{CancelledFileService.CancelledFolderName}”文件夹。",
                     new[]
                     {
-                        new ModalButtonSpec("move", "删除并移动", DialogResult.Yes, AntdUI.TTypeMini.Error)
+                        new ModalButtonSpec("move", "取消并移动", DialogResult.Yes, AntdUI.TTypeMini.Error)
                         {
                             IsDefault = true
                         },
@@ -4368,6 +4522,30 @@ namespace WindowsFormsApp3
                 var movedPaths = new HashSet<string>(
                     moveResults.Where(result => result.Success).Select(result => result.SourcePath),
                     StringComparer.OrdinalIgnoreCase);
+
+                // 关键防御：在从数据源移除行前，强制清空所有表格当前单元格与选择状态，
+                // 彻底阻止 CurrencyManager 将 Position 停留在已删除的末尾索引上并引发 IndexOutOfRangeException
+                if (dgvBatchFiles != null)
+                {
+                    dgvBatchFiles.CurrentCell = null;
+                    dgvBatchFiles.ClearSelection();
+                }
+                if (pnlCardsContainer != null)
+                {
+                    foreach (Control card in pnlCardsContainer.Controls)
+                    {
+                        if (card is System.Windows.Forms.Panel pnl)
+                        {
+                            var grid = pnl.Controls.OfType<DataGridView>().FirstOrDefault();
+                            if (grid != null)
+                            {
+                                grid.CurrentCell = null;
+                                grid.ClearSelection();
+                            }
+                        }
+                    }
+                }
+
                 BatchFileItemCollectionService.RemoveByPaths(_batchItems, _processGroups, movedPaths);
 
                 UpdateBatchOrderNumbers();
@@ -4400,6 +4578,97 @@ namespace WindowsFormsApp3
             {
                 _isCancellingBatchItems = false;
                 if (btnDeleteBatchRows != null) btnDeleteBatchRows.Enabled = true;
+                if (btnCancelAllBatchRows != null) btnCancelAllBatchRows.Enabled = true;
+            }
+        }
+
+        /// <summary>
+        /// 重新读取当前列表所有文件的页数、成品尺寸与 Excel 匹配，并重新计算排版布局数
+        /// </summary>
+        private async Task RefreshBatchDataAsync()
+        {
+            if (this.IsDisposed || _batchItems == null || _batchItems.Count == 0)
+            {
+                AntdUI.Message.info(this.FindForm(), "当前待处理列表为空，无需刷新");
+                return;
+            }
+
+            ShowBatchLoading($"正在重新扫描并刷新工单数据 (共 {_batchItems.Count} 款)...");
+
+            try
+            {
+                var snapshot = _batchItems.ToList();
+                int startSerial = 1;
+                if (!int.TryParse(SerialNumber, out startSerial) || startSerial < 1)
+                {
+                    startSerial = 1;
+                }
+
+                await Task.Run(() =>
+                {
+                    for (int i = 0; i < snapshot.Count; i++)
+                    {
+                        var item = snapshot[i];
+                        if (string.IsNullOrWhiteSpace(item.FilePath) || !File.Exists(item.FilePath)) continue;
+
+                        // 1. 重新读取实际页数（补全延迟写入或初次读取失败的情况）
+                        int? pageCount = ResolveActualPageCount(item.FilePath);
+                        if (pageCount.HasValue && pageCount.Value > 0)
+                        {
+                            item.PageCount = pageCount.Value;
+                        }
+
+                        // 2. 重新提取尺寸
+                        string dims = ResolveFileDimensions(item.FilePath, item.FileName, out double rw, out double rh);
+                        if (!string.IsNullOrWhiteSpace(dims))
+                        {
+                            item.Dimensions = dims;
+                            item.RawPdfWidth = rw;
+                            item.RawPdfHeight = rh;
+                        }
+
+                        // 3. 若 Excel 尚未匹配成功，重新尝试匹配
+                        if (!item.IsExcelMatched)
+                        {
+                            var matches = MatchAllExcelDataForFile(item.FileName);
+                            if (matches.Count > 0 && matches[0].HasMatch)
+                            {
+                                item.IsExcelMatched = true;
+                                item.ExcelRowIndex = matches[0].RowIndex;
+                                if (!string.IsNullOrEmpty(matches[0].Quantity))
+                                {
+                                    item.Quantity = matches[0].Quantity;
+                                }
+                                if (!string.IsNullOrEmpty(matches[0].SerialNumber))
+                                {
+                                    item.SerialNumber = matches[0].SerialNumber;
+                                }
+                            }
+                        }
+                    }
+                });
+
+                if (this.IsDisposed) return;
+
+                // 4. 重新计算大版开料版数与行列分布
+                UpdateBatchOrderNumbers();
+                RefreshGroupSummaryHeader();
+                RenderGroupCards();
+                dgvBatchFiles?.Refresh();
+
+                // 触发一次批量排版计算更新
+                UpdateBatchLayoutColumns();
+
+                AntdUI.Message.success(this.FindForm(), $"工单数据已刷新完毕（共 {snapshot.Count} 款）", autoClose: 3);
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[RefreshBatchDataAsync] 刷新批量列表数据失败: {ex.Message}", ex);
+                AntdUI.Message.error(this.FindForm(), "刷新数据失败: " + ex.Message, autoClose: 4);
+            }
+            finally
+            {
+                HideBatchLoading();
             }
         }
 
@@ -5381,12 +5650,34 @@ namespace WindowsFormsApp3
 
         internal void ToggleTopMost()
         {
-            ApplyTopMostState(!TopMost, true);
+            bool newTopMost = !AppSettings.MaterialFormTopMost;
+            ApplyTopMostState(newTopMost, true);
         }
 
         private void ApplyTopMostState(bool isTopMost, bool persist)
         {
             TopMost = isTopMost;
+            try
+            {
+                if (IsHandleCreated)
+                {
+                    IntPtr insertAfter = isTopMost ? HWND_TOPMOST : HWND_NOTOPMOST;
+                    SetWindowPos(this.Handle, insertAfter, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+                }
+            }
+            catch { }
+
+            UpdatePinButtonAppearance(isTopMost);
+
+            if (persist)
+            {
+                AppSettings.MaterialFormTopMost = isTopMost;
+                AppSettings.CommitChanges();
+            }
+        }
+
+        private void UpdatePinButtonAppearance(bool isTopMost)
+        {
             if (pinTopMostButton != null)
             {
                 pinTopMostButton.Type = AntdUI.TTypeMini.Default;
@@ -5397,17 +5688,106 @@ namespace WindowsFormsApp3
                 pinTopMostButton.ForeColor = isTopMost
                     ? Color.FromArgb(22, 119, 255)
                     : Color.FromArgb(140, 149, 163);
-                pinTopMostButton.Text = "📌";
+                pinTopMostButton.IconSvg = "PushpinOutlined";
+                pinTopMostButton.Text = "";
                 folderTreeViewToolTip?.SetToolTip(
                     pinTopMostButton,
                     GetTopMostToolTip(isTopMost));
             }
+        }
 
-            if (persist)
+        /// <summary>
+        /// 确保主界面始终处于普通非置顶层级，杜绝随材料选择框被置顶
+        /// </summary>
+        private static void EnsureMainWindowNotTopMost()
+        {
+            try
             {
-                AppSettings.MaterialFormTopMost = isTopMost;
-                AppSettings.CommitChanges();
+                foreach (Form form in Application.OpenForms)
+                {
+                    if (form is MainShellForm && form.IsHandleCreated)
+                    {
+                        if (form.TopMost)
+                        {
+                            form.TopMost = false;
+                        }
+                        SetWindowPos(form.Handle, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                    }
+                }
             }
+            catch { }
+        }
+
+        /// <summary>
+        /// 确保窗口在打开时绝对置顶并前台呈现（即使未开启常驻置顶，打开时也要置顶显示）
+        /// </summary>
+        private void EnsureTopMostOnOpen()
+        {
+            try
+            {
+                // 1. 确保主界面绝不随材料选择框进入 TopMost 层级
+                EnsureMainWindowNotTopMost();
+
+                // 2. 打开时无论配置是否常驻置顶，均强制材料选择框置于最前台
+                this.TopMost = true;
+                if (IsHandleCreated)
+                {
+                    SetWindowPos(this.Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+                    SetForegroundWindow(this.Handle);
+                    BringWindowToTop(this.Handle);
+                }
+                this.BringToFront();
+                this.Activate();
+
+                // 3. 根据用户配置的“常驻置顶”偏好，设置图钉按钮的显示外观（蓝钉/灰钉）
+                UpdatePinButtonAppearance(AppSettings.MaterialFormTopMost);
+
+                // 4. 再次确保主窗体保持非置顶普通层级
+                EnsureMainWindowNotTopMost();
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Warn($"[EnsureTopMostOnOpen] 打开置顶激活失败: {ex.Message}");
+            }
+        }
+
+        protected override void OnDeactivate(EventArgs e)
+        {
+            base.OnDeactivate(e);
+            // 当用户未配置“常驻置顶”时，打开后若用户切换到其他应用程序（窗口失焦），
+            // 则解除 HWND_TOPMOST 置顶层级，允许其他软件自由覆盖，避免强行霸屏。
+            if (!AppSettings.MaterialFormTopMost && this.TopMost)
+            {
+                try
+                {
+                    if (IsHandleCreated)
+                    {
+                        SetWindowPos(this.Handle, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                    }
+                    this.TopMost = false;
+                }
+                catch { }
+            }
+            EnsureMainWindowNotTopMost();
+        }
+
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+            // 如果用户开启了常驻置顶，确保置顶层级生效
+            if (AppSettings.MaterialFormTopMost && !this.TopMost)
+            {
+                try
+                {
+                    this.TopMost = true;
+                    if (IsHandleCreated)
+                    {
+                        SetWindowPos(this.Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                    }
+                }
+                catch { }
+            }
+            EnsureMainWindowNotTopMost();
         }
 
         internal static string GetTopMostToolTip(bool isTopMost)
@@ -5646,16 +6026,77 @@ namespace WindowsFormsApp3
         }
 
         /// <summary>
+        /// 自动恢复上次成功使用的材料预设（自动继承材料、工艺、大版开料尺寸并高亮对应按钮）
+        /// </summary>
+        private void RestoreLastUsedPreset()
+        {
+            try
+            {
+                string lastPresetName = AppSettings.LastUsedMaterialPreset;
+                if (string.IsNullOrWhiteSpace(lastPresetName))
+                {
+                    UpdateCustomImpositionCapsule();
+                    return;
+                }
+
+                var presets = AppSettings.MaterialPresets;
+                if (presets == null || presets.Count == 0)
+                {
+                    UpdateCustomImpositionCapsule();
+                    return;
+                }
+
+                var preset = presets.FirstOrDefault(p => p.Name.Equals(lastPresetName, StringComparison.OrdinalIgnoreCase));
+                if (preset != null)
+                {
+                    // 1. 如果该预设属于特定分组，先自动定位到对应分组标签
+                    string pGroup = string.IsNullOrWhiteSpace(preset.GroupName) ? "未命名" : preset.GroupName.Trim();
+                    if (tabs1 != null && tabs1.Pages != null)
+                    {
+                        for (int i = 0; i < tabs1.Pages.Count; i++)
+                        {
+                            if (tabs1.Pages[i].Text == pGroup)
+                            {
+                                if (tabs1.SelectedIndex != i)
+                                {
+                                    tabs1.SelectedIndex = i;
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    // 2. 加载预设（包括专属材料、大版尺寸等全部参数）
+                    LoadPreset(preset.Name);
+
+                    // 3. 高亮对应按钮
+                    UpdateActivePresetButton(preset.Name);
+                }
+                else
+                {
+                    UpdateCustomImpositionCapsule();
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Warn($"[RestoreLastUsedPreset] 自动恢复上次预设失败: {ex.Message}");
+                UpdateCustomImpositionCapsule();
+            }
+        }
+
+        /// <summary>
         /// 窗体显示事件处理
         /// </summary>
         private void MaterialSelectFormModern_Shown(object sender, EventArgs e)
         {
-            // 按用户上次选择恢复置顶状态，首次使用默认置顶。
-            ApplySavedTopMostPreference();
-            this.Activate();
+            // 无论用户是否开启常驻置顶，打开时均先强制置顶弹出到最前台
+            EnsureTopMostOnOpen();
 
             // 🔧 强制重新加载预设按钮，确保它们在窗体显示后可见
             LoadPresetButtons();
+
+            // 自动恢复上次选用的预设（包括其专属大版开料尺寸、排版模式并高亮对应按钮）
+            RestoreLastUsedPreset();
 
             // 在窗体显示后设置焦点，确保句柄已创建
             this.BeginInvoke(new Action(SetOrderTextBoxFocus));
@@ -5737,12 +6178,14 @@ namespace WindowsFormsApp3
                 {
                     WindowPositionManager.SaveWindowPosition(this, _isPreviewExpanded);
                 }
+                EnsureMainWindowNotTopMost();
             }
             catch (Exception ex)
             {
                 LogHelper.Error($"[MaterialSelectFormModern] 保存窗口位置失败: {ex.Message}", ex);
             }
 
+            EnsureMainWindowNotTopMost();
             LogHelper.Debug("[MaterialSelectFormModern] 窗体关闭完成");
         }
 
@@ -6682,6 +7125,7 @@ namespace WindowsFormsApp3
                 _columnsInput.Text = _temporaryImpositionParameters.RequestedColumns > 0 ? _temporaryImpositionParameters.RequestedColumns.ToString() : string.Empty;
                 _isUpdatingLayoutInputs = false;
                 OnImpositionSettingsChanged(this, EventArgs.Empty);
+                UpdateCustomImpositionCapsule();
             }
         }
 
@@ -6819,6 +7263,10 @@ namespace WindowsFormsApp3
                     }
                 }
 
+                string targetGroup = AppSettings.LastSelectedPresetGroup ?? "未命名";
+                int targetIdx = availableGroups.IndexOf(targetGroup);
+                if (targetIdx < 0) targetIdx = 0;
+
                 if (!pagesMatch)
                 {
                     _isPresetTabSwitching = true;
@@ -6829,7 +7277,19 @@ namespace WindowsFormsApp3
                         {
                             tabs1.Pages.Add(new AntdUI.TabPage { Text = groupName });
                         }
-                        tabs1.SelectedIndex = 0;
+                        tabs1.SelectedIndex = targetIdx;
+                    }
+                    finally
+                    {
+                        _isPresetTabSwitching = false;
+                    }
+                }
+                else if (tabs1.SelectedIndex != targetIdx && targetIdx < tabs1.Pages.Count)
+                {
+                    _isPresetTabSwitching = true;
+                    try
+                    {
+                        tabs1.SelectedIndex = targetIdx;
                     }
                     finally
                     {
@@ -6843,6 +7303,8 @@ namespace WindowsFormsApp3
                     {
                         if (_isPresetTabSwitching) return;
                         string selectedGroup = tabs1.SelectedTab?.Text ?? "未命名";
+                        AppSettings.LastSelectedPresetGroup = selectedGroup;
+                        AppSettings.Save();
                         RenderPresetButtonsForGroup(selectedGroup);
                     };
                     _isPresetTabSubscribed = true;
@@ -6852,7 +7314,7 @@ namespace WindowsFormsApp3
             // 4. 根据当前激活标签渲染预设按钮
             string currentActiveGroup = (tabs1?.SelectedTab != null && !string.IsNullOrWhiteSpace(tabs1.SelectedTab.Text))
                 ? tabs1.SelectedTab.Text
-                : (availableGroups.FirstOrDefault() ?? "未命名");
+                : (availableGroups.ElementAtOrDefault(availableGroups.IndexOf(AppSettings.LastSelectedPresetGroup ?? "未命名")) ?? availableGroups.FirstOrDefault() ?? "未命名");
 
             RenderPresetButtonsForGroup(currentActiveGroup);
         }
@@ -6971,6 +7433,16 @@ namespace WindowsFormsApp3
             }
         }
 
+        private const string PresetFlatDotSvg = @"<svg xmlns=""http://www.w3.org/2000/svg"" viewBox=""0 0 16 16"">
+<circle cx=""8"" cy=""8"" r=""4"" fill=""#0284c7""/>
+<circle cx=""8"" cy=""8"" r=""6.5"" fill=""none"" stroke=""#bae6fd"" stroke-width=""1.5""/>
+</svg>";
+
+        private const string PresetRollDotSvg = @"<svg xmlns=""http://www.w3.org/2000/svg"" viewBox=""0 0 16 16"">
+<circle cx=""8"" cy=""8"" r=""4"" fill=""#d97706""/>
+<circle cx=""8"" cy=""8"" r=""6.5"" fill=""none"" stroke=""#fde68a"" stroke-width=""1.5""/>
+</svg>";
+
         /// <summary>
         /// 创建预设按钮
         /// </summary>
@@ -6978,14 +7450,15 @@ namespace WindowsFormsApp3
         {
             // 动态计算按钮宽度：容纳文字长度，加一些 padding
             int textWidth = TextRenderer.MeasureText(preset.Name, this.Font).Width;
-            
+
             // 预设面板总宽度约为 400px，每个按钮的 Margin 为左右各 3px（总计 6px）
-            // 5 个按钮加外边距的总宽度应小于等于 400，即 (Width + 6) * 5 <= 400 -> Width <= 74
-            int minWidth = 74; 
-            
+            int minWidth = 74;
+
             // 计算需要的宽度，并确保不会超过容器单行可用最大宽度
-            int buttonWidth = Math.Max(minWidth, textWidth + 20); // 20 为左右内边距补偿，略微缩小使得4个字更容易适应 74 宽度
+            int buttonWidth = Math.Max(minWidth, textWidth + 26); // 26 为微型形态图标与左右内边距补偿
             buttonWidth = Math.Min(buttonWidth, presetButtonsPanel.Width - 10); // 防止单个按钮过长超出面板
+
+            bool isRoll = string.Equals(preset.MaterialType, "RollMaterial", StringComparison.OrdinalIgnoreCase);
 
             var button = new AntdUI.Button
             {
@@ -6998,9 +7471,11 @@ namespace WindowsFormsApp3
                 Tag = preset.Name,
                 WaveSize = 0,
                 Margin = new Padding(2, 1, 2, 1),
-                Visible = true
+                Visible = true,
+                IconSvg = isRoll ? PresetRollDotSvg : PresetFlatDotSvg
             };
             button.Click += (s, e) => PresetButton_Click(preset.Name);
+            folderTreeViewToolTip?.SetToolTip(button, isRoll ? $"【卷装预设】{preset.Name}" : $"【平张预设】{preset.Name}");
             return button;
         }
 
@@ -7143,37 +7618,87 @@ namespace WindowsFormsApp3
         /// </summary>
         private void SaveCurrentAsPreset()
         {
-            // 弹出输入对话框让用户输入预设名称
-            using (var inputDialog = new Form())
+            using (var form = new Form())
+            using (var lbl = new System.Windows.Forms.Label())
+            using (var txt = new AntdUI.Input())
+            using (var btnOk = new AntdUI.Button())
+            using (var btnCancel = new AntdUI.Button())
             {
-                inputDialog.Width = 300;
-                inputDialog.Height = 130;
-                inputDialog.FormBorderStyle = FormBorderStyle.FixedDialog;
-                inputDialog.Text = "保存预设";
-                inputDialog.StartPosition = FormStartPosition.CenterParent;
-                inputDialog.MaximizeBox = false;
-                inputDialog.MinimizeBox = false;
+                form.Text = "保存为预设";
+                form.ClientSize = new Size(330, 130);
+                form.StartPosition = FormStartPosition.CenterParent;
+                form.FormBorderStyle = FormBorderStyle.FixedDialog;
+                form.MaximizeBox = false;
+                form.MinimizeBox = false;
+                form.BackColor = Color.White;
+                form.Font = new Font("Microsoft YaHei UI", 9F);
 
-                var label = new System.Windows.Forms.Label() { Left = 20, Top = 20, Text = "请输入预设名称:" };
-                var textBox = new System.Windows.Forms.TextBox() { Left = 20, Top = 45, Width = 250 };
-                var okButton = new System.Windows.Forms.Button() { Text = "确定", Left = 110, Width = 80, Top = 70, DialogResult = DialogResult.OK };
-                var cancelButton = new System.Windows.Forms.Button() { Text = "取消", Left = 195, Width = 80, Top = 70, DialogResult = DialogResult.Cancel };
+                string currentGroup = AppSettings.LastSelectedPresetGroup ?? "未命名";
+                lbl.Text = $"保存至分组【{currentGroup}】，请输入新预设名称:";
+                lbl.Location = new Point(16, 14);
+                lbl.AutoSize = true;
+                lbl.ForeColor = Color.FromArgb(70, 75, 85);
 
-                inputDialog.Controls.Add(label);
-                inputDialog.Controls.Add(textBox);
-                inputDialog.Controls.Add(okButton);
-                inputDialog.Controls.Add(cancelButton);
-                inputDialog.AcceptButton = okButton;
-                inputDialog.CancelButton = cancelButton;
+                txt.Location = new Point(16, 38);
+                txt.Size = new Size(298, 30);
+                txt.Radius = 4;
+                txt.PlaceholderText = "如：A3-连拼-光膜";
 
-                if (inputDialog.ShowDialog(this) == DialogResult.OK && !string.IsNullOrWhiteSpace(textBox.Text))
+                form.KeyPreview = true;
+                form.KeyDown += (s, e) =>
                 {
-                    string presetName = textBox.Text.Trim();
+                    if (e.KeyCode == Keys.Enter)
+                    {
+                        e.Handled = true;
+                        e.SuppressKeyPress = true;
+                        if (!string.IsNullOrWhiteSpace(txt.Text))
+                        {
+                            form.DialogResult = DialogResult.OK;
+                            form.Close();
+                        }
+                    }
+                    else if (e.KeyCode == Keys.Escape)
+                    {
+                        e.Handled = true;
+                        form.DialogResult = DialogResult.Cancel;
+                        form.Close();
+                    }
+                };
 
-                    // 创建预设
+                btnOk.Text = "确定";
+                btnOk.Location = new Point(146, 82);
+                btnOk.Size = new Size(80, 30);
+                btnOk.Type = AntdUI.TTypeMini.Primary;
+                btnOk.Radius = 4;
+                btnOk.Click += (s, e) =>
+                {
+                    if (string.IsNullOrWhiteSpace(txt.Text))
+                    {
+                        AntdUI.Message.warn(form, "预设名称不能为空！");
+                        return;
+                    }
+                    form.DialogResult = DialogResult.OK;
+                    form.Close();
+                };
+
+                btnCancel.Text = "取消";
+                btnCancel.Location = new Point(234, 82);
+                btnCancel.Size = new Size(80, 30);
+                btnCancel.Type = AntdUI.TTypeMini.Default;
+                btnCancel.Radius = 4;
+                btnCancel.Click += (s, e) => { form.DialogResult = DialogResult.Cancel; form.Close(); };
+
+                form.Controls.AddRange(new Control[] { lbl, txt, btnOk, btnCancel });
+
+                if (form.ShowDialog(this) == DialogResult.OK && !string.IsNullOrWhiteSpace(txt.Text))
+                {
+                    string presetName = txt.Text.Trim();
+
+                    // 创建预设，自动完整记录当前界面的全部配置
                     var preset = new MaterialSelectionPreset
                     {
                         Name = presetName,
+                        GroupName = currentGroup,
                         SelectedMaterial = SelectedMaterial,
                         TetBleed = SelectedTetBleed,
                         ColorMode = ColorMode,
@@ -7190,14 +7715,16 @@ namespace WindowsFormsApp3
                         ExportPath = SelectedExportPath ?? "",
                         RoundRadius = RoundRadius,
                         MaterialType = flatSheetRadioButton?.Checked == true ? "FlatSheet" : "RollMaterial",
-                        LayoutMode = continuousLayoutRadioButton?.Checked == true ? "Continuous" : "Folding"
+                        LayoutMode = continuousLayoutRadioButton?.Checked == true ? "Continuous" : "Folding",
+                        OrderNumberMode = CurrentOrderNumberMode,
+                        OrderRegexName = SelectedOrderRegexName ?? ""
                     };
 
                     // 获取现有预设列表
                     var presets = AppSettings.MaterialPresets ?? new List<MaterialSelectionPreset>();
 
                     // 检查是否已存在同名预设
-                    var existingIndex = presets.FindIndex(p => p.Name == presetName);
+                    var existingIndex = presets.FindIndex(p => p.Name.Equals(presetName, StringComparison.OrdinalIgnoreCase));
                     if (existingIndex >= 0)
                     {
                         // 询问是否覆盖
@@ -7239,7 +7766,7 @@ namespace WindowsFormsApp3
                     ApplyCurrentTheme();
 
                     LogHelper.Info($"[预设] 已保存预设: {presetName}");
-                    MessageBox.Show($"预设\"{presetName}\"保存成功！", "保存成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    AntdUI.Message.success(this, $"预设【{presetName}】已成功保存至【{currentGroup}】！");
                 }
             }
         }
@@ -7444,6 +7971,17 @@ namespace WindowsFormsApp3
                         _columnsInput.Text = _temporaryImpositionParameters.RequestedColumns > 0 ? _temporaryImpositionParameters.RequestedColumns.ToString() : string.Empty;
                     _isUpdatingLayoutInputs = false;
                 }
+                else
+                {
+                    _temporaryImpositionParameters = null;
+                    EnsureTemporaryImpositionParameters();
+                    _forceRotationEnabled = false;
+                    _isUpdatingLayoutInputs = true;
+                    if (_rowsInput != null) _rowsInput.Text = string.Empty;
+                    if (_columnsInput != null) _columnsInput.Text = string.Empty;
+                    _isUpdatingLayoutInputs = false;
+                }
+                UpdateCustomImpositionCapsule();
 
                 // 加载排版模式（连拼/折手）
                 if (!string.IsNullOrEmpty(preset.LayoutMode) && continuousLayoutRadioButton != null && foldingLayoutRadioButton != null && !ignoreOptions.HasFlag(PresetIgnoreOptions.LayoutMode))
@@ -7507,9 +8045,30 @@ namespace WindowsFormsApp3
                 _currentPresetName = presetName;
                 AppSettings.LastUsedMaterialPreset = presetName;
 
+                // 加载订单号模式
+                if (!ignoreOptions.HasFlag(PresetIgnoreOptions.OrderNumberMode))
+                {
+                    if (preset.OrderNumberMode == OrderNumberMode.RegexExtraction)
+                    {
+                        if (!string.IsNullOrEmpty(preset.OrderRegexName) && _orderRegexDict.TryGetValue(preset.OrderRegexName, out string pattern))
+                        {
+                            SelectOrderRegexRule(preset.OrderRegexName, pattern);
+                        }
+                        else
+                        {
+                            SelectOrderNumberMode(OrderNumberMode.RegexExtraction);
+                        }
+                    }
+                    else
+                    {
+                        SelectOrderNumberMode(preset.OrderNumberMode);
+                    }
+                }
+
                 // 更新菜单
                 UpdatePresetMenu();
 
+                UpdateCopyCountPillDisplay();
                 SyncCurrentSelectionsToActiveGroup();
                 UpdateAllFileDimensionsWithBleed();
                 LogHelper.Info($"[预设] 已加载预设: {presetName}");
@@ -7574,10 +8133,15 @@ namespace WindowsFormsApp3
             {
                 form.ShowDialog(this);
             }
+
+            // 彻底清除齿轮管理按钮上的残留焦点框，避免弹窗关闭后按钮保持聚焦状态
+            this.ActiveControl = null;
+            this.BeginInvoke(new Action(SetOrderTextBoxFocus));
+
             // 关闭管理窗口后刷新预设菜单和预设按钮
             UpdatePresetMenu();
             LoadPresetButtons();
-            
+
             // 🔧 重新应用主题以确保新创建的按钮正确显示
             ApplyCurrentTheme();
         }
@@ -8896,7 +9460,7 @@ namespace WindowsFormsApp3
             try
             {
                 EnsureTemporaryImpositionParameters();
-                if (_temporaryImpositionParameters.PaperWidth > 0 && _temporaryImpositionParameters.PaperHeight > 0)
+                if ((_temporaryImpositionParameters.IsPaperSizeUnlocked || _temporaryImpositionParameters.PaperWidth > 0) && _temporaryImpositionParameters.PaperWidth > 0 && _temporaryImpositionParameters.PaperHeight > 0)
                 {
                     return new FlatSheetConfiguration
                     {
@@ -8957,7 +9521,7 @@ namespace WindowsFormsApp3
             try
             {
                 EnsureTemporaryImpositionParameters();
-                if (_temporaryImpositionParameters.FixedWidth > 0 && _temporaryImpositionParameters.MinLength > 0)
+                if ((_temporaryImpositionParameters.IsRollSizeUnlocked || _temporaryImpositionParameters.FixedWidth > 0) && _temporaryImpositionParameters.FixedWidth > 0 && _temporaryImpositionParameters.MinLength > 0)
                 {
                     return new RollMaterialConfiguration
                     {
@@ -10039,6 +10603,8 @@ namespace WindowsFormsApp3
                         Task.Run(async () => await CalculateAndUpdateLayout());
                     }
                 }
+
+                UpdateJoinGroupEnabledState(_isDuplicateLayoutEnabled);
             }
             catch (Exception ex)
             {

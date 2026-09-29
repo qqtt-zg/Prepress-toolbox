@@ -190,10 +190,12 @@ catch (Exception ex)
 
             bool isMaterialPreview = args != null && args.Length > 0 &&
                 (args[0] == "--preview-material" || args[0] == "--material-select");
+            bool isPresetManagerPreview = args != null && args.Length > 0 &&
+                (args[0] == "--preview-preset-manager" || args[0] == "--preset-manager");
             bool ownsSingleInstanceMutex = mutex.WaitOne(TimeSpan.Zero, true);
 
-            // V5 材料选择框预览是独立的开发入口，允许在主程序运行时并行打开。
-            if (ownsSingleInstanceMutex || isMaterialPreview)
+            // V5 材料选择框与预设管理预览是独立的开发入口，允许在主程序运行时并行打开。
+            if (ownsSingleInstanceMutex || isMaterialPreview || isPresetManagerPreview)
             {
                 // 设置Spire授权密钥
                 string licenseKey = "8DJPwcCe0QCAfvuXySwTk7A7I6/mKl79wKDNNMYfS6zvvICl6bJkNs6GJD7UkU93Ec05scOcf0EjgptJB6fPlGQSArVHX6ZgZC+PqjV363gPN3JH3ctEksNCC24btBXI9CtWqaEw4g333LI7ukXtNVMmpOUUpoIX1C0Dqg3sPu7Uy5nhqVahScV3LHQr2RoIuTOaAACqCTE1DnmvHrpNYmFH/Y/8Qciv+4wieZlwNkS/rUWY3y6AVCFzV+klSXKOFC7DpgfNRvATANnQe5uC9fYA1WGrfKzY2HSUGvUBiEjJ11wGMog57bkaXvO6B/qMtcIqX4Crkg+qD+UKzaYMPET+osAX1SIk6gECaZBKvco5m/kvmJ4yAqrcZvT0iJKtnbokuomSkCkWPNlADMdAOKzczQjyJOM92zlOs2eYIpDNdy2Pm4tG0qX4TnwpKm2Vq+k7Pmh8dC0MFRp61DoZFXu3qNTODwnBDB+RwtO3l0sb4pHZQ3ZAJbMiKtjiFWYhnnZqlBKJ/YMV7dh0mRsO7+bSnldkikAcGMwYi2+BDpP+rtQAwZO2qjRrKlojbx8CnGKIzFnuCDOvXpOzfFpZGSQSuYQScYXWaPwLHMwPcw52EXaqQG8mXmOy/Sn0DAJEe3goI38wGaegPGePnQTcs0nTmCyPVxqEN/+efiTZuCqL/0i6Fj6Ap762Hhr7megmrxt1rxc1wb9iwFWlozeBqCHcoWzafjIfmzTZQIsn1GCTFMk/lEEDyERIUOY4TP48Ueu5CUvgp947VYnH7Jeg8jKGMRl3rIqJK6h5HGV0yLEQmw24Cs0c/EjM0Ja2iodY6sh6tRgW9nxwHriuyd0XfawQkVS407nOOks6b82B7IU1la5CvEMJew92qpSDIc+7abEFa0RXnwbeaKb96EVv8VBkarludtfH9lPwL4392LqUgsTbd6FcE2/ZZQ3gaaDawkfIQKcqV7zQ3p1PSXEta4rEA/mF+ldY/e7j5BoXoqktCdz13bTcxIU2+uN/es4jVP5N3f+uHFuxYzm30Kt8HNMfhrqJ8RYUxHpWUJhcuYQ=";
@@ -254,7 +256,11 @@ catch (Exception ex)
                     // 不阻止程序启动，只记录错误
                 }
 
-                if (isMaterialPreview)
+                if (isPresetManagerPreview)
+                {
+                    Application.Run(new Forms.Main.PresetManagementForm());
+                }
+                else if (isMaterialPreview)
                 {
                     var mockItems = new[]
                     {

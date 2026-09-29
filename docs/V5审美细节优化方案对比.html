@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V5工作台 · P1~P4 审美与细节升级交互对比</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --panel-bg: #1e293b;
+      --card-bg: #ffffff;
+      --border: #334155;
+      --border-light: #475569;
+      --text: #f8fafc;
+      --text-secondary: #94a3b8;
+      --primary: #38bdf8;
+      --brand-blue: #1677ff;
+      --brand-blue-hover: #4096ff;
+      --brand-blue-bg: #e6f4ff;
+      --brand-blue-border: #91caff;
+      --flat-blue: #0284c7;
+      --flat-blue-bg: #e0f2fe;
+      --flat-blue-border: #7dd3fc;
+      --roll-amber: #b45309;
+      --roll-amber-bg: #fef3c7;
+      --roll-amber-border: #fcd34d;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 24px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .header-section {
+      max-width: 1280px;
+      margin: 0 auto 24px;
+      background: var(--panel-bg);
+      padding: 20px 24px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .header-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-subtitle {
+      color: var(--text-secondary);
+      margin-top: 8px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    /* 左右双机对比网格 */
+    .compare-grid {
+      max-width: 1280px;
+      margin: 0 auto 24px;
+      display: grid;
+      grid-template-columns: 380px 380px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .workbench-column {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .column-header {
+      background: var(--panel-bg);
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .col-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .col-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .col-badge.old { background: #475569; color: #cbd5e1; }
+    .col-badge.new { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+
+    /* 360px 仿真工作台白底容器 */
+    .v5-window {
+      width: 360px;
+      background: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      color: #1e293b;
+      font-size: 12px;
+      border: 1px solid #cbd5e1;
+    }
+
+    .v5-titlebar {
+      height: 28px;
+      background: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    /* 卡片容器 */
+    .v5-card {
+      margin: 6px 8px;
+      border: 1px solid #d4dbe4;
+      border-radius: 6px;
+      padding: 6px 8px;
+      background: #ffffff;
+    }
+
+    /* 1. 材料卡片 */
+    .mat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+    .mat-btn {
+      height: 26px;
+      background: #fff;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #334155;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+    }
+    .mat-btn.active {
+      border-color: #1677ff;
+      color: #1677ff;
+      background: #e6f4ff;
+      font-weight: 700;
+    }
+    .mat-btn.active .check-corner {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 0;
+      height: 0;
+      border-bottom: 9px solid #1677ff;
+      border-left: 9px solid transparent;
+    }
+
+    /* 2. 输出路径卡片 (P1 对比核心) */
+    .path-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 26px;
+      gap: 6px;
+    }
+    .path-lbl {
+      font-weight: 700;
+      font-size: 11px;
+      color: #64748b;
+      white-space: nowrap;
+    }
+    .path-val {
+      flex: 1;
+      font-size: 11px;
+      color: #0284c7;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    /* 传统黄色文件夹按钮 (当前) */
+    .btn-folder-yellow {
+      height: 24px;
+      padding: 0 6px;
+      border-radius: 3px;
+      border: 1px solid #d9d9d9;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #334155;
+      cursor: pointer;
+    }
+    .icon-yellow-folder {
+      width: 14px;
+      height: 11px;
+      background: #faad14;
+      border-radius: 1px 3px 2px 2px;
+      position: relative;
+    }
+    .icon-yellow-folder::before {
+      content: "";
+      position: absolute;
+      top: -3px;
+      left: 0;
+      width: 6px;
+      height: 3px;
+      background: #d48806;
+      border-radius: 2px 2px 0 0;
+    }
+
+    /* 【P1 升级】现代 Ant Design 线性展开文件夹 */
+    .btn-folder-linear {
+      height: 24px;
+      padding: 0 7px;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-folder-linear:hover {
+      border-color: #1677ff;
+      color: #1677ff;
+      background: #f0f7ff;
+    }
+    .btn-folder-linear svg {
+      width: 13px;
+      height: 13px;
+      fill: currentColor;
+    }
+
+    /* 3. 工艺卡片 */
+    .craft-row {
+      display: flex;
+      align-items: center;
+      height: 24px;
+      margin-bottom: 4px;
+      gap: 6px;
+    }
+    .craft-row:last-child { margin-bottom: 0; }
+    .craft-lbl {
+      width: 30px;
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 700;
+    }
+    .craft-seg {
+      flex: 1;
+      display: flex;
+      height: 24px;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .craft-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #334155;
+      border-right: 1px solid #e2e8f0;
+    }
+    .craft-item:last-child { border-right: none; }
+    .craft-item.active {
+      background: #e6f4ff;
+      color: #1677ff;
+      font-weight: 700;
+    }
+
+    /* 4. 订单与数量卡片 (P3 对比核心) */
+    /* 当前现状：参差不齐、空白框 */
+    .order-row-old {
+      display: flex;
+      align-items: center;
+      height: 24px;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .order-input-old {
+      height: 22px;
+      border: 1px solid #d9d9d9;
+      border-radius: 2px;
+      padding: 0 4px;
+      font-size: 11px;
+    }
+
+    /* 【P3 升级】：栅格对称对齐 + 组合胶囊化 + 消除空框 */
+    .order-grid-new {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .order-row-new {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      height: 26px;
+    }
+    .order-group-box {
+      display: flex;
+      align-items: center;
+      border: 1px solid #d3d9e2;
+      border-radius: 4px;
+      height: 26px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .order-prefix-tag {
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 0 6px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      border-right: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+    .order-input-clean {
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 0 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #1e293b;
+      min-width: 0;
+      background: transparent;
+    }
+    .order-input-clean::placeholder {
+      color: #94a3b8;
+      font-weight: 400;
+    }
+    .suffix-search-btn {
+      width: 24px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      cursor: pointer;
+      border-left: 1px solid #e2e8f0;
+    }
+    .suffix-search-btn:hover {
+      color: #1677ff;
+      background: #f8fafc;
+    }
+
+    /* 5. 卡片 5: 大版控制行 */
+    .impo-ctrl-row {
+      display: flex;
+      align-items: center;
+      height: 26px;
+      position: relative;
+    }
+    .btn-impo-toggle {
+      width: 26px;
+      height: 24px;
+      border-radius: 3px;
+      background: #1677ff;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-impo-toggle svg { width: 14px; height: 14px; fill: currentColor; }
+    .capsule-badge {
+      height: 22px;
+      padding: 0 6px;
+      border-radius: 3px;
+      font-size: 10.5px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      margin-left: 3px;
+    }
+    .capsule-badge.flat { background: #e0f2fe; color: #0284c7; border: 1px solid #7dd3fc; }
+    .capsule-badge.roll { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
+
+    .right-seg-group {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .mini-seg {
+      width: 70px;
+      height: 24px;
+      display: flex;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .mini-seg-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #64748b;
+    }
+    .mini-seg-item.active { background: #e6f4ff; color: #1677ff; font-weight: 700; }
+    .btn-id-ghost {
+      width: 26px;
+      height: 24px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ebf5ff;
+      color: #1677ff;
+    }
+    .btn-id-ghost svg { width: 16px; height: 16px; fill: currentColor; }
+
+    /* 6 宫格指标 */
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      height: 38px;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      margin-top: 6px;
+    }
+    .metric-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid #f1f5f9;
+      font-size: 9.5px;
+      color: #64748b;
+    }
+    .metric-cell:last-child { border-right: none; }
+    .metric-v { font-size: 11.5px; font-weight: 700; margin-top: 1px; }
+
+    /* 6. 预设浏览器卡片 (P4 对比核心) */
+    .preset-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .preset-tab-name {
+      font-weight: 700;
+      color: #1677ff;
+      font-size: 12px;
+      border-bottom: 2px solid #1677ff;
+      padding-bottom: 2px;
+    }
+    .preset-tools {
+      display: flex;
+      gap: 4px;
+    }
+    .btn-tool-icon {
+      width: 24px;
+      height: 22px;
+      border: 1px solid #d9d9d9;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      cursor: pointer;
+    }
+    .btn-tool-icon svg { width: 12px; height: 12px; fill: currentColor; }
+
+    .preset-pills-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    /* 现状预设药丸：纯灰框纯文字，无形态提示 */
+    .pill-old {
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 4px;
+      border: 1px solid #d9d9d9;
+      background: #fff;
+      font-size: 11px;
+      color: #334155;
+      display: inline-flex;
+      align-items: center;
+    }
+    .pill-old.active {
+      border-color: #1677ff;
+      color: #1677ff;
+      font-weight: 700;
+      background: #e6f4ff;
+    }
+
+    /* 【P4 升级】：平张(浅蓝点)/卷装(琥珀橙点)微型色彩语义辨识 */
+    .pill-new {
+      height: 24px;
+      padding: 0 8px 0 6px;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      font-size: 11px;
+      color: #334155;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .pill-new:hover {
+      border-color: #91caff;
+      background: #f8fafc;
+    }
+    .pill-new.active {
+      border-color: #1677ff;
+      color: #1677ff;
+      font-weight: 700;
+      background: #e6f4ff;
+      box-shadow: 0 1px 3px rgba(22, 119, 255, 0.15);
+    }
+    /* 平张形态微点印标 */
+    .pill-dot-flat {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #0284c7;
+      box-shadow: 0 0 0 1.5px #bae6fd;
+    }
+    /* 卷装形态微点印标 */
+    .pill-dot-roll {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #d97706;
+      box-shadow: 0 0 0 1.5px #fde68a;
+    }
+
+    /* 7. 底部操作栏 (P2 对比核心) */
+    .action-bar-row {
+      margin: 8px 8px 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 现状 P2：左侧也是强烈的深蓝底按钮，抢焦点 */
+    .btn-batch-old {
+      height: 30px;
+      padding: 0 12px;
+      border-radius: 4px;
+      border: none;
+      background: #1677ff;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* 【P2 升级】：优雅次级描边按钮 (Secondary Ghost Button) */
+    .btn-batch-new {
+      height: 30px;
+      padding: 0 12px;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #475569;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-batch-new:hover {
+      border-color: #1677ff;
+      color: #1677ff;
+      background: #f0f7ff;
+    }
+    .btn-batch-new svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .btn-cancel {
+      height: 30px;
+      padding: 0 14px;
+      border-radius: 4px;
+      border: 1px solid #d9d9d9;
+      background: #fff;
+      color: #64748b;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .btn-primary-cta {
+      flex: 1;
+      height: 30px;
+      border-radius: 4px;
+      border: none;
+      background: #1677ff;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(22, 119, 255, 0.25);
+    }
+
+    .preview-toggle-bar {
+      height: 22px;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 10.5px;
+      color: #64748b;
+    }
+
+    /* 右侧解释卡片区 */
+    .details-column {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .doc-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+    .doc-card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .doc-badge {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 700;
+    }
+    .p1-badge { background: #0284c7; color: #fff; }
+    .p2-badge { background: #16a34a; color: #fff; }
+    .p3-badge { background: #9333ea; color: #fff; }
+    .p4-badge { background: #d97706; color: #fff; }
+
+    .doc-p {
+      color: #cbd5e1;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .doc-list {
+      margin-top: 6px;
+      padding-left: 18px;
+      color: #94a3b8;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .doc-list strong { color: #f1f5f9; }
+  </style>
+</head>
+<body>
+
+  <div class="header-section">
+    <div class="header-title">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#38bdf8" stroke-width="2">
+        <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+      </svg>
+      V5 工作台 · P1~P4 审美升级与细节走查对比方案
+    </div>
+    <div class="header-subtitle">
+      左侧为<strong>当前版本实装效果</strong>，中间为实施 <strong>P1 (目录图标线性化) + P2 (批量按钮降级) + P3 (订单区栅格工整化) + P4 (预设语义微标)</strong> 后的升级效果。<br>
+      右侧罗列了设计原理与视觉收益。
+    </div>
+  </div>
+
+  <div class="compare-grid">
+
+    <!-- 1. 左列：当前实机效果 -->
+    <div class="workbench-column">
+      <div class="column-header">
+        <div class="col-title">当前版本效果 (v2.6.9)</div>
+        <span class="col-badge old">现状实况</span>
+      </div>
+
+      <div class="v5-window">
+        <div class="v5-titlebar">
+          <span>铭牌_A款_80×45mm</span>
+          <span style="color:#64748b;">📌 012-铭牌</span>
+        </div>
+
+        <!-- 卡片 1: 材料 -->
+        <div class="v5-card">
+          <div class="mat-grid">
+            <div class="mat-btn active">光膜白PET</div>
+            <div class="mat-btn">哑银PET</div>
+            <div class="mat-btn">透明PET</div>
+            <div class="mat-btn">磨砂PET</div>
+            <div class="mat-btn">50#拉丝金</div>
+            <div class="mat-btn">合成纸</div>
+            <div class="mat-btn">PVC不干胶</div>
+            <div class="mat-btn" style="color:#64748b;">更多材料 ▾</div>
+          </div>
+        </div>
+
+        <!-- 卡片 2: 输出目录 (黄色小文件夹) -->
+        <div class="v5-card">
+          <div class="path-row">
+            <span class="path-lbl">输出:</span>
+            <span class="path-val">威立德\A3\A4折手一刀</span>
+            <!-- 现状：黄色拟物填充小文件夹 -->
+            <div class="btn-folder-yellow" title="切换输出路径">
+              <span class="icon-yellow-folder"></span>
+              <span>切换目录 ▾</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 卡片 3: 工艺 -->
+        <div class="v5-card">
+          <div class="craft-row">
+            <span class="craft-lbl">覆膜</span>
+            <div class="craft-seg">
+              <div class="craft-item active">光膜</div>
+              <div class="craft-item">哑膜</div>
+              <div class="craft-item">红膜</div>
+              <div class="craft-item">不过膜</div>
+            </div>
+          </div>
+          <div class="craft-row">
+            <span class="craft-lbl">形状</span>
+            <div class="craft-seg">
+              <div class="craft-item active">直角</div>
+              <div class="craft-item">圆形</div>
+              <div class="craft-item">异形</div>
+              <div class="craft-item">圆角 R 8</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 卡片 4: 订单与数量 (现状：不对齐、空输入框) -->
+        <div class="v5-card">
+          <div class="order-row-old">
+            <span style="font-size:11px; color:#64748b; font-weight:700;">订单</span>
+            <input class="order-input-old" value="169" style="width:42px;">
+            <select class="order-input-old" style="width:84px;"><option>第一组数</option></select>
+            <span style="font-size:11px; color:#64748b; font-weight:700; margin-left:4px;">序号</span>
+            <input class="order-input-old" value="A08" style="width:44px;">
+            <button style="height:22px; width:22px; border:1px solid #d9d9d9; background:#fff; border-radius:2px; font-size:10px;">🔍</button>
+          </div>
+          <div class="order-row-old">
+            <span style="font-size:11px; color:#64748b; font-weight:700;">数量</span>
+            <!-- 现状：空的文本框/复选框零散堆放 -->
+            <input class="order-input-old" style="width:36px;" placeholder="">
+            <input class="order-input-old" style="width:36px;" placeholder="">
+            <input type="checkbox" style="margin-left:4px;">
+            <input class="order-input-old" value="2" style="width:24px; text-align:center;">
+            <span style="font-size:10.5px; color:#1677ff; border:1px solid #91caff; border-radius:2px; padding:1px 3px;">联</span>
+            <select class="order-input-old" style="width:68px;"><option>自适应</option></select>
+          </div>
+        </div>
+
+        <!-- 卡片 5: 大版排版看板 -->
+        <div class="v5-card">
+          <div class="impo-ctrl-row">
+            <div class="btn-impo-toggle"><svg viewBox="0 0 16 16"><rect x="1" y="1" width="3.5" height="3.5"/><rect x="6.25" y="1" width="3.5" height="3.5"/><rect x="11.5" y="1" width="3.5" height="3.5"/><rect x="1" y="6.25" width="3.5" height="3.5"/><rect x="6.25" y="6.25" width="3.5" height="3.5"/><rect x="11.5" y="6.25" width="3.5" height="3.5"/><rect x="1" y="11.5" width="3.5" height="3.5"/><rect x="6.25" y="11.5" width="3.5" height="3.5"/><rect x="11.5" y="11.5" width="3.5" height="3.5"/></svg></div>
+            <div class="capsule-badge flat">📄 232×320</div>
+            <div class="right-seg-group">
+              <div class="mini-seg"><div class="mini-seg-item active">平张</div><div class="mini-seg-item">卷装</div></div>
+              <div class="mini-seg"><div class="mini-seg-item active">连拼</div><div class="mini-seg-item">折手</div></div>
+              <div class="btn-id-ghost"><svg viewBox="64 64 896 896"><path d="M854.6 288.6L639.4 73.4c-6-6-14.1-9.4-22.6-9.4H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V311.3c0-8.6-3.4-16.7-9.4-22.7zM790.2 326H602V137.8L790.2 326zM224 896V128h320v224c0 17.7 14.3 32 32 32h224v512H224z"/><path d="M320 448h384v64H320zm0 144h384v64H320zm0 144h256v64H320z"/></svg></div>
+            </div>
+          </div>
+          <div class="metrics-row">
+            <div class="metric-cell"><span>网格</span><span class="metric-v" style="color:#1677ff;">5 × 3</span></div>
+            <div class="metric-cell"><span>布局数</span><span class="metric-v" style="color:#fa8c16;">15</span></div>
+            <div class="metric-cell"><span>角度</span><span class="metric-v" style="color:#722ed1;">0°</span></div>
+            <div class="metric-cell"><span>尺寸</span><span class="metric-v" style="color:#0958d9;">80×45</span></div>
+            <div class="metric-cell"><span>出血</span><span class="metric-v" style="color:#eb2f96;">2.0</span></div>
+            <div class="metric-cell"><span>颜色</span><span class="metric-v" style="color:#13c2c2;">彩色</span></div>
+          </div>
+        </div>
+
+        <!-- 卡片 6: 预设浏览器 (现状：全灰框) -->
+        <div class="v5-card">
+          <div class="preset-header">
+            <span class="preset-tab-name">威立德常用</span>
+            <div class="preset-tools">
+              <div class="btn-tool-icon" title="保存当前为预设">➕</div>
+              <div class="btn-tool-icon" title="预设管理">⚙</div>
+            </div>
+          </div>
+          <!-- 现状：全是一摸一样的灰边框胶囊 -->
+          <div class="preset-pills-wrap">
+            <div class="pill-old active">威-A4</div>
+            <div class="pill-old">威-卷-折手</div>
+            <div class="pill-old">威-卷-两联</div>
+            <div class="pill-old">威-卷-连拼</div>
+            <div class="pill-old">前连拼</div>
+            <div class="pill-old">滚直一刀</div>
+          </div>
+        </div>
+
+        <!-- 卡片 7: 底部操作栏 (现状：两个深蓝按钮争夺焦点) -->
+        <div class="action-bar-row">
+          <!-- 现状：高饱和实心深蓝 -->
+          <button class="btn-batch-old">
+            <span>←</span> 批量处理
+          </button>
+          <button class="btn-cancel">取消</button>
+          <button class="btn-primary-cta">确认并继续</button>
+        </div>
+
+        <div class="preview-toggle-bar">
+          <span>页码: —</span>
+          <span>▼ 点击展开预览 (+240px)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 中列：【P1 ~ P4 升级后】效果 -->
+    <div class="workbench-column">
+      <div class="column-header">
+        <div class="col-title">P1~P4 审美升级后效果</div>
+        <span class="col-badge new">精修版推荐</span>
+      </div>
+
+      <div class="v5-window" style="box-shadow: 0 10px 30px rgba(56, 189, 248, 0.15); border-color:#93c5fd;">
+        <div class="v5-titlebar">
+          <span>铭牌_A款_80×45mm</span>
+          <span style="color:#64748b;">📌 012-铭牌</span>
+        </div>
+
+        <!-- 卡片 1: 材料 (带微妙对勾角标) -->
+        <div class="v5-card">
+          <div class="mat-grid">
+            <div class="mat-btn active">
+              <span>光膜白PET</span>
+              <span class="check-corner"></span>
+            </div>
+            <div class="mat-btn">哑银PET</div>
+            <div class="mat-btn">透明PET</div>
+            <div class="mat-btn">磨砂PET</div>
+            <div class="mat-btn">50#拉丝金</div>
+            <div class="mat-btn">合成纸</div>
+            <div class="mat-btn">PVC不干胶</div>
+            <div class="mat-btn" style="color:#64748b;">更多材料 ▾</div>
+          </div>
+        </div>
+
+        <!-- 卡片 2: 输出目录 (【P1】线性展开文件夹，风格100%纯净统一) -->
+        <div class="v5-card">
+          <div class="path-row">
+            <span class="path-lbl">输出:</span>
+            <span class="path-val">威立德\A3\A4折手一刀</span>
+            <!-- 【P1 升级】现代 Ant Design 线性展开文件夹 -->
+            <div class="btn-folder-linear" title="切换输出路径">
+              <svg viewBox="64 64 896 896">
+                <path d="M928 444H820V330.4c0-17.7-14.3-32-32-32H473L389 186.2c-7.9-10.6-20.4-16.8-33.8-16.8H128c-17.7 0-32 14.3-32 32v576c0 17.7 14.3 32 32 32h768c17.7 0 32-14.3 32-32L928 444zm-768-208h177.3l84 112.2c7.9 10.6 20.4 16.8 33.8 16.8H756v106.6H160V236zm696 544H160l60.8-272h680.4l-65.2 272z"/>
+              </svg>
+              <span>切换目录 ▾</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 卡片 3: 工艺 -->
+        <div class="v5-card">
+          <div class="craft-row">
+            <span class="craft-lbl">覆膜</span>
+            <div class="craft-seg">
+              <div class="craft-item active">光膜</div>
+              <div class="craft-item">哑膜</div>
+              <div class="craft-item">红膜</div>
+              <div class="craft-item">不过膜</div>
+            </div>
+          </div>
+          <div class="craft-row">
+            <span class="craft-lbl">形状</span>
+            <div class="craft-seg">
+              <div class="craft-item active">直角</div>
+              <div class="craft-item">圆形</div>
+              <div class="craft-item">异形</div>
+              <div class="craft-item">圆角 R 8</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 卡片 4: 订单与数量 (【P3】栅格对称对齐 + 前缀标签组合框 + 内嵌搜索图标 + 消除空白框) -->
+        <div class="v5-card">
+          <div class="order-grid-new">
+            <!-- 第 1 行：订单 50% 栅格对 序号 50% 栅格 -->
+            <div class="order-row-new">
+              <div class="order-group-box">
+                <span class="order-prefix-tag">订单</span>
+                <input class="order-input-clean" value="169" placeholder="订单号">
+                <span style="font-size:11px; color:#64748b; padding-right:6px; cursor:pointer;">第一组▾</span>
+              </div>
+              <div class="order-group-box">
+                <span class="order-prefix-tag">序号</span>
+                <input class="order-input-clean" value="A08" placeholder="序号">
+                <div class="suffix-search-btn" title="反查序号匹配">
+                  <svg viewBox="64 64 896 896" width="12" height="12" fill="currentColor">
+                    <path d="M909.6 854.5L649.9 594.8C690.2 537.8 714 468.6 714 394 714 217.3 570.7 74 394 74S74 217.3 74 394s143.3 320 320 320c74.6 0 143.8-23.8 200.8-64.1l259.7 259.7a8.2 8.2 0 0 0 11.6 0l43.5-43.5c3.2-3.2 3.2-8.4 0-11.6zM394 646c-139.2 0-252-112.8-252-252s112.8-252 252-252 252 112.8 252 252-112.8 252-252 252z"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- 第 2 行：数量/印刷规格 + 一式N联集成胶囊 -->
+            <div class="order-row-new">
+              <div class="order-group-box">
+                <span class="order-prefix-tag">数量</span>
+                <input class="order-input-clean" value="1000" placeholder="默认印数">
+              </div>
+              <div class="order-group-box" style="padding-right:4px;">
+                <span class="order-prefix-tag">拼版</span>
+                <span style="font-size:11px; font-weight:700; color:#1677ff; padding:0 6px;">2联</span>
+                <span style="font-size:10px; color:#64748b; margin-left:auto;">自适应 ▾</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 卡片 5: 大版排版看板 -->
+        <div class="v5-card">
+          <div class="impo-ctrl-row">
+            <div class="btn-impo-toggle"><svg viewBox="0 0 16 16"><rect x="1" y="1" width="3.5" height="3.5"/><rect x="6.25" y="1" width="3.5" height="3.5"/><rect x="11.5" y="1" width="3.5" height="3.5"/><rect x="1" y="6.25" width="3.5" height="3.5"/><rect x="6.25" y="6.25" width="3.5" height="3.5"/><rect x="11.5" y="6.25" width="3.5" height="3.5"/><rect x="1" y="11.5" width="3.5" height="3.5"/><rect x="6.25" y="11.5" width="3.5" height="3.5"/><rect x="11.5" y="11.5" width="3.5" height="3.5"/></svg></div>
+            <div class="capsule-badge flat">📄 232×320</div>
+            <div class="right-seg-group">
+              <div class="mini-seg"><div class="mini-seg-item active">平张</div><div class="mini-seg-item">卷装</div></div>
+              <div class="mini-seg"><div class="mini-seg-item active">连拼</div><div class="mini-seg-item">折手</div></div>
+              <div class="btn-id-ghost"><svg viewBox="64 64 896 896"><path d="M854.6 288.6L639.4 73.4c-6-6-14.1-9.4-22.6-9.4H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V311.3c0-8.6-3.4-16.7-9.4-22.7zM790.2 326H602V137.8L790.2 326zM224 896V128h320v224c0 17.7 14.3 32 32 32h224v512H224z"/><path d="M320 448h384v64H320zm0 144h384v64H320zm0 144h256v64H320z"/></svg></div>
+            </div>
+          </div>
+          <div class="metrics-row">
+            <div class="metric-cell"><span>网格</span><span class="metric-v" style="color:#1677ff;">5 × 3</span></div>
+            <div class="metric-cell"><span>布局数</span><span class="metric-v" style="color:#fa8c16;">15</span></div>
+            <div class="metric-cell"><span>角度</span><span class="metric-v" style="color:#722ed1;">0°</span></div>
+            <div class="metric-cell"><span>尺寸</span><span class="metric-v" style="color:#0958d9;">80×45</span></div>
+            <div class="metric-cell"><span>出血</span><span class="metric-v" style="color:#eb2f96;">2.0</span></div>
+            <div class="metric-cell"><span>颜色</span><span class="metric-v" style="color:#13c2c2;">彩色</span></div>
+          </div>
+        </div>
+
+        <!-- 卡片 6: 预设浏览器 (【P4】平张带浅蓝印标、卷装带琥珀橙印标，形态扫视即知) -->
+        <div class="v5-card">
+          <div class="preset-header">
+            <span class="preset-tab-name">威立德常用</span>
+            <div class="preset-tools">
+              <div class="btn-tool-icon" title="保存当前为预设">➕</div>
+              <div class="btn-tool-icon" title="预设管理">⚙</div>
+            </div>
+          </div>
+          <!-- 【P4 升级】：平张(浅蓝小点) / 卷装(橙色小点) 视觉微印记 -->
+          <div class="preset-pills-wrap">
+            <div class="pill-new active" title="平张模式预设">
+              <span class="pill-dot-flat"></span>
+              <span>威-A4</span>
+            </div>
+            <div class="pill-new" title="卷装模式预设">
+              <span class="pill-dot-roll"></span>
+              <span>威-卷-折手</span>
+            </div>
+            <div class="pill-new" title="卷装模式预设">
+              <span class="pill-dot-roll"></span>
+              <span>威-卷-两联</span>
+            </div>
+            <div class="pill-new" title="卷装模式预设">
+              <span class="pill-dot-roll"></span>
+              <span>威-卷-连拼</span>
+            </div>
+            <div class="pill-new" title="平张模式预设">
+              <span class="pill-dot-flat"></span>
+              <span>前连拼</span>
+            </div>
+            <div class="pill-new" title="平张模式预设">
+              <span class="pill-dot-flat"></span>
+              <span>滚直一刀</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 卡片 7: 底部操作栏 (【P2】批量处理降级为优雅描边按钮，突出唯一核心行动CTA) -->
+        <div class="action-bar-row">
+          <!-- 【P2 升级】：优雅次级中性描边按钮，不抢视觉主焦点 -->
+          <button class="btn-batch-new" title="进入多文件批量流水线">
+            <svg viewBox="64 64 896 896">
+              <path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656zM304 384h416c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H304c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm0 160h416c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H304c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm0 160h416c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H304c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8z"/>
+            </svg>
+            <span>批量处理</span>
+          </button>
+          <button class="btn-cancel">取消</button>
+          <button class="btn-primary-cta">确认并继续</button>
+        </div>
+
+        <div class="preview-toggle-bar">
+          <span>页码: —</span>
+          <span>▼ 点击展开预览 (+240px)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 右列：P1 ~ P4 深度设计阐释与收益 -->
+    <div class="details-column">
+
+      <!-- P1 说明卡片 -->
+      <div class="doc-card">
+        <div class="doc-card-title">
+          <span class="doc-badge p1-badge">P1</span>
+          目录切换图标线性化 (消灭唯一拟物杂色)
+        </div>
+        <p class="doc-p">
+          <strong>现状问题：</strong>卡片 2 使用了明黄色填充的拟物小文件夹。在整个 V5 界面以“单色纯净线性（Ant Design）”为主轴的语境下，黄色是全屏唯一的拟物杂色，略显陈旧和脱节。<br>
+          <strong>升级方案：</strong>采用统一的 <code>FolderOpenOutlined</code> 线性矢量展开文件夹，中性深灰底色，悬停轻蓝。整窗图标语言达成 100% 现代统一。
+        </p>
+      </div>
+
+      <!-- P2 说明卡片 -->
+      <div class="doc-card">
+        <div class="doc-card-title">
+          <span class="doc-badge p2-badge">P2</span>
+          底部「批量处理」按钮降级为次级描边
+        </div>
+        <p class="doc-p">
+          <strong>现状问题：</strong>一个操作窗口最忌讳**两个相同高饱和度的主色按钮同时争抢视线**。左下角的「批量处理」与右下角的「确认并继续」均为深蓝底，视觉重心被左右拉扯。<br>
+          <strong>升级方案：</strong>遵循工业设计层次规范，将「批量处理」改为**白底细线中性描边按钮 (Secondary Outline)**，仅保留「确认并继续」作为唯一的 **Primary CTA 主行动按钮**。操作流线明确顺畅。
+        </p>
+      </div>
+
+      <!-- P3 说明卡片 -->
+      <div class="doc-card">
+        <div class="doc-card-title">
+          <span class="doc-badge p3-badge">P3</span>
+          卡片 4 (订单/数量) 栅格对齐与消除空框
+        </div>
+        <p class="doc-p">
+          <strong>现状问题：</strong>当前第二行数量处常年有 2 个看似无用的空白灰输入框，控件参差散乱，用户容易误以为“漏填了参数”。<br>
+          <strong>升级方案：</strong>
+        </p>
+        <ul class="doc-list">
+          <li><strong>50/50 严格栅格对齐：</strong>第 1 行【订单 + 下拉】占 50%，【序号 + 放大镜】占 50%；第 2 行【数量】占 50%，【拼版联数】占 50%。</li>
+          <li><strong>连体前缀标签框：</strong>采用现代 <code>InputGroup</code>（浅灰前缀标签 + 文本域），取代散落的独立 Label，视觉平整度提升数倍。</li>
+          <li><strong>内嵌式反查搜索：</strong>放大镜嵌入序号输入框末端，彻底消灭孤立的方块按钮。</li>
+        </ul>
+      </div>
+
+      <!-- P4 说明卡片 -->
+      <div class="doc-card">
+        <div class="doc-card-title">
+          <span class="doc-badge p4-badge">P4</span>
+          预设药丸增加形态微标 (平张/卷装色彩点缀)
+        </div>
+        <p class="doc-p">
+          <strong>现状问题：</strong>所有预设均为纯白底灰框，名称长短不一，工人需要完全依靠读文字来识别这是平张还是卷装。<br>
+          <strong>升级方案：</strong>在每个预设名称前点缀 <strong>6px 的专属形态微印标</strong>（平张为浅蓝点、卷装为琥珀橙点，与卡片 5 的胶囊色彩完全呼应）。工人扫视一眼，即可凭借颜色本能挑出目标预设。
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- 专门章节：批量处理滑块动画保留与降级方案在线体验 -->
+  <div class="header-section" style="margin-top: 10px; border-color: #38bdf8; background: #0f172a;">
+    <div class="header-title" style="color: #38bdf8;">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+      核心专项：批量处理按钮如何【100% 保留滑块滑动展开动画】同时优雅降级？
+    </div>
+    <div class="header-subtitle" style="color: #cbd5e1;">
+      当前按钮之所以与右侧 <code>[确认并继续]</code> 抢视线，<strong>不是因为滑块展开动画，而是因为使用了全饱和度的刺眼深蓝色（#1677ff）实色遮盖</strong>。<br>
+      下方 4 种方案<strong>完全保留原版的 15ms 平滑插值物理滑块展开交互</strong>，仅通过色彩权重与图层透明度做专业降级。<strong>您可以将鼠标悬停在下方各按钮上，亲自测试滑动展开手感：</strong>
+    </div>
+
+    <!-- 4 个方案互动对比卡片 -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px;">
+
+      <!-- 0. 现状：深蓝实色遮盖 -->
+      <div style="background: #1e293b; border: 1px solid #475569; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px;">
+        <span style="font-size: 11px; padding: 2px 6px; background: #334155; color: #94a3b8; border-radius: 4px; font-weight: 700;">现状：实心深蓝</span>
+        <div style="font-size: 12px; color: #f8fafc; font-weight: 700;">高饱和实色强冲突</div>
+        <p style="font-size: 11px; color: #94a3b8; line-height: 1.5; min-height: 48px;">
+          左侧蓝方块 + 悬停深蓝满幅遮盖，左右出现两个刺眼深蓝，抢占 Primary 焦点。
+        </p>
+
+        <!-- 现状实机按钮模拟 -->
+        <div class="demo-uiverse-wrap demo-old">
+          <div class="demo-slider">
+            <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 8H3M7 4L3 8l4 4"/>
+            </svg>
+          </div>
+          <span class="demo-text">批量处理</span>
+        </div>
+        <span style="font-size: 10px; color: #ef4444;">⚠️ 视觉权重过重</span>
+      </div>
+
+      <!-- 方案 1：浅蓝胶囊流光滑块 (首选推荐) -->
+      <div style="background: #1e293b; border: 1px solid #0284c7; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; box-shadow: 0 4px 16px rgba(2, 132, 199, 0.2);">
+        <span style="font-size: 11px; padding: 2px 6px; background: #0284c7; color: #fff; border-radius: 4px; font-weight: 700;">方案 1：首选推荐</span>
+        <div style="font-size: 12px; color: #38bdf8; font-weight: 700;">低饱和浅蓝胶囊展开</div>
+        <p style="font-size: 11px; color: #cbd5e1; line-height: 1.5; min-height: 48px;">
+          滑块平时为<strong>轻柔浅蓝(#e6f4ff) + 蓝箭头</strong>，悬停展开为浅蓝次级药丸。动画完全保留，色相退居次席！
+        </p>
+
+        <!-- 方案 1 交互按钮 -->
+        <div class="demo-uiverse-wrap demo-plan1">
+          <div class="demo-slider">
+            <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 8H3M7 4L3 8l4 4"/>
+            </svg>
+          </div>
+          <span class="demo-text">批量处理</span>
+        </div>
+        <span style="font-size: 10px; color: #10b981;">✨ 动画完全保留，不抢主焦点</span>
+      </div>
+
+      <!-- 方案 2：状态语义分级 -->
+      <div style="background: #1e293b; border: 1px solid #475569; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px;">
+        <span style="font-size: 11px; padding: 2px 6px; background: #9333ea; color: #fff; border-radius: 4px; font-weight: 700;">方案 2：状态分级</span>
+        <div style="font-size: 12px; color: #f8fafc; font-weight: 700;">折叠中性灰 · 展开变主蓝</div>
+        <p style="font-size: 11px; color: #cbd5e1; line-height: 1.5; min-height: 48px;">
+          平时单文件处理时滑块为<strong>高级浅灰滑动</strong>；真正开启批量多文件列表后，才亮起主色蓝。
+        </p>
+
+        <!-- 方案 2 交互按钮 (可点击切换状态) -->
+        <div class="demo-uiverse-wrap demo-plan2" id="demoPlan2Btn" onclick="togglePlan2State()">
+          <div class="demo-slider">
+            <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="plan2Arrow">
+              <path d="M13 8H3M7 4L3 8l4 4"/>
+            </svg>
+          </div>
+          <span class="demo-text" id="plan2Text">批量处理</span>
+        </div>
+        <span style="font-size: 10px; color: #a855f7; cursor: pointer;" onclick="togglePlan2State()">🖱️ 点击按钮模拟开启/折叠</span>
+      </div>
+
+      <!-- 方案 3：微质感立体浮雕滑块 -->
+      <div style="background: #1e293b; border: 1px solid #475569; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px;">
+        <span style="font-size: 11px; padding: 2px 6px; background: #d97706; color: #fff; border-radius: 4px; font-weight: 700;">方案 3：极简浮雕</span>
+        <div style="font-size: 12px; color: #f8fafc; font-weight: 700;">纯白浮雕滑块微投影</div>
+        <p style="font-size: 11px; color: #cbd5e1; line-height: 1.5; min-height: 48px;">
+          纯白实体小滑块带轻微立体投影，悬停推开像物理滑动开关一样，零彩色干扰。
+        </p>
+
+        <!-- 方案 3 交互按钮 -->
+        <div class="demo-uiverse-wrap demo-plan3">
+          <div class="demo-slider">
+            <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 8H3M7 4L3 8l4 4"/>
+            </svg>
+          </div>
+          <span class="demo-text">批量处理</span>
+        </div>
+        <span style="font-size: 10px; color: #f59e0b;">物理质感拉满</span>
+      </div>
+
+    </div>
+  </div>
+
+  <style>
+    /* 滑块按钮基础容器：104x26，白底细框 */
+    .demo-uiverse-wrap {
+      width: 104px;
+      height: 26px;
+      border-radius: 5px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* 内部滑动色块 */
+    .demo-slider {
+      position: absolute;
+      left: 2px;
+      top: 2px;
+      bottom: 2px;
+      width: 22px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: width 0.24s cubic-bezier(0.34, 1.2, 0.64, 1), background-color 0.2s;
+      z-index: 1;
+    }
+    .demo-uiverse-wrap:hover .demo-slider {
+      width: calc(100% - 4px);
+    }
+
+    /* 文本层 */
+    .demo-text {
+      font-size: 11px;
+      font-weight: 600;
+      z-index: 2;
+      margin-left: 18px;
+      pointer-events: none;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    /* 0. 现状：刺眼深蓝实色 */
+    .demo-old {
+      border: 1px solid #d9d9d9;
+    }
+    .demo-old .demo-slider {
+      background: #1677ff;
+      color: #ffffff;
+    }
+    .demo-old .demo-text {
+      color: #1f2429;
+    }
+    .demo-old:hover .demo-text {
+      color: #ffffff;
+      margin-left: 0;
+    }
+
+    /* 1. 方案 1 (首选)：低饱和浅蓝胶囊 */
+    .demo-plan1 {
+      border: 1px solid #cbd5e1;
+    }
+    .demo-plan1 .demo-slider {
+      background: #e6f4ff;
+      color: #1677ff;
+    }
+    .demo-plan1 .demo-text {
+      color: #334155;
+    }
+    .demo-plan1:hover {
+      border-color: #91caff;
+    }
+    .demo-plan1:hover .demo-slider {
+      background: #bae0ff;
+    }
+    .demo-plan1:hover .demo-text {
+      color: #0958d9;
+      font-weight: 700;
+      margin-left: 0;
+    }
+
+    /* 2. 方案 2：平时中性灰展开，开启才变主蓝 */
+    .demo-plan2.mode-folded {
+      border: 1px solid #d9d9d9;
+    }
+    .demo-plan2.mode-folded .demo-slider {
+      background: #f1f5f9;
+      color: #475569;
+    }
+    .demo-plan2.mode-folded .demo-text {
+      color: #334155;
+    }
+    .demo-plan2.mode-folded:hover {
+      border-color: #94a3b8;
+    }
+    .demo-plan2.mode-folded:hover .demo-slider {
+      background: #e2e8f0;
+    }
+    .demo-plan2.mode-folded:hover .demo-text {
+      color: #0f172a;
+      margin-left: 0;
+    }
+
+    .demo-plan2.mode-active {
+      border: 1px solid #1677ff;
+      background: #f0f7ff;
+    }
+    .demo-plan2.mode-active .demo-slider {
+      background: #1677ff;
+      color: #ffffff;
+    }
+    .demo-plan2.mode-active .demo-text {
+      color: #1677ff;
+    }
+    .demo-plan2.mode-active:hover .demo-text {
+      color: #ffffff;
+      margin-left: 0;
+    }
+
+    /* 3. 方案 3：纯白微浮雕滑块 */
+    .demo-plan3 {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+    }
+    .demo-plan3 .demo-slider {
+      background: #ffffff;
+      color: #475569;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      border: 1px solid #e2e8f0;
+    }
+    .demo-plan3 .demo-text {
+      color: #475569;
+    }
+    .demo-plan3:hover {
+      border-color: #cbd5e1;
+    }
+    .demo-plan3:hover .demo-text {
+      color: #0f172a;
+      margin-left: 0;
+    }
+  </style>
+
+  <script>
+    let plan2Active = false;
+    function togglePlan2State() {
+      plan2Active = !plan2Active;
+      const btn = document.getElementById('demoPlan2Btn');
+      const txt = document.getElementById('plan2Text');
+      const arrow = document.getElementById('plan2Arrow');
+
+      if (plan2Active) {
+        btn.className = 'demo-uiverse-wrap demo-plan2 mode-active';
+        txt.innerText = '仅处理当前款';
+        arrow.innerHTML = '<path d="M3 8h10M9 4l4 4-4 4"/>';
+      } else {
+        btn.className = 'demo-uiverse-wrap demo-plan2 mode-folded';
+        txt.innerText = '批量处理';
+        arrow.innerHTML = '<path d="M13 8H3M7 4L3 8l4 4"/>';
+      }
+    }
+
+    // 初始化方案2状态为折叠
+    document.getElementById('demoPlan2Btn').className = 'demo-uiverse-wrap demo-plan2 mode-folded';
+  </script>
+
+</body>
+</html>

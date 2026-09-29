@@ -28,7 +28,18 @@ namespace WindowsFormsApp3.Utils
         }
 
         /// <summary>
-        /// 获取设置服务实例
+        /// 重置设置服务（仅供单元测试隔离使用）
+        /// </summary>
+        public static void ResetForTesting()
+        {
+            lock (_lock)
+            {
+                _settingsService = null;
+            }
+        }
+
+        /// <summary>
+        /// 获取设置服务实例（支持未显式调用Initialize时的自愈懒加载）
         /// </summary>
         public static ApplicationSettingsService Instance
         {
@@ -36,7 +47,14 @@ namespace WindowsFormsApp3.Utils
             {
                 if (_settingsService == null)
                 {
-                    throw new InvalidOperationException("AppSettings未初始化，请先调用Initialize方法");
+                    lock (_lock)
+                    {
+                        if (_settingsService == null)
+                        {
+                            var logger = LogHelper.GetLogger() ?? new FileLogger();
+                            _settingsService = new ApplicationSettingsService(logger);
+                        }
+                    }
                 }
                 return _settingsService;
             }
@@ -168,6 +186,18 @@ namespace WindowsFormsApp3.Utils
         {
             get => Instance.MaterialPresets;
             set => Instance.MaterialPresets = value;
+        }
+
+        public static System.Collections.Generic.List<string> MaterialPresetGroups
+        {
+            get => Instance.MaterialPresetGroups;
+            set => Instance.MaterialPresetGroups = value;
+        }
+
+        public static string LastSelectedPresetGroup
+        {
+            get => Instance.LastSelectedPresetGroup;
+            set => Instance.LastSelectedPresetGroup = value;
         }
 
         public static string LastUsedMaterialPreset

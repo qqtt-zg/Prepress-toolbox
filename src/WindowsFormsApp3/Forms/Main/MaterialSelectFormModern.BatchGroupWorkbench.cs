@@ -817,9 +817,18 @@ namespace WindowsFormsApp3
                 return;
             }
 
+            bool redrawSuspended = false;
             try
             {
                 _isRenderingGroupCards = true;
+
+                // 渲染前暂停绘制，彻底杜绝清空容器和逐个添加卡片时引发的持续白屏与闪烁
+                if (pnlCardsContainer.IsHandleCreated)
+                {
+                    SendMessage(pnlCardsContainer.Handle, WM_SETREDRAW, IntPtr.Zero, IntPtr.Zero);
+                    redrawSuspended = true;
+                }
+
                 pnlCardsContainer.SuspendLayout();
                 pnlCardsContainer.Controls.Clear();
 
@@ -898,6 +907,14 @@ namespace WindowsFormsApp3
                 pnlCardsContainer.ResumeLayout(true);
                 LogHelper.Error($"[RenderGroupCards] 渲染工艺分组卡片失败: {ex.Message}", ex);
             }
+            finally
+            {
+                if (redrawSuspended && pnlCardsContainer.IsHandleCreated)
+                {
+                    SendMessage(pnlCardsContainer.Handle, WM_SETREDRAW, new IntPtr(1), IntPtr.Zero);
+                    pnlCardsContainer.Invalidate(true);
+                }
+            }
         }
 
         private void RelayoutCards()
@@ -933,7 +950,15 @@ namespace WindowsFormsApp3
                 Font = new Font("Microsoft YaHei UI", 8.5F),
                 RowTemplate = { Height = 26 },
                 ColumnHeadersHeight = 26,
+                ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing,
                 ScrollBars = ScrollBars.None
+            };
+
+            // 抑制底层 CurrencyManager 换行/删行过程中的越界系统弹框
+            dgv.DataError += (s, e) =>
+            {
+                e.Cancel = true;
+                e.ThrowException = false;
             };
 
             var colIndex = new DataGridViewTextBoxColumn

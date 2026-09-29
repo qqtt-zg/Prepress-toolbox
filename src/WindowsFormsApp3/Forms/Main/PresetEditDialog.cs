@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using WindowsFormsApp3.Models;
 using WindowsFormsApp3.Utils;
@@ -15,6 +16,7 @@ namespace WindowsFormsApp3.Forms.Main
     public class PresetEditDialog : Form
     {
         private TextBox _txtName;
+        private ComboBox _cmbGroupName;
         private ComboBox _cmbMaterialType;
         private ComboBox _cmbMaterial;
         private NumericUpDown _numTetBleed;
@@ -82,14 +84,28 @@ namespace WindowsFormsApp3.Forms.Main
             int controlX = 130;
             int width = 220;
             int height = 24;
-            int startY = 20;
-            int rowHeight = 40;
+            int startY = 16;
+            int rowHeight = 36;
 
             // 第1行：预设名称（无启用复选框）
             var lblName = new Label { Text = "预设名称:", Location = new Point(labelX, startY), AutoSize = true };
             _txtName = new TextBox { Location = new Point(controlX, startY), Width = width, Height = height };
             this.Controls.Add(lblName);
             this.Controls.Add(_txtName);
+
+            // 第1-1行：所属分组
+            var lblGroup = new Label { Text = "所属分组:", Location = new Point(labelX, startY + rowHeight), AutoSize = true };
+            _cmbGroupName = new ComboBox { Location = new Point(controlX, startY + rowHeight), Width = width, Height = height, DropDownStyle = ComboBoxStyle.DropDown };
+            var groups = (AppSettings.MaterialPresets ?? new List<MaterialSelectionPreset>())
+                .Select(p => string.IsNullOrWhiteSpace(p.GroupName) ? "未命名" : p.GroupName.Trim())
+                .Distinct()
+                .ToList();
+            if (!groups.Contains("未命名")) groups.Insert(0, "未命名");
+            foreach (var g in groups) _cmbGroupName.Items.Add(g);
+            this.Controls.Add(lblGroup);
+            this.Controls.Add(_cmbGroupName);
+
+            startY += rowHeight;
 
             // 第2行：材料类型
             _chkEnableMaterialType = new CheckBox { Location = new Point(chkX, startY + rowHeight), AutoSize = true, Checked = true };
@@ -311,6 +327,7 @@ namespace WindowsFormsApp3.Forms.Main
         private void LoadCurrentValues()
         {
             _txtName.Text = _preset.Name;
+            _cmbGroupName.Text = string.IsNullOrWhiteSpace(_preset.GroupName) ? "未命名" : _preset.GroupName;
 
             // 材料类型
             _cmbMaterialType.Text = _preset.MaterialType switch
@@ -423,6 +440,7 @@ namespace WindowsFormsApp3.Forms.Main
 
             // 保存值
             _preset.Name = _txtName.Text.Trim();
+            _preset.GroupName = string.IsNullOrWhiteSpace(_cmbGroupName.Text) ? "未命名" : _cmbGroupName.Text.Trim();
 
             // 材料类型
             _preset.MaterialType = _cmbMaterialType.Text switch

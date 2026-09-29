@@ -107,6 +107,8 @@ namespace WindowsFormsApp3.Services
 
             // 材料选择预设
             public List<Models.MaterialSelectionPreset> MaterialPresets { get; set; } = new List<Models.MaterialSelectionPreset>();
+            public List<string> MaterialPresetGroups { get; set; } = new List<string>();
+            public string LastSelectedPresetGroup { get; set; } = "未命名";
             public string LastUsedMaterialPreset { get; set; } = "";
 
             // 正则表达式变化自动刷新配置
@@ -169,17 +171,51 @@ namespace WindowsFormsApp3.Services
             {
                 lock (_lock)
                 {
+                    bool loadedSuccessfully = false;
+
                     if (File.Exists(_settingsFilePath))
                     {
-                        var json = File.ReadAllText(_settingsFilePath);
-                        _settings = JsonConvert.DeserializeObject<ApplicationSettings>(json) ?? new ApplicationSettings();
-                        _logger.LogDebug($"[LoadSettingsInternal] 从文件加载: Material='{_settings.Material}', ToggleMinimizeHotkey='{_settings.ToggleMinimizeHotkey}'");
+                        var fi = new FileInfo(_settingsFilePath);
+                        if (fi.Length > 0)
+                        {
+                            try
+                            {
+                                var json = File.ReadAllText(_settingsFilePath);
+                                var deserialized = JsonConvert.DeserializeObject<ApplicationSettings>(json);
+                                if (deserialized != null)
+                                {
+                                    _settings = deserialized;
+                                    loadedSuccessfully = true;
+                                    _logger.LogDebug($"[LoadSettingsInternal] 从主文件加载成功: Material='{_settings.Material}', ToggleMinimizeHotkey='{_settings.ToggleMinimizeHotkey}'");
+                                }
+                            }
+                            catch (Exception exParse)
+                            {
+                                _logger.LogError(exParse, "[LoadSettingsInternal] 主配置文件解析损坏，准备尝试自愈恢复");
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogWarning("[LoadSettingsInternal] 主配置文件大小为0，准备尝试自愈恢复");
+                        }
                     }
-                    else
+
+                    // 如果主文件不存在或损坏，启动容灾自愈流程
+                    if (!loadedSuccessfully)
                     {
-                        _settings = new ApplicationSettings();
-                        _logger.LogDebug("[LoadSettingsInternal] 文件不存在，创建新设置");
-                        SaveSettingsInternal(_settings);
+                        _settings = TryRecoverFromBackups();
+                        if (_settings != null)
+                        {
+                            _logger.LogInformation("[LoadSettingsInternal] 容灾自愈成功：已从历史备份中完整恢复配置！");
+                            // 恢复后重新写回主文件，实现自我修复
+                            SaveSettingsInternal(_settings);
+                        }
+                        else
+                        {
+                            _settings = new ApplicationSettings();
+                            _logger.LogInformation("[LoadSettingsInternal] 未找到可恢复的备份，初始化新配置");
+                            SaveSettingsInternal(_settings);
+                        }
                     }
 
                     // 初始化EventItems预设（如果为空）
@@ -200,8 +236,81 @@ namespace WindowsFormsApp3.Services
         }
 
         /// <summary>
-        /// 保存设置
+        /// 尝试从备份镜像或历史快照中自愈恢复配置
         /// </summary>
+        private ApplicationSettings TryRecoverFromBackups()
+        {
+            var candidates = new List<Tuple<string, ApplicationSettings, DateTime>>();
+
+            // 1. 尝试从 .bak 恢复
+            var bakPath = _settingsFilePath + ".bak";
+            if (File.Exists(bakPath) && new FileInfo(bakPath).Length > 0)
+            {
+                try
+                {
+                    var json = File.ReadAllText(bakPath);
+                    var settings = JsonConvert.DeserializeObject<ApplicationSettings>(json);
+                    if (settings != null)
+                    {
+                        candidates.Add(Tuple.Create(bakPath, settings, File.GetLastWriteTime(bakPath)));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"[TryRecoverFromBackups] 镜像备份 {bakPath} 读取失败: {ex.Message}");
+                }
+            }
+
+            // 2. 尝试从 Backups 目录寻找快照
+            try
+            {
+                var backupDir = AppDataPathManager.BackupsDirectory;
+                if (Directory.Exists(backupDir))
+                {
+                    var backupFiles = new DirectoryInfo(backupDir)
+                        .GetFiles("*.json")
+                        .OrderByDescending(f => f.LastWriteTime)
+                        .ToList();
+
+                    foreach (var file in backupFiles)
+                    {
+                        if (file.Length == 0) continue;
+                        try
+                        {
+                            var json = File.ReadAllText(file.FullName);
+                            var settings = JsonConvert.DeserializeObject<ApplicationSettings>(json);
+                            if (settings != null)
+                            {
+                                candidates.Add(Tuple.Create(file.FullName, settings, file.LastWriteTime));
+                            }
+                        }
+                        catch
+                        {
+                            // 尝试下一个快照
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[TryRecoverFromBackups] 扫描快照目录失败");
+            }
+
+            if (candidates.Count > 0)
+            {
+                // 优先选择包含有效材料预设的备份，其次按时间倒序选择最新备份
+                var best = candidates
+                    .OrderByDescending(c => c.Item2.MaterialPresets != null && c.Item2.MaterialPresets.Count > 0 ? 1 : 0)
+                    .ThenByDescending(c => c.Item3)
+                    .First();
+
+                _logger.LogInformation($"[TryRecoverFromBackups] 成功从最佳备份源 {best.Item1} 恢复配置 (预设数量: {best.Item2.MaterialPresets?.Count ?? 0})");
+                return best.Item2;
+            }
+
+            return null;
+        }
+
         /// <summary>
         /// 保存设置
         /// </summary>
@@ -229,14 +338,50 @@ namespace WindowsFormsApp3.Services
                 {
                     _settings = settings;
                     _logger.LogDebug($"[SaveSettingsInternal] Material='{_settings.Material}', Separator='{_settings.Separator}', ToggleMinimizeHotkey='{_settings.ToggleMinimizeHotkey}'");
-                    var json = JsonConvert.SerializeObject(_settings, Formatting.Indented);
-                    var dir = Path.GetDirectoryName(_settingsFilePath);
-                    if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+
+                    EnsureSettingsDirectory();
+
+                    // 1. 如果已有有效文件，保存前先生成快速回退镜像 (.bak) 与防空保护
+                    if (File.Exists(_settingsFilePath))
                     {
-                        Directory.CreateDirectory(dir);
+                        try
+                        {
+                            var existingFi = new FileInfo(_settingsFilePath);
+                            if (existingFi.Length > 0)
+                            {
+                                // A. 快速回退镜像 (.bak)
+                                var bakPath = _settingsFilePath + ".bak";
+                                File.Copy(_settingsFilePath, bakPath, true);
+
+                                // B. 防空护盾 (Zero-Preset Guard)
+                                // 如果即将写入的预设为空，但旧配置文件中存在预设，触发紧急备份
+                                if (settings.MaterialPresets == null || settings.MaterialPresets.Count == 0)
+                                {
+                                    CheckAndCreateEmergencyEmptyPresetBackup();
+                                }
+                            }
+                        }
+                        catch (Exception exBak)
+                        {
+                            _logger.LogWarning($"[SaveSettingsInternal] 自动备份配置失败: {exBak.Message}");
+                        }
                     }
-                    File.WriteAllText(_settingsFilePath, json);
-                    _logger.LogDebug($"[SaveSettingsInternal] 已保存到文件: {_settingsFilePath}");
+
+                    // 2. 原子安全写入：先写入临时文件，再安全替换，彻底防止写入中断/断电导致0字节损坏
+                    EnsureSettingsDirectory();
+                    var json = JsonConvert.SerializeObject(_settings, Formatting.Indented);
+                    var tempFile = _settingsFilePath + ".tmp";
+                    File.WriteAllText(tempFile, json);
+                    if (File.Exists(_settingsFilePath))
+                    {
+                        File.Delete(_settingsFilePath);
+                    }
+                    File.Move(tempFile, _settingsFilePath);
+
+                    // 3. 每日滚动快照（保存成功后确保当日快照就绪）
+                    CreateDailySnapshotIfNeed();
+
+                    _logger.LogDebug($"[SaveSettingsInternal] 已安全保存到文件: {_settingsFilePath}");
                 }
                 _logger.LogDebug("应用程序设置保存成功");
             }
@@ -245,6 +390,92 @@ namespace WindowsFormsApp3.Services
                 _logger.LogError(ex, "保存应用程序设置失败");
                 throw;
             }
+        }
+
+        private void CreateDailySnapshotIfNeed()
+        {
+            try
+            {
+                var backupDir = AppDataPathManager.BackupsDirectory;
+                var todayBackupPath = Path.Combine(backupDir, $"settings_{DateTime.Now:yyyy-MM-dd}.json");
+                bool shouldCopy = false;
+
+                if (!File.Exists(todayBackupPath))
+                {
+                    shouldCopy = true;
+                }
+                else
+                {
+                    // 若今日已有快照，但现有快照没有预设，而当前配置包含预设，则更新今日快照
+                    if (_settings != null && _settings.MaterialPresets != null && _settings.MaterialPresets.Count > 0)
+                    {
+                        try
+                        {
+                            var existingSnapJson = File.ReadAllText(todayBackupPath);
+                            var existingSnap = JsonConvert.DeserializeObject<ApplicationSettings>(existingSnapJson);
+                            if (existingSnap == null || existingSnap.MaterialPresets == null || existingSnap.MaterialPresets.Count == 0)
+                            {
+                                shouldCopy = true;
+                            }
+                        }
+                        catch
+                        {
+                            shouldCopy = true;
+                        }
+                    }
+                }
+
+                if (shouldCopy && File.Exists(_settingsFilePath))
+                {
+                    File.Copy(_settingsFilePath, todayBackupPath, true);
+                    _logger.LogInformation($"[CreateDailySnapshot] 已创建/同步每日配置快照: {todayBackupPath}");
+                    CleanOldBackups(backupDir, 30);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"[CreateDailySnapshot] 创建每日配置快照失败: {ex.Message}");
+            }
+        }
+
+        private void CheckAndCreateEmergencyEmptyPresetBackup()
+        {
+            try
+            {
+                if (File.Exists(_settingsFilePath))
+                {
+                    var oldJson = File.ReadAllText(_settingsFilePath);
+                    var oldSettings = JsonConvert.DeserializeObject<ApplicationSettings>(oldJson);
+                    if (oldSettings != null && oldSettings.MaterialPresets != null && oldSettings.MaterialPresets.Count > 0)
+                    {
+                        var backupDir = AppDataPathManager.BackupsDirectory;
+                        var emergencyPath = Path.Combine(backupDir, $"emergency_pre_empty_presets_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+                        File.WriteAllText(emergencyPath, oldJson);
+                        _logger.LogWarning($"[CheckAndCreateEmergencyEmptyPresetBackup] 警告：新设置中预设列表为空，已紧急保留上一次含有 {oldSettings.MaterialPresets.Count} 个预设的保护快照: {emergencyPath}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[CheckAndCreateEmergencyEmptyPresetBackup] 紧急备份失败");
+            }
+        }
+
+        private void CleanOldBackups(string backupDir, int keepDays)
+        {
+            try
+            {
+                var cutoff = DateTime.Now.AddDays(-keepDays);
+                var dir = new DirectoryInfo(backupDir);
+                foreach (var file in dir.GetFiles("settings_*.json"))
+                {
+                    if (file.CreationTime < cutoff)
+                    {
+                        try { file.Delete(); } catch { }
+                    }
+                }
+            }
+            catch { }
         }
 
     
@@ -410,6 +641,18 @@ namespace WindowsFormsApp3.Services
         {
             get => _settings.MaterialPresets;
             set { _settings.MaterialPresets = value; MarkAsChanged(); }
+        }
+
+        public List<string> MaterialPresetGroups
+        {
+            get => _settings.MaterialPresetGroups ?? (_settings.MaterialPresetGroups = new List<string>());
+            set { _settings.MaterialPresetGroups = value; MarkAsChanged(); }
+        }
+
+        public string LastSelectedPresetGroup
+        {
+            get => _settings.LastSelectedPresetGroup ?? "未命名";
+            set { _settings.LastSelectedPresetGroup = value; MarkAsChanged(); }
         }
 
         public string LastUsedMaterialPreset

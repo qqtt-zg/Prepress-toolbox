@@ -42,12 +42,15 @@ namespace WindowsFormsApp3
         private MiniSegmentedControl segMaterialType;
         private MiniSegmentedControl segLayoutMode;
         private ImpositionToggleButton btnImpositionToggle;
+        private IdentifierPageToggleButton btnIdentifierPageToggle;
         private BatchModeSwitch btnBatchModeSwitch;
+        private CustomSizeCapsule _customSizeCapsule;
 
         // 象限 4: 一式N联控件 (去“一式”文字，联/份改为微型切换按钮胶囊)
         private System.Windows.Forms.Panel pnlCopyCountWrap;
         private System.Windows.Forms.TextBox txtCopyCountInput;
         private MiniSegmentedControl segCopyType;
+        private System.Windows.Forms.Label lblCopyCountPill;
         private System.Windows.Forms.Label lblCopyModePill;
 
         // 模切形状第 4 项：圆角原地微型输入组件 (100% 还原 HTML 原型 .round-inplace-wrap)
@@ -425,7 +428,7 @@ namespace WindowsFormsApp3
         }
 
         /// <summary>
-        /// 卡片 4: 2×2 工单参数舱卡片 (订单号加宽至118px + 下拉加宽至62px · 序号限定5位数宽度48px + GDI+矢量放大镜按钮 · 58px 高)
+        /// 卡片 4: 2×2 工单参数舱卡片（两行共用 175/151px 分栏，订单模式完整显示四字选项）
         /// </summary>
         private void BuildOrderParametersCard()
         {
@@ -434,77 +437,64 @@ namespace WindowsFormsApp3
             tlpOrderParametersCard.Margin = new Padding(0, 0, 0, 4);
 
             // ----------------------------------------------------
-            // 第一行：[订单组合 (加宽至210px)] + [序号组合 (紧凑5位数 118px)] (23px 高)
+            // 两行共用 175/151px 分栏，给订单模式留出空间，同时保持四格分界线对齐。
             // ----------------------------------------------------
             var pnlRow1 = new System.Windows.Forms.Panel
             {
-                Location = new Point(4, 4),
-                Size = new Size(332, 23),
+                Location = new Point(4, 3),
+                Size = new Size(332, 24),
                 BackColor = Color.Transparent
             };
 
-            // (1) 订单组合区 (占用左侧 210px，输入框 116px + 下拉框 60px，长单号与完整文字极度舒展)
-            var pnlOrderGroup = new System.Windows.Forms.Panel
+            // (1) 订单组合框 (InputGroupBox: 左侧浅灰标签 [订单] + 订单号无缝输入 + 模式无缝下拉)
+            var pnlBoxOrder = new InputGroupBox("订单")
             {
                 Location = new Point(0, 0),
-                Size = new Size(210, 23),
-                BackColor = Color.Transparent
+                Size = new Size(175, 24)
             };
-            var lblO = new System.Windows.Forms.Label
-            {
-                Text = "订单",
-                Location = new Point(0, 0),
-                Size = new Size(32, 23),
-                Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(92, 99, 112),
-                TextAlign = ContentAlignment.MiddleLeft
-            };
-            pnlOrderGroup.Controls.Add(lblO);
 
             if (orderNumberTextBox != null)
             {
-                orderNumberTextBox.Location = new Point(32, 0);
-                orderNumberTextBox.Size = new Size(104, 23);
+                orderNumberTextBox.Location = new Point(36, 1);
+                orderNumberTextBox.Size = new Size(67, 22);
                 orderNumberTextBox.Font = new Font("Microsoft YaHei UI", 9F);
-                orderNumberTextBox.Radius = 3;
-                pnlOrderGroup.Controls.Add(orderNumberTextBox);
+                orderNumberTextBox.BorderWidth = 0F;
+                orderNumberTextBox.WaveSize = 0;
+                orderNumberTextBox.PlaceholderText = "订单号";
+                folderTreeViewToolTip?.SetToolTip(orderNumberTextBox, "订单编号/工程单号");
+                pnlBoxOrder.Controls.Add(orderNumberTextBox);
             }
 
             if (btnOrderNumberMode != null)
             {
-                btnOrderNumberMode.Location = new Point(138, 0);
-                btnOrderNumberMode.Size = new Size(72, 23);
-                btnOrderNumberMode.Radius = 3;
-                btnOrderNumberMode.Font = new Font("Microsoft YaHei UI", 9F);
-                pnlOrderGroup.Controls.Add(btnOrderNumberMode);
+                btnOrderNumberMode.Location = new Point(103, 1);
+                btnOrderNumberMode.Size = new Size(70, 22);
+                btnOrderNumberMode.Ghost = true;
+                btnOrderNumberMode.BorderWidth = 0F;
+                btnOrderNumberMode.WaveSize = 0;
+                btnOrderNumberMode.Font = new Font("Microsoft YaHei UI", 8F);
+                btnOrderNumberMode.ForeColor = Color.FromArgb(71, 85, 105);
+                pnlBoxOrder.Controls.Add(btnOrderNumberMode);
             }
-            pnlRow1.Controls.Add(pnlOrderGroup);
+            pnlRow1.Controls.Add(pnlBoxOrder);
 
-            // (2) 序号组合区 (占用右侧 118px，序号框仅保留容纳5位数宽度 46px，后接精美矢量放大镜反查按钮)
-            var pnlSerialGroup = new System.Windows.Forms.Panel
+            // (2) 序号组合框 (InputGroupBox: 左侧浅灰标签 [序号] + 序号无缝输入 + 放大镜无缝后缀)
+            var pnlBoxSerial = new InputGroupBox("序号")
             {
-                Location = new Point(212, 0),
-                Size = new Size(118, 23),
-                BackColor = Color.Transparent
+                Location = new Point(181, 0),
+                Size = new Size(151, 24)
             };
-            var lblS = new System.Windows.Forms.Label
-            {
-                Text = "序号",
-                Location = new Point(0, 0),
-                Size = new Size(32, 23),
-                Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(92, 99, 112),
-                TextAlign = ContentAlignment.MiddleLeft
-            };
-            pnlSerialGroup.Controls.Add(lblS);
 
             if (serialNumberTextBox != null)
             {
-                serialNumberTextBox.Location = new Point(32, 0);
-                serialNumberTextBox.Size = new Size(46, 23);
-                serialNumberTextBox.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular);
+                serialNumberTextBox.Location = new Point(36, 1);
+                serialNumberTextBox.Size = new Size(86, 22);
+                serialNumberTextBox.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
                 serialNumberTextBox.TextAlign = HorizontalAlignment.Left;
-                serialNumberTextBox.Radius = 3;
+                serialNumberTextBox.BorderWidth = 0F;
+                serialNumberTextBox.WaveSize = 0;
+                serialNumberTextBox.PlaceholderText = "序号";
+                folderTreeViewToolTip?.SetToolTip(serialNumberTextBox, "图档序号/行序号，按回车或点击右侧放大镜可反查");
                 serialNumberTextBox.KeyDown += (s, e) =>
                 {
                     if (e.KeyCode == Keys.Enter)
@@ -514,13 +504,13 @@ namespace WindowsFormsApp3
                         PerformSerialLookup(true);
                     }
                 };
-                pnlSerialGroup.Controls.Add(serialNumberTextBox);
+                pnlBoxSerial.Controls.Add(serialNumberTextBox);
             }
 
             btnSearchSerialAction = new SerialSearchButton
             {
-                Location = new Point(80, 0),
-                Size = new Size(28, 23),
+                Location = new Point(124, 1),
+                Size = new Size(25, 22),
                 IsSearchActive = AppSettings.MaterialEnableSerialSearchCheckbox
             };
             btnSearchSerialAction.Click += (s, e) =>
@@ -537,152 +527,155 @@ namespace WindowsFormsApp3
                     PerformSerialLookup(true);
                 }
             };
-            pnlSerialGroup.Controls.Add(btnSearchSerialAction);
-            pnlRow1.Controls.Add(pnlSerialGroup);
+            folderTreeViewToolTip?.SetToolTip(btnSearchSerialAction, "序号反查开关（启用后输入序号自动反查表格并更新）");
+            pnlBoxSerial.Controls.Add(btnSearchSerialAction);
+            pnlRow1.Controls.Add(pnlBoxSerial);
 
             tlpOrderParametersCard.Controls.Add(pnlRow1);
 
             // ----------------------------------------------------
-            // 第二行：[数量组合 (138px)] + [一式N联组合 (188px)] (23px 高)
+            // 第二行沿用 175/151px 分栏，视觉分界线与订单、序号完全一致。
             // ----------------------------------------------------
             var pnlRow2 = new System.Windows.Forms.Panel
             {
                 Location = new Point(4, 30),
-                Size = new Size(332, 23),
+                Size = new Size(332, 24),
                 BackColor = Color.Transparent
             };
 
-            // (1) 数量区
-            var pnlQty = new System.Windows.Forms.Panel
+            // (3) 数量组合框 (InputGroupBox: 左侧浅灰标签 [数量] + 数量无缝输入 + 增量步长)
+            var pnlBoxQty = new InputGroupBox("数量")
             {
                 Location = new Point(0, 0),
-                Size = new Size(138, 23),
-                BackColor = Color.Transparent
+                Size = new Size(175, 24)
             };
-            var lblQ = new System.Windows.Forms.Label
-            {
-                Text = "数量",
-                Location = new Point(0, 0),
-                Size = new Size(32, 23),
-                Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(92, 99, 112),
-                TextAlign = ContentAlignment.MiddleLeft
-            };
-            pnlQty.Controls.Add(lblQ);
 
             if (quantityTextBox != null)
             {
-                quantityTextBox.Location = new Point(32, 0);
-                quantityTextBox.Size = new Size(76, 23);
+                quantityTextBox.Location = new Point(36, 1);
+                quantityTextBox.Size = new Size(100, 22);
                 quantityTextBox.Font = new Font("Microsoft YaHei UI", 9F);
-                quantityTextBox.Radius = 3;
-                pnlQty.Controls.Add(quantityTextBox);
+                quantityTextBox.BorderWidth = 0F;
+                quantityTextBox.WaveSize = 0;
+                quantityTextBox.PlaceholderText = "数量";
+                folderTreeViewToolTip?.SetToolTip(quantityTextBox, "印刷制作数量");
+                pnlBoxQty.Controls.Add(quantityTextBox);
             }
             if (incrementTextBox != null)
             {
-                incrementTextBox.Location = new Point(110, 0);
-                incrementTextBox.Size = new Size(26, 23);
-                incrementTextBox.Font = new Font("Microsoft YaHei UI", 9F);
-                incrementTextBox.Radius = 3;
-                pnlQty.Controls.Add(incrementTextBox);
+                incrementTextBox.Location = new Point(138, 1);
+                incrementTextBox.Size = new Size(35, 22);
+                incrementTextBox.Font = new Font("Microsoft YaHei UI", 8.5F);
+                incrementTextBox.BorderWidth = 0F;
+                incrementTextBox.WaveSize = 0;
+                incrementTextBox.PlaceholderText = "+1";
+                incrementTextBox.ForeColor = Color.FromArgb(148, 163, 184);
+                folderTreeViewToolTip?.SetToolTip(incrementTextBox, "序号/数量自动递增步长（如 1）");
+                pnlBoxQty.Controls.Add(incrementTextBox);
             }
-            pnlRow2.Controls.Add(pnlQty);
+            pnlRow2.Controls.Add(pnlBoxQty);
 
-            // (2) 一式N联区 (去“一式”文字 · 联/份改为微型切换按钮胶囊 · 自适应独立下拉)
-            var pnlQuadrant4 = new System.Windows.Forms.Panel
+            // (4) 拼版组合框 (InputGroupBox: 左侧浅灰标签 [拼版] + 联数高亮胶囊 + 自适应策略下拉)
+            var pnlBoxImpo = new InputGroupBox("拼版")
             {
-                Location = new Point(142, 0),
-                Size = new Size(190, 23),
-                BackColor = Color.Transparent
+                Location = new Point(181, 0),
+                Size = new Size(151, 24)
             };
 
-            // 纯复选框方块 [√] (清除“一式”文字，仅保留纯净勾选框，宽 18px)
+            // 保持原底层复选框与文本框在后台同步，保证业务逻辑与事件 100% 畅通
             if (duplicateLayoutCheckbox != null)
             {
-                duplicateLayoutCheckbox.Location = new Point(0, 1);
-                duplicateLayoutCheckbox.Size = new Size(18, 22);
-                duplicateLayoutCheckbox.Text = "";
-                duplicateLayoutCheckbox.CheckedChanged += (s, e) => UpdateJoinGroupEnabledState(duplicateLayoutCheckbox.Checked);
-                pnlQuadrant4.Controls.Add(duplicateLayoutCheckbox);
+                duplicateLayoutCheckbox.Visible = false;
+                duplicateLayoutCheckbox.CheckedChanged += (s, e) =>
+                {
+                    UpdateJoinGroupEnabledState(duplicateLayoutCheckbox.Checked);
+                    UpdateCopyCountPillDisplay();
+                };
+                pnlBoxImpo.Controls.Add(duplicateLayoutCheckbox);
             }
 
-            // 联数数字输入框 [ 2 ] (独立白底细框，3px圆角，宽 26px，高 21px，Consolas 8.5pt Bold 居中)
-            pnlCopyCountWrap = new System.Windows.Forms.Panel
-            {
-                Location = new Point(22, 1),
-                Size = new Size(26, 21),
-                BackColor = Color.White
-            };
-            pnlCopyCountWrap.Paint += (s, e) =>
-            {
-                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                using (var path = CreateRoundedRectanglePath(new Rectangle(0, 0, pnlCopyCountWrap.Width - 1, pnlCopyCountWrap.Height - 1), 3))
-                using (var pen = new Pen(CardBorderColor, 1F))
-                {
-                    e.Graphics.DrawPath(pen, path);
-                }
-            };
-            txtCopyCountInput = new System.Windows.Forms.TextBox
-            {
-                Location = new Point(1, 2),
-                Size = new Size(24, 17),
-                BorderStyle = BorderStyle.None,
-                TextAlign = HorizontalAlignment.Center,
-                Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(31, 36, 41),
-                BackColor = Color.White,
-                Text = _copyCount.ToString()
-            };
+            pnlCopyCountWrap = new System.Windows.Forms.Panel { Visible = false };
+            txtCopyCountInput = new System.Windows.Forms.TextBox { Text = _copyCount.ToString() };
             txtCopyCountInput.TextChanged += (s, e) =>
             {
                 if (int.TryParse(txtCopyCountInput.Text, out int val) && val >= 2 && val <= 16)
                 {
                     _copyCount = val;
                     if (copyCountNumericUpDown != null) copyCountNumericUpDown.Value = val;
+                    UpdateCopyCountPillDisplay();
                 }
             };
-            pnlCopyCountWrap.Controls.Add(txtCopyCountInput);
-            pnlQuadrant4.Controls.Add(pnlCopyCountWrap);
-
-            // 联/份微型分段切换胶囊 [ 联 | 份 ] (宽 46px，高 21px，点击直接切换，浅蓝底加粗高亮)
-            segCopyType = new MiniSegmentedControl("联", "份")
-            {
-                Location = new Point(51, 1),
-                Size = new Size(46, 21),
-                SelectedIndex = (_copyType == CopyType.Duplicate) ? 1 : 0
-            };
+            segCopyType = new MiniSegmentedControl("联", "份") { Visible = false, SelectedIndex = (_copyType == CopyType.Duplicate) ? 1 : 0 };
             segCopyType.SelectedIndexChanged += (s, e) =>
             {
                 if (duplicateLayoutCheckbox?.Checked != true) return;
                 _copyType = (segCopyType.SelectedIndex == 1) ? CopyType.Duplicate : CopyType.Layout;
                 if (copyTypeComboBox != null) copyTypeComboBox.SelectedIndex = (int)_copyType;
+                UpdateCopyCountPillDisplay();
                 OnImpositionSettingsChanged(s, e);
             };
-            pnlQuadrant4.Controls.Add(segCopyType);
 
-            // 排版模式下拉 [ 自适应 ▾ ] (3px微圆角细框，宽 74px，舒展展开，文字完全不截断)
-            var pnlModeWrap = new System.Windows.Forms.Panel
+            // 联数高亮药丸 [2联] (100% 还原 HTML 原型)
+            lblCopyCountPill = new System.Windows.Forms.Label
             {
-                Location = new Point(100, 1),
-                Size = new Size(74, 21),
-                BackColor = Color.White,
+                Location = new Point(38, 1),
+                Size = new Size(49, 22),
+                TextAlign = ContentAlignment.MiddleCenter,
                 Cursor = Cursors.Hand
             };
-            pnlModeWrap.Paint += (s, e) =>
+            UpdateCopyCountPillDisplay();
+
+            lblCopyCountPill.Click += (s, e) =>
             {
-                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                using (var path = CreateRoundedRectanglePath(new Rectangle(0, 0, pnlModeWrap.Width - 1, pnlModeWrap.Height - 1), 3))
-                using (var pen = new Pen(CardBorderColor, 1F))
+                if (duplicateLayoutCheckbox == null) return;
+                if (!duplicateLayoutCheckbox.Checked)
                 {
-                    e.Graphics.DrawPath(pen, path);
+                    duplicateLayoutCheckbox.Checked = true;
+                }
+                else
+                {
+                    // 已启用时点击弹出快捷联数与模式选择菜单
+                    var cms = new System.Windows.Forms.ContextMenuStrip();
+                    for (int count = 2; count <= 8; count++)
+                    {
+                        int c = count;
+                        var item = cms.Items.Add($"{c}联", null, (s2, e2) =>
+                        {
+                            _copyCount = c;
+                            if (copyCountNumericUpDown != null) copyCountNumericUpDown.Value = c;
+                            if (txtCopyCountInput != null) txtCopyCountInput.Text = c.ToString();
+                            UpdateCopyCountPillDisplay();
+                            OnImpositionSettingsChanged(s2, e2);
+                        });
+                        if (_copyCount == c && _copyType == CopyType.Layout) item.Font = new Font(item.Font, FontStyle.Bold);
+                    }
+                    cms.Items.Add(new ToolStripSeparator());
+                    cms.Items.Add(_copyType == CopyType.Layout ? "切换为【份】模式" : "切换为【联】模式", null, (s2, e2) =>
+                    {
+                        _copyType = _copyType == CopyType.Layout ? CopyType.Duplicate : CopyType.Layout;
+                        if (segCopyType != null) segCopyType.SelectedIndex = _copyType == CopyType.Duplicate ? 1 : 0;
+                        if (copyTypeComboBox != null) copyTypeComboBox.SelectedIndex = (int)_copyType;
+                        UpdateCopyCountPillDisplay();
+                        OnImpositionSettingsChanged(s2, e2);
+                    });
+                    cms.Items.Add("关闭一式N联", null, (s2, e2) =>
+                    {
+                        duplicateLayoutCheckbox.Checked = false;
+                    });
+                    cms.Show(lblCopyCountPill, new Point(0, lblCopyCountPill.Height + 2));
                 }
             };
+            folderTreeViewToolTip?.SetToolTip(lblCopyCountPill, "点击开启/切换一式N联拼版规格");
+            pnlBoxImpo.Controls.Add(lblCopyCountPill);
+
+            // 排版模式下拉 [ 自适应 ▾ ] (无缝右对齐)
             lblCopyModePill = new System.Windows.Forms.Label
             {
-                Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Font = new Font("Microsoft YaHei UI", 9F),
-                ForeColor = Color.FromArgb(75, 82, 93),
+                Location = new Point(88, 1),
+                Size = new Size(61, 22),
+                TextAlign = ContentAlignment.MiddleRight,
+                Font = new Font("Microsoft YaHei UI", 8.5F),
+                ForeColor = Color.FromArgb(71, 85, 105),
                 BackColor = Color.Transparent,
                 Cursor = Cursors.Hand,
                 Text = GetCopyModePillText(_copyMode)
@@ -711,25 +704,37 @@ namespace WindowsFormsApp3
                 OnImpositionSettingsChanged(s, e);
             });
 
-            pnlModeWrap.Click += (s, e) =>
-            {
-                if (duplicateLayoutCheckbox?.Checked != true) return;
-                cmsCopyMode.Show(pnlModeWrap, new Point(0, pnlModeWrap.Height));
-            };
             lblCopyModePill.Click += (s, e) =>
             {
                 if (duplicateLayoutCheckbox?.Checked != true) return;
-                cmsCopyMode.Show(pnlModeWrap, new Point(0, pnlModeWrap.Height));
+                cmsCopyMode.Show(lblCopyModePill, new Point(lblCopyModePill.Width - cmsCopyMode.Width, lblCopyModePill.Height + 2));
             };
-            pnlModeWrap.Controls.Add(lblCopyModePill);
-            pnlQuadrant4.Controls.Add(pnlModeWrap);
+            folderTreeViewToolTip?.SetToolTip(lblCopyModePill, "一式N联排版策略：自适应、列优先、不旋转");
+            pnlBoxImpo.Controls.Add(lblCopyModePill);
 
-            pnlRow2.Controls.Add(pnlQuadrant4);
+            pnlRow2.Controls.Add(pnlBoxImpo);
             tlpOrderParametersCard.Controls.Add(pnlRow2);
 
             UpdateJoinGroupEnabledState(duplicateLayoutCheckbox?.Checked ?? false);
 
             pnlStationContent.Controls.Add(tlpOrderParametersCard);
+        }
+
+        private void UpdateCopyCountPillDisplay()
+        {
+            if (lblCopyCountPill == null) return;
+            if (_isDuplicateLayoutEnabled || duplicateLayoutCheckbox?.Checked == true)
+            {
+                lblCopyCountPill.Text = $"{_copyCount}{(_copyType == CopyType.Duplicate ? "份" : "联")}";
+                lblCopyCountPill.ForeColor = Color.FromArgb(22, 119, 255);
+                lblCopyCountPill.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
+            }
+            else
+            {
+                lblCopyCountPill.Text = "未启用";
+                lblCopyCountPill.ForeColor = Color.FromArgb(148, 163, 184);
+                lblCopyCountPill.Font = new Font("Microsoft YaHei UI", 8.5F, FontStyle.Regular);
+            }
         }
 
         /// <summary>
@@ -763,15 +768,27 @@ namespace WindowsFormsApp3
                     {
                         btnImpositionToggle.IsActive = enableImpositionCheckbox.Checked;
                     }
+                    UpdateCustomImpositionCapsule();
                 };
                 folderTreeViewToolTip?.SetToolTip(btnImpositionToggle, "启用或停用自动排版计算");
                 pnlImpoControlRow.Controls.Add(btnImpositionToggle);
             }
 
-            // 1. 材料模式微型分段胶囊 (平张 / 卷装 · 100% 像素级还原 HTML 原型 .mini-segmented)
+            // 专属/自定义大版尺寸微型指示胶囊 (仅当与系统全局设置不一致时浮现，点击直达大版参数微调)
+            _customSizeCapsule = new CustomSizeCapsule
+            {
+                Name = "_customSizeCapsule",
+                Location = new Point(31, 1),
+                Size = new Size(74, 24),
+                Visible = false
+            };
+            _customSizeCapsule.Click += (s, e) => OpenTemporaryImpositionParameters();
+            pnlImpoControlRow.Controls.Add(_customSizeCapsule);
+
+            // 1. 材料模式微型分段胶囊 (平张 / 卷装) - 靠右排列，与连拼/折手保持一致间距 6px
             segMaterialType = new MiniSegmentedControl("平张", "卷装")
             {
-                Location = new Point(100, 1),
+                Location = new Point(150, 1),
                 Size = new Size(72, 24),
                 SelectedIndex = (flatSheetRadioButton?.Checked ?? true) ? 0 : 1
             };
@@ -782,13 +799,14 @@ namespace WindowsFormsApp3
                     if (segMaterialType.SelectedIndex == 0) flatSheetRadioButton.Checked = true;
                     else rollMaterialRadioButton.Checked = true;
                 }
+                UpdateCustomImpositionCapsule();
             };
             pnlImpoControlRow.Controls.Add(segMaterialType);
 
-            // 2. 排版模式微型分段胶囊 (连拼 / 折手 · 100% 像素级还原 HTML 原型 .mini-segmented)
+            // 2. 排版模式微型分段胶囊 (连拼 / 折手) - 靠右排列，与两端间距严格一致 (6px)
             segLayoutMode = new MiniSegmentedControl("连拼", "折手")
             {
-                Location = new Point(178, 1),
+                Location = new Point(228, 1),
                 Size = new Size(72, 24),
                 SelectedIndex = (continuousLayoutRadioButton?.Checked ?? true) ? 0 : 1
             };
@@ -799,16 +817,33 @@ namespace WindowsFormsApp3
                     if (segLayoutMode.SelectedIndex == 0) continuousLayoutRadioButton.Checked = true;
                     else foldingLayoutRadioButton.Checked = true;
                 }
+                UpdateCustomImpositionCapsule();
             };
             pnlImpoControlRow.Controls.Add(segLayoutMode);
 
             if (chkIdentifierPage != null)
             {
-                chkIdentifierPage.Location = new Point(258, 1);
-                chkIdentifierPage.Size = new Size(74, 24);
-                chkIdentifierPage.Text = "标识页";
-                chkIdentifierPage.Font = new Font("Microsoft YaHei UI", 9F);
+                chkIdentifierPage.Visible = false;
+                btnIdentifierPageToggle = new IdentifierPageToggleButton
+                {
+                    Name = "btnIdentifierPageToggle",
+                    Location = new Point(306, 1),
+                    Size = new Size(26, 24),
+                    IsActive = chkIdentifierPage.Checked,
+                    Anchor = AnchorStyles.Top | AnchorStyles.Right
+                };
+                btnIdentifierPageToggle.Click += (s, e) => chkIdentifierPage.Checked = !chkIdentifierPage.Checked;
+                chkIdentifierPage.CheckedChanged += (s, e) =>
+                {
+                    if (btnIdentifierPageToggle != null)
+                    {
+                        btnIdentifierPageToggle.IsActive = chkIdentifierPage.Checked;
+                    }
+                    UpdateIdentifierPageTooltip();
+                };
+                UpdateIdentifierPageTooltip();
                 pnlImpoControlRow.Controls.Add(chkIdentifierPage);
+                pnlImpoControlRow.Controls.Add(btnIdentifierPageToggle);
             }
             pnlImpositionDashboardCard.Controls.Add(pnlImpoControlRow);
 
@@ -884,14 +919,116 @@ namespace WindowsFormsApp3
             presetBrowserCard.BackColor = Color.White;
             presetBrowserCard.Padding = new Padding(4, 2, 4, 2);
 
-            // 上行分组标签页 (纯白底色，无灰底)
+            // 上行导航行容器：左侧分组标签页，右侧常驻“管理”入口 (22px 高)
+            var pnlPresetNavRow = new System.Windows.Forms.Panel
+            {
+                Name = "pnlPresetNavRow",
+                Dock = DockStyle.Top,
+                Height = 22,
+                BackColor = Color.White
+            };
+
+            var btnManagePresets = new AntdUI.Button
+            {
+                Name = "btnManagePresets",
+                Text = "",
+                IconSvg = "SettingOutlined",
+                Dock = DockStyle.Right,
+                Width = 24,
+                Height = 20,
+                Type = AntdUI.TTypeMini.Default,
+                Ghost = true,
+                BorderWidth = 0F,
+                DefaultBack = Color.Transparent,
+                DefaultBorderColor = Color.Transparent,
+                ForeColor = Color.FromArgb(140, 149, 163),
+                Radius = 4,
+                Cursor = Cursors.Hand,
+                TabStop = false,
+                WaveSize = 0,
+                Margin = new Padding(0)
+            };
+            btnManagePresets.MouseEnter += (s, e) => btnManagePresets.ForeColor = Color.FromArgb(22, 119, 255);
+            btnManagePresets.MouseLeave += (s, e) =>
+            {
+                btnManagePresets.ForeColor = Color.FromArgb(140, 149, 163);
+                if (this.ActiveControl == btnManagePresets) this.ActiveControl = null;
+            };
+            btnManagePresets.MouseUp += (s, e) =>
+            {
+                if (this.IsDisposed) return;
+                this.ActiveControl = null;
+            };
+            btnManagePresets.Click += (s, e) =>
+            {
+                OpenPresetManagement();
+                this.BeginInvoke(new Action(() =>
+                {
+                    if (this.IsDisposed) return;
+                    this.ActiveControl = null;
+                    SetOrderTextBoxFocus();
+                }));
+            };
+            folderTreeViewToolTip?.SetToolTip(btnManagePresets, "打开预设管理工作台：分组归类、批量移动与属性配置");
+
+            var btnSaveCurrentPreset = new AntdUI.Button
+            {
+                Name = "btnSaveCurrentPreset",
+                Text = "",
+                IconSvg = "PlusOutlined",
+                Dock = DockStyle.Right,
+                Width = 24,
+                Height = 20,
+                Type = AntdUI.TTypeMini.Default,
+                Ghost = true,
+                BorderWidth = 0F,
+                DefaultBack = Color.Transparent,
+                DefaultBorderColor = Color.Transparent,
+                ForeColor = Color.FromArgb(140, 149, 163),
+                Radius = 4,
+                Cursor = Cursors.Hand,
+                TabStop = false,
+                WaveSize = 0,
+                Margin = new Padding(0)
+            };
+            btnSaveCurrentPreset.MouseEnter += (s, e) => btnSaveCurrentPreset.ForeColor = Color.FromArgb(22, 119, 255);
+            btnSaveCurrentPreset.MouseLeave += (s, e) =>
+            {
+                btnSaveCurrentPreset.ForeColor = Color.FromArgb(140, 149, 163);
+                if (this.ActiveControl == btnSaveCurrentPreset) this.ActiveControl = null;
+            };
+            btnSaveCurrentPreset.MouseUp += (s, e) =>
+            {
+                if (this.IsDisposed) return;
+                this.ActiveControl = null;
+            };
+            btnSaveCurrentPreset.Click += (s, e) =>
+            {
+                this.ActiveControl = null;
+                SaveCurrentAsPreset();
+                this.BeginInvoke(new Action(() =>
+                {
+                    if (this.IsDisposed) return;
+                    this.ActiveControl = null;
+                    SetOrderTextBoxFocus();
+                }));
+            };
+            folderTreeViewToolTip?.SetToolTip(btnSaveCurrentPreset, "保存当前配置为新预设");
+
+            // 注意：WinForms 控件 DockStyle.Right 的布局规则是先添加的靠右，后添加的靠其左侧。
+            // 保持 [➕ 存为预设] 在左，[⚙️ 管理] 在最右侧的标准视觉习惯。
+            pnlPresetNavRow.Controls.Add(btnSaveCurrentPreset);
+            pnlPresetNavRow.Controls.Add(btnManagePresets);
+
             if (tabs1 != null)
             {
-                tabs1.Dock = DockStyle.Top;
+                tabs1.Dock = DockStyle.Fill;
                 tabs1.Height = 22;
                 tabs1.BackColor = Color.White;
-                presetBrowserCard.Controls.Add(tabs1);
+                pnlPresetNavRow.Controls.Add(tabs1);
             }
+
+            presetBrowserCard.Controls.Add(pnlPresetNavRow);
 
             // 下行预设按钮放置面板 (纯白底色，自动多行包裹)
             if (presetButtonsPanel != null)
@@ -926,6 +1063,7 @@ namespace WindowsFormsApp3
                 btnApplyToAll.Visible = false;
                 btnBatchModeSwitch = new BatchModeSwitch
                 {
+                    Name = "btnBatchModeSwitch",
                     Dock = DockStyle.Left,
                     Size = new Size(104, 24),
                     IsChecked = _isBatchPanelExpanded
@@ -1281,9 +1419,13 @@ namespace WindowsFormsApp3
 
                 using (var fontTop = new Font("Microsoft YaHei UI", 7.5F))
                 using (var fontVal = new Font(valueFontFamily, 9.5F, FontStyle.Bold))
+                using (var dimensionFont = label == "尺寸"
+                    ? new Font(valueFontFamily, GetDimensionFontSize(g, val, pnl.ClientSize.Width - 4), FontStyle.Bold)
+                    : null)
                 {
+                    Font valueFont = dimensionFont ?? fontVal;
                     Size titleSize = TextRenderer.MeasureText(g, label, fontTop, Size.Empty, centeredTextFlags);
-                    Size valueSize = TextRenderer.MeasureText(g, val, fontVal, Size.Empty, centeredTextFlags);
+                    Size valueSize = TextRenderer.MeasureText(g, val, valueFont, Size.Empty, centeredTextFlags);
                     int valueRowHeight = valueSize.Height;
                     int contentHeight = titleSize.Height + rowGap + valueRowHeight;
                     int remainingHeight = Math.Max(0, pnl.ClientSize.Height - contentHeight);
@@ -1308,7 +1450,7 @@ namespace WindowsFormsApp3
                     }
                     else if (label == "尺寸")
                     {
-                        DrawDimensionPillValue(g, pnl, valueBounds, valueSize, contentTop, titleSize, val, fontVal, valueColor, centeredTextFlags);
+                        DrawDimensionPillValue(g, pnl, valueBounds, valueSize, contentTop, titleSize, val, valueFont, valueColor, centeredTextFlags);
                     }
                     else
                     {
@@ -1350,6 +1492,56 @@ namespace WindowsFormsApp3
         }
 
         /// <summary>
+        /// 尺寸数字超过指标列宽时逐级缩小字体；极长数字在最小字号下由绘制阶段省略显示。
+        /// </summary>
+        internal static float GetDimensionFontSize(Graphics graphics, string value, int availableWidth)
+        {
+            const float defaultSize = 9.5F;
+            const float minimumSize = 5.5F;
+            const float step = 0.5F;
+            var flags = TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
+
+            for (float size = defaultSize; size >= minimumSize; size -= step)
+            {
+                using (var font = new Font("Microsoft YaHei UI", size, FontStyle.Bold))
+                {
+                    if (TextRenderer.MeasureText(graphics, value, font, Size.Empty, flags).Width <= availableWidth)
+                    {
+                        return size;
+                    }
+                }
+            }
+
+            return minimumSize;
+        }
+
+        /// <summary>
+        /// 最小字号仍无法放下时才省略末尾，避免普通尺寸受到裁剪标志影响。
+        /// </summary>
+        internal static string GetDimensionDisplayText(Graphics graphics, string value, Font font, int availableWidth)
+        {
+            if (string.IsNullOrEmpty(value)) return value ?? string.Empty;
+
+            var flags = TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
+            if (TextRenderer.MeasureText(graphics, value, font, Size.Empty, flags).Width <= availableWidth)
+            {
+                return value;
+            }
+
+            const string ellipsis = "…";
+            for (int length = value.Length - 1; length >= 0; length--)
+            {
+                string candidate = value.Substring(0, length) + ellipsis;
+                if (TextRenderer.MeasureText(graphics, candidate, font, Size.Empty, flags).Width <= availableWidth)
+                {
+                    return candidate;
+                }
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
         /// 绘制尺寸指标项：主数值（如 80×45）严格按自身宽度绝对居中绘制；
         /// 形状代号（如 R8/Z/C/Y）以微型胶囊形式精准附着在 80×45 右上肩，绝对不影响主数值的居中计算，
         /// 且严格上浮于主数值顶边缘之上，绝不压迫或遮挡主数值任何笔画。
@@ -1367,7 +1559,8 @@ namespace WindowsFormsApp3
             TextFormatFlags centeredTextFlags)
         {
             // 1. 主数值绝对严格居中绘制 (矩形为完整面板宽度，以纯净 80×45 自身计算绝对居中)
-            TextRenderer.DrawText(g, val, fontVal, Rectangle.Round(valueBounds), valueColor, centeredTextFlags);
+            string displayValue = GetDimensionDisplayText(g, val, fontVal, pnl.ClientSize.Width - 4);
+            TextRenderer.DrawText(g, displayValue, fontVal, Rectangle.Round(valueBounds), valueColor, centeredTextFlags);
 
             // 2. 检查是否有形状代号需要以胶囊形式呈现在 80×45 右上角
             string shapeCode = GetCurrentShapeBadgeCode();
@@ -1927,9 +2120,15 @@ namespace WindowsFormsApp3
                 pnlPillCount?.Invalidate();
                 pnlPillRotation?.Invalidate();
                 pnlPillDimension?.Invalidate();
+                if (pnlPillDimension != null)
+                {
+                    folderTreeViewToolTip?.SetToolTip(pnlPillDimension, _v5DimensionText);
+                }
                 pnlPillBleed?.Invalidate();
                 pnlPillColor?.Invalidate();
                 tlpMetrics?.Invalidate(true);
+
+                UpdateCustomImpositionCapsule();
             }
             catch (Exception ex)
             {
@@ -1949,11 +2148,102 @@ namespace WindowsFormsApp3
                 {
                     segLayoutMode.SelectedIndex = (continuousLayoutRadioButton?.Checked ?? true) ? 0 : 1;
                 }
+                UpdateCustomImpositionCapsule();
             }
             catch (Exception ex)
             {
                 LogHelper.Error($"[V5 看板] 更新模式分段控件状态失败: {ex.Message}", ex);
             }
+        }
+
+        /// <summary>
+        /// 检查当前大版纸张尺寸/卷装幅宽是否与系统全局设置不一致；
+        /// 仅当尺寸与设置不一致时浮现胶囊指示器，点击可直接调出大版开料参数；与设置一致时自动隐藏保持极简。
+        /// </summary>
+        public void UpdateCustomImpositionCapsule()
+        {
+            if (pnlImpositionDashboardCard == null || _customSizeCapsule == null || IsDisposed) return;
+
+            try
+            {
+                EnsureTemporaryImpositionParameters();
+                bool isFlat = (segMaterialType != null ? segMaterialType.SelectedIndex == 0 : (flatSheetRadioButton?.Checked ?? true));
+
+                if (isFlat)
+                {
+                    float defaultW = GetFloatValue(AppSettings.Get("Imposition_PaperWidth") as string, 320);
+                    float defaultH = GetFloatValue(AppSettings.Get("Imposition_PaperHeight") as string, 464);
+
+                    float currentW = _temporaryImpositionParameters.PaperWidth > 0 ? _temporaryImpositionParameters.PaperWidth : defaultW;
+                    float currentH = _temporaryImpositionParameters.PaperHeight > 0 ? _temporaryImpositionParameters.PaperHeight : defaultH;
+
+                    bool isCustom = (_temporaryImpositionParameters.IsPaperSizeUnlocked || _temporaryImpositionParameters.PaperWidth > 0 || _temporaryImpositionParameters.PaperHeight > 0) &&
+                                    (Math.Abs(currentW - defaultW) > 0.1f || Math.Abs(currentH - defaultH) > 0.1f);
+
+                    if (isCustom)
+                    {
+                        _customSizeCapsule.IsRoll = false;
+                        _customSizeCapsule.CapsuleText = $"{currentW:0.#}×{currentH:0.#}";
+                        _customSizeCapsule.Visible = true;
+                        _customSizeCapsule.BringToFront();
+                        folderTreeViewToolTip?.SetToolTip(_customSizeCapsule, $"当前平张纸张为非默认大版尺寸: {currentW:0.#}×{currentH:0.#}mm (系统默认: {defaultW:0.#}×{defaultH:0.#}mm)\n点击可直接查看或微调大版开料参数");
+                    }
+                    else
+                    {
+                        _customSizeCapsule.Visible = false;
+                    }
+                }
+                else
+                {
+                    float defaultW = GetFloatValue(AppSettings.Get("Imposition_FixedWidth") as string, 320);
+                    float defaultH = GetFloatValue(AppSettings.Get("Imposition_MinLength") as string, 100);
+
+                    float currentW = _temporaryImpositionParameters.FixedWidth > 0 ? _temporaryImpositionParameters.FixedWidth : defaultW;
+                    float currentH = _temporaryImpositionParameters.MinLength > 0 ? _temporaryImpositionParameters.MinLength : defaultH;
+
+                    bool isWidthCustom = Math.Abs(currentW - defaultW) > 0.1f;
+                    bool isHeightCustom = Math.Abs(currentH - defaultH) > 0.1f;
+
+                    bool isCustom = (_temporaryImpositionParameters.IsRollSizeUnlocked || _temporaryImpositionParameters.FixedWidth > 0 || _temporaryImpositionParameters.MinLength > 0) &&
+                                    (isWidthCustom || isHeightCustom);
+
+                    if (isCustom)
+                    {
+                        _customSizeCapsule.IsRoll = true;
+                        if (isWidthCustom && isHeightCustom)
+                        {
+                            _customSizeCapsule.CapsuleText = $"{currentW:0.#}×{currentH:0.#}";
+                        }
+                        else if (isHeightCustom)
+                        {
+                            _customSizeCapsule.CapsuleText = $"高 {currentH:0.#}";
+                        }
+                        else
+                        {
+                            _customSizeCapsule.CapsuleText = $"{currentW:0.#}幅宽";
+                        }
+                        _customSizeCapsule.Visible = true;
+                        _customSizeCapsule.BringToFront();
+                        folderTreeViewToolTip?.SetToolTip(_customSizeCapsule, $"当前卷装材料使用非默认尺寸: 高度 {currentH:0.#}mm (系统默认: {defaultH:0.#}mm), 幅宽 {currentW:0.#}mm (系统默认: {defaultW:0.#}mm)\n点击可直接查看或微调大版开料参数");
+                    }
+                    else
+                    {
+                        _customSizeCapsule.Visible = false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Warn($"[UpdateCustomImpositionCapsule] 更新特殊尺寸胶囊失败: {ex.Message}");
+                if (_customSizeCapsule != null) _customSizeCapsule.Visible = false;
+            }
+        }
+
+        private void UpdateIdentifierPageTooltip()
+        {
+            if (btnIdentifierPageToggle == null || chkIdentifierPage == null) return;
+            string status = chkIdentifierPage.Checked ? "已开启" : "已停用";
+            folderTreeViewToolTip?.SetToolTip(btnIdentifierPageToggle, $"大版首尾插入标识页 ({status})\n用于记录订单信息、材料参数与拼版规格");
         }
 
         private void CycleBleedPreset()
@@ -2305,8 +2595,9 @@ namespace WindowsFormsApp3
                 if (lblCopyModePill != null)
                 {
                     lblCopyModePill.Enabled = enabled;
-                    lblCopyModePill.ForeColor = enabled ? Color.FromArgb(75, 82, 93) : Color.FromArgb(170, 170, 170);
+                    lblCopyModePill.ForeColor = enabled ? Color.FromArgb(71, 85, 105) : Color.FromArgb(170, 170, 170);
                 }
+                UpdateCopyCountPillDisplay();
             }
             catch (Exception ex)
             {
@@ -2495,7 +2786,7 @@ namespace WindowsFormsApp3
     }
 
     /// <summary>
-    /// Uiverse 风格批量模式按钮：悬停时蓝色色块扩展并覆盖文字。
+    /// Uiverse 风格批量模式按钮：悬停时低饱和柔和浅蓝胶囊向右平滑展开，遮盖下方文字并使蓝色箭头居中。
     /// </summary>
     public class BatchModeSwitch : Control
     {
@@ -2547,8 +2838,8 @@ namespace WindowsFormsApp3
 
         private void AnimateSlide(object sender, EventArgs e)
         {
-            float targetWidth = _isHovered ? 98F : 24F;
-            _slideWidth += (targetWidth - _slideWidth) * 0.10F;
+            float targetWidth = _isHovered ? (Width - 4F) : 24F;
+            _slideWidth += (targetWidth - _slideWidth) * 0.12F;
             if (Math.Abs(targetWidth - _slideWidth) < 0.5F)
             {
                 _slideWidth = targetWidth;
@@ -2561,30 +2852,36 @@ namespace WindowsFormsApp3
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            Color borderColor = _isHovered ? Color.FromArgb(145, 202, 255) : Color.FromArgb(217, 217, 217);
+
             using (var buttonPath = MaterialSelectFormModern.CreateRoundedRectanglePath(
-                new Rectangle(0, 0, Width - 1, Height - 1), 6))
+                new Rectangle(0, 0, Width - 1, Height - 1), 5))
             using (var buttonBrush = new SolidBrush(Color.White))
-            using (var borderPen = new Pen(Color.FromArgb(217, 217, 217), 1F))
+            using (var borderPen = new Pen(borderColor, 1F))
             {
                 g.FillPath(buttonBrush, buttonPath);
                 g.DrawPath(borderPen, buttonPath);
             }
 
-            // 先绘制文字，再绘制滑块，保证悬停展开时色块覆盖文字。
+            // 1. 先绘制文字：常态下文字清晰可见，当浅蓝滑块向右推开时被实心浅蓝滑块平滑覆盖遮蔽
             string label = _isChecked ? "仅处理当前款" : "批量处理";
             TextRenderer.DrawText(g, label, Font, new Rectangle(24, 0, Width - 26, Height),
-                Color.FromArgb(31, 36, 41),
+                Color.FromArgb(51, 65, 85),
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter |
                 TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
 
-            var slideRect = new RectangleF(2F, 3F, _slideWidth, 18F);
+            // 2. 绘制低饱和浅蓝滑块：实心不透明浅蓝（#e6f4ff），平滑向右伸展覆盖整张按钮文字
+            var slideRect = new RectangleF(2F, 3F, _slideWidth, Height - 6F);
+            Color slideColor = _isHovered ? Color.FromArgb(215, 237, 255) : Color.FromArgb(230, 244, 255);
             using (var slidePath = MaterialSelectFormModern.CreateRoundedRectanglePath(
-                Rectangle.Round(slideRect), 5))
-            using (var slideBrush = new SolidBrush(Color.FromArgb(22, 119, 255)))
+                Rectangle.Round(slideRect), 4))
+            using (var slideBrush = new SolidBrush(slideColor))
             {
                 g.FillPath(slideBrush, slidePath);
             }
 
+            // 3. 绘制品牌蓝箭头（#1677ff）：随着滑块向右展开，箭头平滑移向滑块正中央
             float centerX = slideRect.Left + slideRect.Width / 2F;
             float centerY = slideRect.Top + slideRect.Height / 2F;
             DrawDirectionArrow(g, centerX, centerY, _isChecked);
@@ -2592,7 +2889,7 @@ namespace WindowsFormsApp3
 
         private static void DrawDirectionArrow(Graphics g, float centerX, float centerY, bool pointsRight)
         {
-            using (var pen = new Pen(Color.White, 1.6F))
+            using (var pen = new Pen(Color.FromArgb(22, 119, 255), 1.6F))
             {
                 pen.StartCap = LineCap.Round;
                 pen.EndCap = LineCap.Round;
@@ -2717,12 +3014,18 @@ namespace WindowsFormsApp3
     }
 
     /// <summary>
-    /// 带稳定彩色文件夹图标的目录切换按钮，避免彩色 Emoji 被字体替换为单色字形。
+    /// Ant Design 风格线性展开文件夹目录切换按钮 (FolderOpenOutlined)，统一全局单色线性图标语言。
     /// </summary>
     public class ColoredFolderBrowseButton : Control
     {
         private bool _isHovered;
         private bool _isPressed;
+        private Bitmap _cachedFolderBitmap;
+        private Color _cachedFolderColor = Color.Empty;
+
+        private const string FolderOpenSvgTemplate = @"<svg xmlns=""http://www.w3.org/2000/svg"" viewBox=""64 64 896 896"">
+<path fill=""{0}"" d=""M928 444H820V330.4c0-17.7-14.3-32-32-32H473L389 186.2c-7.9-10.6-20.4-16.8-33.8-16.8H128c-17.7 0-32 14.3-32 32v576c0 17.7 14.3 32 32 32h768c17.7 0 32-14.3 32-32L928 444zm-768-208h177.3l84 112.2c7.9 10.6 20.4 16.8 33.8 16.8H756v106.6H160V236zm696 544H160l60.8-272h680.4l-65.2 272z""/>
+</svg>";
 
         public ColoredFolderBrowseButton()
         {
@@ -2775,62 +3078,105 @@ namespace WindowsFormsApp3
             Color background = _isPressed
                 ? Color.FromArgb(230, 244, 255)
                 : (_isHovered ? Color.FromArgb(240, 247, 255) : Color.White);
+            Color border = _isHovered || _isPressed
+                ? Color.FromArgb(145, 202, 255)
+                : Color.FromArgb(217, 217, 217);
             Color textColor = _isHovered || _isPressed
                 ? Color.FromArgb(22, 119, 255)
-                : Color.FromArgb(51, 61, 71);
+                : Color.FromArgb(51, 65, 85);
 
             using (var backgroundPath = MaterialSelectFormModern.CreateRoundedRectanglePath(
                 new Rectangle(0, 0, Width - 1, Height - 1), 3))
             using (var backgroundBrush = new SolidBrush(background))
+            using (var borderPen = new Pen(border, 1F))
             {
                 g.FillPath(backgroundBrush, backgroundPath);
+                g.DrawPath(borderPen, backgroundPath);
             }
 
-            // 多色打开文件夹：黄色文件夹 + 蓝色文件页，稳定还原 HTML 中 📂 的色彩语义。
-            using (var folderBackPath = new GraphicsPath())
-            {
-                folderBackPath.AddPolygon(new[]
-                {
-                    new Point(6, 7), new Point(11, 7), new Point(13, 9),
-                    new Point(21, 9), new Point(21, 17), new Point(6, 17)
-                });
-                using (var folderBrush = new SolidBrush(Color.FromArgb(255, 241, 184)))
-                using (var folderPen = new Pen(Color.FromArgb(255, 229, 143), 1F))
-                {
-                    g.FillPath(folderBrush, folderBackPath);
-                    g.DrawPath(folderPen, folderBackPath);
-                }
-            }
+            // 绘制 Ant Design 线性展开文件夹矢量图标 (FolderOpenOutlined)
+            int iconSize = 13;
+            int iconX = 6;
+            int iconY = (Height - iconSize) / 2;
+            var iconBounds = new Rectangle(iconX, iconY, iconSize, iconSize);
 
-            using (var paperBrush = new SolidBrush(Color.FromArgb(230, 244, 255)))
-            using (var paperPen = new Pen(Color.FromArgb(145, 202, 255), 1F))
-            {
-                g.FillRectangle(paperBrush, 10, 9, 8, 6);
-                g.DrawRectangle(paperPen, 10, 9, 8, 6);
-            }
-
-            using (var folderFrontPath = new GraphicsPath())
-            {
-                folderFrontPath.AddPolygon(new[]
-                {
-                    new Point(6, 11), new Point(21, 11),
-                    new Point(19, 18), new Point(7, 18)
-                });
-                using (var frontBrush = new SolidBrush(Color.FromArgb(255, 214, 102)))
-                using (var frontPen = new Pen(Color.FromArgb(255, 197, 61), 1F))
-                {
-                    g.FillPath(frontBrush, folderFrontPath);
-                    g.DrawPath(frontPen, folderFrontPath);
-                }
-            }
+            DrawFolderIcon(g, iconBounds, textColor);
 
             TextRenderer.DrawText(
                 g,
                 "切换目录 ▾",
                 Font,
-                new Rectangle(25, 0, Width - 28, Height),
+                new Rectangle(23, 0, Width - 24, Height),
                 textColor,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
+        }
+
+        private void DrawFolderIcon(Graphics g, Rectangle bounds, Color color)
+        {
+            try
+            {
+                if (_cachedFolderBitmap == null || _cachedFolderColor != color)
+                {
+                    _cachedFolderBitmap?.Dispose();
+                    _cachedFolderColor = color;
+
+                    string hexColor = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+                    string svgXml = string.Format(FolderOpenSvgTemplate, hexColor);
+
+                    var svgDoc = Svg.SvgDocument.FromSvg<Svg.SvgDocument>(svgXml);
+                    svgDoc.Width = bounds.Width;
+                    svgDoc.Height = bounds.Height;
+                    _cachedFolderBitmap = svgDoc.Draw();
+                }
+
+                if (_cachedFolderBitmap != null)
+                {
+                    g.DrawImage(_cachedFolderBitmap, bounds);
+                    return;
+                }
+            }
+            catch { }
+
+            // GDI+ 线性展开文件夹兜底绘制
+            float x = bounds.X;
+            float y = bounds.Y;
+            float w = bounds.Width;
+            float h = bounds.Height;
+
+            using (var pen = new Pen(color, 1.15f))
+            {
+                pen.StartCap = LineCap.Round;
+                pen.EndCap = LineCap.Round;
+                pen.LineJoin = LineJoin.Round;
+
+                g.DrawLine(pen, x, y + 2, x + w * 0.4f, y + 2);
+                g.DrawLine(pen, x + w * 0.4f, y + 2, x + w * 0.55f, y + 4);
+                g.DrawLine(pen, x + w * 0.55f, y + 4, x + w - 2, y + 4);
+                g.DrawLine(pen, x + w - 2, y + 4, x + w - 2, y + h - 1);
+                g.DrawLine(pen, x, y + 2, x, y + h - 1);
+
+                using (var path = new GraphicsPath())
+                {
+                    path.AddPolygon(new[]
+                    {
+                        new PointF(x, y + h - 1),
+                        new PointF(x + 2, y + 5),
+                        new PointF(x + w, y + 5),
+                        new PointF(x + w - 2, y + h - 1)
+                    });
+                    g.DrawPath(pen, path);
+                }
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _cachedFolderBitmap?.Dispose();
+                _cachedFolderBitmap = null;
+            }
+            base.Dispose(disposing);
         }
     }
 
@@ -2922,7 +3268,275 @@ namespace WindowsFormsApp3
     }
 
     /// <summary>
-    /// 序号反查矢量搜索按钮 (精美 GDI+ 矢量放大镜图标，支持激活/未激活双态切换与即时反查)
+    /// 标识页图标开关：采用折角文档线性矢量图标，首尾插入大版标识页。
+    /// 与自动排版图标按钮形成左右对称与视觉闭环。
+    /// </summary>
+    public class IdentifierPageToggleButton : Control
+    {
+        private bool _isActive;
+        private bool _isHovered;
+        private bool _isPressed;
+        private Bitmap _cachedIconBitmap;
+        private Color _cachedIconColor = Color.Empty;
+
+        private const string IdentifierSvgTemplate = @"<svg xmlns=""http://www.w3.org/2000/svg"" viewBox=""64 64 896 896"">
+<path fill=""{0}"" d=""M854.6 288.6L639.4 73.4c-6-6-14.1-9.4-22.6-9.4H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V311.3c0-8.6-3.4-16.7-9.4-22.7zM790.2 326H602V137.8L790.2 326zM224 896V128h320v224c0 17.7 14.3 32 32 32h224v512H224z""/>
+<path fill=""{0}"" d=""M320 448h384v64H320zm0 144h384v64H320zm0 144h256v64H320z""/>
+</svg>";
+
+        public bool IsActive
+        {
+            get => _isActive;
+            set
+            {
+                if (_isActive == value) return;
+                _isActive = value;
+                AccessibleDefaultActionDescription = value ? "停用大版标识页" : "启用大版标识页";
+                Invalidate();
+            }
+        }
+
+        public IdentifierPageToggleButton()
+        {
+            SetStyle(
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.UserPaint |
+                ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.SupportsTransparentBackColor,
+                true);
+            Size = new Size(26, 24);
+            Cursor = Cursors.Hand;
+            AccessibleName = "标识页";
+            AccessibleRole = AccessibleRole.CheckButton;
+            AccessibleDefaultActionDescription = "启用大版标识页";
+        }
+
+        protected override void OnMouseEnter(EventArgs e)
+        {
+            base.OnMouseEnter(e);
+            _isHovered = true;
+            Invalidate();
+        }
+
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            base.OnMouseLeave(e);
+            _isHovered = false;
+            _isPressed = false;
+            Invalidate();
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            base.OnMouseDown(e);
+            if (e.Button == MouseButtons.Left)
+            {
+                _isPressed = true;
+                Invalidate();
+            }
+        }
+
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            base.OnMouseUp(e);
+            _isPressed = false;
+            Invalidate();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            var rect = new Rectangle(0, 0, Width - 1, Height - 1);
+
+            // 无边框设计：仅在激活或交互时呈现轻盈圆角背景底色，不绘制任何边框线
+            Color background = _isActive
+                ? (_isPressed ? Color.FromArgb(215, 237, 255) : (_isHovered ? Color.FromArgb(230, 244, 255) : Color.FromArgb(240, 247, 255)))
+                : (_isPressed ? Color.FromArgb(235, 238, 242) : (_isHovered ? Color.FromArgb(245, 247, 250) : Color.Transparent));
+
+            // 图标颜色：激活状态为高亮主色蓝，关闭时为中性静默灰
+            Color iconColor = _isActive
+                ? Color.FromArgb(22, 119, 255)
+                : Color.FromArgb(145, 150, 160);
+
+            if (background != Color.Transparent)
+            {
+                using (var path = MaterialSelectFormModern.CreateRoundedRectanglePath(rect, 4))
+                using (var brush = new SolidBrush(background))
+                {
+                    g.FillPath(brush, path);
+                }
+            }
+
+            // 图标尺寸稍微放大至 16px（原为 13px），辨识度更高
+            int iconSize = 16;
+            int iconX = (Width - iconSize) / 2;
+            int iconY = (Height - iconSize) / 2;
+            var iconBounds = new Rectangle(iconX, iconY, iconSize, iconSize);
+
+            DrawIdentifierIcon(g, iconBounds, iconColor);
+        }
+
+        private void DrawIdentifierIcon(Graphics g, Rectangle bounds, Color color)
+        {
+            try
+            {
+                if (_cachedIconBitmap == null || _cachedIconColor != color)
+                {
+                    _cachedIconBitmap?.Dispose();
+                    _cachedIconColor = color;
+
+                    string hexColor = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+                    string svgXml = string.Format(IdentifierSvgTemplate, hexColor);
+
+                    var svgDoc = Svg.SvgDocument.FromSvg<Svg.SvgDocument>(svgXml);
+                    svgDoc.Width = bounds.Width;
+                    svgDoc.Height = bounds.Height;
+                    _cachedIconBitmap = svgDoc.Draw();
+                }
+
+                if (_cachedIconBitmap != null)
+                {
+                    g.DrawImage(_cachedIconBitmap, bounds);
+                    return;
+                }
+            }
+            catch
+            {
+                // Fallback GDI+
+            }
+
+            // GDI+ 矢量兜底绘制
+            float x = bounds.X;
+            float y = bounds.Y;
+            float w = bounds.Width;
+            float h = bounds.Height;
+
+            using (var pen = new Pen(color, 1.15f))
+            {
+                pen.StartCap = LineCap.Flat;
+                pen.EndCap = LineCap.Flat;
+                pen.LineJoin = LineJoin.Round;
+
+                float fold = w * 0.28f;
+                using (var path = new GraphicsPath())
+                {
+                    path.AddLine(x + 1, y, x + w - fold, y);
+                    path.AddLine(x + w - fold, y, x + w - 1, y + fold);
+                    path.AddLine(x + w - 1, y + fold, x + w - 1, y + h - 1);
+                    path.AddLine(x + w - 1, y + h - 1, x + 1, y + h - 1);
+                    path.CloseFigure();
+                    g.DrawPath(pen, path);
+                }
+
+                g.DrawLine(pen, x + w - fold, y, x + w - fold, y + fold);
+                g.DrawLine(pen, x + w - fold, y + fold, x + w - 1, y + fold);
+
+                g.DrawLine(pen, x + 3, y + h * 0.45f, x + w - 3, y + h * 0.45f);
+                g.DrawLine(pen, x + 3, y + h * 0.65f, x + w - 3, y + h * 0.65f);
+                g.DrawLine(pen, x + 3, y + h * 0.85f, x + w * 0.7f, y + h * 0.85f);
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _cachedIconBitmap?.Dispose();
+                _cachedIconBitmap = null;
+            }
+            base.Dispose(disposing);
+        }
+    }
+
+    /// <summary>
+    /// 组合输入容器 (InputGroup)：左侧浅灰语义标签 + 右侧无缝内嵌控件
+    /// 100% 像素级实现 HTML 原型 .order-group-box
+    /// </summary>
+    public class InputGroupBox : Control
+    {
+        private string _prefixText = "";
+        private const int PrefixWidth = 34;
+
+        public string PrefixText
+        {
+            get => _prefixText;
+            set
+            {
+                if (_prefixText != value)
+                {
+                    _prefixText = value ?? "";
+                    Invalidate();
+                }
+            }
+        }
+
+        public InputGroupBox(string prefixText)
+        {
+            SetStyle(
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.UserPaint |
+                ControlStyles.OptimizedDoubleBuffer,
+                true);
+            _prefixText = prefixText ?? "";
+            Size = new Size(163, 25);
+            BackColor = Color.White;
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            var rect = new Rectangle(0, 0, Width - 1, Height - 1);
+            Color borderColor = Color.FromArgb(211, 217, 226);
+            Color tagBg = Color.FromArgb(241, 245, 249);
+            Color dividerColor = Color.FromArgb(226, 232, 240);
+            Color textColor = Color.FromArgb(71, 85, 105);
+
+            // 1. 整体圆角背景与外边框
+            using (var path = MaterialSelectFormModern.CreateRoundedRectanglePath(rect, 4))
+            using (var brush = new SolidBrush(Color.White))
+            using (var pen = new Pen(borderColor, 1F))
+            {
+                g.FillPath(brush, path);
+
+                // 2. 左侧前缀标签背景 (裁切左侧区域保持左半圆角)
+                g.SetClip(new Rectangle(0, 0, PrefixWidth, Height));
+                using (var tagBrush = new SolidBrush(tagBg))
+                {
+                    g.FillPath(tagBrush, path);
+                }
+                g.ResetClip();
+
+                // 3. 垂直分割线
+                using (var divPen = new Pen(dividerColor, 1F))
+                {
+                    g.DrawLine(divPen, PrefixWidth, 0, PrefixWidth, Height - 1);
+                }
+
+                // 4. 外边框
+                g.DrawPath(pen, path);
+            }
+
+            // 5. 前缀标签文本
+            using (var font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold))
+            {
+                TextRenderer.DrawText(
+                    g,
+                    _prefixText,
+                    font,
+                    new Rectangle(0, 0, PrefixWidth, Height),
+                    textColor,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 序号反查矢量搜索按钮 (精美 GDI+ 矢量放大镜图标，内嵌式无缝后缀按钮)
     /// </summary>
     public class SerialSearchButton : Control
     {
@@ -2945,7 +3559,7 @@ namespace WindowsFormsApp3
         public SerialSearchButton()
         {
             this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
-            Size = new Size(28, 23);
+            Size = new Size(24, 23);
             BackColor = Color.White;
             Cursor = Cursors.Hand;
         }
@@ -2970,30 +3584,25 @@ namespace WindowsFormsApp3
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
-            int w = Width - 1;
-            int h = Height - 1;
+            // 1. 无外边框内嵌：常态背景透明，激活或悬停时呈现轻柔圆角背景
+            Color bg = _isHovered
+                ? (_isSearchActive ? Color.FromArgb(215, 237, 255) : Color.FromArgb(241, 245, 249))
+                : (_isSearchActive ? Color.FromArgb(230, 244, 255) : Color.Transparent);
 
-            Color bg = _isSearchActive ? Color.FromArgb(230, 244, 255) : Color.White;
-            Color border = _isHovered
-                ? Color.FromArgb(22, 119, 255)
-                : (_isSearchActive ? Color.FromArgb(145, 202, 255) : Color.FromArgb(212, 219, 228));
             Color iconColor = _isSearchActive ? Color.FromArgb(22, 119, 255) : Color.FromArgb(140, 149, 163);
 
-            // 1. 填充微圆角背景
-            using (var brush = new SolidBrush(bg))
+            if (bg != Color.Transparent)
             {
-                g.FillRectangle(brush, 0, 0, Width, Height);
+                using (var path = MaterialSelectFormModern.CreateRoundedRectanglePath(new Rectangle(1, 1, Width - 3, Height - 3), 3))
+                using (var brush = new SolidBrush(bg))
+                {
+                    g.FillPath(brush, path);
+                }
             }
 
-            // 2. 绘制边框
-            using (var pen = new Pen(border, 1F))
-            {
-                g.DrawRectangle(pen, 0, 0, w, h);
-            }
-
-            // 3. 矢量绘制精美小放大镜
-            float cx = Width * 0.40f;
-            float cy = Height * 0.40f;
+            // 2. 矢量绘制精美小放大镜
+            float cx = Width * 0.44f;
+            float cy = Height * 0.44f;
             float r = 4.2f;
 
             using (var penIcon = new Pen(iconColor, 1.8F))
@@ -3113,6 +3722,291 @@ namespace WindowsFormsApp3
                     g.DrawString(Item2, font2, brush2, rect2, sf);
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// 当平张纸张尺寸或卷装材料幅宽与系统设置不一致时浮现的微型胶囊指示器，点击可直接调出大版开料参数
+    /// </summary>
+    /// <summary>
+    /// 当平张纸张尺寸或卷装材料高度/幅宽与系统设置不一致时浮现的微型胶囊指示器，点击可直接调出大版开料参数
+    /// </summary>
+    public class CustomSizeCapsule : Control
+    {
+        private bool _isHovered;
+        private bool _isPressed;
+        private string _capsuleText = "";
+        private bool _isRoll = false;
+        private Bitmap _cachedRollIconBitmap;
+        private Color _cachedRollColor = Color.Empty;
+
+        private const string RollSvgTemplate = @"<svg xmlns=""http://www.w3.org/2000/svg"" viewBox=""2.19 2.59 981 997"">
+<path fill=""{0}"" d=""M983.004 314.501c-25.735-60.845-62.541-115.407-109.422-162.287C826.7 105.333 772.04 68.526 711.294 42.79 648.254 16.16 581.324 2.593 512.399 2.593S376.544 16.06 313.604 42.692c-60.846 25.734-115.407 62.54-162.288 109.422-46.881 46.88-83.688 101.542-109.422 162.288-26.633 63.04-40.198 129.97-40.198 198.895s13.466 135.855 40.098 198.795c17.156 40.298 39 77.902 65.533 112.315 10.773 14.064 32.318 12.867 41.495-2.294 5.287-8.778 4.788-20.05-1.496-28.229-59.948-77.802-95.557-175.155-95.557-280.687-0.1-255.551 206.276-461.329 461.927-460.63C766.753 53.265 972.43 258.943 973.129 512c0.698 254.653-203.583 460.73-458.236 462.127h-0.5v-0.599H27.132c-13.765 0-24.937 11.172-24.937 24.937s11.172 24.937 24.937 24.937h459.633c8.578 0.399 17.057 0.598 25.735 0.598 68.925 0 135.855-13.466 198.795-40.098 60.845-25.735 115.407-62.541 162.288-109.422 46.88-46.881 83.687-101.543 109.422-162.288 26.632-62.94 40.098-129.87 40.098-198.796 0-69.024-13.466-135.954-40.098-198.895z""/>
+<path fill=""{0}"" d=""M512.399 727.752c-57.255 0-111.118-22.343-151.615-62.84-40.497-40.497-62.84-94.36-62.84-151.615 0-57.255 22.343-111.118 62.84-151.615 40.497-40.498 94.36-62.84 151.615-62.84 57.255 0 111.118 22.342 151.615 62.84 40.497 40.497 62.84 94.36 62.84 151.615 0 57.254-22.343 111.118-62.84 151.615-40.497 40.497-94.36 62.84-151.615 62.84z m0-379.037c-90.77 0-164.582 73.812-164.582 164.582s73.812 164.582 164.582 164.582 164.582-73.813 164.582-164.582S603.17 348.715 512.4 348.715z""/>
+</svg>";
+
+        public string CapsuleText
+        {
+            get => _capsuleText;
+            set
+            {
+                if (_capsuleText != value)
+                {
+                    _capsuleText = value ?? "";
+                    AdjustSize();
+                    Invalidate();
+                }
+            }
+        }
+
+        public bool IsRoll
+        {
+            get => _isRoll;
+            set
+            {
+                if (_isRoll != value)
+                {
+                    _isRoll = value;
+                    AdjustSize();
+                    Invalidate();
+                }
+            }
+        }
+
+        public CustomSizeCapsule()
+        {
+            SetStyle(
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.UserPaint |
+                ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.SupportsTransparentBackColor,
+                true);
+            Size = new Size(74, 24);
+            Font = new Font("Microsoft YaHei UI", 7.5F, FontStyle.Bold);
+            Cursor = Cursors.Hand;
+            BackColor = Color.Transparent;
+        }
+
+        private void AdjustSize()
+        {
+            if (string.IsNullOrWhiteSpace(_capsuleText)) return;
+            try
+            {
+                int textW = TextRenderer.MeasureText(_capsuleText, Font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding).Width;
+                int iconSize = 13;
+                int gap = 3;
+                int padding = 12;
+                int targetW = Math.Max(52, Math.Min(74, textW + iconSize + gap + padding));
+                if (Width != targetW)
+                {
+                    Width = targetW;
+                }
+            }
+            catch { }
+        }
+
+        protected override void OnMouseEnter(EventArgs e)
+        {
+            base.OnMouseEnter(e);
+            _isHovered = true;
+            Invalidate();
+        }
+
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            base.OnMouseLeave(e);
+            _isHovered = false;
+            _isPressed = false;
+            Invalidate();
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            base.OnMouseDown(e);
+            if (e.Button == MouseButtons.Left)
+            {
+                _isPressed = true;
+                Invalidate();
+            }
+        }
+
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            base.OnMouseUp(e);
+            _isPressed = false;
+            Invalidate();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_capsuleText)) return;
+
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+
+            var rect = new Rectangle(0, 0, Width - 1, Height - 1);
+
+            // 平张使用主色蓝系，卷装使用琥珀橙系
+            Color bg;
+            Color border;
+            Color text;
+
+            if (_isRoll)
+            {
+                bg = _isPressed ? Color.FromArgb(253, 230, 138)
+                    : (_isHovered ? Color.FromArgb(254, 235, 175) : Color.FromArgb(254, 243, 199));
+                border = Color.FromArgb(252, 211, 77);
+                text = Color.FromArgb(180, 83, 9);
+            }
+            else
+            {
+                bg = _isPressed ? Color.FromArgb(186, 231, 255)
+                    : (_isHovered ? Color.FromArgb(215, 237, 255) : Color.FromArgb(230, 244, 255));
+                border = Color.FromArgb(145, 202, 255);
+                text = Color.FromArgb(2, 132, 199);
+            }
+
+            using (var path = MaterialSelectFormModern.CreateRoundedRectanglePath(rect, 3))
+            using (var brush = new SolidBrush(bg))
+            using (var pen = new Pen(border, 1F))
+            {
+                g.FillPath(brush, path);
+                g.DrawPath(pen, path);
+            }
+
+            // 计算整体内容（图标 + 间距 + 文本）在胶囊内部的绝对水平光学居中
+            int iconSize = 13;
+            int gap = 3;
+            Size textSize = TextRenderer.MeasureText(g, _capsuleText, Font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);
+            int totalContentW = iconSize + gap + textSize.Width;
+            int startX = Math.Max(2, (Width - totalContentW) / 2);
+            int iconY = (Height - iconSize) / 2;
+
+            var iconBounds = new Rectangle(startX, iconY, iconSize, iconSize);
+
+            if (_isRoll)
+            {
+                DrawRollIcon(g, iconBounds, text);
+            }
+            else
+            {
+                DrawFlatSheetIcon(g, iconBounds, text);
+            }
+
+            // 绘制文本 (紧随图标之后，垂直严格居中)
+            int textX = startX + iconSize + gap;
+            var textRect = new Rectangle(textX, 0, Width - textX - 1, Height);
+            TextRenderer.DrawText(
+                g,
+                _capsuleText,
+                Font,
+                textRect,
+                text,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);
+        }
+
+        private void DrawFlatSheetIcon(Graphics g, Rectangle bounds, Color color)
+        {
+            float x = bounds.X;
+            float y = bounds.Y;
+            float w = bounds.Width;
+            float h = bounds.Height;
+
+            using (var pen = new Pen(color, 1.15f))
+            {
+                pen.StartCap = LineCap.Flat;
+                pen.EndCap = LineCap.Flat;
+                pen.LineJoin = LineJoin.Round;
+
+                // 顶部宽标尺 |---| (居中对齐)
+                float rulerY = y + h * 0.14f;
+                float rulerLeft = x + w * 0.32f;
+                float rulerRight = x + w * 0.95f;
+                float tickH = h * 0.10f;
+                g.DrawLine(pen, rulerLeft, rulerY, rulerRight, rulerY);
+                g.DrawLine(pen, rulerLeft, rulerY - tickH, rulerLeft, rulerY + tickH);
+                g.DrawLine(pen, rulerRight, rulerY - tickH, rulerRight, rulerY + tickH);
+
+                // 左侧高标尺 |--|
+                float rulerX = x + w * 0.14f;
+                float rulerTop = y + h * 0.32f;
+                float rulerBottom = y + h * 0.95f;
+                float tickW = w * 0.10f;
+                g.DrawLine(pen, rulerX, rulerTop, rulerX, rulerBottom);
+                g.DrawLine(pen, rulerX - tickW, rulerTop, rulerX + tickW, rulerTop);
+                g.DrawLine(pen, rulerX - tickW, rulerBottom, rulerX + tickW, rulerBottom);
+
+                // 折角印张本体
+                float paperLeft = x + w * 0.32f;
+                float paperTop = y + h * 0.32f;
+                float paperRight = x + w * 0.95f;
+                float paperBottom = y + h * 0.95f;
+                float foldSize = w * 0.25f;
+
+                using (var path = new GraphicsPath())
+                {
+                    path.AddLine(paperLeft, paperTop, paperRight - foldSize, paperTop);
+                    path.AddLine(paperRight - foldSize, paperTop, paperRight, paperTop + foldSize);
+                    path.AddLine(paperRight, paperTop + foldSize, paperRight, paperBottom);
+                    path.AddLine(paperRight, paperBottom, paperLeft, paperBottom);
+                    path.CloseFigure();
+                    g.DrawPath(pen, path);
+                }
+
+                // 折角内部线条
+                g.DrawLine(pen, paperRight - foldSize, paperTop, paperRight - foldSize, paperTop + foldSize);
+                g.DrawLine(pen, paperRight - foldSize, paperTop + foldSize, paperRight, paperTop + foldSize);
+            }
+        }
+
+        private void DrawRollIcon(Graphics g, Rectangle bounds, Color color)
+        {
+            try
+            {
+                if (_cachedRollIconBitmap == null || _cachedRollColor != color)
+                {
+                    _cachedRollIconBitmap?.Dispose();
+                    _cachedRollColor = color;
+
+                    string hexColor = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+                    string svgXml = string.Format(RollSvgTemplate, hexColor);
+
+                    var svgDoc = Svg.SvgDocument.FromSvg<Svg.SvgDocument>(svgXml);
+                    svgDoc.Width = bounds.Width;
+                    svgDoc.Height = bounds.Height;
+                    _cachedRollIconBitmap = svgDoc.Draw();
+                }
+
+                if (_cachedRollIconBitmap != null)
+                {
+                    g.DrawImage(_cachedRollIconBitmap, bounds);
+                    return;
+                }
+            }
+            catch
+            {
+                // Fallback GDI+
+            }
+
+            // GDI+ Fallback 兜底绘制
+            using (var brush = new SolidBrush(color))
+            using (var pen = new Pen(color, 1.2f))
+            {
+                g.DrawEllipse(pen, bounds.X + 2, bounds.Y + 1, bounds.Width - 4, bounds.Height - 4);
+                g.DrawLine(pen, bounds.X + bounds.Width / 2, bounds.Bottom - 2, bounds.X + 1, bounds.Bottom - 2);
+                g.FillEllipse(brush, bounds.X + bounds.Width / 2 - 2, bounds.Y + bounds.Height / 2 - 2, 4, 4);
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _cachedRollIconBitmap?.Dispose();
+                _cachedRollIconBitmap = null;
+            }
+            base.Dispose(disposing);
         }
     }
 }

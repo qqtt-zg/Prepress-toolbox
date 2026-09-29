@@ -49,10 +49,20 @@ namespace WindowsFormsApp3.Utils
 
                 LogHelper.Debug($"参考页面尺寸: {pageSize.Width}x{pageSize.Height} 点");
 
-                // 3. 创建字体
-                string selectedFont = AppSettings.GetValue<string>("IdentifierPageFont") ?? "Microsoft YaHei";
-                BaseFont baseFont = ITextSharpLGPLFontHelper.CreateBaseFont(selectedFont);
-                Font font = new Font(baseFont, fontSize);
+                // 3. 创建字体（仅在需要绘制文字时加载字体）
+                Font font = null;
+                if (!string.IsNullOrEmpty(textContent))
+                {
+                    string selectedFont = "Microsoft YaHei";
+                    try
+                    {
+                        selectedFont = AppSettings.GetValue<string>("IdentifierPageFont") ?? "Microsoft YaHei";
+                    }
+                    catch { }
+
+                    BaseFont baseFont = ITextSharpLGPLFontHelper.CreateBaseFont(selectedFont);
+                    font = new Font(baseFont, fontSize);
+                }
 
                 // 4. 创建输出文档
                 using (FileStream fs = new FileStream(tempFile, FileMode.Create))
