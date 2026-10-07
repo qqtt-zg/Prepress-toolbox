@@ -169,10 +169,10 @@ namespace WindowsFormsApp3.Services
                     });
                 }
 
-                // 检查CropBox是否超出MediaBox
-                if (page.CropBox.IsDefined && page.MediaBox.IsDefined)
+                // 先按显示精度判断差异，避免隐藏的小数触发不一致或超界提示；原始页面框保持不变。
+                if (page.CropBox.IsDefined && page.MediaBox.IsDefined && !ArePageBoxesEqual(page.CropBox, page.MediaBox))
                 {
-                    if (!IsBoxWithinBounds(page.CropBox, page.MediaBox))
+                    if (!IsPageBoxWithinDisplayedBounds(page.CropBox, page.MediaBox))
                     {
                         issues.Add(new PageBoxIssue
                         {
@@ -181,6 +181,17 @@ namespace WindowsFormsApp3.Services
                             Severity = IssueSeverity.Warning,
                             BoxType = "CropBox",
                             Description = $"第{page.PageNumber}页: CropBox超出MediaBox范围"
+                        });
+                    }
+                    else
+                    {
+                        issues.Add(new PageBoxIssue
+                        {
+                            PageNumber = page.PageNumber,
+                            Type = IssueType.DifferentPageBoxes,
+                            Severity = IssueSeverity.Warning,
+                            BoxType = "CropBox",
+                            Description = $"第{page.PageNumber}页: MediaBox与CropBox尺寸或位置不一致"
                         });
                     }
                 }
@@ -269,6 +280,31 @@ namespace WindowsFormsApp3.Services
                    inner.Bottom >= outer.Bottom - tolerance &&
                    inner.Right <= outer.Right + tolerance &&
                    inner.Top <= outer.Top + tolerance;
+        }
+
+        private static bool ArePageBoxesEqual(BoxDimension first, BoxDimension second)
+        {
+            // 宽高与左下角坐标统一转为毫米，再按界面的一位小数规则比较。
+            return PdfTools.GetPageDimensionForDisplay(first.Left * 25.4 / 72) == PdfTools.GetPageDimensionForDisplay(second.Left * 25.4 / 72) &&
+                   PdfTools.GetPageDimensionForDisplay(first.Bottom * 25.4 / 72) == PdfTools.GetPageDimensionForDisplay(second.Bottom * 25.4 / 72) &&
+                   PdfTools.GetPageDimensionForDisplay(first.Width * 25.4 / 72) == PdfTools.GetPageDimensionForDisplay(second.Width * 25.4 / 72) &&
+                   PdfTools.GetPageDimensionForDisplay(first.Height * 25.4 / 72) == PdfTools.GetPageDimensionForDisplay(second.Height * 25.4 / 72);
+        }
+
+        private static bool IsPageBoxWithinDisplayedBounds(BoxDimension inner, BoxDimension outer)
+        {
+            // 从处理后的位置与宽高推导边界，避免隐藏的位置小数将尺寸差异误报成超界。
+            double innerLeft = PdfTools.GetPageDimensionForDisplay(inner.Left * 25.4 / 72);
+            double innerBottom = PdfTools.GetPageDimensionForDisplay(inner.Bottom * 25.4 / 72);
+            double outerLeft = PdfTools.GetPageDimensionForDisplay(outer.Left * 25.4 / 72);
+            double outerBottom = PdfTools.GetPageDimensionForDisplay(outer.Bottom * 25.4 / 72);
+            double innerRight = innerLeft + PdfTools.GetPageDimensionForDisplay(inner.Width * 25.4 / 72);
+            double innerTop = innerBottom + PdfTools.GetPageDimensionForDisplay(inner.Height * 25.4 / 72);
+            double outerRight = outerLeft + PdfTools.GetPageDimensionForDisplay(outer.Width * 25.4 / 72);
+            double outerTop = outerBottom + PdfTools.GetPageDimensionForDisplay(outer.Height * 25.4 / 72);
+            const double tolerance = 0.000000001; // 仅容忍毫米小数相加的浮点误差。
+            return innerLeft >= outerLeft - tolerance && innerBottom >= outerBottom - tolerance &&
+                   innerRight <= outerRight + tolerance && innerTop <= outerTop + tolerance;
         }
 
         /// <summary>

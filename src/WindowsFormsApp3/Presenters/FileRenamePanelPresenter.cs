@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -62,6 +62,9 @@ namespace WindowsFormsApp3.Presenters
         private bool _currentIsShapeSelected = false;
         private ShapeType _currentShapeType = ShapeType.RightAngle;
         private double _currentRoundRadius = 0;
+        private double _currentTetBleed = 0;
+        private PdfPageBoxSource _currentPageBoxSource = PdfPageBoxSource.Automatic;
+        private int _currentPageBoxReferencePage = 1;
         private string _currentDimensions = "";
         private bool _currentNeedsRotation = false;
         private int _currentRotationAngle = 0;
@@ -1002,6 +1005,9 @@ namespace WindowsFormsApp3.Presenters
                 _currentIsShapeSelected = selectionResult.IsShapeSelected;
                 _currentShapeType = (ShapeType)selectionResult.SelectedShape;
                 _currentRoundRadius = selectionResult.RoundRadius;
+                _currentTetBleed = selectionResult.SelectedTetBleed;
+                _currentPageBoxSource = selectionResult.PageBoxSource;
+                _currentPageBoxReferencePage = selectionResult.PageBoxReferencePage;
                 _currentDimensions = selectionResult.Dimensions ?? "";
                 _currentNeedsRotation = selectionResult.NeedsRotation;
                 _currentRotationAngle = selectionResult.RotationAngle;
@@ -1040,6 +1046,15 @@ namespace WindowsFormsApp3.Presenters
                     currentFileInfo.OrderNumber = item.OrderNumber ?? "";
                     currentFileInfo.Quantity = item.Quantity ?? "";
                     currentFileInfo.SerialNumber = item.SerialNumber ?? (i + 1).ToString();
+                    ImpositionPdfInfo selectedBoxPdfInfo = null;
+                    if (selectionResult.PageBoxSource != PdfPageBoxSource.Automatic &&
+                        item.FilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                    {
+                        selectedBoxPdfInfo = await (_impositionService ?? new ImpositionService()).AnalyzePdfFileAsync(
+                            item.FilePath, selectionResult.PageBoxSource, selectionResult.PageBoxReferencePage);
+                        currentFileInfo.Width = selectedBoxPdfInfo.GetEffectivePageWidth().ToString("R");
+                        currentFileInfo.Height = selectedBoxPdfInfo.GetEffectivePageHeight().ToString("R");
+                    }
                     // ✅ 关键修复：以各自文件的实际原始尺寸为基准计算成品尺寸与裁切线
                     // 如果文件自身解析到了有效宽高，按该文件自身尺寸减去出血计算成品尺寸；否则兜底使用弹窗尺寸
                     string itemFinalDimensions = selectionResult.Dimensions ?? "";
@@ -1100,17 +1115,19 @@ namespace WindowsFormsApp3.Presenters
 
                     if (_currentEnableImposition && _impositionService != null)
                     {
-                        ImpositionPdfInfo pdfInfo = null;
+                        ImpositionPdfInfo pdfInfo = selectedBoxPdfInfo;
                         try
                         {
-                            if (File.Exists(item.FilePath))
+                            if (pdfInfo == null && File.Exists(item.FilePath))
                             {
-                                pdfInfo = await _impositionService.AnalyzePdfFileAsync(item.FilePath);
+                                pdfInfo = await _impositionService.AnalyzePdfFileAsync(item.FilePath,
+                                    selectionResult.PageBoxSource, selectionResult.PageBoxReferencePage);
                             }
                         }
                         catch (Exception ex)
                         {
                             _logger?.LogWarning($"[ProcessApplyToAllBatchAsync] 获取真实PDF信息失败，将使用备选尺寸: {ex.Message}");
+                            if (selectionResult.PageBoxSource != PdfPageBoxSource.Automatic) throw;
                         }
 
                         if (pdfInfo == null)
@@ -1166,25 +1183,22 @@ namespace WindowsFormsApp3.Presenters
                         }
 
                         // 3. 确定该文件的当前排版模式、行列数与版数
+                        var activeLayout = _currentImpositionMaterialType == "FlatSheet" ? flatRes : rollRes;
+                        if (activeLayout != null && !activeLayout.Success)
+                            throw new InvalidOperationException(activeLayout.ErrorMessage);
                         if (_currentImpositionMaterialType == "FlatSheet" && flatRes != null && flatRes.Success)
                         {
                             currentFileInfo.LayoutRows = flatRes.Rows > 0 ? flatRes.Rows.ToString() : "";
                             currentFileInfo.LayoutColumns = flatRes.Columns > 0 ? flatRes.Columns.ToString() : "";
                             itemLayoutQuantity = flatRes.OptimalLayoutQuantity;
-                            if (!selectionResult.IsForceRotationEnabled)
-                            {
-                                itemRotationAngle = flatRes.UseRotation ? 270 : 0;
-                            }
+                            itemRotationAngle = flatRes.RotationAngle;
                         }
                         else if (_currentImpositionMaterialType == "RollMaterial" && rollRes != null && rollRes.Success)
                         {
                             currentFileInfo.LayoutRows = rollRes.Rows > 0 ? rollRes.Rows.ToString() : "";
                             currentFileInfo.LayoutColumns = rollRes.Columns > 0 ? rollRes.Columns.ToString() : "";
                             itemLayoutQuantity = rollRes.OptimalLayoutQuantity;
-                            if (!selectionResult.IsForceRotationEnabled)
-                            {
-                                itemRotationAngle = rollRes.RotationAngle;
-                            }
+                            itemRotationAngle = rollRes.RotationAngle;
                         }
 
                         // 4. 正方形尺寸（差值 <= 0.09mm）在未手动强制旋转时锁定不旋转
@@ -1217,7 +1231,7 @@ namespace WindowsFormsApp3.Presenters
 
                     bool itemNeedsRotation = itemRotationAngle != 0;
                     bool isPdfFile = item.FilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
-                    bool needsPdfProcessing = isPdfFile && (NeedsPageRepetition(_currentCopyType, _currentCopyCount, _currentDuplicateCount) || _currentIsShapeSelected || itemNeedsRotation || _currentAddIdentifierPage ||
+                    bool needsPdfProcessing = isPdfFile && (NeedsPageRepetition(_currentCopyType, _currentCopyCount, _currentDuplicateCount) || _currentIsShapeSelected || _currentPageBoxSource != PdfPageBoxSource.Automatic || itemNeedsRotation || _currentAddIdentifierPage ||
                         (_currentEnableImposition && _currentLayoutMode == LayoutMode.Folding && itemLayoutQuantity > 0));
 
                     // 准备最终目标文件路径（处理重命名冲突）
@@ -1237,6 +1251,9 @@ namespace WindowsFormsApp3.Presenters
                             AddPdfLayers = _currentIsShapeSelected,
                             ShapeType = _currentShapeType,
                             RoundRadius = _currentRoundRadius,
+                            TetBleed = _currentTetBleed,
+                            PageBoxSource = _currentPageBoxSource,
+                            PageBoxReferencePage = _currentPageBoxReferencePage,
                             FinalDimensions = itemFinalDimensions,
                             RotationAngle = itemRotationAngle,
                             LayoutMode = _currentLayoutMode,
@@ -1545,6 +1562,9 @@ namespace WindowsFormsApp3.Presenters
                         _currentIsShapeSelected = selectionResult.IsShapeSelected;
                         _currentShapeType = (ShapeType)selectionResult.SelectedShape;
                         _currentRoundRadius = selectionResult.RoundRadius;
+                        _currentTetBleed = selectionResult.SelectedTetBleed;
+                        _currentPageBoxSource = selectionResult.PageBoxSource;
+                        _currentPageBoxReferencePage = selectionResult.PageBoxReferencePage;
                         _currentDimensions = selectionResult.Dimensions ?? "";
                         _currentNeedsRotation = selectionResult.NeedsRotation;
                         _currentRotationAngle = selectionResult.RotationAngle;
@@ -2027,7 +2047,7 @@ namespace WindowsFormsApp3.Presenters
 
                 // 判断是否为PDF文件以及是否需要PDF处理
                 bool isPdfFile = fileInfo.FullPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
-                bool needsPdfProcessing = isPdfFile && (NeedsPageRepetition(_currentCopyType, _currentCopyCount, _currentDuplicateCount) || _currentIsShapeSelected || _currentNeedsRotation ||
+                bool needsPdfProcessing = isPdfFile && (NeedsPageRepetition(_currentCopyType, _currentCopyCount, _currentDuplicateCount) || _currentIsShapeSelected || _currentPageBoxSource != PdfPageBoxSource.Automatic || _currentNeedsRotation ||
                     (_currentEnableImposition && _currentLayoutMode == LayoutMode.Folding && _currentLayoutQuantity > 0));
 
                 _logger?.LogInformation($"[RenameFileAsync] isPdfFile={isPdfFile}, needsPdfProcessing={needsPdfProcessing}");
@@ -2043,6 +2063,9 @@ namespace WindowsFormsApp3.Presenters
                         AddPdfLayers = _currentIsShapeSelected,
                         ShapeType = _currentShapeType,
                         RoundRadius = _currentRoundRadius,
+                        TetBleed = _currentTetBleed,
+                        PageBoxSource = _currentPageBoxSource,
+                        PageBoxReferencePage = _currentPageBoxReferencePage,
                         FinalDimensions = _currentDimensions,
                         RotationAngle = _currentRotationAngle,
                         // ✅ 关键修复:传递排版信息以触发折手模式空白页逻辑
@@ -2156,13 +2179,28 @@ namespace WindowsFormsApp3.Presenters
                 
                 // 异步复制文件
                 await Task.Run(() => System.IO.File.Copy(sourcePath, destPath, overwrite: false));
-                
+
+                if (_currentPageBoxSource != PdfPageBoxSource.Automatic &&
+                    destPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                {
+                    bool boxResult = await Task.Run(() => PdfTools.SetAllPageBoxesToCropBox(destPath,
+                        normalizeDisplayedSize: false,
+                        pageBoxSource: _currentPageBoxSource,
+                        referencePageNumber: _currentPageBoxReferencePage));
+                    if (!boxResult)
+                    {
+                        System.IO.File.Delete(destPath);
+                        _logger?.LogWarning($"[CopyFileToDestinationAsync] 所选页面框统一失败: {destPath}");
+                        return false;
+                    }
+                }
+
                 // 应用 PDF 形状处理（如果需要）
                 if (_currentIsShapeSelected && destPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) && _pdfProcessingService != null)
                 {
-                    // 使用新版方法 AddDotsAddCounterLayer(string, string, ShapeType, double)
-                    // 通过强制转换调用具体类型的明确方法实现，避免接口方法歧义
-                    bool shapeResult = ((Services.PdfProcessingService)_pdfProcessingService).AddDotsAddCounterLayer(destPath, _currentDimensions, _currentShapeType, _currentRoundRadius);
+                    bool shapeResult = _pdfProcessingService.AddDotsAddCounterLayer(
+                        destPath, _currentDimensions, _currentShapeType, _currentRoundRadius, _currentTetBleed,
+                        _currentPageBoxSource == PdfPageBoxSource.Automatic);
                     _logger?.LogInformation($"[CopyFileToDestinationAsync] PDF形状处理结果: {shapeResult}");
                 }
                 
@@ -4323,6 +4361,7 @@ namespace WindowsFormsApp3.Presenters
             {
                 return new FlatSheetConfiguration
                 {
+                    RotationMode = tempParams?.FlatSheetRotationMode,
                     PaperWidth = tempParams.PaperWidth,
                     PaperHeight = tempParams.PaperHeight,
                     MarginTop = tempParams.MarginTop,
@@ -4339,6 +4378,7 @@ namespace WindowsFormsApp3.Presenters
             if (paperWidth <= 0 || paperHeight <= 0) return null;
             return new FlatSheetConfiguration
             {
+                RotationMode = tempParams?.FlatSheetRotationMode,
                 PaperWidth = paperWidth,
                 PaperHeight = paperHeight,
                 MarginTop = GetFloatSetting("Imposition_MarginTop", 2),
@@ -4359,6 +4399,7 @@ namespace WindowsFormsApp3.Presenters
             {
                 return new RollMaterialConfiguration
                 {
+                    RotationMode = tempParams?.RollMaterialRotationMode,
                     FixedWidth = tempParams.FixedWidth,
                     MinLength = tempParams.MinLength,
                     MarginTop = tempParams.RollMarginTop,
@@ -4375,6 +4416,7 @@ namespace WindowsFormsApp3.Presenters
             if (fixedWidth <= 0 || minLength <= 0) return null;
             return new RollMaterialConfiguration
             {
+                RotationMode = tempParams?.RollMaterialRotationMode,
                 FixedWidth = fixedWidth,
                 MinLength = minLength,
                 MarginTop = GetFloatSetting("Imposition_RollMarginTop", 2),

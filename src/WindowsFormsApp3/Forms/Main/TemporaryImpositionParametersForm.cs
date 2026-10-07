@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Windows.Forms;
 using AntdUI;
 using WindowsFormsApp3.Models;
+using WindowsFormsApp3.Utils;
 
 namespace WindowsFormsApp3.Forms.Main
 {
@@ -24,23 +25,28 @@ namespace WindowsFormsApp3.Forms.Main
         private readonly Checkbox _unlockPaperSizeCheckbox = new Checkbox { Text = "解锁纸张尺寸" };
         private readonly Checkbox _unlockRollSizeCheckbox = new Checkbox { Text = "解锁幅宽尺寸" };
         private readonly System.Windows.Forms.Panel _contentPanel = new System.Windows.Forms.Panel();
+        private readonly AntdUI.Button[] _rotationButtons = new AntdUI.Button[3];
+        private readonly AntdUI.Label _rotationHelp = new AntdUI.Label();
+        private RollRotationMode _selectedRotationMode;
+        private readonly AntdUI.Select _layoutDirection = new AntdUI.Select();
 
         public TemporaryImpositionParameters Parameters { get; private set; }
 
-        public TemporaryImpositionParametersForm(bool isFlatSheet, TemporaryImpositionParameters parameters)
+        public TemporaryImpositionParametersForm(bool isFlatSheet, TemporaryImpositionParameters parameters, bool focusRotation = false)
         {
             _isFlatSheet = isFlatSheet;
             Parameters = (parameters ?? throw new ArgumentNullException(nameof(parameters))).Clone();
 
-            Text = "大版开料参数配置";
+            Text = "大版与排版参数";
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
-            ClientSize = new Size(500, 300);
+            ClientSize = new Size(500, 448);
 
             BuildLayout();
             LoadParameters();
+            if (focusRotation) Shown += (s, e) => _rotationButtons[(int)_selectedRotationMode].Focus();
         }
 
         private static Input CreateInput()
@@ -52,14 +58,14 @@ namespace WindowsFormsApp3.Forms.Main
         {
             var title = new AntdUI.Label
             {
-                Text = "本窗口仅影响当前材料选择，保存预设后可复用。",
+                Text = "临时参数应用后记住，平张与卷装分别保留旋转策略。",
                 Location = new Point(20, 15),
                 Size = new Size(450, 28)
             };
             Controls.Add(title);
 
             _contentPanel.Location = new Point(20, 48);
-            _contentPanel.Size = new Size(460, 180);
+            _contentPanel.Size = new Size(460, 324);
 
             if (_isFlatSheet)
             {
@@ -97,11 +103,54 @@ namespace WindowsFormsApp3.Forms.Main
             }
 
             Controls.Add(_contentPanel);
+            _contentPanel.Controls.Add(new AntdUI.Label
+            {
+                Text = "页面方向 · 自动排版旋转策略",
+                Location = new Point(0, 173),
+                Size = new Size(450, 24)
+            });
+            var rotationTexts = new[] { "自动择优", "禁止旋转", "固定270°" };
+            for (int i = 0; i < _rotationButtons.Length; i++)
+            {
+                int index = i;
+                var button = new AntdUI.Button
+                {
+                    Name = "rotationPolicy" + i,
+                    Text = rotationTexts[i],
+                    Location = new Point(i * 153, 200),
+                    Size = new Size(145, 30),
+                    Radius = 4,
+                    WaveSize = 0
+                };
+                button.Click += (s, e) =>
+                {
+                    _selectedRotationMode = (RollRotationMode)index;
+                    UpdateRotationSelection();
+                };
+                _rotationButtons[i] = button;
+                _contentPanel.Controls.Add(button);
+            }
+            _rotationHelp.Location = new Point(0, 235);
+            _rotationHelp.Size = new Size(450, 40);
+            _rotationHelp.Font = new Font("Microsoft YaHei UI", 8F);
+            _contentPanel.Controls.Add(_rotationHelp);
+            _contentPanel.Controls.Add(new AntdUI.Label
+            {
+                Text = "高级 · 布局约束方向",
+                Location = new Point(0, 284),
+                Size = new Size(230, 28)
+            });
+            _layoutDirection.Name = "layoutConstraintDirection";
+            _layoutDirection.Location = new Point(306, 284);
+            _layoutDirection.Size = new Size(145, 28);
+            _layoutDirection.Items.AddRange(new object[] { "按列", "按行" });
+            _contentPanel.Controls.Add(_layoutDirection);
 
             var applyButton = new AntdUI.Button
             {
                 Text = "应用",
-                Location = new Point(300, 245),
+                Name = "applyParameters",
+                Location = new Point(300, 398),
                 Size = new Size(80, 32),
                 Type = TTypeMini.Primary
             };
@@ -110,13 +159,44 @@ namespace WindowsFormsApp3.Forms.Main
             var cancelButton = new AntdUI.Button
             {
                 Text = "取消",
-                Location = new Point(395, 245),
+                Location = new Point(395, 398),
                 Size = new Size(80, 32)
             };
             cancelButton.Click += (s, e) => DialogResult = DialogResult.Cancel;
 
             Controls.Add(applyButton);
             Controls.Add(cancelButton);
+            var restoreButton = new AntdUI.Button
+            {
+                Name = "restoreGlobalParameters",
+                Text = "恢复全局值",
+                Location = new Point(20, 398),
+                Size = new Size(110, 32)
+            };
+            restoreButton.Click += (s, e) =>
+            {
+                if (_isFlatSheet)
+                {
+                    _paperWidthInput.Text = AppSettings.GetValue<string>("Imposition_PaperWidth", "320");
+                    _paperHeightInput.Text = AppSettings.GetValue<string>("Imposition_PaperHeight", "464");
+                    _unlockPaperSizeCheckbox.Checked = false;
+                }
+                else
+                {
+                    _fixedWidthInput.Text = AppSettings.GetValue<string>("Imposition_FixedWidth", "320");
+                    _minLengthInput.Text = AppSettings.GetValue<string>("Imposition_MinLength", "100");
+                    _unlockRollSizeCheckbox.Checked = false;
+                }
+                string prefix = _isFlatSheet ? "Imposition_" : "Imposition_Roll";
+                _marginTopInput.Text = AppSettings.GetValue<string>(prefix + "MarginTop", "0");
+                _marginBottomInput.Text = AppSettings.GetValue<string>(prefix + "MarginBottom", "0");
+                _marginLeftInput.Text = AppSettings.GetValue<string>(prefix + "MarginLeft", "0");
+                _marginRightInput.Text = AppSettings.GetValue<string>(prefix + "MarginRight", "0");
+                _selectedRotationMode = RollRotationMode.Auto;
+                _layoutDirection.Text = "按列";
+                UpdateRotationSelection();
+            };
+            Controls.Add(restoreButton);
         }
 
         private void AddMargins(Control container, int top)
@@ -141,6 +221,11 @@ namespace WindowsFormsApp3.Forms.Main
 
         private void LoadParameters()
         {
+            _selectedRotationMode = (_isFlatSheet ? Parameters.FlatSheetRotationMode : Parameters.RollMaterialRotationMode)
+                ?? RollRotationMode.Auto;
+            UpdateRotationSelection();
+            _layoutDirection.Text = Parameters.LayoutConstraintDirection == CopyMode.AutoByRow ||
+                Parameters.LayoutConstraintDirection == CopyMode.FixedNoRotationByRow ? "按行" : "按列";
             if (_isFlatSheet)
             {
                 _unlockPaperSizeCheckbox.Checked = Parameters.IsPaperSizeUnlocked;
@@ -160,6 +245,17 @@ namespace WindowsFormsApp3.Forms.Main
             _marginBottomInput.Text = Format(Parameters.MarginBottom);
             _marginLeftInput.Text = Format(Parameters.MarginLeft);
             _marginRightInput.Text = Format(Parameters.MarginRight);
+        }
+
+        private void UpdateRotationSelection()
+        {
+            for (int i = 0; i < _rotationButtons.Length; i++)
+                _rotationButtons[i].Type = i == (int)_selectedRotationMode ? TTypeMini.Primary : TTypeMini.Default;
+            _rotationHelp.Text = _selectedRotationMode == RollRotationMode.Auto
+                ? "比较0与270两个方向，按当前排版规则择优。"
+                : _selectedRotationMode == RollRotationMode.Force0Degree
+                    ? "保持原页面方向；放不下时提示调整大版参数。"
+                    : "固定使用270方向；放不下时不会自动改回其他方向。";
         }
 
         private void UpdatePaperSizeEnabled()
@@ -184,6 +280,10 @@ namespace WindowsFormsApp3.Forms.Main
             }
 
             var updated = Parameters.Clone();
+            updated.LayoutConstraintDirection = _layoutDirection.Text == "按行" ? CopyMode.AutoByRow : CopyMode.AutoByColumn;
+            if (_isFlatSheet) updated.FlatSheetRotationMode = _selectedRotationMode;
+            else updated.RollMaterialRotationMode = _selectedRotationMode;
+            updated.IsForceRotationEnabled = false;
             updated.MarginTop = marginTop;
             updated.MarginBottom = marginBottom;
             updated.MarginLeft = marginLeft;

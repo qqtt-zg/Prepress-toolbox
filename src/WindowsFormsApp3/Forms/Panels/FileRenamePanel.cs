@@ -4034,6 +4034,8 @@ namespace WindowsFormsApp3.Forms.Panels
                             OrderNumber = dialog.OrderNumber ?? "",
                             Dimensions = dialog.AdjustedDimensions ?? "",
                             SelectedTetBleed = dialog.SelectedTetBleed,
+                            PageBoxSource = dialog.SelectedPageBoxSource,
+                            PageBoxReferencePage = dialog.SelectedPageBoxReferencePage,
                             Process = dialog.FixedField ?? "",
                             LayoutRows = dialog.GetRows() > 0 ? dialog.GetRows().ToString() : "",
                             LayoutColumns = dialog.GetColumns() > 0 ? dialog.GetColumns().ToString() : "",
@@ -4181,4 +4183,3 @@ namespace WindowsFormsApp3.Forms.Panels
     }
 
 }
-

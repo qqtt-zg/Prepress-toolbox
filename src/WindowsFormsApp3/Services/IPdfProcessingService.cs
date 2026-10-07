@@ -57,6 +57,14 @@ namespace WindowsFormsApp3.Services
         /// <returns>是否成功添加图层</returns>
         bool AddDotsAddCounterLayer(string filePath, string finalDimensions, string cornerRadius = "0", bool usePdfLastPage = false);
 
+        /// <summary>按选定的形状和出血毫米数生成裁切线与出血线。</summary>
+        bool AddDotsAddCounterLayer(string filePath, string finalDimensions, ShapeType shapeType,
+            double roundRadius, double bleedMm);
+
+        /// <summary>按选定形状和出血绘制，并指定是否将页框舍入到界面显示精度。</summary>
+        bool AddDotsAddCounterLayer(string filePath, string finalDimensions, ShapeType shapeType,
+            double roundRadius, double bleedMm, bool normalizeDisplayedSize);
+
         /// <summary>
         /// 复制PDF页面（支持一式N份，按123123顺序复制）
         /// </summary>

@@ -198,17 +198,17 @@ namespace WindowsFormsApp3.Forms.Main
             this.Controls.Add(lblEnableImposition);
             this.Controls.Add(_chkEnableImposition);
 
-            // 第11行：一式N联
+            // 第11行：PDF页序复制
             _chkEnableIsDualCopy = new CheckBox { Location = new Point(chkX, startY + rowHeight * 10), AutoSize = true, Checked = true };
-            var lblIsDualCopy = new Label { Text = "一式N联:", Location = new Point(labelX, startY + rowHeight * 10), AutoSize = true };
+            var lblIsDualCopy = new Label { Text = "PDF页序复制:", Location = new Point(labelX, startY + rowHeight * 10), AutoSize = true };
             _chkIsDualCopy = new CheckBox { Location = new Point(controlX, startY + rowHeight * 10), AutoSize = true };
             this.Controls.Add(_chkEnableIsDualCopy);
             this.Controls.Add(lblIsDualCopy);
             this.Controls.Add(_chkIsDualCopy);
 
-            // 第11-1行：联数
+            // 第11-1行：重复次数
             _chkEnableCopyCount = new CheckBox { Location = new Point(chkX, startY + rowHeight * 10 + 22), AutoSize = true, Checked = true };
-            var lblCopyCount = new Label { Text = "联数:", Location = new Point(labelX, startY + rowHeight * 10 + 22), AutoSize = true };
+            var lblCopyCount = new Label { Text = "重复次数:", Location = new Point(labelX, startY + rowHeight * 10 + 22), AutoSize = true };
             _numCopyCount = new NumericUpDown { Location = new Point(controlX, startY + rowHeight * 10 + 22), Width = 60, Height = height, Minimum = 2, Maximum = 16, Value = 2 };
             this.Controls.Add(_chkEnableCopyCount);
             this.Controls.Add(lblCopyCount);

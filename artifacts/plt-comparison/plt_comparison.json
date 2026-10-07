@@ -1,0 +1,3062 @@
+[
+  {
+    "file": "C:\\Users\\admin\\Desktop\\1.plt",
+    "sha256": "dc235891bb877adf24e04c1c8c01b5e2ee8e80507565bba7f3a0b9bf753f9bdd",
+    "bytes": 43168,
+    "command_counts": {
+      "IN": 1,
+      "VS": 8,
+      "WU": 1,
+      "PW": 8,
+      "LT": 3,
+      "SP": 4,
+      "PU": 52,
+      "PD": 3008
+    },
+    "lower_transitions": 52,
+    "raise_transitions": 51,
+    "path_count": 52,
+    "closed_paths": 52,
+    "zero_length_PD": 100,
+    "zero_length_PD_first_lines": [
+      36,
+      95,
+      97,
+      156,
+      158,
+      217,
+      219,
+      278,
+      280,
+      339,
+      341,
+      400,
+      402,
+      461
+    ],
+    "winding_signs": {
+      "-1": 2,
+      "1": 50
+    },
+    "shape_groups": [
+      {
+        "width": 240.0,
+        "height": 240.0,
+        "segments": 4,
+        "count": 1
+      },
+      {
+        "width": 160.0,
+        "height": 160.0,
+        "segments": 4,
+        "count": 1
+      },
+      {
+        "width": 1200.0,
+        "height": 1070.0,
+        "segments": 60,
+        "count": 30
+      },
+      {
+        "width": 1200.0,
+        "height": 1071.0,
+        "segments": 60,
+        "count": 20
+      }
+    ],
+    "header": [
+      [
+        "IN",
+        []
+      ],
+      [
+        "VS",
+        [
+          32.0,
+          1.0
+        ]
+      ],
+      [
+        "VS",
+        [
+          32.0,
+          2.0
+        ]
+      ],
+      [
+        "VS",
+        [
+          32.0,
+          3.0
+        ]
+      ],
+      [
+        "VS",
+        [
+          32.0,
+          4.0
+        ]
+      ],
+      [
+        "VS",
+        [
+          32.0,
+          5.0
+        ]
+      ],
+      [
+        "VS",
+        [
+          32.0,
+          6.0
+        ]
+      ],
+      [
+        "VS",
+        [
+          32.0,
+          7.0
+        ]
+      ],
+      [
+        "VS",
+        [
+          32.0,
+          8.0
+        ]
+      ],
+      [
+        "WU",
+        [
+          0.0
+        ]
+      ],
+      [
+        "PW",
+        [
+          0.01,
+          1.0
+        ]
+      ],
+      [
+        "PW",
+        [
+          0.01,
+          2.0
+        ]
+      ],
+      [
+        "PW",
+        [
+          0.01,
+          3.0
+        ]
+      ],
+      [
+        "PW",
+        [
+          0.01,
+          4.0
+        ]
+      ],
+      [
+        "PW",
+        [
+          0.01,
+          5.0
+        ]
+      ],
+      [
+        "PW",
+        [
+          0.01,
+          6.0
+        ]
+      ],
+      [
+        "PW",
+        [
+          0.01,
+          7.0
+        ]
+      ],
+      [
+        "PW",
+        [
+          0.01,
+          8.0
+        ]
+      ],
+      [
+        "LT",
+        []
+      ],
+      [
+        "SP",
+        [
+          1.0
+        ]
+      ]
+    ],
+    "tail": [
+      [
+        "PD",
+        [
+          6138.0,
+          452.0
+        ]
+      ],
+      [
+        "PD",
+        [
+          6153.0,
+          456.0
+        ]
+      ],
+      [
+        "PD",
+        [
+          6168.0,
+          461.0
+        ]
+      ],
+      [
+        "PD",
+        [
+          6182.0,
+          469.0
+        ]
+      ],
+      [
+        "PD",
+        [
+          6195.0,
+          478.0
+        ]
+      ],
+      [
+        "PD",
+        [
+          6208.0,
+          490.0
+        ]
+      ],
+      [
+        "PD",
+        [
+          6220.0,
+          505.0
+        ]
+      ],
+      [
+        "PD",
+        [
+          6230.0,
+          521.0
+        ]
+      ],
+      [
+        "PD",
+        [
+          6230.0,
+          521.0
+        ]
+      ],
+      [
+        "SP",
+        [
+          0.0
+        ]
+      ]
+    ],
+    "paths": [
+      {
+        "start_line": 22,
+        "id": 1,
+        "bounds": [
+          5043.0,
+          80.0,
+          5283.0,
+          320.0
+        ],
+        "center": [
+          5163.0,
+          200.0
+        ],
+        "width": 240.0,
+        "height": 240.0,
+        "closed": true,
+        "area": -57600.0,
+        "segments": 4,
+        "zero_segments": 0,
+        "start_relative": [
+          240.0,
+          0.0
+        ]
+      },
+      {
+        "start_line": 29,
+        "id": 2,
+        "bounds": [
+          6563.0,
+          160.0,
+          6723.0,
+          320.0
+        ],
+        "center": [
+          6643.0,
+          240.0
+        ],
+        "width": 160.0,
+        "height": 160.0,
+        "closed": true,
+        "area": -25600.0,
+        "segments": 4,
+        "zero_segments": 0,
+        "start_relative": [
+          160.0,
+          0.0
+        ]
+      },
+      {
+        "start_line": 36,
+        "id": 3,
+        "bounds": [
+          82.0,
+          11524.0,
+          1282.0,
+          12594.0
+        ],
+        "center": [
+          682.0,
+          12059.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787800.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 97,
+        "id": 4,
+        "bounds": [
+          82.0,
+          10294.0,
+          1282.0,
+          11364.0
+        ],
+        "center": [
+          682.0,
+          10829.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787800.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 158,
+        "id": 5,
+        "bounds": [
+          82.0,
+          9064.0,
+          1282.0,
+          10134.0
+        ],
+        "center": [
+          682.0,
+          9599.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787756.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 219,
+        "id": 6,
+        "bounds": [
+          82.0,
+          7833.0,
+          1282.0,
+          8904.0
+        ],
+        "center": [
+          682.0,
+          8368.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 788273.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          1180.0,
+          881.0
+        ]
+      },
+      {
+        "start_line": 280,
+        "id": 7,
+        "bounds": [
+          82.0,
+          6603.0,
+          1282.0,
+          7673.0
+        ],
+        "center": [
+          682.0,
+          7138.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787810.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 341,
+        "id": 8,
+        "bounds": [
+          82.0,
+          5372.0,
+          1282.0,
+          6443.0
+        ],
+        "center": [
+          682.0,
+          5907.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 788260.0,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 402,
+        "id": 9,
+        "bounds": [
+          82.0,
+          4142.0,
+          1282.0,
+          5212.0
+        ],
+        "center": [
+          682.0,
+          4677.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787800.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 463,
+        "id": 10,
+        "bounds": [
+          82.0,
+          2912.0,
+          1282.0,
+          3982.0
+        ],
+        "center": [
+          682.0,
+          3447.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787756.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          1180.0,
+          880.0
+        ]
+      },
+      {
+        "start_line": 524,
+        "id": 11,
+        "bounds": [
+          82.0,
+          1681.0,
+          1282.0,
+          2752.0
+        ],
+        "center": [
+          682.0,
+          2216.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 788273.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 585,
+        "id": 12,
+        "bounds": [
+          82.0,
+          451.0,
+          1282.0,
+          1522.0
+        ],
+        "center": [
+          682.0,
+          986.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 788273.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 646,
+        "id": 13,
+        "bounds": [
+          1443.0,
+          451.0,
+          2643.0,
+          1522.0
+        ],
+        "center": [
+          2043.0,
+          986.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787883.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 707,
+        "id": 14,
+        "bounds": [
+          1443.0,
+          1681.0,
+          2643.0,
+          2752.0
+        ],
+        "center": [
+          2043.0,
+          2216.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787883.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 768,
+        "id": 15,
+        "bounds": [
+          1443.0,
+          2912.0,
+          2643.0,
+          3982.0
+        ],
+        "center": [
+          2043.0,
+          3447.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787366.0,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          1179.0,
+          880.0
+        ]
+      },
+      {
+        "start_line": 829,
+        "id": 16,
+        "bounds": [
+          1443.0,
+          4142.0,
+          2643.0,
+          5212.0
+        ],
+        "center": [
+          2043.0,
+          4677.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787410.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 890,
+        "id": 17,
+        "bounds": [
+          1443.0,
+          5372.0,
+          2643.0,
+          6443.0
+        ],
+        "center": [
+          2043.0,
+          5907.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787869.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 951,
+        "id": 18,
+        "bounds": [
+          1443.0,
+          6603.0,
+          2643.0,
+          7673.0
+        ],
+        "center": [
+          2043.0,
+          7138.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787420.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 1012,
+        "id": 19,
+        "bounds": [
+          1443.0,
+          7833.0,
+          2643.0,
+          8904.0
+        ],
+        "center": [
+          2043.0,
+          8368.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787883.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          1179.0,
+          881.0
+        ]
+      },
+      {
+        "start_line": 1073,
+        "id": 20,
+        "bounds": [
+          1443.0,
+          9064.0,
+          2643.0,
+          10134.0
+        ],
+        "center": [
+          2043.0,
+          9599.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787366.0,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 1134,
+        "id": 21,
+        "bounds": [
+          1443.0,
+          10294.0,
+          2643.0,
+          11364.0
+        ],
+        "center": [
+          2043.0,
+          10829.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787410.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 1195,
+        "id": 22,
+        "bounds": [
+          1443.0,
+          11524.0,
+          2643.0,
+          12594.0
+        ],
+        "center": [
+          2043.0,
+          12059.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787410.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 1256,
+        "id": 23,
+        "bounds": [
+          2803.0,
+          11524.0,
+          4003.0,
+          12594.0
+        ],
+        "center": [
+          3403.0,
+          12059.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787410.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 1317,
+        "id": 24,
+        "bounds": [
+          2803.0,
+          10294.0,
+          4003.0,
+          11364.0
+        ],
+        "center": [
+          3403.0,
+          10829.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787410.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 1378,
+        "id": 25,
+        "bounds": [
+          2803.0,
+          9064.0,
+          4003.0,
+          10134.0
+        ],
+        "center": [
+          3403.0,
+          9599.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787366.0,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 1439,
+        "id": 26,
+        "bounds": [
+          2803.0,
+          7833.0,
+          4003.0,
+          8904.0
+        ],
+        "center": [
+          3403.0,
+          8368.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787883.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          1179.0,
+          881.0
+        ]
+      },
+      {
+        "start_line": 1500,
+        "id": 27,
+        "bounds": [
+          2803.0,
+          6603.0,
+          4003.0,
+          7673.0
+        ],
+        "center": [
+          3403.0,
+          7138.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787420.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 1561,
+        "id": 28,
+        "bounds": [
+          2803.0,
+          5372.0,
+          4003.0,
+          6443.0
+        ],
+        "center": [
+          3403.0,
+          5907.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787869.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 1622,
+        "id": 29,
+        "bounds": [
+          2803.0,
+          4142.0,
+          4003.0,
+          5212.0
+        ],
+        "center": [
+          3403.0,
+          4677.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787410.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 1683,
+        "id": 30,
+        "bounds": [
+          2803.0,
+          2912.0,
+          4003.0,
+          3982.0
+        ],
+        "center": [
+          3403.0,
+          3447.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787366.0,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          1179.0,
+          880.0
+        ]
+      },
+      {
+        "start_line": 1744,
+        "id": 31,
+        "bounds": [
+          2803.0,
+          1681.0,
+          4003.0,
+          2752.0
+        ],
+        "center": [
+          3403.0,
+          2216.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787883.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 1805,
+        "id": 32,
+        "bounds": [
+          2803.0,
+          451.0,
+          4003.0,
+          1522.0
+        ],
+        "center": [
+          3403.0,
+          986.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787883.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 1866,
+        "id": 33,
+        "bounds": [
+          4163.0,
+          451.0,
+          5363.0,
+          1522.0
+        ],
+        "center": [
+          4763.0,
+          986.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787883.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 1927,
+        "id": 34,
+        "bounds": [
+          4163.0,
+          1681.0,
+          5363.0,
+          2752.0
+        ],
+        "center": [
+          4763.0,
+          2216.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787883.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 1988,
+        "id": 35,
+        "bounds": [
+          4163.0,
+          2912.0,
+          5363.0,
+          3982.0
+        ],
+        "center": [
+          4763.0,
+          3447.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787366.0,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          1179.0,
+          880.0
+        ]
+      },
+      {
+        "start_line": 2049,
+        "id": 36,
+        "bounds": [
+          4163.0,
+          4142.0,
+          5363.0,
+          5212.0
+        ],
+        "center": [
+          4763.0,
+          4677.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787410.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 2110,
+        "id": 37,
+        "bounds": [
+          4163.0,
+          5372.0,
+          5363.0,
+          6443.0
+        ],
+        "center": [
+          4763.0,
+          5907.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787869.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 2171,
+        "id": 38,
+        "bounds": [
+          4163.0,
+          6603.0,
+          5363.0,
+          7673.0
+        ],
+        "center": [
+          4763.0,
+          7138.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787420.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 2232,
+        "id": 39,
+        "bounds": [
+          4163.0,
+          7833.0,
+          5363.0,
+          8904.0
+        ],
+        "center": [
+          4763.0,
+          8368.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787883.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          1179.0,
+          881.0
+        ]
+      },
+      {
+        "start_line": 2293,
+        "id": 40,
+        "bounds": [
+          4163.0,
+          9064.0,
+          5363.0,
+          10134.0
+        ],
+        "center": [
+          4763.0,
+          9599.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787366.0,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 2354,
+        "id": 41,
+        "bounds": [
+          4163.0,
+          10294.0,
+          5363.0,
+          11364.0
+        ],
+        "center": [
+          4763.0,
+          10829.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787410.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 2415,
+        "id": 42,
+        "bounds": [
+          4163.0,
+          11524.0,
+          5363.0,
+          12594.0
+        ],
+        "center": [
+          4763.0,
+          12059.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787410.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 2476,
+        "id": 43,
+        "bounds": [
+          5523.0,
+          11524.0,
+          6723.0,
+          12594.0
+        ],
+        "center": [
+          6123.0,
+          12059.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787034.0,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 2537,
+        "id": 44,
+        "bounds": [
+          5523.0,
+          10294.0,
+          6723.0,
+          11364.0
+        ],
+        "center": [
+          6123.0,
+          10829.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787034.0,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 2598,
+        "id": 45,
+        "bounds": [
+          5523.0,
+          9064.0,
+          6723.0,
+          10134.0
+        ],
+        "center": [
+          6123.0,
+          9599.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 786990.0,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 2659,
+        "id": 46,
+        "bounds": [
+          5523.0,
+          7833.0,
+          6723.0,
+          8904.0
+        ],
+        "center": [
+          6123.0,
+          8368.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787506.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          1179.0,
+          881.0
+        ]
+      },
+      {
+        "start_line": 2720,
+        "id": 47,
+        "bounds": [
+          5523.0,
+          6603.0,
+          6723.0,
+          7673.0
+        ],
+        "center": [
+          6123.0,
+          7138.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787044.0,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 2781,
+        "id": 48,
+        "bounds": [
+          5523.0,
+          5372.0,
+          6723.0,
+          6443.0
+        ],
+        "center": [
+          6123.0,
+          5907.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787493.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 2842,
+        "id": 49,
+        "bounds": [
+          5523.0,
+          4142.0,
+          6723.0,
+          5212.0
+        ],
+        "center": [
+          6123.0,
+          4677.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787034.0,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 2903,
+        "id": 50,
+        "bounds": [
+          5523.0,
+          2912.0,
+          6723.0,
+          3982.0
+        ],
+        "center": [
+          6123.0,
+          3447.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 786990.0,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          1179.0,
+          880.0
+        ]
+      },
+      {
+        "start_line": 2964,
+        "id": 51,
+        "bounds": [
+          5523.0,
+          1681.0,
+          6723.0,
+          2752.0
+        ],
+        "center": [
+          6123.0,
+          2216.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787506.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 3025,
+        "id": 52,
+        "bounds": [
+          5523.0,
+          451.0,
+          6723.0,
+          1522.0
+        ],
+        "center": [
+          6123.0,
+          986.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787506.5,
+        "segments": 60,
+        "zero_segments": 2,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      }
+    ],
+    "order_statistics": {
+      "file": "1.plt",
+      "main_shapes": 50,
+      "upper_right_start_count": 10,
+      "upper_right_start_path_ids": [
+        6,
+        10,
+        15,
+        19,
+        26,
+        30,
+        35,
+        39,
+        46,
+        50
+      ],
+      "y_positive_steps": 18,
+      "y_negative_steps": 27,
+      "y_stationary_steps": 4,
+      "sum_absolute_y_travel": 55362.5,
+      "positive_y_travel": 22145.0,
+      "negative_y_travel": 33217.5
+    }
+  },
+  {
+    "file": "C:\\Users\\admin\\Desktop\\2.plt",
+    "sha256": "9a2d72c753bdef94efbc0ffa0615687cf2de0fb67505cb92d68202711b94d3b0",
+    "bytes": 21770,
+    "command_counts": {
+      "IN": 1,
+      "VS": 8,
+      "WU": 1,
+      "PW": 8,
+      "LT": 50,
+      "SP": 53,
+      "PU": 52,
+      "PD": 1408
+    },
+    "lower_transitions": 52,
+    "raise_transitions": 51,
+    "path_count": 52,
+    "closed_paths": 52,
+    "zero_length_PD": 0,
+    "zero_length_PD_first_lines": [],
+    "winding_signs": {
+      "1": 52
+    },
+    "shape_groups": [
+      {
+        "width": 1200.0,
+        "height": 1071.0,
+        "segments": 28,
+        "count": 20
+      },
+      {
+        "width": 1200.0,
+        "height": 1070.0,
+        "segments": 28,
+        "count": 30
+      },
+      {
+        "width": 160.0,
+        "height": 160.0,
+        "segments": 4,
+        "count": 1
+      },
+      {
+        "width": 240.0,
+        "height": 240.0,
+        "segments": 4,
+        "count": 1
+      }
+    ],
+    "header": [
+      [
+        "IN",
+        []
+      ],
+      [
+        "VS",
+        [
+          32.0,
+          1.0
+        ]
+      ],
+      [
+        "VS",
+        [
+          32.0,
+          2.0
+        ]
+      ],
+      [
+        "VS",
+        [
+          32.0,
+          3.0
+        ]
+      ],
+      [
+        "VS",
+        [
+          32.0,
+          4.0
+        ]
+      ],
+      [
+        "VS",
+        [
+          32.0,
+          5.0
+        ]
+      ],
+      [
+        "VS",
+        [
+          32.0,
+          6.0
+        ]
+      ],
+      [
+        "VS",
+        [
+          32.0,
+          7.0
+        ]
+      ],
+      [
+        "VS",
+        [
+          32.0,
+          8.0
+        ]
+      ],
+      [
+        "WU",
+        [
+          0.0
+        ]
+      ],
+      [
+        "PW",
+        [
+          0.35,
+          1.0
+        ]
+      ],
+      [
+        "PW",
+        [
+          0.35,
+          2.0
+        ]
+      ],
+      [
+        "PW",
+        [
+          0.35,
+          3.0
+        ]
+      ],
+      [
+        "PW",
+        [
+          0.35,
+          4.0
+        ]
+      ],
+      [
+        "PW",
+        [
+          0.35,
+          5.0
+        ]
+      ],
+      [
+        "PW",
+        [
+          0.35,
+          6.0
+        ]
+      ],
+      [
+        "PW",
+        [
+          0.35,
+          7.0
+        ]
+      ],
+      [
+        "PW",
+        [
+          0.35,
+          8.0
+        ]
+      ],
+      [
+        "LT",
+        []
+      ],
+      [
+        "SP",
+        [
+          1.0
+        ]
+      ]
+    ],
+    "tail": [
+      [
+        "PD",
+        [
+          3161.0,
+          -6076.0
+        ]
+      ],
+      [
+        "PD",
+        [
+          3161.0,
+          -6236.0
+        ]
+      ],
+      [
+        "PD",
+        [
+          3321.0,
+          -6236.0
+        ]
+      ],
+      [
+        "SP",
+        [
+          1.0
+        ]
+      ],
+      [
+        "PU",
+        [
+          1881.0,
+          -6316.0
+        ]
+      ],
+      [
+        "PD",
+        [
+          1881.0,
+          -6076.0
+        ]
+      ],
+      [
+        "PD",
+        [
+          1641.0,
+          -6076.0
+        ]
+      ],
+      [
+        "PD",
+        [
+          1641.0,
+          -6316.0
+        ]
+      ],
+      [
+        "PD",
+        [
+          1881.0,
+          -6316.0
+        ]
+      ],
+      [
+        "SP",
+        [
+          0.0
+        ]
+      ]
+    ],
+    "paths": [
+      {
+        "start_line": 22,
+        "id": 1,
+        "bounds": [
+          2122.0,
+          -5942.0,
+          3322.0,
+          -4871.0
+        ],
+        "center": [
+          2722.0,
+          -5406.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787390.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 53,
+        "id": 2,
+        "bounds": [
+          761.0,
+          -5942.0,
+          1961.0,
+          -4871.0
+        ],
+        "center": [
+          1361.0,
+          -5406.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787848.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 84,
+        "id": 3,
+        "bounds": [
+          -599.0,
+          -5942.0,
+          601.0,
+          -4871.0
+        ],
+        "center": [
+          1.0,
+          -5406.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787364.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 115,
+        "id": 4,
+        "bounds": [
+          -1959.0,
+          -5942.0,
+          -759.0,
+          -4871.0
+        ],
+        "center": [
+          -1359.0,
+          -5406.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787826.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 146,
+        "id": 5,
+        "bounds": [
+          -3320.0,
+          -5942.0,
+          -2120.0,
+          -4871.0
+        ],
+        "center": [
+          -2720.0,
+          -5406.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787392.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 177,
+        "id": 6,
+        "bounds": [
+          2122.0,
+          -4712.0,
+          3322.0,
+          -3641.0
+        ],
+        "center": [
+          2722.0,
+          -4176.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787390.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 208,
+        "id": 7,
+        "bounds": [
+          761.0,
+          -4712.0,
+          1961.0,
+          -3641.0
+        ],
+        "center": [
+          1361.0,
+          -4176.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787848.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 239,
+        "id": 8,
+        "bounds": [
+          -599.0,
+          -4712.0,
+          601.0,
+          -3641.0
+        ],
+        "center": [
+          1.0,
+          -4176.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787364.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 270,
+        "id": 9,
+        "bounds": [
+          -1959.0,
+          -4712.0,
+          -759.0,
+          -3641.0
+        ],
+        "center": [
+          -1359.0,
+          -4176.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787826.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 301,
+        "id": 10,
+        "bounds": [
+          -3320.0,
+          -4712.0,
+          -2120.0,
+          -3641.0
+        ],
+        "center": [
+          -2720.0,
+          -4176.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787392.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 332,
+        "id": 11,
+        "bounds": [
+          2122.0,
+          -3482.0,
+          3322.0,
+          -2411.0
+        ],
+        "center": [
+          2722.0,
+          -2946.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787390.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 363,
+        "id": 12,
+        "bounds": [
+          761.0,
+          -3482.0,
+          1961.0,
+          -2411.0
+        ],
+        "center": [
+          1361.0,
+          -2946.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787848.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 394,
+        "id": 13,
+        "bounds": [
+          -599.0,
+          -3482.0,
+          601.0,
+          -2411.0
+        ],
+        "center": [
+          1.0,
+          -2946.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787364.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 425,
+        "id": 14,
+        "bounds": [
+          -1959.0,
+          -3482.0,
+          -759.0,
+          -2411.0
+        ],
+        "center": [
+          -1359.0,
+          -2946.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787826.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 456,
+        "id": 15,
+        "bounds": [
+          -3320.0,
+          -3482.0,
+          -2120.0,
+          -2411.0
+        ],
+        "center": [
+          -2720.0,
+          -2946.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787392.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 487,
+        "id": 16,
+        "bounds": [
+          2122.0,
+          -2252.0,
+          3322.0,
+          -1181.0
+        ],
+        "center": [
+          2722.0,
+          -1716.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787369.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 518,
+        "id": 17,
+        "bounds": [
+          761.0,
+          -2252.0,
+          1961.0,
+          -1181.0
+        ],
+        "center": [
+          1361.0,
+          -1716.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787827.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 549,
+        "id": 18,
+        "bounds": [
+          -599.0,
+          -2252.0,
+          601.0,
+          -1181.0
+        ],
+        "center": [
+          1.0,
+          -1716.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787343.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 580,
+        "id": 19,
+        "bounds": [
+          -1959.0,
+          -2252.0,
+          -759.0,
+          -1181.0
+        ],
+        "center": [
+          -1359.0,
+          -1716.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787806.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 611,
+        "id": 20,
+        "bounds": [
+          -3320.0,
+          -2252.0,
+          -2120.0,
+          -1181.0
+        ],
+        "center": [
+          -2720.0,
+          -1716.5
+        ],
+        "width": 1200.0,
+        "height": 1071.0,
+        "closed": true,
+        "area": 787371.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          70.0
+        ]
+      },
+      {
+        "start_line": 642,
+        "id": 21,
+        "bounds": [
+          2122.0,
+          -1021.0,
+          3322.0,
+          49.0
+        ],
+        "center": [
+          2722.0,
+          -486.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787339.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 673,
+        "id": 22,
+        "bounds": [
+          761.0,
+          -1021.0,
+          1961.0,
+          49.0
+        ],
+        "center": [
+          1361.0,
+          -486.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787797.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 704,
+        "id": 23,
+        "bounds": [
+          -599.0,
+          -1021.0,
+          601.0,
+          49.0
+        ],
+        "center": [
+          1.0,
+          -486.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787313.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 735,
+        "id": 24,
+        "bounds": [
+          -1959.0,
+          -1021.0,
+          -759.0,
+          49.0
+        ],
+        "center": [
+          -1359.0,
+          -486.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787776.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 766,
+        "id": 25,
+        "bounds": [
+          -3320.0,
+          -1021.0,
+          -2120.0,
+          49.0
+        ],
+        "center": [
+          -2720.0,
+          -486.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787341.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 797,
+        "id": 26,
+        "bounds": [
+          2122.0,
+          209.0,
+          3322.0,
+          1279.0
+        ],
+        "center": [
+          2722.0,
+          744.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787339.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 828,
+        "id": 27,
+        "bounds": [
+          761.0,
+          209.0,
+          1961.0,
+          1279.0
+        ],
+        "center": [
+          1361.0,
+          744.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787797.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 859,
+        "id": 28,
+        "bounds": [
+          -599.0,
+          209.0,
+          601.0,
+          1279.0
+        ],
+        "center": [
+          1.0,
+          744.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787313.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 890,
+        "id": 29,
+        "bounds": [
+          -1959.0,
+          209.0,
+          -759.0,
+          1279.0
+        ],
+        "center": [
+          -1359.0,
+          744.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787776.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 921,
+        "id": 30,
+        "bounds": [
+          -3320.0,
+          209.0,
+          -2120.0,
+          1279.0
+        ],
+        "center": [
+          -2720.0,
+          744.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787341.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 952,
+        "id": 31,
+        "bounds": [
+          2122.0,
+          1439.0,
+          3322.0,
+          2509.0
+        ],
+        "center": [
+          2722.0,
+          1974.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787408.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 983,
+        "id": 32,
+        "bounds": [
+          761.0,
+          1439.0,
+          1961.0,
+          2509.0
+        ],
+        "center": [
+          1361.0,
+          1974.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787866.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1014,
+        "id": 33,
+        "bounds": [
+          -599.0,
+          1439.0,
+          601.0,
+          2509.0
+        ],
+        "center": [
+          1.0,
+          1974.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787382.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1045,
+        "id": 34,
+        "bounds": [
+          -1959.0,
+          1439.0,
+          -759.0,
+          2509.0
+        ],
+        "center": [
+          -1359.0,
+          1974.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787845.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1076,
+        "id": 35,
+        "bounds": [
+          -3320.0,
+          1439.0,
+          -2120.0,
+          2509.0
+        ],
+        "center": [
+          -2720.0,
+          1974.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787410.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1107,
+        "id": 36,
+        "bounds": [
+          2122.0,
+          2669.0,
+          3322.0,
+          3739.0
+        ],
+        "center": [
+          2722.0,
+          3204.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787408.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1138,
+        "id": 37,
+        "bounds": [
+          761.0,
+          2669.0,
+          1961.0,
+          3739.0
+        ],
+        "center": [
+          1361.0,
+          3204.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787866.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1169,
+        "id": 38,
+        "bounds": [
+          -599.0,
+          2669.0,
+          601.0,
+          3739.0
+        ],
+        "center": [
+          1.0,
+          3204.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787382.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1200,
+        "id": 39,
+        "bounds": [
+          -1959.0,
+          2669.0,
+          -759.0,
+          3739.0
+        ],
+        "center": [
+          -1359.0,
+          3204.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787845.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1231,
+        "id": 40,
+        "bounds": [
+          -3320.0,
+          2669.0,
+          -2120.0,
+          3739.0
+        ],
+        "center": [
+          -2720.0,
+          3204.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787410.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1262,
+        "id": 41,
+        "bounds": [
+          2122.0,
+          3899.0,
+          3322.0,
+          4969.0
+        ],
+        "center": [
+          2722.0,
+          4434.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787408.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1293,
+        "id": 42,
+        "bounds": [
+          761.0,
+          3899.0,
+          1961.0,
+          4969.0
+        ],
+        "center": [
+          1361.0,
+          4434.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787866.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1324,
+        "id": 43,
+        "bounds": [
+          -599.0,
+          3899.0,
+          601.0,
+          4969.0
+        ],
+        "center": [
+          1.0,
+          4434.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787382.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1355,
+        "id": 44,
+        "bounds": [
+          -1959.0,
+          3899.0,
+          -759.0,
+          4969.0
+        ],
+        "center": [
+          -1359.0,
+          4434.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787845.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1386,
+        "id": 45,
+        "bounds": [
+          -3320.0,
+          3899.0,
+          -2120.0,
+          4969.0
+        ],
+        "center": [
+          -2720.0,
+          4434.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787410.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1417,
+        "id": 46,
+        "bounds": [
+          2122.0,
+          5129.0,
+          3322.0,
+          6199.0
+        ],
+        "center": [
+          2722.0,
+          5664.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787408.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1448,
+        "id": 47,
+        "bounds": [
+          761.0,
+          5129.0,
+          1961.0,
+          6199.0
+        ],
+        "center": [
+          1361.0,
+          5664.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787866.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1479,
+        "id": 48,
+        "bounds": [
+          -599.0,
+          5129.0,
+          601.0,
+          6199.0
+        ],
+        "center": [
+          1.0,
+          5664.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787382.5,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1510,
+        "id": 49,
+        "bounds": [
+          -1959.0,
+          5129.0,
+          -759.0,
+          6199.0
+        ],
+        "center": [
+          -1359.0,
+          5664.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787845.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          707.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1541,
+        "id": 50,
+        "bounds": [
+          -3320.0,
+          5129.0,
+          -2120.0,
+          6199.0
+        ],
+        "center": [
+          -2720.0,
+          5664.0
+        ],
+        "width": 1200.0,
+        "height": 1070.0,
+        "closed": true,
+        "area": 787410.0,
+        "segments": 28,
+        "zero_segments": 0,
+        "start_relative": [
+          708.0,
+          69.0
+        ]
+      },
+      {
+        "start_line": 1571,
+        "id": 51,
+        "bounds": [
+          3161.0,
+          -6236.0,
+          3321.0,
+          -6076.0
+        ],
+        "center": [
+          3241.0,
+          -6156.0
+        ],
+        "width": 160.0,
+        "height": 160.0,
+        "closed": true,
+        "area": 25600.0,
+        "segments": 4,
+        "zero_segments": 0,
+        "start_relative": [
+          160.0,
+          0.0
+        ]
+      },
+      {
+        "start_line": 1577,
+        "id": 52,
+        "bounds": [
+          1641.0,
+          -6316.0,
+          1881.0,
+          -6076.0
+        ],
+        "center": [
+          1761.0,
+          -6196.0
+        ],
+        "width": 240.0,
+        "height": 240.0,
+        "closed": true,
+        "area": 57600.0,
+        "segments": 4,
+        "zero_segments": 0,
+        "start_relative": [
+          240.0,
+          0.0
+        ]
+      }
+    ],
+    "order_statistics": {
+      "file": "2.plt",
+      "main_shapes": 50,
+      "upper_right_start_count": 0,
+      "upper_right_start_path_ids": [],
+      "y_positive_steps": 9,
+      "y_negative_steps": 0,
+      "y_stationary_steps": 40,
+      "sum_absolute_y_travel": 11070.5,
+      "positive_y_travel": 11070.5,
+      "negative_y_travel": 0.0
+    }
+  }
+]

@@ -22,12 +22,20 @@ namespace WindowsFormsApp3
         private System.Windows.Forms.Panel pnlRightStation;
         private System.Windows.Forms.FlowLayoutPanel pnlStationContent;
 
-        // 7 大白底细线框卡片容器
+        // 7 个常驻卡片和 1 个页框存在差异时显示的选择卡片
         private System.Windows.Forms.Panel pnlMaterialsCard;
         private System.Windows.Forms.Panel pnlOutputPathCard;
         private System.Windows.Forms.Panel pnlCraftMatrixCard;
         private System.Windows.Forms.Panel tlpOrderParametersCard;
         private System.Windows.Forms.Panel pnlImpositionDashboardCard;
+        private System.Windows.Forms.Panel pnlPageBoxChoiceCard;
+        private System.Windows.Forms.Label lblPageBoxChoiceTitle;
+        private AntdUI.Button btnMediaBoxChoice;
+        private AntdUI.Button btnCropBoxChoice;
+        private AntdUI.Button btnPageBoxDetails;
+        private ToolStripDropDown _pageBoxDetailsDropDown;
+        private PageBoxInfo _pageBoxChoicePage;
+        private string _pageBoxChoiceReason;
         private System.Windows.Forms.Panel presetBrowserCard;
         private System.Windows.Forms.Panel pnlActionBar;
 
@@ -48,7 +56,8 @@ namespace WindowsFormsApp3
 
         // 象限 4: 一式N联控件 (去“一式”文字，联/份改为微型切换按钮胶囊)
         private System.Windows.Forms.Panel pnlCopyCountWrap;
-        private System.Windows.Forms.TextBox txtCopyCountInput;
+        private AntdUI.Input txtCopyCountInput;
+        private bool _isEditingCopyCount;
         private MiniSegmentedControl segCopyType;
         private System.Windows.Forms.Label lblCopyCountPill;
         private System.Windows.Forms.Label lblCopyModePill;
@@ -90,7 +99,7 @@ namespace WindowsFormsApp3
         private static readonly Color CardBgColor = Color.White;
 
         /// <summary>
-        /// 初始化 V5 右侧流水线工位架构（将旧控件整理收敛入 7 大白底细框卡片）
+        /// 初始化 V5 右侧流水线工位架构（7 个常驻卡片及页框异常选择区）
         /// </summary>
         private void InitializeV5RightStation()
         {
@@ -135,12 +144,13 @@ namespace WindowsFormsApp3
                     Anchor = AnchorStyles.Top | AnchorStyles.Left
                 };
 
-                // 构建 7 大卡片并加入流式面板
+                // 构建卡片并加入流式面板
                 BuildMaterialsCard();
                 BuildOutputPathCard();
                 BuildCraftMatrixCard();
                 BuildOrderParametersCard();
                 BuildImpositionDashboardCard();
+                BuildPageBoxChoiceCard();
                 BuildPresetBrowserCard();
                 BuildActionBar();
 
@@ -191,6 +201,218 @@ namespace WindowsFormsApp3
             catch (Exception ex)
             {
                 LogHelper.Error($"[MaterialSelectFormModern] 初始化 V5 右侧工位失败: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>C3 双尺寸：以一行展示页框差异和统一基准，精确参数放在详情浮层。</summary>
+        private void BuildPageBoxChoiceCard()
+        {
+            pnlPageBoxChoiceCard = CreateWhiteCardPanel("pnlPageBoxChoiceCard", 26);
+            pnlPageBoxChoiceCard.Visible = false;
+
+            lblPageBoxChoiceTitle = new System.Windows.Forms.Label
+            {
+                Name = "lblPageBoxChoiceTitle",
+                Text = "⚠ 框不同",
+                Location = new Point(4, 3),
+                Size = new Size(55, 20),
+                Font = new Font("Microsoft YaHei UI", 7.5F),
+                ForeColor = Color.FromArgb(191, 93, 18),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            btnMediaBoxChoice = CreatePageBoxChoiceButton("btnMediaBoxChoice", 60);
+            btnCropBoxChoice = CreatePageBoxChoiceButton("btnCropBoxChoice", 189);
+            btnMediaBoxChoice.Click += (s, e) => SelectPageBoxSource(PdfPageBoxSource.MediaBox);
+            btnCropBoxChoice.Click += (s, e) => SelectPageBoxSource(PdfPageBoxSource.CropBox);
+            btnPageBoxDetails = new AntdUI.Button
+            {
+                Name = "btnPageBoxDetails",
+                Text = "ⓘ",
+                AccessibleName = "查看页面框精确参数",
+                Location = new Point(318, 3),
+                Size = new Size(18, 20),
+                Font = new Font("Segoe UI", 9F),
+                DefaultBack = Color.Transparent,
+                ForeColor = Color.FromArgb(130, 143, 161),
+                Cursor = Cursors.Hand,
+                WaveSize = 0
+            };
+            btnPageBoxDetails.Click += (s, e) => ShowPageBoxDetails();
+            folderTreeViewToolTip?.SetToolTip(btnPageBoxDetails, "查看精确尺寸、坐标和统一基准说明（单位 mm）");
+            Disposed += (s, e) => _pageBoxDetailsDropDown?.Dispose();
+
+            pnlPageBoxChoiceCard.Controls.Add(lblPageBoxChoiceTitle);
+            pnlPageBoxChoiceCard.Controls.Add(btnMediaBoxChoice);
+            pnlPageBoxChoiceCard.Controls.Add(btnCropBoxChoice);
+            pnlPageBoxChoiceCard.Controls.Add(btnPageBoxDetails);
+            pnlStationContent.Controls.Add(pnlPageBoxChoiceCard);
+        }
+
+        private static AntdUI.Button CreatePageBoxChoiceButton(string name, int left)
+        {
+            return new AntdUI.Button
+            {
+                Name = name,
+                Location = new Point(left, 3),
+                Size = new Size(126, 20),
+                Font = new Font("Microsoft YaHei UI", 7.5F),
+                Radius = 3,
+                BorderWidth = 1F,
+                WaveSize = 0,
+                Cursor = Cursors.Hand,
+                Type = AntdUI.TTypeMini.Default
+            };
+        }
+
+        internal void UpdatePageBoxChoiceFromInspection(PdfInspectorInfo inspection)
+        {
+            if (pnlPageBoxChoiceCard == null || IsDisposed) return;
+            _pageBoxDetailsDropDown?.Close();
+
+            var issue = inspection?.Issues?.FirstOrDefault(item =>
+                item.Type == IssueType.OutOfBounds && string.Equals(item.BoxType, "CropBox", StringComparison.OrdinalIgnoreCase))
+                ?? inspection?.Issues?.FirstOrDefault(item => item.Type == IssueType.DifferentPageBoxes &&
+                    string.Equals(item.BoxType, "CropBox", StringComparison.OrdinalIgnoreCase));
+            var page = issue == null ? null : inspection.AllPageBoxes
+                .FirstOrDefault(item => item.PageNumber == issue.PageNumber);
+
+            if (page?.MediaBox == null || page.CropBox == null)
+            {
+                bool selectionChanged = SelectedPageBoxSource != PdfPageBoxSource.Automatic;
+                pnlPageBoxChoiceCard.Visible = false;
+                _pageBoxChoicePage = null;
+                SelectedPageBoxSource = PdfPageBoxSource.Automatic;
+                SelectedPageBoxReferencePage = 1;
+                if (selectionChanged)
+                {
+                    _pageBoxSelectionRevision++;
+                    RefreshPageBoxLayout();
+                }
+            }
+            else
+            {
+                SelectedPageBoxReferencePage = page.PageNumber;
+                _pageBoxChoicePage = page;
+                _pageBoxChoiceReason = issue.Type == IssueType.OutOfBounds
+                    ? "CropBox 超出 MediaBox" : "媒体框与裁剪框不一致";
+                btnMediaBoxChoice.Text = $"媒体 {FormatCompactPageBoxSize(page.MediaBox)}";
+                btnCropBoxChoice.Text = $"裁剪 {FormatCompactPageBoxSize(page.CropBox)}";
+                btnMediaBoxChoice.AccessibleName = $"按媒体框 {FormatPageBoxSize(page.MediaBox)} 统一全部页面框";
+                btnCropBoxChoice.AccessibleName = $"按裁剪框 {FormatPageBoxSize(page.CropBox)} 统一全部页面框";
+                bool positionDiffers = PdfTools.GetPageDimensionForDisplay(page.MediaBox.Left * 25.4 / 72) !=
+                    PdfTools.GetPageDimensionForDisplay(page.CropBox.Left * 25.4 / 72) ||
+                    PdfTools.GetPageDimensionForDisplay(page.MediaBox.Bottom * 25.4 / 72) !=
+                    PdfTools.GetPageDimensionForDisplay(page.CropBox.Bottom * 25.4 / 72);
+                lblPageBoxChoiceTitle.Text = issue.Type == IssueType.OutOfBounds ? "⚠ 超界" :
+                    positionDiffers ? "⚠ 位置差" : "⚠ 框不同";
+                folderTreeViewToolTip?.SetToolTip(btnMediaBoxChoice,
+                    $"第{page.PageNumber}页 MediaBox：{FormatPageBoxSize(page.MediaBox)}；左下角 ({page.MediaBox.Left:0.####}, {page.MediaBox.Bottom:0.####}) pt。点击后统一所有页面框，框外内容将不可见。");
+                folderTreeViewToolTip?.SetToolTip(btnCropBoxChoice,
+                    $"第{page.PageNumber}页 CropBox：{FormatPageBoxSize(page.CropBox)}；左下角 ({page.CropBox.Left:0.####}, {page.CropBox.Bottom:0.####}) pt。点击后按此尺寸与位置统一所有页面框。");
+                pnlPageBoxChoiceCard.Visible = true;
+                SelectPageBoxSource(issue.Type == IssueType.OutOfBounds
+                    ? PdfPageBoxSource.MediaBox : PdfPageBoxSource.CropBox);
+            }
+
+            pnlStationContent?.PerformLayout();
+            UpdateFormSizeBasedOnPreviewState();
+        }
+
+        private static string FormatPageBoxSize(BoxDimension box)
+        {
+            return $"{box.Width * 25.4 / 72:0.####} × {box.Height * 25.4 / 72:0.####} mm";
+        }
+
+        private static string FormatCompactPageBoxSize(BoxDimension box)
+        {
+            return $"{PdfTools.GetPageDimensionForDisplay(box.Width * 25.4 / 72):0.#}×{PdfTools.GetPageDimensionForDisplay(box.Height * 25.4 / 72):0.#}";
+        }
+
+        private void ShowPageBoxDetails()
+        {
+            if (_pageBoxChoicePage == null) return;
+            if (_pageBoxDetailsDropDown?.Visible == true)
+            {
+                _pageBoxDetailsDropDown.Close();
+                return;
+            }
+            _pageBoxDetailsDropDown?.Dispose();
+            var content = new Panel { Size = new Size(338, 167), BackColor = Color.White };
+            string selected = SelectedPageBoxSource == PdfPageBoxSource.MediaBox ? "媒体框" : "裁剪框";
+            AddPageBoxDetailLabel(content, "lblPageBoxDetailsTitle",
+                $"第{SelectedPageBoxReferencePage}页 · {_pageBoxChoiceReason}", 8, 25, true);
+            AddPageBoxDetailLabel(content, "lblMediaBoxDetails", FormatPageBoxDetails("媒体框 MediaBox", _pageBoxChoicePage.MediaBox), 38, 39);
+            AddPageBoxDetailLabel(content, "lblCropBoxDetails", FormatPageBoxDetails("裁剪框 CropBox", _pageBoxChoicePage.CropBox), 82, 39);
+            AddPageBoxDetailLabel(content, "lblPageBoxDetailsEffect",
+                $"已选{selected}：按其尺寸与位置统一全部页面框。\n框外内容将不可见；点击另一尺寸可切换。", 128, 36);
+            _pageBoxDetailsDropDown = new ToolStripDropDown
+            {
+                AutoSize = false, Size = new Size(340, 169),
+                Padding = Padding.Empty, Margin = Padding.Empty, BackColor = Color.White
+            };
+            _pageBoxDetailsDropDown.Items.Add(new ToolStripControlHost(content)
+            {
+                AutoSize = false, Size = content.Size, Padding = Padding.Empty, Margin = Padding.Empty
+            });
+            _pageBoxDetailsDropDown.Show(pnlPageBoxChoiceCard, new Point(0, pnlPageBoxChoiceCard.Height + 2));
+        }
+
+        private static string FormatPageBoxDetails(string name, BoxDimension box)
+        {
+            return $"{name}    {FormatPageBoxSize(box)}\n左下角 ({box.Left * 25.4 / 72:0.####}, {box.Bottom * 25.4 / 72:0.####}) mm";
+        }
+
+        private static void AddPageBoxDetailLabel(Panel panel, string name, string text, int top, int height, bool bold = false)
+        {
+            panel.Controls.Add(new AntdUI.Label
+            {
+                Name = name, Text = text, Location = new Point(10, top), Size = new Size(318, height),
+                Font = new Font("Microsoft YaHei UI", 8F, bold ? FontStyle.Bold : FontStyle.Regular),
+                ForeColor = Color.FromArgb(74, 85, 104)
+            });
+        }
+
+        internal void SelectPageBoxSource(PdfPageBoxSource source)
+        {
+            if (source != PdfPageBoxSource.MediaBox && source != PdfPageBoxSource.CropBox) return;
+            SelectedPageBoxSource = source;
+            _pageBoxSelectionRevision++;
+            if (_pageBoxChoicePage != null)
+            {
+                var selectedBox = source == PdfPageBoxSource.MediaBox ? _pageBoxChoicePage.MediaBox : _pageBoxChoicePage.CropBox;
+                _initialWidth = selectedBox.Width * 25.4 / 72;
+                _initialHeight = selectedBox.Height * 25.4 / 72;
+                _originalWidth = _initialWidth.ToString();
+                _originalHeight = _initialHeight.ToString();
+                UpdateDimensionsWithBleed();
+            }
+            UpdatePageBoxChoiceStyle(btnMediaBoxChoice, source == PdfPageBoxSource.MediaBox);
+            UpdatePageBoxChoiceStyle(btnCropBoxChoice, source == PdfPageBoxSource.CropBox);
+            _pageBoxDetailsDropDown?.Close();
+            folderTreeViewToolTip?.SetToolTip(lblPageBoxChoiceTitle,
+                $"第{SelectedPageBoxReferencePage}页 {_pageBoxChoiceReason} · 已选{(source == PdfPageBoxSource.MediaBox ? "媒体框" : "裁剪框")}；点击尺寸统一全部页面框。");
+            RefreshPageBoxLayout();
+        }
+
+        private static void UpdatePageBoxChoiceStyle(AntdUI.Button button, bool selected)
+        {
+            if (button == null) return;
+            button.Type = AntdUI.TTypeMini.Default;
+            button.DefaultBack = selected ? Color.FromArgb(238, 246, 255) : Color.White;
+            button.DefaultBorderColor = selected ? Color.FromArgb(169, 204, 246) : Color.FromArgb(227, 232, 239);
+            button.ForeColor = selected ? Color.FromArgb(22, 119, 255) : Color.FromArgb(74, 85, 104);
+            button.Invalidate();
+        }
+
+        private void RefreshPageBoxLayout()
+        {
+            if (IsHandleCreated && !IsDisposed && !Disposing)
+            {
+                ClearLayoutDisplay();
+                if (enableImpositionCheckbox?.Checked == true)
+                    _ = _isDuplicateLayoutEnabled && _copyType == CopyType.Layout
+                        ? CalculateDuplicateLayout() : CalculateAndUpdateLayout();
             }
         }
 
@@ -575,8 +797,8 @@ namespace WindowsFormsApp3
             }
             pnlRow2.Controls.Add(pnlBoxQty);
 
-            // (4) 拼版组合框 (InputGroupBox: 左侧浅灰标签 [拼版] + 联数高亮胶囊 + 自适应策略下拉)
-            var pnlBoxImpo = new InputGroupBox("拼版")
+            // PDF 页序复制：左侧次数，右侧逐页/整套方式。
+            var pnlBoxImpo = new InputGroupBox("页序")
             {
                 Location = new Point(181, 0),
                 Size = new Size(151, 24)
@@ -595,16 +817,33 @@ namespace WindowsFormsApp3
             }
 
             pnlCopyCountWrap = new System.Windows.Forms.Panel { Visible = false };
-            txtCopyCountInput = new System.Windows.Forms.TextBox { Text = _copyCount.ToString() };
-            txtCopyCountInput.TextChanged += (s, e) =>
+            txtCopyCountInput = new AntdUI.Input
             {
-                if (int.TryParse(txtCopyCountInput.Text, out int val) && val >= 2 && val <= 16)
+                Name = "txtCopyCountInput",
+                Location = new Point(38, 1),
+                Size = new Size(49, 22),
+                Text = _copyCount.ToString(),
+                TextAlign = HorizontalAlignment.Center,
+                Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold),
+                BorderWidth = 0F,
+                WaveSize = 0,
+                Visible = false
+            };
+            txtCopyCountInput.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Escape)
                 {
-                    _copyCount = val;
-                    if (copyCountNumericUpDown != null) copyCountNumericUpDown.Value = val;
-                    UpdateCopyCountPillDisplay();
+                    e.Handled = true;
+                    e.SuppressKeyPress = true;
+                    if (e.KeyCode == Keys.Enter) CommitCopyCountInput();
+                    else CancelCopyCountEdit();
                 }
             };
+            txtCopyCountInput.Leave += (s, e) =>
+            {
+                if (_isEditingCopyCount) CommitCopyCountInput();
+            };
+            pnlBoxImpo.Controls.Add(txtCopyCountInput);
             segCopyType = new MiniSegmentedControl("联", "份") { Visible = false, SelectedIndex = (_copyType == CopyType.Duplicate) ? 1 : 0 };
             segCopyType.SelectedIndexChanged += (s, e) =>
             {
@@ -615,7 +854,7 @@ namespace WindowsFormsApp3
                 OnImpositionSettingsChanged(s, e);
             };
 
-            // 联数高亮药丸 [2联] (100% 还原 HTML 原型)
+            // 重复次数药丸。
             lblCopyCountPill = new System.Windows.Forms.Label
             {
                 Location = new Point(38, 1),
@@ -625,24 +864,31 @@ namespace WindowsFormsApp3
             };
             UpdateCopyCountPillDisplay();
 
-            lblCopyCountPill.Click += (s, e) =>
+            lblCopyCountPill.MouseClick += (s, e) =>
             {
+                if (e.Button != MouseButtons.Left) return;
                 if (duplicateLayoutCheckbox == null) return;
                 if (!duplicateLayoutCheckbox.Checked)
                 {
                     duplicateLayoutCheckbox.Checked = true;
                 }
-                else
+                BeginCopyCountEdit();
+            };
+            lblCopyCountPill.MouseUp += (s, e) =>
+            {
+                if (e.Button != MouseButtons.Right || duplicateLayoutCheckbox?.Checked != true) return;
                 {
-                    // 已启用时提供页序说明、重复次数和联/份模式切换。
+                    // 已启用时提供页序说明、重复次数和自动排版方向。
                     var cms = new System.Windows.Forms.ContextMenuStrip();
-                    cms.Items.Add("联：1122　份：123123").Enabled = false;
+                    cms.Items.Add(_copyType == CopyType.Layout
+                        ? "逐页重复：1122"
+                        : "整套循环：123123").Enabled = false;
                     cms.Items.Add(new ToolStripSeparator());
+                    var repeatCountMenu = new ToolStripMenuItem("重复次数");
                     for (int count = 2; count <= 16; count++)
                     {
                         int c = count;
-                        string unit = _copyType == CopyType.Duplicate ? "份" : "联";
-                        var item = cms.Items.Add($"{c}{unit}", null, (s2, e2) =>
+                        var item = repeatCountMenu.DropDownItems.Add($"{c} 次", null, (s2, e2) =>
                         {
                             _copyCount = c;
                             if (copyCountNumericUpDown != null) copyCountNumericUpDown.Value = c;
@@ -652,26 +898,20 @@ namespace WindowsFormsApp3
                         });
                         if (_copyCount == c) item.Font = new Font(item.Font, FontStyle.Bold);
                     }
-                    cms.Items.Add(new ToolStripSeparator());
-                    cms.Items.Add(_copyType == CopyType.Layout ? "切换为【份】模式" : "切换为【联】模式", null, (s2, e2) =>
-                    {
-                        _copyType = _copyType == CopyType.Layout ? CopyType.Duplicate : CopyType.Layout;
-                        if (segCopyType != null) segCopyType.SelectedIndex = _copyType == CopyType.Duplicate ? 1 : 0;
-                        if (copyTypeComboBox != null) copyTypeComboBox.SelectedIndex = (int)_copyType;
-                        UpdateCopyCountPillDisplay();
-                        OnImpositionSettingsChanged(s2, e2);
-                    });
-                    cms.Items.Add("关闭一式N联", null, (s2, e2) =>
+                    cms.Items.Add(repeatCountMenu);
+
+                    cms.Items.Add("关闭PDF页序复制", null, (s2, e2) =>
                     {
                         duplicateLayoutCheckbox.Checked = false;
                     });
                     cms.Show(lblCopyCountPill, new Point(0, lblCopyCountPill.Height + 2));
                 }
             };
-            folderTreeViewToolTip?.SetToolTip(lblCopyCountPill, "PDF页序复制：联为1122，份为123123；联模式可按设置同步制作数量");
+            folderTreeViewToolTip?.SetToolTip(lblCopyCountPill, "点击输入重复次数（2–16）；右键打开快捷选项；不改变制作数量");
+            folderTreeViewToolTip?.SetToolTip(txtCopyCountInput, "输入2–16的整数；回车或离开时确认，Esc取消");
             pnlBoxImpo.Controls.Add(lblCopyCountPill);
 
-            // 排版模式下拉 [ 自适应 ▾ ] (无缝右对齐)
+            // 当前 PDF 页序方式。
             lblCopyModePill = new System.Windows.Forms.Label
             {
                 Location = new Point(88, 1),
@@ -681,38 +921,27 @@ namespace WindowsFormsApp3
                 ForeColor = Color.FromArgb(71, 85, 105),
                 BackColor = Color.Transparent,
                 Cursor = Cursors.Hand,
-                Text = GetCopyModePillText(_copyMode)
+                Text = GetPageOrderPillText(_copyType)
             };
 
-            var cmsCopyMode = new System.Windows.Forms.ContextMenuStrip();
-            cmsCopyMode.Items.Add("自适应", null, (s, e) =>
+            var cmsPageOrder = new System.Windows.Forms.ContextMenuStrip();
+            cmsPageOrder.Items.Add("逐页重复（1122）", null, (s, e) =>
             {
-                _copyMode = CopyMode.AutoByColumn;
-                lblCopyModePill.Text = "自适应 ▾";
-                if (copyModeComboBox != null) copyModeComboBox.SelectedIndex = 0;
-                OnImpositionSettingsChanged(s, e);
+                SelectPageRepeatType(CopyType.Layout);
             });
-            cmsCopyMode.Items.Add("列优先", null, (s, e) =>
+            cmsPageOrder.Items.Add("整套循环（123123）", null, (s, e) =>
             {
-                _copyMode = CopyMode.AutoByRow;
-                lblCopyModePill.Text = "列优先 ▾";
-                if (copyModeComboBox != null) copyModeComboBox.SelectedIndex = 1;
-                OnImpositionSettingsChanged(s, e);
+                SelectPageRepeatType(CopyType.Duplicate);
             });
-            cmsCopyMode.Items.Add("不旋转", null, (s, e) =>
-            {
-                _copyMode = CopyMode.FixedNoRotationByColumn;
-                lblCopyModePill.Text = "不旋转 ▾";
-                if (copyModeComboBox != null) copyModeComboBox.SelectedIndex = 2;
-                OnImpositionSettingsChanged(s, e);
-            });
+            cmsPageOrder.Items.Add(new ToolStripSeparator());
+            cmsPageOrder.Items.Add("关闭PDF页序复制", null, (s, e) => duplicateLayoutCheckbox.Checked = false);
 
             lblCopyModePill.Click += (s, e) =>
             {
                 if (duplicateLayoutCheckbox?.Checked != true) return;
-                cmsCopyMode.Show(lblCopyModePill, new Point(lblCopyModePill.Width - cmsCopyMode.Width, lblCopyModePill.Height + 2));
+                cmsPageOrder.Show(lblCopyModePill, new Point(lblCopyModePill.Width - cmsPageOrder.Width, lblCopyModePill.Height + 2));
             };
-            folderTreeViewToolTip?.SetToolTip(lblCopyModePill, "自动排版的行列策略；PDF页序由联/份决定");
+            folderTreeViewToolTip?.SetToolTip(lblCopyModePill, "选择PDF页序方式：逐页重复或整套循环");
             pnlBoxImpo.Controls.Add(lblCopyModePill);
 
             pnlRow2.Controls.Add(pnlBoxImpo);
@@ -723,21 +952,70 @@ namespace WindowsFormsApp3
             pnlStationContent.Controls.Add(tlpOrderParametersCard);
         }
 
+        private void BeginCopyCountEdit()
+        {
+            if (duplicateLayoutCheckbox?.Checked != true || txtCopyCountInput == null) return;
+            txtCopyCountInput.Text = _copyCount.ToString();
+            _isEditingCopyCount = true;
+            lblCopyCountPill.Visible = false;
+            txtCopyCountInput.Visible = true;
+            txtCopyCountInput.BringToFront();
+            txtCopyCountInput.Focus();
+            txtCopyCountInput.SelectAll();
+        }
+
+        private void CancelCopyCountEdit()
+        {
+            // 隐藏输入框会先触发 Leave；先结束编辑，避免 Esc 意外提交尚未确认的值。
+            _isEditingCopyCount = false;
+            txtCopyCountInput.Visible = false;
+            lblCopyCountPill.Visible = true;
+            UpdateCopyCountPillDisplay();
+        }
+
+        private void CommitCopyCountInput()
+        {
+            if (!_isEditingCopyCount) return;
+            bool accepted = TryApplyPageRepeatCount(txtCopyCountInput.Text);
+            CancelCopyCountEdit();
+            if (!accepted)
+            {
+                AntdUI.Message.warn(this, "重复次数请输入2–16的整数，已保留原值", autoClose: 3);
+            }
+        }
+
+        internal bool TryApplyPageRepeatCount(string text)
+        {
+            int minimum = (int)(copyCountNumericUpDown?.Minimum ?? 2M);
+            int maximum = (int)(copyCountNumericUpDown?.Maximum ?? 16M);
+            if (!int.TryParse(text, out int count) || count < minimum || count > maximum) return false;
+
+            _copyCount = count;
+            if (copyCountNumericUpDown != null) copyCountNumericUpDown.Value = count;
+            UpdateCopyCountPillDisplay();
+            return true;
+        }
+
         private void UpdateCopyCountPillDisplay()
         {
             if (lblCopyCountPill == null) return;
             if (_isDuplicateLayoutEnabled || duplicateLayoutCheckbox?.Checked == true)
             {
-                lblCopyCountPill.Text = $"{_copyCount}{(_copyType == CopyType.Duplicate ? "份" : "联")}";
+                lblCopyCountPill.Text = $"{_copyCount}次";
                 lblCopyCountPill.ForeColor = Color.FromArgb(22, 119, 255);
                 lblCopyCountPill.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
             }
             else
             {
+                _isEditingCopyCount = false;
+                if (txtCopyCountInput != null) txtCopyCountInput.Visible = false;
+                lblCopyCountPill.Visible = true;
                 lblCopyCountPill.Text = "未启用";
                 lblCopyCountPill.ForeColor = Color.FromArgb(148, 163, 184);
                 lblCopyCountPill.Font = new Font("Microsoft YaHei UI", 8.5F, FontStyle.Regular);
             }
+            if (txtCopyCountInput != null && !_isEditingCopyCount) txtCopyCountInput.Text = _copyCount.ToString();
+            if (lblCopyModePill != null) lblCopyModePill.Text = GetPageOrderPillText(_copyType);
         }
 
         /// <summary>
@@ -1455,6 +1733,11 @@ namespace WindowsFormsApp3
                     {
                         DrawDimensionPillValue(g, pnl, valueBounds, valueSize, contentTop, titleSize, val, valueFont, valueColor, centeredTextFlags);
                     }
+                    else if (label == "角度")
+                    {
+                        TextRenderer.DrawText(g, val, fontVal, Rectangle.Round(valueBounds), valueColor, centeredTextFlags);
+                        DrawRotationPolicyBadge(g, pnl.Width, (int)valueBounds.Y);
+                    }
                     else
                     {
                         TextRenderer.DrawText(g, val, fontVal,
@@ -1492,6 +1775,28 @@ namespace WindowsFormsApp3
                 TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix |
                 TextFormatFlags.NoPadding | TextFormatFlags.NoClipping;
             TextRenderer.DrawText(graphics, value, font, Rectangle.Round(bounds), textColor, textFlags);
+        }
+
+        private void DrawRotationPolicyBadge(Graphics graphics, int width, int valueTop)
+        {
+            var mode = GetCurrentRotationMode();
+            string text = mode == RollRotationMode.Auto ? "自动" : mode == RollRotationMode.Force0Degree ? "禁转" : "固定";
+            using (var font = new Font("Microsoft YaHei UI", 6F))
+            {
+                int badgeWidth = TextRenderer.MeasureText(graphics, text, font, Size.Empty, TextFormatFlags.NoPadding).Width + 4;
+                var bounds = new Rectangle(width - badgeWidth - 1, valueTop - 12, badgeWidth, 10);
+                bool locked = mode == RollRotationMode.Force0Degree;
+                using (var path = CreateRoundedRectanglePath(bounds, 3))
+                using (var fill = new SolidBrush(locked ? Color.FromArgb(255, 247, 230) : Color.FromArgb(249, 240, 255)))
+                using (var border = new Pen(locked ? Color.FromArgb(255, 213, 145) : Color.FromArgb(211, 173, 247)))
+                {
+                    graphics.FillPath(fill, path);
+                    graphics.DrawPath(border, path);
+                    TextRenderer.DrawText(graphics, text, font, bounds,
+                        locked ? Color.FromArgb(173, 104, 0) : Color.FromArgb(114, 46, 209),
+                        TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.NoClipping);
+                }
+            }
         }
 
         /// <summary>
@@ -2076,7 +2381,7 @@ namespace WindowsFormsApp3
                 _v5GridText = $"{r}×{c}";
 
                 _v5CountText = $"{_currentImpositionResult?.OptimalLayoutQuantity ?? 15}";
-                _v5RotationText = $"{_currentImpositionResult?.RotationAngle ?? (_forceRotationEnabled ? 90 : 0)}";
+                _v5RotationText = $"{_currentImpositionResult?.RotationAngle ?? (GetCurrentRotationMode() == RollRotationMode.Force270Degree ? 270 : 0)}";
 
                 if (!string.IsNullOrWhiteSpace(AdjustedDimensions))
                 {
@@ -2122,6 +2427,8 @@ namespace WindowsFormsApp3
                 pnlPillGrid?.Invalidate();
                 pnlPillCount?.Invalidate();
                 pnlPillRotation?.Invalidate();
+                if (pnlPillRotation != null)
+                    folderTreeViewToolTip?.SetToolTip(pnlPillRotation, "点击打开排版参数，选择自动择优、禁止旋转或固定270°");
                 pnlPillDimension?.Invalidate();
                 if (pnlPillDimension != null)
                 {
@@ -2546,40 +2853,20 @@ namespace WindowsFormsApp3
             }
         }
 
-        private static string GetCopyModePillText(CopyMode mode)
+        private static string GetPageOrderPillText(CopyType type)
         {
-            switch (mode)
-            {
-                case CopyMode.AutoByColumn: return "自适应 ▾";
-                case CopyMode.AutoByRow: return "列优先 ▾";
-                case CopyMode.FixedNoRotationByColumn:
-                case CopyMode.FixedNoRotationByRow: return "不旋转 ▾";
-                default: return "自适应 ▾";
-            }
+            return type == CopyType.Duplicate ? "整套 ▾" : "逐页 ▾";
         }
 
-        private void CycleCopyMode()
+        private void SelectPageRepeatType(CopyType type)
         {
-            switch (_copyMode)
+            if (_copyType == type) return;
+            _copyType = type;
+            if (copyTypeComboBox != null)
             {
-                case CopyMode.AutoByColumn:
-                    _copyMode = CopyMode.AutoByRow;
-                    break;
-                case CopyMode.AutoByRow:
-                    _copyMode = CopyMode.FixedNoRotationByColumn;
-                    break;
-                default:
-                    _copyMode = CopyMode.AutoByColumn;
-                    break;
+                copyTypeComboBox.SelectedIndex = (int)type;
             }
-            if (lblCopyModePill != null)
-            {
-                lblCopyModePill.Text = GetCopyModePillText(_copyMode);
-            }
-            if (copyModeComboBox != null)
-            {
-                copyModeComboBox.SelectedIndex = (int)_copyMode;
-            }
+            UpdateCopyCountPillDisplay();
         }
 
         private void UpdateJoinGroupEnabledState(bool enabled)
@@ -2604,7 +2891,7 @@ namespace WindowsFormsApp3
             }
             catch (Exception ex)
             {
-                LogHelper.Error($"[V5 参数舱] 更新一式N联状态异常: {ex.Message}", ex);
+                LogHelper.Error($"[V5 参数舱] 更新PDF页序复制状态异常: {ex.Message}", ex);
             }
         }
 

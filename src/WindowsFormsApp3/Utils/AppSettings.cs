@@ -478,14 +478,8 @@ namespace WindowsFormsApp3.Utils
         }
 
         /// <summary>
-        /// 一式N联时自动将联数填入数量
+        /// 根据文件大小动态调整文件就绪等待时间。
         /// </summary>
-        public static bool AutoFillQuantityForDuplicateLayout
-        {
-            get => GetValue<bool>("AutoFillQuantityForDuplicateLayout", true);
-            set => SetValue("AutoFillQuantityForDuplicateLayout", value);
-        }
-
         public static bool EnableDynamicFileReadyTimeout
         {
             get => GetValue<bool>("EnableDynamicFileReadyTimeout", true);

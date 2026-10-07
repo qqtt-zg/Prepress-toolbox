@@ -260,6 +260,19 @@ namespace WindowsFormsApp3.Services
         {
             return PdfTools.AddDotsAddCounterLayer(pdfPath, dimensions, shapeType, roundRadius);
         }
+
+        public bool AddDotsAddCounterLayer(string pdfPath, string dimensions, ShapeType shapeType,
+            double roundRadius, double bleedMm)
+        {
+            return PdfTools.AddDotsAddCounterLayer(pdfPath, dimensions, shapeType, roundRadius, bleedMm);
+        }
+
+        public bool AddDotsAddCounterLayer(string pdfPath, string dimensions, ShapeType shapeType,
+            double roundRadius, double bleedMm, bool normalizeDisplayedSize)
+        {
+            return PdfTools.AddDotsAddCounterLayer(pdfPath, dimensions, shapeType, roundRadius, bleedMm,
+                normalizeDisplayedSize);
+        }
         
         /// <summary>
         /// 计算最终尺寸（毫米）

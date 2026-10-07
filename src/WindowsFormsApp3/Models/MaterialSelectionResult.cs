@@ -77,6 +77,8 @@ namespace WindowsFormsApp3.Models
         public string OrderNumber { get; set; }
         public string Dimensions { get; set; }
         public double SelectedTetBleed { get; set; } = 0;
+        public PdfPageBoxSource PageBoxSource { get; set; } = PdfPageBoxSource.Automatic;
+        public int PageBoxReferencePage { get; set; } = 1;
         public string Process { get; set; }
         public string LayoutRows { get; set; }
         public string LayoutColumns { get; set; }

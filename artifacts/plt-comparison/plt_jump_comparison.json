@@ -1,0 +1,902 @@
+[
+  {
+    "file": "1.plt",
+    "raw_coordinate_units": true,
+    "column_pitch": [
+      1361.0,
+      1360.0,
+      1360.0,
+      1360.0
+    ],
+    "row_pitch": [
+      1230.0,
+      1230.5,
+      1230.0,
+      1230.5,
+      1230.5,
+      1230.5,
+      1230.5,
+      1230.0,
+      1230.0
+    ],
+    "main_shape_PD_steps_including_zero": {
+      "count": 3000,
+      "minimum": 0.0,
+      "maximum": 938.3522792640299,
+      "median": 16.0312195418814,
+      "mean": 60.486698134917845,
+      "total": 181460.09440475353
+    },
+    "main_shape_PD_steps_nonzero": {
+      "count": 2900,
+      "minimum": 8.06225774829855,
+      "maximum": 938.3522792640299,
+      "median": 16.1245154965971,
+      "mean": 62.572446346466734,
+      "total": 181460.09440475353
+    },
+    "main_shape_PU_jumps": {
+      "count": 49,
+      "minimum": 631.8100980516218,
+      "maximum": 2094.8663441852323,
+      "median": 1230.0,
+      "mean": 1295.1380494360928,
+      "total": 63461.76442236855
+    },
+    "all_object_PU_jumps_excluding_initial_origin_move": {
+      "count": 51,
+      "minimum": 631.8100980516218,
+      "maximum": 12881.647604246904,
+      "median": 1230.0,
+      "mean": 1525.2084811137458,
+      "total": 77785.63253680104
+    },
+    "main_shape_PU_jump_groups": {
+      "631.81": 10,
+      "1230.0": 20,
+      "1231.0": 5,
+      "1360.0": 4,
+      "2094.866": 10
+    },
+    "first_main_shape_PD_distances": [
+      0.0,
+      937.488,
+      9.849,
+      9.849,
+      8.944,
+      9.487,
+      9.22,
+      8.246,
+      17.029,
+      17.0,
+      16.279,
+      14.866,
+      15.652,
+      15.264,
+      16.279,
+      15.62,
+      16.643,
+      16.553,
+      16.763,
+      18.248,
+      19.026,
+      472.0,
+      471.0,
+      19.026,
+      18.248,
+      17.72,
+      16.553,
+      16.643,
+      15.62,
+      15.62,
+      15.811,
+      15.652,
+      14.56,
+      16.279,
+      17.029,
+      17.117,
+      8.246,
+      9.22,
+      9.487,
+      8.544,
+      9.849,
+      10.296,
+      937.488,
+      19.416,
+      18.601,
+      17.692,
+      16.643,
+      16.125,
+      15.232,
+      15.297,
+      15.033,
+      15.033,
+      15.297,
+      16.155,
+      16.125,
+      15.811,
+      17.692,
+      19.209,
+      19.416,
+      0.0
+    ],
+    "main_shape_PU_jump_details": [
+      {
+        "from_path": 3,
+        "to_path": 4,
+        "dx": 0.0,
+        "dy": -1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 4,
+        "to_path": 5,
+        "dx": 0.0,
+        "dy": -1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 5,
+        "to_path": 6,
+        "dx": 472.0,
+        "dy": -420.0,
+        "distance": 631.8100980516218
+      },
+      {
+        "from_path": 6,
+        "to_path": 7,
+        "dx": -472.0,
+        "dy": -2041.0,
+        "distance": 2094.8663441852323
+      },
+      {
+        "from_path": 7,
+        "to_path": 8,
+        "dx": 0.0,
+        "dy": -1231.0,
+        "distance": 1231.0
+      },
+      {
+        "from_path": 8,
+        "to_path": 9,
+        "dx": 0.0,
+        "dy": -1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 9,
+        "to_path": 10,
+        "dx": 472.0,
+        "dy": -420.0,
+        "distance": 631.8100980516218
+      },
+      {
+        "from_path": 10,
+        "to_path": 11,
+        "dx": -472.0,
+        "dy": -2041.0,
+        "distance": 2094.8663441852323
+      },
+      {
+        "from_path": 11,
+        "to_path": 12,
+        "dx": 0.0,
+        "dy": -1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 12,
+        "to_path": 13,
+        "dx": 1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 13,
+        "to_path": 14,
+        "dx": 0.0,
+        "dy": 1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 14,
+        "to_path": 15,
+        "dx": 472.0,
+        "dy": 2041.0,
+        "distance": 2094.8663441852323
+      },
+      {
+        "from_path": 15,
+        "to_path": 16,
+        "dx": -472.0,
+        "dy": 420.0,
+        "distance": 631.8100980516218
+      },
+      {
+        "from_path": 16,
+        "to_path": 17,
+        "dx": 0.0,
+        "dy": 1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 17,
+        "to_path": 18,
+        "dx": 0.0,
+        "dy": 1231.0,
+        "distance": 1231.0
+      },
+      {
+        "from_path": 18,
+        "to_path": 19,
+        "dx": 472.0,
+        "dy": 2041.0,
+        "distance": 2094.8663441852323
+      },
+      {
+        "from_path": 19,
+        "to_path": 20,
+        "dx": -472.0,
+        "dy": 420.0,
+        "distance": 631.8100980516218
+      },
+      {
+        "from_path": 20,
+        "to_path": 21,
+        "dx": 0.0,
+        "dy": 1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 21,
+        "to_path": 22,
+        "dx": 0.0,
+        "dy": 1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 22,
+        "to_path": 23,
+        "dx": 1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 23,
+        "to_path": 24,
+        "dx": 0.0,
+        "dy": -1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 24,
+        "to_path": 25,
+        "dx": 0.0,
+        "dy": -1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 25,
+        "to_path": 26,
+        "dx": 472.0,
+        "dy": -420.0,
+        "distance": 631.8100980516218
+      },
+      {
+        "from_path": 26,
+        "to_path": 27,
+        "dx": -472.0,
+        "dy": -2041.0,
+        "distance": 2094.8663441852323
+      },
+      {
+        "from_path": 27,
+        "to_path": 28,
+        "dx": 0.0,
+        "dy": -1231.0,
+        "distance": 1231.0
+      },
+      {
+        "from_path": 28,
+        "to_path": 29,
+        "dx": 0.0,
+        "dy": -1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 29,
+        "to_path": 30,
+        "dx": 472.0,
+        "dy": -420.0,
+        "distance": 631.8100980516218
+      },
+      {
+        "from_path": 30,
+        "to_path": 31,
+        "dx": -472.0,
+        "dy": -2041.0,
+        "distance": 2094.8663441852323
+      },
+      {
+        "from_path": 31,
+        "to_path": 32,
+        "dx": 0.0,
+        "dy": -1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 32,
+        "to_path": 33,
+        "dx": 1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 33,
+        "to_path": 34,
+        "dx": 0.0,
+        "dy": 1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 34,
+        "to_path": 35,
+        "dx": 472.0,
+        "dy": 2041.0,
+        "distance": 2094.8663441852323
+      },
+      {
+        "from_path": 35,
+        "to_path": 36,
+        "dx": -472.0,
+        "dy": 420.0,
+        "distance": 631.8100980516218
+      },
+      {
+        "from_path": 36,
+        "to_path": 37,
+        "dx": 0.0,
+        "dy": 1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 37,
+        "to_path": 38,
+        "dx": 0.0,
+        "dy": 1231.0,
+        "distance": 1231.0
+      },
+      {
+        "from_path": 38,
+        "to_path": 39,
+        "dx": 472.0,
+        "dy": 2041.0,
+        "distance": 2094.8663441852323
+      },
+      {
+        "from_path": 39,
+        "to_path": 40,
+        "dx": -472.0,
+        "dy": 420.0,
+        "distance": 631.8100980516218
+      },
+      {
+        "from_path": 40,
+        "to_path": 41,
+        "dx": 0.0,
+        "dy": 1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 41,
+        "to_path": 42,
+        "dx": 0.0,
+        "dy": 1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 42,
+        "to_path": 43,
+        "dx": 1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 43,
+        "to_path": 44,
+        "dx": 0.0,
+        "dy": -1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 44,
+        "to_path": 45,
+        "dx": 0.0,
+        "dy": -1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 45,
+        "to_path": 46,
+        "dx": 472.0,
+        "dy": -420.0,
+        "distance": 631.8100980516218
+      },
+      {
+        "from_path": 46,
+        "to_path": 47,
+        "dx": -472.0,
+        "dy": -2041.0,
+        "distance": 2094.8663441852323
+      },
+      {
+        "from_path": 47,
+        "to_path": 48,
+        "dx": 0.0,
+        "dy": -1231.0,
+        "distance": 1231.0
+      },
+      {
+        "from_path": 48,
+        "to_path": 49,
+        "dx": 0.0,
+        "dy": -1230.0,
+        "distance": 1230.0
+      },
+      {
+        "from_path": 49,
+        "to_path": 50,
+        "dx": 472.0,
+        "dy": -420.0,
+        "distance": 631.8100980516218
+      },
+      {
+        "from_path": 50,
+        "to_path": 51,
+        "dx": -472.0,
+        "dy": -2041.0,
+        "distance": 2094.8663441852323
+      },
+      {
+        "from_path": 51,
+        "to_path": 52,
+        "dx": 0.0,
+        "dy": -1230.0,
+        "distance": 1230.0
+      }
+    ]
+  },
+  {
+    "file": "2.plt",
+    "raw_coordinate_units": true,
+    "column_pitch": [
+      1361.0,
+      1360.0,
+      1360.0,
+      1361.0
+    ],
+    "row_pitch": [
+      1230.0,
+      1230.0,
+      1230.0,
+      1230.5,
+      1230.0,
+      1230.0,
+      1230.0,
+      1230.0,
+      1230.0
+    ],
+    "main_shape_PD_steps_including_zero": {
+      "count": 1400,
+      "minimum": 30.265491900843113,
+      "maximum": 938.3522792640299,
+      "median": 34.17601498127012,
+      "mean": 129.5337373091426,
+      "total": 181347.23223279964
+    },
+    "main_shape_PD_steps_nonzero": {
+      "count": 1400,
+      "minimum": 30.265491900843113,
+      "maximum": 938.3522792640299,
+      "median": 34.17601498127012,
+      "mean": 129.5337373091426,
+      "total": 181347.23223279964
+    },
+    "main_shape_PU_jumps": {
+      "count": 49,
+      "minimum": 1360.0,
+      "maximum": 5578.295528205726,
+      "median": 1360.0,
+      "mean": 2134.993056201052,
+      "total": 104614.65975385153
+    },
+    "all_object_PU_jumps_excluding_initial_origin_move": {
+      "count": 51,
+      "minimum": 1360.0,
+      "maximum": 12881.647604246904,
+      "median": 1360.0,
+      "mean": 2332.127997417334,
+      "total": 118938.52786828403
+    },
+    "main_shape_PU_jump_groups": {
+      "1360.0": 30,
+      "1361.0": 10,
+      "5578.296": 9
+    },
+    "first_main_shape_PD_distances": [
+      938.352,
+      37.162,
+      35.511,
+      32.14,
+      31.385,
+      30.61,
+      32.202,
+      34.176,
+      37.336,
+      471.0,
+      471.0,
+      38.328,
+      33.242,
+      32.202,
+      30.61,
+      31.385,
+      32.14,
+      35.355,
+      37.577,
+      937.85,
+      37.802,
+      34.059,
+      31.78,
+      30.414,
+      30.414,
+      30.871,
+      34.828,
+      37.202
+    ],
+    "main_shape_PU_jump_details": [
+      {
+        "from_path": 1,
+        "to_path": 2,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 2,
+        "to_path": 3,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 3,
+        "to_path": 4,
+        "dx": -1361.0,
+        "dy": 0.0,
+        "distance": 1361.0
+      },
+      {
+        "from_path": 4,
+        "to_path": 5,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 5,
+        "to_path": 6,
+        "dx": 5441.0,
+        "dy": 1230.0,
+        "distance": 5578.295528205726
+      },
+      {
+        "from_path": 6,
+        "to_path": 7,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 7,
+        "to_path": 8,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 8,
+        "to_path": 9,
+        "dx": -1361.0,
+        "dy": 0.0,
+        "distance": 1361.0
+      },
+      {
+        "from_path": 9,
+        "to_path": 10,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 10,
+        "to_path": 11,
+        "dx": 5441.0,
+        "dy": 1230.0,
+        "distance": 5578.295528205726
+      },
+      {
+        "from_path": 11,
+        "to_path": 12,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 12,
+        "to_path": 13,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 13,
+        "to_path": 14,
+        "dx": -1361.0,
+        "dy": 0.0,
+        "distance": 1361.0
+      },
+      {
+        "from_path": 14,
+        "to_path": 15,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 15,
+        "to_path": 16,
+        "dx": 5441.0,
+        "dy": 1230.0,
+        "distance": 5578.295528205726
+      },
+      {
+        "from_path": 16,
+        "to_path": 17,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 17,
+        "to_path": 18,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 18,
+        "to_path": 19,
+        "dx": -1361.0,
+        "dy": 0.0,
+        "distance": 1361.0
+      },
+      {
+        "from_path": 19,
+        "to_path": 20,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 20,
+        "to_path": 21,
+        "dx": 5441.0,
+        "dy": 1230.0,
+        "distance": 5578.295528205726
+      },
+      {
+        "from_path": 21,
+        "to_path": 22,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 22,
+        "to_path": 23,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 23,
+        "to_path": 24,
+        "dx": -1361.0,
+        "dy": 0.0,
+        "distance": 1361.0
+      },
+      {
+        "from_path": 24,
+        "to_path": 25,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 25,
+        "to_path": 26,
+        "dx": 5441.0,
+        "dy": 1230.0,
+        "distance": 5578.295528205726
+      },
+      {
+        "from_path": 26,
+        "to_path": 27,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 27,
+        "to_path": 28,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 28,
+        "to_path": 29,
+        "dx": -1361.0,
+        "dy": 0.0,
+        "distance": 1361.0
+      },
+      {
+        "from_path": 29,
+        "to_path": 30,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 30,
+        "to_path": 31,
+        "dx": 5441.0,
+        "dy": 1230.0,
+        "distance": 5578.295528205726
+      },
+      {
+        "from_path": 31,
+        "to_path": 32,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 32,
+        "to_path": 33,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 33,
+        "to_path": 34,
+        "dx": -1361.0,
+        "dy": 0.0,
+        "distance": 1361.0
+      },
+      {
+        "from_path": 34,
+        "to_path": 35,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 35,
+        "to_path": 36,
+        "dx": 5441.0,
+        "dy": 1230.0,
+        "distance": 5578.295528205726
+      },
+      {
+        "from_path": 36,
+        "to_path": 37,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 37,
+        "to_path": 38,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 38,
+        "to_path": 39,
+        "dx": -1361.0,
+        "dy": 0.0,
+        "distance": 1361.0
+      },
+      {
+        "from_path": 39,
+        "to_path": 40,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 40,
+        "to_path": 41,
+        "dx": 5441.0,
+        "dy": 1230.0,
+        "distance": 5578.295528205726
+      },
+      {
+        "from_path": 41,
+        "to_path": 42,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 42,
+        "to_path": 43,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 43,
+        "to_path": 44,
+        "dx": -1361.0,
+        "dy": 0.0,
+        "distance": 1361.0
+      },
+      {
+        "from_path": 44,
+        "to_path": 45,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 45,
+        "to_path": 46,
+        "dx": 5441.0,
+        "dy": 1230.0,
+        "distance": 5578.295528205726
+      },
+      {
+        "from_path": 46,
+        "to_path": 47,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 47,
+        "to_path": 48,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      },
+      {
+        "from_path": 48,
+        "to_path": 49,
+        "dx": -1361.0,
+        "dy": 0.0,
+        "distance": 1361.0
+      },
+      {
+        "from_path": 49,
+        "to_path": 50,
+        "dx": -1360.0,
+        "dy": 0.0,
+        "distance": 1360.0
+      }
+    ]
+  }
+]

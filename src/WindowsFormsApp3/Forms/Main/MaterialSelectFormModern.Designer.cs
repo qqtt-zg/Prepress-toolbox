@@ -869,7 +869,7 @@ namespace WindowsFormsApp3
             this.duplicateLayoutCheckbox.Name = "duplicateLayoutCheckbox";
             this.duplicateLayoutCheckbox.Size = new System.Drawing.Size(55, 26);
             this.duplicateLayoutCheckbox.TabIndex = 64;
-            this.duplicateLayoutCheckbox.Text = "一式";
+            this.duplicateLayoutCheckbox.Text = "页序";
             this.duplicateLayoutCheckbox.CheckedChanged += new AntdUI.BoolEventHandler(this.DuplicateLayoutCheckbox_CheckedChanged);
             // 
             // copyModeComboBox

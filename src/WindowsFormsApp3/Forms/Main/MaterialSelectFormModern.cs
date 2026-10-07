@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -94,6 +94,9 @@ namespace WindowsFormsApp3
         public string AdjustedDimensions { get; private set; }
         public string CurrentFileName { get; private set; }
         public double SelectedTetBleed { get; private set; }
+        public PdfPageBoxSource SelectedPageBoxSource { get; private set; } = PdfPageBoxSource.Automatic;
+        public int SelectedPageBoxReferencePage { get; private set; } = 1;
+        private int _pageBoxSelectionRevision;
         public string SerialNumber { get; set; }
         public List<string> Quantities { get; set; } = new List<string>();
         public List<DataRow> MatchedRows { get; private set; } = new List<DataRow>();
@@ -666,17 +669,7 @@ namespace WindowsFormsApp3
         /// <returns>格式化后的尺寸字符串</returns>
         private string FormatDimension(double value)
         {
-            // 检查小数部分是否为0
-            if (Math.Abs(value - Math.Round(value)) < 0.001)
-            {
-                // 如果小数部分为0，只显示整数
-                return $"{Math.Round(value):F0}";
-            }
-            else
-            {
-                // 如果小数部分不为0，显示一位小数
-                return $"{value:F1}";
-            }
+            return PdfTools.FormatPageDimensionForDisplay(value);
         }
 
         /// <summary>
@@ -2441,6 +2434,12 @@ namespace WindowsFormsApp3
             {
                 if (ValidateForm())
                 {
+                    if (enableImpositionCheckbox?.Checked == true &&
+                        (_currentImpositionResult == null || !_currentImpositionResult.Success))
+                    {
+                        AntdUI.Message.warn(this, _currentImpositionResult?.ErrorMessage ?? "布局正在计算，请稍后确认", autoClose: 4);
+                        return;
+                    }
                     // 若左侧待处理列表处于打开状态，点击确认即执行批量处理；折叠时为单文件确认
                     IsApplyToAll = _isBatchPanelExpanded;
 
@@ -6034,6 +6033,9 @@ namespace WindowsFormsApp3
             // 无论用户是否开启常驻置顶，打开时均先强制置顶弹出到最前台
             EnsureTopMostOnOpen();
 
+            // 页面框检查独立于预览加载；发现超界时在排版参数与预设间显示常驻选择区。
+            _ = ShowPageBoxChoiceOnOpenAsync(CurrentFileName);
+
             // 🔧 强制重新加载预设按钮，确保它们在窗体显示后可见
             LoadPresetButtons();
 
@@ -6054,6 +6056,8 @@ namespace WindowsFormsApp3
                 
                 // 额外刷新PDF预览控件
                 await Task.Delay(200);
+
+                if (IsDisposed || Disposing) return;
                 if (this.IsDisposed || !this.IsHandleCreated) return;
                 if (_isPreviewExpanded && PdfPreview != null)
                 {
@@ -6078,6 +6082,28 @@ namespace WindowsFormsApp3
                     LogHelper.Debug("[PDF 预览] 窗体内容准备完成，恢复显示");
                 }
             }));
+        }
+
+        private async Task ShowPageBoxChoiceOnOpenAsync(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath) ||
+                !string.Equals(Path.GetExtension(filePath), ".pdf", StringComparison.OrdinalIgnoreCase) ||
+                !File.Exists(filePath))
+                return;
+
+            try
+            {
+                var inspection = await Task.Run(() => new PdfInspectorService().InspectPdf(filePath));
+                if (IsDisposed || Disposing || !IsHandleCreated ||
+                    !string.Equals(CurrentFileName, filePath, StringComparison.OrdinalIgnoreCase))
+                    return;
+
+                UpdatePageBoxChoiceFromInspection(inspection);
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"材料选择框页面框选择区加载失败: {ex.Message}", ex);
+            }
         }
 
         /// <summary>
@@ -7072,9 +7098,29 @@ namespace WindowsFormsApp3
             };
         }
 
-        private void OpenTemporaryImpositionParameters()
+        private RollRotationMode GetCurrentRotationMode(bool? isFlatSheet = null)
         {
             EnsureTemporaryImpositionParameters();
+            if (!_temporaryImpositionParameters.FlatSheetRotationMode.HasValue ||
+                !_temporaryImpositionParameters.RollMaterialRotationMode.HasValue ||
+                !_temporaryImpositionParameters.LayoutConstraintDirection.HasValue)
+            {
+                var legacyMode = _isDuplicateLayoutEnabled ? _copyMode :
+                    (AppSettings.GetValue<bool>("LastDuplicateLayoutEnabled")
+                        ? (CopyMode)AppSettings.GetValue<int>("LastCopyMode") : CopyMode.AutoByColumn);
+                _temporaryImpositionParameters.MigrateRotationModes(legacyMode, _currentImpositionResult?.RotationAngle ?? 0);
+                _forceRotationEnabled = false;
+                SaveTemporaryImpositionParameters(_temporaryImpositionParameters);
+            }
+            return ((isFlatSheet ?? (flatSheetRadioButton?.Checked == true))
+                ? _temporaryImpositionParameters.FlatSheetRotationMode
+                : _temporaryImpositionParameters.RollMaterialRotationMode) ?? RollRotationMode.Auto;
+        }
+
+        private void OpenTemporaryImpositionParameters(bool focusRotation = false)
+        {
+            EnsureTemporaryImpositionParameters();
+            GetCurrentRotationMode();
             bool isFlatSheet = flatSheetRadioButton?.Checked == true;
             var parameters = _temporaryImpositionParameters.Clone();
 
@@ -7087,7 +7133,7 @@ namespace WindowsFormsApp3
                 parameters.MarginRight = parameters.RollMarginRight;
             }
 
-            using (var form = new TemporaryImpositionParametersForm(isFlatSheet, parameters))
+            using (var form = new TemporaryImpositionParametersForm(isFlatSheet, parameters, focusRotation))
             {
                 if (form.ShowDialog(this) != DialogResult.OK)
                 {
@@ -7107,6 +7153,8 @@ namespace WindowsFormsApp3
                     updated.MarginRight = _temporaryImpositionParameters.MarginRight;
                 }
                 _temporaryImpositionParameters = updated;
+                _copyMode = updated.LayoutConstraintDirection ?? _copyMode;
+                if (copyModeComboBox != null) copyModeComboBox.SelectedIndex = (int)_copyMode;
                 _forceRotationEnabled = _temporaryImpositionParameters.IsForceRotationEnabled;
                 SaveTemporaryImpositionParameters(_temporaryImpositionParameters);
                 _isUpdatingLayoutInputs = true;
@@ -7228,12 +7276,21 @@ namespace WindowsFormsApp3
             var availableGroups = presets
                 .Where(p => p.ShowInPresetButtons)
                 .Select(p => string.IsNullOrWhiteSpace(p.GroupName) ? "未命名" : p.GroupName.Trim())
-                .Distinct()
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            // 快捷标签沿用管理工作台保存的分组顺序，不依赖预设自身的排列。
+            var savedGroupOrder = (AppSettings.MaterialPresetGroups ?? new List<string>())
+                .Where(group => !string.IsNullOrWhiteSpace(group))
+                .Select(group => group.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            availableGroups = savedGroupOrder.Where(group => availableGroups.Contains(group, StringComparer.OrdinalIgnoreCase))
+                .Concat(availableGroups.Where(group => !savedGroupOrder.Contains(group, StringComparer.OrdinalIgnoreCase)))
                 .ToList();
 
             if (availableGroups.Count == 0)
             {
-                availableGroups.Add("未命名");
+                availableGroups.Add(savedGroupOrder.FirstOrDefault() ?? "未命名");
             }
 
             // 3. 同步到上方 tabs1 标签页
@@ -7952,6 +8009,8 @@ namespace WindowsFormsApp3
                 if (preset.TemporaryImpositionParameters != null)
                 {
                     _temporaryImpositionParameters = preset.TemporaryImpositionParameters.Clone();
+                    _temporaryImpositionParameters.MigrateRotationModes(
+                        preset.IsDualCopy ? preset.CopyMode : CopyMode.AutoByColumn, _currentImpositionResult?.RotationAngle ?? 0);
                     _forceRotationEnabled = _temporaryImpositionParameters.IsForceRotationEnabled;
                     SaveTemporaryImpositionParameters(_temporaryImpositionParameters);
                     _isUpdatingLayoutInputs = true;
@@ -8015,7 +8074,7 @@ namespace WindowsFormsApp3
                 // 加载倍数方向
                 if (!ignoreOptions.HasFlag(PresetIgnoreOptions.CopyMode))
                 {
-                    _copyMode = preset.CopyMode;
+                    _copyMode = _temporaryImpositionParameters.LayoutConstraintDirection ?? preset.CopyMode;
                     if (copyModeComboBox != null)
                     {
                         copyModeComboBox.SelectedIndex = (int)_copyMode;
@@ -9168,22 +9227,6 @@ namespace WindowsFormsApp3
         {
             try
             {
-                // 如果是从卷装切换到平张，重置强制旋转标志
-                if (sender is AntdUI.Radio radio)
-                {
-                    // 当材料类型单选按钮状态改变时
-                    if (radio == rollMaterialRadioButton && rollMaterialRadioButton?.Checked == false)
-                    {
-                        _forceRotationEnabled = false;
-                        if (_temporaryImpositionParameters != null)
-                        {
-                            _temporaryImpositionParameters.IsForceRotationEnabled = false;
-                            SaveTemporaryImpositionParameters(_temporaryImpositionParameters);
-                        }
-                        LogHelper.Debug("[MaterialSelectFormModern] 材料类型切换到平张，重置强制旋转标志");
-                    }
-                }
-
                 // 当任何排版设置改变时，自动重新计算并更新显示
                 if (enableImpositionCheckbox != null && enableImpositionCheckbox.Checked)
                 {
@@ -9199,6 +9242,7 @@ namespace WindowsFormsApp3
 
                 SyncCurrentSelectionsToActiveGroup();
                 LogHelper.Debug("[MaterialSelectFormModern] 排版设置已更新");
+                pnlPillRotation?.Invalidate();
             }
             catch (Exception ex)
             {
@@ -9223,6 +9267,7 @@ namespace WindowsFormsApp3
                 }
 
                 // 获取当前配置
+                int pageBoxRevision = _pageBoxSelectionRevision;
                 var config = GetCurrentImpositionConfiguration();
                 if (config == null)
                 {
@@ -9250,7 +9295,9 @@ namespace WindowsFormsApp3
                     try
                     {
                         // 方案A：调用 AnalyzePdfFileAsync 获取真实PDF信息
-                        pdfInfo = await _impositionService.AnalyzePdfFileAsync(pdfFilePath);
+                        pdfInfo = await _impositionService.AnalyzePdfFileAsync(pdfFilePath,
+                            SelectedPageBoxSource, SelectedPageBoxReferencePage);
+                        if (IsDisposed || Disposing || pageBoxRevision != _pageBoxSelectionRevision) return;
                         
                         // 保存PDF的有效尺寸（根据PageRotation调整后的显示尺寸）
                         float rawWidth = 0;
@@ -9287,6 +9334,7 @@ namespace WindowsFormsApp3
                     catch (Exception ex)
                     {
                         LogHelper.Error($"[排版分析] 获取PDF信息失败: {ex.Message}", ex);
+                        if (SelectedPageBoxSource != PdfPageBoxSource.Automatic) throw;
                         // 如果分析失败，使用备选方案（但记录警告）
                         LogHelper.Warn("[排版分析] 将使用备选方案（基于传入的PDF尺寸创建模拟PDF信息）");
                     }
@@ -9318,16 +9366,16 @@ namespace WindowsFormsApp3
                 ImpositionResult result = null;
 
                 // 根据一式两联状态选择计算方法
-                if (_isDuplicateLayoutEnabled)
+                if (_isDuplicateLayoutEnabled && _copyType == CopyType.Layout)
                 {
                     // 一式两联模式：使用偶数列计算
                     if (config is FlatSheetConfiguration flatSheetConfig)
                     {
-                        result = await _impositionService.CalculateOptimalEvenColumnsLayoutAsync(flatSheetConfig, pdfInfo);
+                        result = await _impositionService.CalculateOptimalEvenColumnsLayoutAsync(flatSheetConfig, pdfInfo, _copyCount, _copyMode);
                     }
                     else if (config is RollMaterialConfiguration rollMaterialConfig)
                     {
-                        result = await _impositionService.CalculateOptimalEvenColumnsLayoutAsync(rollMaterialConfig, pdfInfo);
+                        result = await _impositionService.CalculateOptimalEvenColumnsLayoutAsync(rollMaterialConfig, pdfInfo, _copyCount, _copyMode);
                     }
                 }
                 else
@@ -9343,6 +9391,7 @@ namespace WindowsFormsApp3
                     }
                 }
 
+                if (IsDisposed || Disposing || pageBoxRevision != _pageBoxSelectionRevision) return;
                 if (result != null)
                 {
                     // 保存当前排版计算结果
@@ -9363,7 +9412,7 @@ namespace WindowsFormsApp3
                     LogHelper.Debug($"[MaterialSelectFormModern] 布局计算完成: {result.Rows}x{result.Columns}, 利用率: {result.SpaceUtilization:F1}%, 旋转角度: {result.RotationAngle}°");
 
                     // 计算两种布局数并缓存（用于平张列和卷装列同时显示）
-                    await CalculateBothLayoutTypesAsync(pdfInfo);
+                    await CalculateBothLayoutTypesAsync(pdfInfo, pageBoxRevision);
                 }
                 else
                 {
@@ -9392,7 +9441,7 @@ namespace WindowsFormsApp3
         /// 计算平张和卷装两种布局类型并缓存结果
         /// 用于平张列和卷装列同时显示
         /// </summary>
-        private async Task CalculateBothLayoutTypesAsync(ImpositionPdfInfo pdfInfo)
+        private async Task CalculateBothLayoutTypesAsync(ImpositionPdfInfo pdfInfo, int pageBoxRevision)
         {
             try
             {
@@ -9420,6 +9469,7 @@ namespace WindowsFormsApp3
                 }
 
                 // 更新缓存
+                if (IsDisposed || Disposing || pageBoxRevision != _pageBoxSelectionRevision) return;
                 if (flatSheetResult != null && flatSheetResult.OptimalLayoutQuantity > 0)
                 {
                     LayoutResultsCache.UpdateFlatSheetLayoutResults(flatSheetResult.Rows, flatSheetResult.Columns);
@@ -9458,6 +9508,7 @@ namespace WindowsFormsApp3
                 {
                     return new FlatSheetConfiguration
                     {
+                        RotationMode = GetCurrentRotationMode(true),
                         PaperWidth = _temporaryImpositionParameters.PaperWidth,
                         PaperHeight = _temporaryImpositionParameters.PaperHeight,
                         MarginTop = _temporaryImpositionParameters.MarginTop,
@@ -9490,6 +9541,7 @@ namespace WindowsFormsApp3
 
                 return new FlatSheetConfiguration
                 {
+                    RotationMode = GetCurrentRotationMode(true),
                     PaperWidth = paperWidth,
                     PaperHeight = paperHeight,
                     MarginTop = GetFloatValue(marginTopStr, 0),
@@ -9519,6 +9571,7 @@ namespace WindowsFormsApp3
                 {
                     return new RollMaterialConfiguration
                     {
+                        RotationMode = GetCurrentRotationMode(false),
                         FixedWidth = _temporaryImpositionParameters.FixedWidth,
                         MinLength = _temporaryImpositionParameters.MinLength,
                         MarginTop = _temporaryImpositionParameters.RollMarginTop,
@@ -9549,6 +9602,7 @@ namespace WindowsFormsApp3
 
                 return new RollMaterialConfiguration
                 {
+                    RotationMode = GetCurrentRotationMode(false),
                     FixedWidth = rollWidth,
                     MinLength = minLength,
                     MarginTop = GetFloatValue(marginTopStr, 10f),
@@ -9637,6 +9691,7 @@ namespace WindowsFormsApp3
 
                     return new FlatSheetConfiguration
                     {
+                        RotationMode = GetCurrentRotationMode(true),
                         PaperWidth = paperWidth,
                         PaperHeight = paperHeight,
                         MarginTop = GetFloatValue(marginTopStr, 0),
@@ -9692,6 +9747,7 @@ namespace WindowsFormsApp3
 
                     return new RollMaterialConfiguration
                     {
+                        RotationMode = GetCurrentRotationMode(false),
                         FixedWidth = fixedWidth,
                         MinLength = minLength,
                         MarginTop = GetFloatValue(marginTopStr, 10f),
@@ -10500,12 +10556,9 @@ namespace WindowsFormsApp3
                     LogHelper.Debug($"[MaterialSelectFormModern] 恢复一式类型: {_copyType}");
                 }
 
-                if (_isDuplicateLayoutEnabled && _copyType == CopyType.Layout &&
-                    AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
-                {
-                    quantityTextBox.Text = _copyCount.ToString();
-                }
-
+                EnsureTemporaryImpositionParameters();
+                _copyMode = _temporaryImpositionParameters.LayoutConstraintDirection ?? _copyMode;
+                if (copyModeComboBox != null) copyModeComboBox.SelectedIndex = (int)_copyMode;
                 LogHelper.Debug("[MaterialSelectFormModern] 排版控件状态已从AppSettings恢复");
             }
             catch (Exception ex)
@@ -10541,18 +10594,10 @@ namespace WindowsFormsApp3
                 if (_isDuplicateLayoutEnabled)
                 {
                     LogHelper.Info("[MaterialSelectFormModern] PDF页序重复已启用");
-                    if (_copyType == CopyType.Layout && AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
-                    {
-                        quantityTextBox.Text = _copyCount.ToString();
-                    }
                 }
                 else
                 {
                     LogHelper.Info("[MaterialSelectFormModern] PDF页序重复已关闭");
-                    if (_copyType == CopyType.Layout && AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
-                    {
-                        quantityTextBox.Text = "1";
-                    }
                 }
 
                 UpdateJoinGroupEnabledState(_isDuplicateLayoutEnabled);
@@ -10561,7 +10606,7 @@ namespace WindowsFormsApp3
             catch (Exception ex)
             {
                 LogHelper.Error($"[MaterialSelectFormModern] 一式N联复选框状态改变事件处理错误: {ex.Message}", ex);
-                MessageBox.Show($"一式N联功能发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"PDF页序复制发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
                 // 出错时重置状态
                 if (duplicateLayoutCheckbox != null)
@@ -10582,13 +10627,8 @@ namespace WindowsFormsApp3
                 if (copyCountNumericUpDown != null)
                 {
                     _copyCount = (int)copyCountNumericUpDown.Value;
+                    UpdateCopyCountPillDisplay();
                     LogHelper.Debug($"[MaterialSelectFormModern] 联数已更改: {_copyCount}");
-
-                    if (_isDuplicateLayoutEnabled && _copyType == CopyType.Layout &&
-                        AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
-                    {
-                        quantityTextBox.Text = _copyCount.ToString();
-                    }
 
                     if (_isDuplicateLayoutEnabled)
                     {
@@ -10645,17 +10685,12 @@ namespace WindowsFormsApp3
                 if (copyTypeComboBox != null)
                 {
                     _copyType = (CopyType)copyTypeComboBox.SelectedIndex;
+                    UpdateCopyCountPillDisplay();
                     string typeDesc = _copyType == CopyType.Layout ? "联" : "份";
                     LogHelper.Debug($"[MaterialSelectFormModern] 一式类型已更改: {typeDesc}");
 
                     // 保存设置
                     AppSettings.Set("LastCopyType", (int)_copyType);
-
-                    if (_isDuplicateLayoutEnabled && _copyType == CopyType.Layout &&
-                        AppSettings.AutoFillQuantityForDuplicateLayout && quantityTextBox != null)
-                    {
-                        quantityTextBox.Text = _copyCount.ToString();
-                    }
 
                     if (_isDuplicateLayoutEnabled)
                     {
@@ -10677,72 +10712,29 @@ namespace WindowsFormsApp3
         /// <summary>
         /// 是否处于强制旋转状态
         /// </summary>
-        public bool IsForceRotationEnabled => _forceRotationEnabled;
+        public bool IsForceRotationEnabled => GetCurrentRotationMode() != RollRotationMode.Auto;
 
         /// <summary>
-        /// 旋转角度标签点击事件 - 切换旋转角度（0度 <-> 270度）
+        /// 角度看板直达页面方向设置，避免点击结果值隐式切换策略。
         /// </summary>
         private void RotationDisplayLabel_Click(object sender, EventArgs e)
         {
-            try
-            {
-                // 只有在卷装模式且启用排版时才有效
-                if (rollMaterialRadioButton?.Checked != true || enableImpositionCheckbox?.Checked != true)
-                {
-                    LogHelper.Debug("[MaterialSelectFormModern] 非卷装模式或未启用排版，旋转角度点击无效");
-                    return;
-                }
-
-                // 切换强制旋转状态
-                _forceRotationEnabled = !_forceRotationEnabled;
-                EnsureTemporaryImpositionParameters();
-                _temporaryImpositionParameters.IsForceRotationEnabled = _forceRotationEnabled;
-                SaveTemporaryImpositionParameters(_temporaryImpositionParameters);
-                LogHelper.Debug($"[MaterialSelectFormModern] 旋转角度切换: {_forceRotationEnabled}");
-
-                // 重新计算布局
-                Task.Run(async () => await CalculateAndUpdateLayout());
-            }
-            catch (Exception ex)
-            {
-                LogHelper.Error($"[MaterialSelectFormModern] 旋转角度标签点击事件处理错误: {ex.Message}", ex);
-            }
+            OpenTemporaryImpositionParameters(true);
         }
 
-        /// <summary>
-        /// 获取当前卷装旋转模式
-        /// </summary>
-        /// <returns>卷装旋转模式</returns>
         private RollRotationMode? GetCurrentRollRotationMode()
         {
-            if (rollMaterialRadioButton?.Checked != true)
-                return null; // 非卷装模式，返回null使用自动计算
-
-            // 获取当前计算的旋转角度
-            int currentRotationAngle = 0;
-            if (_currentImpositionResult != null)
-            {
-                currentRotationAngle = _currentImpositionResult.RotationAngle;
-            }
-
-            // 如果启用了强制旋转，根据当前角度决定目标角度
-            if (_forceRotationEnabled)
-            {
-                // 当前是0度则切换到270度，当前是270度则切换到0度
-                return currentRotationAngle == 0 ? RollRotationMode.Force270Degree : RollRotationMode.Force0Degree;
-            }
-
-            return RollRotationMode.Auto;
+            return GetCurrentRotationMode(false);
         }
 
-
         /// <summary>
-        /// 计算一式两联布局（确保列数为最优偶数）
+        /// 按重复布局约束计算行列数，并遵守独立页面方向策略。
         /// </summary>
         private async Task CalculateDuplicateLayout()
         {
             try
             {
+                if (IsDisposed || Disposing) return;
                 if (InvokeRequired)
                 {
                     Invoke((Action)(async () => await CalculateDuplicateLayout()));
@@ -10750,6 +10742,7 @@ namespace WindowsFormsApp3
                 }
 
                 // 更新显示为计算中状态
+                int pageBoxRevision = _pageBoxSelectionRevision;
                 UpdateLayoutDisplay("计算中...");
 
                 // 获取当前配置
@@ -10768,9 +10761,11 @@ namespace WindowsFormsApp3
                 {
                     try
                     {
-                        pdfInfo = await _impositionService.AnalyzePdfFileAsync(pdfFilePath);
+                        pdfInfo = await _impositionService.AnalyzePdfFileAsync(pdfFilePath,
+                            SelectedPageBoxSource, SelectedPageBoxReferencePage);
 
                         // 保存PDF的有效尺寸
+                        if (IsDisposed || Disposing || pageBoxRevision != _pageBoxSelectionRevision) return;
                         float rawWidth = 0;
                         float rawHeight = 0;
 
@@ -10802,6 +10797,7 @@ namespace WindowsFormsApp3
                     catch (Exception ex)
                     {
                         LogHelper.Error($"[一式两联] 获取PDF信息失败: {ex.Message}", ex);
+                        if (SelectedPageBoxSource != PdfPageBoxSource.Automatic) throw;
                     }
                 }
 
@@ -10842,6 +10838,7 @@ namespace WindowsFormsApp3
                 if (result != null)
                 {
                     // 保存计算结果
+                    if (IsDisposed || Disposing || pageBoxRevision != _pageBoxSelectionRevision) return;
                     _currentImpositionResult = result;
 
                     // 更新布局计算结果缓存（根据用户选择的类型）

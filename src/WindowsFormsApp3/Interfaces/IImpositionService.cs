@@ -69,6 +69,13 @@ namespace WindowsFormsApp3.Interfaces
             string filePath,
             CancellationToken cancellationToken = default);
 
+        /// <summary>按页面框统一处理所选的基准尺寸分析排版，保留原始坐标精度。</summary>
+        Task<ImpositionPdfInfo> AnalyzePdfFileAsync(
+            string filePath,
+            PdfPageBoxSource pageBoxSource,
+            int referencePageNumber,
+            CancellationToken cancellationToken = default);
+
         #endregion
 
         #region 空白页计算

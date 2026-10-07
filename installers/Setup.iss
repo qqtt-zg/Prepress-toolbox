@@ -2,15 +2,15 @@
 ; 应用程序基本信息
 AppName=大诚重命名工具
 AppId={{D5F3E9B0-FEAT-ADD-PERF-MONITOR-FORM}}
-AppVersion=2.7.0
-AppVerName=大诚重命名工具 v2.7.0
+AppVersion=2.7.1
+AppVerName=大诚重命名工具 v2.7.1
 AppPublisher=大诚软件
 AppPublisherURL=
 AppSupportURL=
 AppUpdatesURL=
 AppCopyright=Copyright (C) 2026 大诚软件
 ; 版本更新说明
-AppComments=V2.7.0更新内容：V5工作台优化订单号、尺寸与批量列表交互；一式N联按1122、一式N份按123123实际处理输出PDF；预设改为手动选用，同时独立保留大版临时参数；加强预设管理与配置备份。
+AppComments=V2.7.1更新内容：完善四种形状的出血轮廓生成与节点简化；异形裁切线按页面中心适配裁剪框减两侧出血尺寸；页框基准采用C3双尺寸紧凑界面，尺寸与位置按毫米一位小数判断差异和超界并提供精确参数详情，排版计算保留原始精度；隔离异形绘图状态，完善旋转限制与材料选择框交互。
 
 ; 默认安装目录
 DefaultDirName={autopf}\大诚重命名工具
@@ -19,7 +19,7 @@ DefaultGroupName=大诚重命名工具
 ; 输出设置
 ; 注意：文件名包含版本号，确保每次版本更新都会生成不同的文件名，从而保留旧版本的安装包
 ; 请确保在更新版本号时同步更新此处的文件名版本号
-OutputBaseFilename=大诚重命名工具_v2.7.0_安装包
+OutputBaseFilename=大诚重命名工具_v2.7.1_安装包
 OutputDir=.\安装包
 ; SetupIconFile=dc.ico
 

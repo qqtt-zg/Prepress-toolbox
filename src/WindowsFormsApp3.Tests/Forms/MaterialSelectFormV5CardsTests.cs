@@ -91,6 +91,7 @@ namespace WindowsFormsApp3.Tests.Forms
                 var copyModeLabel = copyModeField?.GetValue(form) as Label;
                 Assert.NotNull(copyModeLabel);
                 Assert.Equal(serialInput.Parent.Left, copyModeLabel.Parent.Left);
+                Assert.Equal("页序", (copyModeLabel.Parent as InputGroupBox)?.PrefixText);
                 Assert.True(copyModeLabel.Right < copyModeLabel.Parent.ClientSize.Width);
                 Assert.Equal(70, form.BtnOrderNumberMode.Width);
                 form.SelectOrderNumberMode(OrderNumberMode.AutoIncrement);
@@ -136,9 +137,9 @@ namespace WindowsFormsApp3.Tests.Forms
         }
 
         [StaFact]
-        public void PdfPageRepeat_ShouldWorkWithoutImposition_AndPreserveQuantity()
+        public void PdfPageRepeat_ShouldNeverChangeQuantity_EvenWithLegacySetting()
         {
-            AppSettings.AutoFillQuantityForDuplicateLayout = false;
+            AppSettings.Set("AutoFillQuantityForDuplicateLayout", true);
             using (var form = new MaterialSelectFormModern(
                 materials: new List<string> { "PET" },
                 fileName: @"C:\test\PageOrder_80x45mm.pdf",
@@ -158,6 +159,13 @@ namespace WindowsFormsApp3.Tests.Forms
                 var impositionCheckbox = form.Controls.Find("enableImpositionCheckbox", true).Single() as AntdUI.Checkbox;
                 var quantityInput = form.Controls.Find("quantityTextBox", true).Single() as AntdUI.Input;
                 var copyType = form.Controls.Find("copyTypeComboBox", true).Single() as ComboBox;
+                var countPill = typeof(MaterialSelectFormModern).GetField("lblCopyCountPill",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.GetValue(form) as Label;
+                var pageOrderPill = typeof(MaterialSelectFormModern).GetField("lblCopyModePill",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.GetValue(form) as Label;
+                Assert.NotNull(countPill);
+                Assert.NotNull(pageOrderPill);
+                form.Visible = true;
 
                 impositionCheckbox.Checked = false;
                 quantityInput.Text = "1000";
@@ -167,23 +175,76 @@ namespace WindowsFormsApp3.Tests.Forms
                 Assert.Equal(2, form.GetCopyCount());
                 Assert.Equal(0, form.GetDuplicateCount());
                 Assert.Equal("1000", quantityInput.Text);
+                Assert.Equal("2次", countPill.Text);
+                Assert.Equal("逐页 ▾", pageOrderPill.Text);
 
-                copyType.SelectedIndex = 1;
+                var selectPageRepeatType = typeof(MaterialSelectFormModern).GetMethod("SelectPageRepeatType",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                Assert.NotNull(selectPageRepeatType);
+                selectPageRepeatType.Invoke(form, new object[] { CopyType.Duplicate });
+                Assert.Equal(1, copyType.SelectedIndex);
                 Assert.Equal(0, form.GetCopyCount());
                 Assert.Equal(2, form.GetDuplicateCount());
                 Assert.Equal("1000", quantityInput.Text);
+                Assert.Equal("整套 ▾", pageOrderPill.Text);
 
                 repeatCheckbox.Checked = false;
                 Assert.Equal(0, form.GetCopyCount());
                 Assert.Equal(0, form.GetDuplicateCount());
                 Assert.Equal("1000", quantityInput.Text);
 
-                // 已启用的旧设置继续生效，联模式才按联数填充制作数量。
-                AppSettings.AutoFillQuantityForDuplicateLayout = true;
+                // 旧配置即使仍保存为 true，也不再改变制作数量。
                 copyType.SelectedIndex = 0;
-                quantityInput.Text = "1000";
                 repeatCheckbox.Checked = true;
-                Assert.Equal("2", quantityInput.Text);
+                var copyCount = form.Controls.Find("copyCountNumericUpDown", true).Single() as NumericUpDown;
+                copyCount.Value = 3;
+                Assert.Equal("1000", quantityInput.Text);
+                Assert.Equal("3次", countPill.Text);
+
+                var repeatInput = form.Controls.Find("txtCopyCountInput", true).Single() as AntdUI.Input;
+                Assert.NotNull(repeatInput);
+                var beginEdit = typeof(MaterialSelectFormModern).GetMethod("BeginCopyCountEdit",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                var keyDown = typeof(Control).GetMethod("OnKeyDown",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                Assert.NotNull(beginEdit);
+                Assert.NotNull(keyDown);
+                beginEdit.Invoke(form, null);
+                repeatInput.Text = "12";
+                var enter = new KeyEventArgs(Keys.Enter);
+                keyDown.Invoke(repeatInput, new object[] { enter });
+                Assert.True(enter.SuppressKeyPress);
+                Assert.Equal(12, form.GetCopyCount());
+                Assert.Equal("12次", countPill.Text);
+                Assert.False(repeatInput.Visible);
+                beginEdit.Invoke(form, null);
+                repeatInput.Text = "14";
+                keyDown.Invoke(repeatInput, new object[] { new KeyEventArgs(Keys.Escape) });
+                Assert.Equal(12, form.GetCopyCount());
+                beginEdit.Invoke(form, null);
+                repeatInput.Text = "15";
+                typeof(Control).GetMethod("OnLeave", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    .Invoke(repeatInput, new object[] { EventArgs.Empty });
+                Assert.Equal(15, form.GetCopyCount());
+                Assert.True(form.TryApplyPageRepeatCount("12"));
+                foreach (string invalid in new[] { "", "1", "17", "2.5", "abc" })
+                {
+                    Assert.False(form.TryApplyPageRepeatCount(invalid));
+                    Assert.Equal(12, form.GetCopyCount());
+                }
+                Assert.Equal("1000", quantityInput.Text);
+
+                repeatCheckbox.Checked = false;
+                Assert.Equal("1000", quantityInput.Text);
+
+                AppSettings.Set("LastDuplicateLayoutEnabled", true);
+                AppSettings.Set("LastCopyCount", 3);
+                AppSettings.Set("LastCopyType", (int)CopyType.Layout);
+                var restoreMethod = typeof(MaterialSelectFormModern).GetMethod("LoadImpositionControlStates",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                Assert.NotNull(restoreMethod);
+                restoreMethod.Invoke(form, null);
+                Assert.Equal("1000", quantityInput.Text);
             }
         }
 
@@ -487,6 +548,12 @@ namespace WindowsFormsApp3.Tests.Forms
                 Assert.NotNull(groupSidebar);
                 Assert.NotNull(presetDeck);
                 Assert.NotNull(inspector);
+                var copyTypeSelect = typeof(WindowsFormsApp3.Forms.Main.PresetManagementForm)
+                    .GetField("_selCopyType", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    ?.GetValue(manager) as AntdUI.Select;
+                Assert.NotNull(copyTypeSelect);
+                Assert.Contains(copyTypeSelect.Items.Cast<object>(), item => item.ToString() == "逐页重复（1122）");
+                Assert.Contains(copyTypeSelect.Items.Cast<object>(), item => item.ToString() == "整套循环（123123）");
 
                 // 验证窗口高度不超过 620，彻底避免任务栏遮挡
                 Assert.True(manager.Height <= 620);
@@ -525,6 +592,103 @@ namespace WindowsFormsApp3.Tests.Forms
                 Assert.Equal("预设C", AppSettings.MaterialPresets[0].Name);
                 Assert.Equal("预设A", AppSettings.MaterialPresets[1].Name);
                 Assert.Equal("预设B", AppSettings.MaterialPresets[2].Name);
+            }
+        }
+
+        [StaFact]
+        public void DefaultGroup_ShouldSupportRenameAndDeletion_AndNeverReappearAfterReload()
+        {
+            AppSettings.MaterialPresetGroups = new List<string> { "未命名", "常用" };
+            AppSettings.LastSelectedPresetGroup = "未命名";
+            AppSettings.MaterialPresets = new List<MaterialSelectionPreset>
+            {
+                new MaterialSelectionPreset { Name = "默认组预设", GroupName = "未命名" },
+                new MaterialSelectionPreset { Name = "常用预设", GroupName = "常用" }
+            };
+            using (var manager = new WindowsFormsApp3.Forms.Main.PresetManagementForm())
+            {
+                Assert.True(manager.RenamePresetGroup("未命名", "常用标签"));
+                Assert.False(manager.RenamePresetGroup("常用标签", "常用"));
+                Assert.Equal("常用标签", AppSettings.MaterialPresets[0].GroupName);
+                Assert.Equal("常用标签", AppSettings.LastSelectedPresetGroup);
+            }
+            AppSettings.ResetForTesting();
+            AppSettings.Initialize(new FileLogger(Path.Combine(_testRoot, "groups-reopened.log")));
+            using (var manager = new WindowsFormsApp3.Forms.Main.PresetManagementForm())
+            {
+                Assert.Equal(new[] { "常用标签", "常用" }, AppSettings.MaterialPresetGroups);
+                Assert.True(manager.DeletePresetGroup("常用标签"));
+                Assert.Equal(new[] { "常用" }, AppSettings.MaterialPresetGroups);
+                Assert.All(AppSettings.MaterialPresets, preset => Assert.Equal("常用", preset.GroupName));
+                Assert.False(manager.DeletePresetGroup("常用"));
+                Assert.True(manager.RenamePresetGroup("常用", "仅剩分组"));
+            }
+            AppSettings.ResetForTesting();
+            AppSettings.Initialize(new FileLogger(Path.Combine(_testRoot, "groups-final.log")));
+            using (var manager = new WindowsFormsApp3.Forms.Main.PresetManagementForm())
+            {
+                Assert.Equal(new[] { "仅剩分组" }, AppSettings.MaterialPresetGroups);
+                Assert.Equal("仅剩分组", AppSettings.LastSelectedPresetGroup);
+                Assert.False(manager.DeletePresetGroup("仅剩分组"));
+            }
+        }
+
+        [StaFact]
+        public void UnnamedGroup_ShouldBeDeletable_AndPresetsMoveToRemainingGroup()
+        {
+            AppSettings.MaterialPresetGroups = new List<string> { "未命名", "卷装" };
+            AppSettings.MaterialPresets = new List<MaterialSelectionPreset>
+            {
+                new MaterialSelectionPreset { Name = "待转移预设", GroupName = "未命名" }
+            };
+            using (var manager = new WindowsFormsApp3.Forms.Main.PresetManagementForm())
+            {
+                Assert.True(manager.DeletePresetGroup("未命名"));
+                Assert.Equal(new[] { "卷装" }, AppSettings.MaterialPresetGroups);
+                Assert.Equal("卷装", AppSettings.MaterialPresets.Single().GroupName);
+                Assert.False(manager.DeletePresetGroup("卷装"));
+            }
+        }
+
+        [StaFact]
+        public void GroupOrder_ShouldPersist_AndControlV5TabsWithoutReorderingPresets()
+        {
+            AppSettings.MaterialPresetGroups = new List<string> { "组A", "空分组", "组B", "组C" };
+            AppSettings.LastSelectedPresetGroup = "组B";
+            AppSettings.MaterialPresets = new List<MaterialSelectionPreset>
+            {
+                new MaterialSelectionPreset { Name = "预设A", GroupName = "组A", ShowInPresetButtons = true },
+                new MaterialSelectionPreset { Name = "预设C", GroupName = "组C", ShowInPresetButtons = true },
+                new MaterialSelectionPreset { Name = "预设B", GroupName = "组B", ShowInPresetButtons = true }
+            };
+            using (var manager = new WindowsFormsApp3.Forms.Main.PresetManagementForm())
+            {
+                Assert.True(manager.MovePresetGroup("组C", 0));
+                Assert.True(manager.MovePresetGroup("组A", 3));
+                Assert.False(manager.MovePresetGroup("组C", -1));
+                Assert.False(manager.MovePresetGroup("组A", 4));
+                Assert.Equal("组B", AppSettings.LastSelectedPresetGroup);
+                Assert.Equal(new[] { "预设A", "预设C", "预设B" }, AppSettings.MaterialPresets.Select(preset => preset.Name));
+            }
+            AppSettings.ResetForTesting();
+            AppSettings.Initialize(new FileLogger(Path.Combine(_testRoot, "group-order-reopened.log")));
+            using (var manager = new WindowsFormsApp3.Forms.Main.PresetManagementForm())
+            {
+                Assert.Equal(new[] { "组C", "空分组", "组B", "组A" }, AppSettings.MaterialPresetGroups);
+            }
+            using (var form = new MaterialSelectFormModern(
+                materials: new List<string> { "PET" },
+                fileName: @"C:\test\GroupOrder_80x45mm.pdf",
+                regexResult: "GroupOrder", opacity: 1.0, width: "80", height: "45",
+                excelData: null, searchColumnIndex: -1, returnColumnIndex: -1,
+                serialColumnIndex: -1, newColumnIndex: -1, serialNumber: "G01"))
+            {
+                var handle = form.Handle;
+                form.Visible = true;
+                var tabs = form.Controls.Find("tabs1", true).Single() as AntdUI.Tabs;
+                Assert.NotNull(tabs);
+                Assert.Equal(new[] { "组C", "组B", "组A" }, tabs.Pages.Select(page => page.Text));
+                Assert.Equal("组B", tabs.SelectedTab?.Text);
             }
         }
 
@@ -601,7 +765,9 @@ namespace WindowsFormsApp3.Tests.Forms
                 {
                     IsPaperSizeUnlocked = true,
                     PaperWidth = 440,
-                    PaperHeight = 590
+                    PaperHeight = 590,
+                    FlatSheetRotationMode = RollRotationMode.Force0Degree,
+                    RollMaterialRotationMode = RollRotationMode.Force270Degree
                 }
             };
 
@@ -671,6 +837,8 @@ namespace WindowsFormsApp3.Tests.Forms
                 Assert.Contains("440", capsule2.CapsuleText);
                 Assert.Contains("590", capsule2.CapsuleText);
                 Assert.Equal("PP", form2.SelectedMaterial);
+                Assert.Equal(RollRotationMode.Force0Degree, form2.GetTemporaryImpositionParameters().FlatSheetRotationMode);
+                Assert.Equal(RollRotationMode.Force270Degree, form2.GetTemporaryImpositionParameters().RollMaterialRotationMode);
                 var presetPanel = form2.Controls.Find("presetButtonsPanel", true).FirstOrDefault();
                 Assert.NotNull(presetPanel);
                 Assert.All(presetPanel.Controls.OfType<AntdUI.Button>(),

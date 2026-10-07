@@ -432,7 +432,7 @@ namespace WindowsFormsApp3.Services
             }
 
             // 如果没有PDF处理选项，直接使用原有的简单重命名方法
-            if (pdfOptions == null || (!HasPdfPageRepeat(pdfOptions) && !pdfOptions.AddPdfLayers && !pdfOptions.AddIdentifierPage && pdfOptions.RotationAngle == 0 && !(pdfOptions.LayoutMode == LayoutMode.Folding && pdfOptions.LayoutQuantity > 0)))
+            if (pdfOptions == null || (!HasPdfPageRepeat(pdfOptions) && !pdfOptions.AddPdfLayers && pdfOptions.PageBoxSource == PdfPageBoxSource.Automatic && !pdfOptions.AddIdentifierPage && pdfOptions.RotationAngle == 0 && !(pdfOptions.LayoutMode == LayoutMode.Folding && pdfOptions.LayoutQuantity > 0)))
             {
                 LogHelper.Debug("没有PDF处理需求，使用标准重命名方法");
                 return await RenameFileImmediatelyAsync(fileInfo, exportPath, isCopyMode, cancellationToken);
@@ -710,14 +710,14 @@ namespace WindowsFormsApp3.Services
 
                     if (!layersExist)
                     {
-                        // 异步调用AddDotsAddCounterLayer方法处理PDF文件
-#pragma warning disable CS0618 // 禁用过时API警告
+                        // 使用本次材料选择的出血值绘制两条同形轮廓。
                         bool pdfShapeProcessSuccess = await Task.Run(() => pdfService.AddDotsAddCounterLayer(
                             tempFileInfo.FullPath,
                             pdfOptions.FinalDimensions,
-                            pdfOptions.CornerRadius,
-                            pdfOptions.UsePdfLastPage), cancellationToken);
-#pragma warning restore CS0618 // 恢复警告
+                            pdfOptions.ShapeType,
+                            pdfOptions.RoundRadius,
+                            pdfOptions.TetBleed,
+                            pdfOptions.PageBoxSource == PdfPageBoxSource.Automatic), cancellationToken);
 
                         if (pdfShapeProcessSuccess)
                         {
@@ -795,7 +795,7 @@ namespace WindowsFormsApp3.Services
             }
 
             // 如果没有PDF处理选项，直接使用原有的简单重命名方法
-            if (pdfOptions == null || (!HasPdfPageRepeat(pdfOptions) && !pdfOptions.AddPdfLayers && !pdfOptions.AddIdentifierPage && pdfOptions.RotationAngle == 0 && !(pdfOptions.LayoutMode == LayoutMode.Folding && pdfOptions.LayoutQuantity > 0)))
+            if (pdfOptions == null || (!HasPdfPageRepeat(pdfOptions) && !pdfOptions.AddPdfLayers && pdfOptions.PageBoxSource == PdfPageBoxSource.Automatic && !pdfOptions.AddIdentifierPage && pdfOptions.RotationAngle == 0 && !(pdfOptions.LayoutMode == LayoutMode.Folding && pdfOptions.LayoutQuantity > 0)))
             {
                 LogHelper.Debug("没有PDF处理需求，使用标准重命名方法");
                 return RenameFileImmediately(fileInfo, exportPath, isCopyMode);
@@ -1022,13 +1022,9 @@ namespace WindowsFormsApp3.Services
 
                 if (layersExist)
                 {
-                    LogHelper.Debug($"✓ PDF文件已存在所需图层，跳过所有PDF处理步骤: {tempFileInfo.FullPath}");
-                    
-                    // 如果图层已存在，则：
-                    // 1. 跳过页面重排
-                    // 2. 跳过标识页插入（如果存在的话）
-                    // 3. 跳过图层处理
-                    LogHelper.Debug("由于图层已存在，将跳过页面重排及后续所有PDF处理步骤");
+                    LogHelper.Debug(pdfOptions.PageBoxSource == PdfPageBoxSource.Automatic
+                        ? $"✓ PDF文件已存在所需图层，跳过PDF处理: {tempFileInfo.FullPath}"
+                        : $"✓ PDF文件已存在所需图层，仅按用户选择统一页面框: {tempFileInfo.FullPath}");
                     return true; // 返回true表示跳过页面重排
                 }
                 else
@@ -1090,9 +1086,33 @@ namespace WindowsFormsApp3.Services
                 
                 if (skipPageReorganization)
                 {
-                    LogHelper.Debug($"✓ 图层已存在，跳过所有PDF处理步骤: {tempFileInfo.FullPath}");
-                    LogHelper.Debug($"PDF处理完成（跳过模式）: {tempFileInfo.FullPath}");
-                    return true;
+                    if (pdfOptions.PageBoxSource == PdfPageBoxSource.Automatic)
+                    {
+                        LogHelper.Debug($"✓ 图层已存在，跳过所有PDF处理步骤: {tempFileInfo.FullPath}");
+                        LogHelper.Debug($"PDF处理完成（跳过模式）: {tempFileInfo.FullPath}");
+                        return true;
+                    }
+
+                    bool boxSuccess = PdfTools.SetAllPageBoxesToCropBox(tempFileInfo.FullPath,
+                        normalizeDisplayedSize: false,
+                        pageBoxSource: pdfOptions.PageBoxSource,
+                        referencePageNumber: pdfOptions.PageBoxReferencePage);
+                    if (!boxSuccess)
+                        tempFileInfo.ErrorMessage = "按所选媒体框或裁剪框统一页面失败";
+                    return boxSuccess;
+                }
+
+                if (pdfOptions.PageBoxSource != PdfPageBoxSource.Automatic)
+                {
+                    bool pageBoxSuccess = PdfTools.SetAllPageBoxesToCropBox(tempFileInfo.FullPath,
+                        normalizeDisplayedSize: false,
+                        pageBoxSource: pdfOptions.PageBoxSource,
+                        referencePageNumber: pdfOptions.PageBoxReferencePage);
+                    if (!pageBoxSuccess)
+                    {
+                        tempFileInfo.ErrorMessage = "按所选媒体框或裁剪框统一页面失败";
+                        return false;
+                    }
                 }
 
                 //步骤2：标识页插入（在页面重排完成后执行）
@@ -1199,7 +1219,9 @@ namespace WindowsFormsApp3.Services
                         tempFileInfo.FullPath,
                         pdfOptions.FinalDimensions,
                         pdfOptions.ShapeType,
-                        pdfOptions.RoundRadius);
+                        pdfOptions.RoundRadius,
+                        pdfOptions.TetBleed,
+                        pdfOptions.PageBoxSource == PdfPageBoxSource.Automatic);
 
                     if (pdfProcessSuccess)
                     {
@@ -1257,7 +1279,7 @@ namespace WindowsFormsApp3.Services
                     else
                     {
                         LogHelper.Debug($"✗ 一式N联页面复制失败");
-                        tempFileInfo.ErrorMessage = "一式N联页面复制失败";
+                        tempFileInfo.ErrorMessage = "逐页重复PDF页面失败";
 
                         if (File.Exists(nCopyTempFile))
                         {
@@ -1310,7 +1332,7 @@ namespace WindowsFormsApp3.Services
                         else
                         {
                             LogHelper.Debug($"✗ 一式N份页面复制失败");
-                            tempFileInfo.ErrorMessage = "一式N份页面复制失败";
+                            tempFileInfo.ErrorMessage = "整套循环PDF页面失败";
                             if (File.Exists(tempOutputPath))
                             {
                                 try { File.Delete(tempOutputPath); } catch (Exception) { }
@@ -1328,7 +1350,9 @@ namespace WindowsFormsApp3.Services
                 // 最终统一页面框尺寸：保证所有页面输出为同一尺寸
                 // 放在所有形状/复制处理之后，避免后续步骤把页面尺寸再改回去
                 LogHelper.Debug($"=== 最终步骤：统一页面框尺寸 ===");
-                bool finalSetPageBoxesSuccess = PdfTools.SetAllPageBoxesToCropBox(tempFileInfo.FullPath);
+                bool finalSetPageBoxesSuccess = PdfTools.SetAllPageBoxesToCropBox(
+                    tempFileInfo.FullPath,
+                    normalizeDisplayedSize: pdfOptions.AddPdfLayers && pdfOptions.PageBoxSource == PdfPageBoxSource.Automatic);
                 if (!finalSetPageBoxesSuccess)
                 {
                     LogHelper.Debug($"✗ 最终页面统一处理失败: {tempFileInfo.FullPath}");

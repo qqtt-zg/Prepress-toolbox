@@ -268,7 +268,10 @@ namespace WindowsFormsApp3.Models
         /// <summary>
         /// 页面方向不一致
         /// </summary>
-        InconsistentOrientation
+        InconsistentOrientation,
+
+        /// <summary>同一页面的媒体框与裁剪框尺寸或位置不一致。</summary>
+        DifferentPageBoxes
     }
 
     /// <summary>

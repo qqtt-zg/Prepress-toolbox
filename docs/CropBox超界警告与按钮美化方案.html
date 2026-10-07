@@ -1,0 +1,1298 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>V5 · CropBox 超界告警极致空间压缩与极简美化方案</title>
+<style>
+:root {
+  --ink: #1e293b;
+  --text-sub: #64748b;
+  --line: #cbd5e1;
+  --line-light: #e2e8f0;
+  --bg: #f8fafc;
+  --paper: #ffffff;
+  --primary: #1677ff;
+  --primary-light: #e6f4ff;
+  --primary-border: #91caff;
+  --primary-hover: #4096ff;
+  --primary-dark: #0958d9;
+
+  /* 警告色体系 */
+  --warn-bg: #fffbe6;
+  --warn-border: #ffe58f;
+  --warn-text: #d46b08;
+  --warn-dark: #873800;
+  --warn-badge: #fa8c16;
+
+  /* 绿标 */
+  --success-bg: #f6ffed;
+  --success-border: #b7eb8f;
+  --success-text: #389e0d;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 13px/1.5 "Microsoft YaHei UI", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; cursor: pointer; border: none; background: none; }
+button:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+header {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 26px 24px 16px;
+}
+.eyebrow {
+  font: 11px/1.2 Consolas, "JetBrains Mono", monospace;
+  letter-spacing: 1.5px;
+  color: var(--text-sub);
+  text-transform: uppercase;
+}
+h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 8px 0;
+  letter-spacing: -0.5px;
+}
+header p {
+  color: var(--text-sub);
+  font-size: 13.5px;
+  max-width: 950px;
+}
+
+/* 导航切换 Tab */
+.nav-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+.tab-btn {
+  padding: 6px 13px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+.tab-btn:hover {
+  border-color: var(--primary-border);
+  color: var(--primary);
+}
+.tab-btn.active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+.badge-zero {
+  background: #fef08a;
+  color: #854d0e;
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 700;
+}
+.tab-btn.active .badge-zero {
+  background: #eab308;
+  color: #000;
+}
+.badge-rec {
+  background: #e6f4ff;
+  color: #0958d9;
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.tab-btn.active .badge-rec {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+/* 主内容布局 */
+main {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 24px 50px;
+}
+.workspace {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+/* =======================================================
+   工作台容器 (模拟 Windows Forms 360px 宽度真实界面)
+   ======================================================= */
+.station-wrapper {
+  position: sticky;
+  top: 15px;
+}
+.station-frame {
+  width: 360px;
+  background: #ffffff;
+  border: 1px solid #94a3b8;
+  border-radius: 6px;
+  box-shadow: 0 12px 30px -10px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  user-select: none;
+}
+.station-titlebar {
+  height: 27px;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #334155;
+  border-bottom: 1px solid #cbd5e1;
+}
+.station-titlebar .title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+}
+.station-body {
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 窗体公共卡片结构 */
+.w-card {
+  border: 1px solid #dbe2ea;
+  border-radius: 3px;
+  background: #ffffff;
+  padding: 4px;
+}
+
+/* 材料网格 */
+.mat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+}
+.mat-btn {
+  height: 23px;
+  border: 1px solid #e2e8f0;
+  border-radius: 3px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  background: #fff;
+}
+.mat-btn.active {
+  border-color: #80b4ff;
+  color: #1677ff;
+  font-weight: 600;
+  background: #f0f7ff;
+}
+
+/* 路径行 */
+.path-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  padding: 2px 5px;
+}
+.path-row .link {
+  color: #1677ff;
+  font-weight: 500;
+}
+.path-row .btn-dir {
+  border: 1px solid #cbd5e1;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10.5px;
+  color: #475569;
+}
+
+/* 覆膜与形状行 */
+.prop-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+.prop-line:last-child { margin-bottom: 0; }
+.prop-label {
+  width: 26px;
+  color: #64748b;
+  text-align: center;
+}
+.prop-group {
+  flex: 1;
+  display: flex;
+  gap: 3px;
+}
+.prop-btn {
+  flex: 1;
+  height: 21px;
+  border: 1px solid #e2e8f0;
+  border-radius: 3px;
+  font-size: 10.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+}
+.prop-btn.active {
+  border-color: #80b4ff;
+  color: #1677ff;
+  background: #f0f7ff;
+  font-weight: 600;
+}
+
+/* 订单与序号 */
+.order-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+}
+.input-box {
+  display: flex;
+  align-items: center;
+  height: 23px;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  font-size: 11px;
+}
+.input-box .lbl {
+  background: #f8fafc;
+  padding: 0 4px;
+  color: #64748b;
+  border-right: 1px solid #cbd5e1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+.input-box .val {
+  flex: 1;
+  padding: 0 5px;
+  font-weight: 500;
+}
+
+/* =======================================================
+   排版核心参数看板 (基础结构与各融合态)
+   ======================================================= */
+.imposition-card {
+  border: 1px solid #b7cbe4;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f9fbfe;
+  position: relative;
+  transition: all 0.2s ease;
+}
+.imposition-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 5px;
+  background: #ffffff;
+  border-bottom: 1px solid #e1ebf6;
+  gap: 4px;
+}
+.seg-tabs {
+  display: flex;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.seg-tabs span {
+  padding: 1px 5px;
+  font-size: 10.5px;
+  background: #fff;
+  color: #475569;
+}
+.seg-tabs span.active {
+  background: #e6f4ff;
+  color: #0958d9;
+  font-weight: 600;
+}
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  padding: 3px 0 4px;
+  text-align: center;
+}
+.metric-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+.metric-col .title {
+  font-size: 10px;
+  color: #64748b;
+  margin-bottom: 1px;
+}
+.metric-col .num {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* 预设行与底栏操作 */
+.preset-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  padding: 3px 5px;
+}
+.preset-links span {
+  margin-right: 6px;
+  color: #64748b;
+}
+.preset-links span.active {
+  color: #1677ff;
+  border-bottom: 1.5px solid #1677ff;
+  font-weight: 600;
+}
+.preset-tags span {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0 5px;
+  font-size: 9.5px;
+  margin-left: 2px;
+  color: #475569;
+}
+.action-bar {
+  display: flex;
+  gap: 5px;
+  margin-top: 3px;
+}
+.btn-action {
+  height: 26px;
+  border-radius: 3px;
+  font-size: 11.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+}
+.btn-action.primary {
+  background: #1677ff;
+  border-color: #1677ff;
+  color: #ffffff;
+  font-weight: 600;
+  flex: 1.4;
+}
+
+/* =======================================================
+   各方案核心样式实现
+   ======================================================= */
+
+/* --- 1. 【方案 ZERO-1: 看板顶栏融合】(0px 额外占用) --- */
+.impo-head-box-switch {
+  display: flex;
+  align-items: center;
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 3px;
+  padding: 1px 3px;
+  gap: 3px;
+  margin-left: auto;
+  box-shadow: 0 1px 2px rgba(212, 107, 8, 0.08);
+}
+.impo-head-box-switch .warn-tag {
+  color: #d46b08;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.impo-head-box-switch .box-pills {
+  display: flex;
+  border: 1px solid #ffd591;
+  border-radius: 2px;
+  overflow: hidden;
+  background: #fff;
+}
+.impo-head-box-switch .box-pill-btn {
+  font-size: 10px;
+  padding: 0 5px;
+  height: 17px;
+  line-height: 17px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.impo-head-box-switch .box-pill-btn.active {
+  background: #1677ff;
+  color: #ffffff;
+  font-weight: 600;
+}
+.impo-head-box-switch .box-pill-btn.active.media-btn {
+  background: #0958d9;
+}
+
+/* --- 2. 【方案 ZERO-2: 尺寸单元格双基准微控】(0px 额外占用) --- */
+.metric-col.dim-interactive {
+  background: #fffbe6;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px #ffe58f;
+  cursor: pointer;
+  padding-bottom: 2px;
+}
+.metric-col.dim-interactive .dim-warn-badge {
+  position: absolute;
+  top: -4px;
+  right: -3px;
+  background: #fa8c16;
+  color: #fff;
+  font-size: 8px;
+  font-weight: bold;
+  padding: 0 3px;
+  border-radius: 3px;
+  line-height: 11px;
+}
+.metric-col.dim-interactive .dim-switch-pills {
+  display: flex;
+  gap: 1px;
+  background: #ffffff;
+  border: 1px solid #ffd591;
+  border-radius: 2px;
+  margin-top: 1px;
+}
+.metric-col.dim-interactive .dim-p-btn {
+  font-size: 8.5px;
+  padding: 0 2px;
+  line-height: 12px;
+  color: #64748b;
+}
+.metric-col.dim-interactive .dim-p-btn.active {
+  background: #1677ff;
+  color: #fff;
+  border-radius: 1px;
+  font-weight: 600;
+}
+
+/* --- 3. 【方案 NANO-18: 看板内嵌底边缝合微带】(仅 18px 占用) --- */
+.impo-seam-strip {
+  height: 19px;
+  background: #fffbe6;
+  border-top: 1px solid #ffe58f;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  font-size: 10px;
+}
+.impo-seam-strip .strip-label {
+  color: #d46b08;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.impo-seam-strip .strip-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.impo-seam-strip .strip-btn {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 2px;
+  padding: 0 5px;
+  height: 15px;
+  line-height: 14px;
+  font-size: 9.5px;
+  color: #334155;
+  cursor: pointer;
+}
+.impo-seam-strip .strip-btn.active {
+  border-color: #1677ff;
+  background: #e6f4ff;
+  color: #0958d9;
+  font-weight: 600;
+}
+
+/* --- 4. 【方案 MICRO-24: 极窄单行胶囊栏】(仅 24px 占用) --- */
+.box-choice-micro-24 {
+  height: 24px;
+  border: 1px solid #ffd591;
+  border-radius: 4px;
+  background: #fffaf0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  font-size: 11px;
+  box-shadow: 0 1px 2px rgba(250, 140, 22, 0.05);
+}
+.box-choice-micro-24 .micro-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #ad4e00;
+  font-weight: 600;
+}
+.box-choice-micro-24 .micro-diff {
+  font-family: Consolas, monospace;
+  font-size: 9.5px;
+  background: #fff1b8;
+  padding: 0 3px;
+  border-radius: 2px;
+  color: #873800;
+}
+.box-choice-micro-24 .micro-pills {
+  display: flex;
+  gap: 3px;
+}
+.box-choice-micro-24 .micro-pill {
+  height: 18px;
+  padding: 0 6px;
+  border: 1px solid #d9d9d9;
+  border-radius: 3px;
+  background: #fff;
+  font-size: 10px;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.box-choice-micro-24 .micro-pill.active {
+  border-color: #1677ff;
+  background: #e6f4ff;
+  color: #0958d9;
+  font-weight: 600;
+}
+
+/* --- 5. 【方案 A: 智能分段双药丸卡】(54px 占用) --- */
+.box-choice-plan-a {
+  border: 1px solid #ffd591;
+  border-radius: 5px;
+  background: #fffaf0;
+  padding: 5px 6px;
+  box-shadow: 0 1px 3px rgba(250, 140, 22, 0.06);
+}
+.box-choice-plan-a .warn-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  font-size: 11px;
+}
+.box-choice-plan-a .warn-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: #ad4e00;
+}
+.box-choice-plan-a .warn-icon {
+  width: 13px;
+  height: 13px;
+  fill: #fa8c16;
+}
+.box-choice-plan-a .diff-badge {
+  font-size: 10px;
+  background: #fff1b8;
+  color: #873800;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-family: Consolas, monospace;
+}
+.box-choice-plan-a .choice-pills {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.box-choice-plan-a .pill-btn {
+  height: 27px;
+  border-radius: 4px;
+  border: 1px solid #d9d9d9;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  font-size: 11px;
+  color: #334155;
+  transition: all 0.15s ease;
+}
+.box-choice-plan-a .pill-btn.active {
+  border-color: #1677ff;
+  background: #e6f4ff;
+  color: #0958d9;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px #1677ff;
+}
+.box-choice-plan-a .pill-btn .name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.box-choice-plan-a .pill-btn .radio-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid #94a3b8;
+  display: inline-block;
+  background: #fff;
+}
+.box-choice-plan-a .pill-btn.active .radio-dot {
+  border-color: #1677ff;
+  background: #1677ff;
+  box-shadow: inset 0 0 0 1.5px #fff;
+}
+.box-choice-plan-a .pill-btn .dim-text {
+  font-family: Consolas, monospace;
+  font-size: 10px;
+  color: #475569;
+}
+.box-choice-plan-a .pill-btn.active .dim-text {
+  color: #0958d9;
+}
+.box-choice-plan-a .mini-badge-rec {
+  height: 13px;
+  padding: 0 3px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  color: #389e0d;
+  font-size: 8.5px;
+  border-radius: 2px;
+  font-weight: 600;
+  line-height: 12px;
+}
+
+/* --- 6. 【现状还原 (Before)】(84px 占用) --- */
+.box-choice-legacy {
+  border: 1px solid #dbe2ea;
+  border-radius: 3px;
+  background: #ffffff;
+  padding: 5px 6px;
+}
+.box-choice-legacy .legacy-title {
+  font-size: 11.5px;
+  font-weight: bold;
+  color: rgb(191, 93, 18);
+  margin-bottom: 5px;
+  padding-left: 2px;
+}
+.box-choice-legacy .legacy-btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.box-choice-legacy .legacy-btn {
+  height: 26px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d9d9d9;
+  background: #ffffff;
+  color: #1e293b;
+  cursor: pointer;
+}
+.box-choice-legacy .legacy-btn.primary {
+  background: #1677ff;
+  color: #ffffff;
+  border-color: #1677ff;
+  font-weight: 600;
+}
+
+/* =======================================================
+   右侧深度分析区
+   ======================================================= */
+.analysis-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.card-box {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+.card-box h2 {
+  font-size: 16.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-box p {
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.table-spec {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  margin-top: 10px;
+}
+.table-spec th, .table-spec td {
+  padding: 9px 10px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+.table-spec th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+}
+.tag-px {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: Consolas, monospace;
+}
+.tag-px.zero { background: #fef08a; color: #854d0e; }
+.tag-px.tiny { background: #dcfce7; color: #15803d; }
+.tag-px.medium { background: #e0f2fe; color: #0369a1; }
+.tag-px.huge { background: #fee2e2; color: #991b1b; }
+
+pre code {
+  font-family: Consolas, "JetBrains Mono", monospace;
+  font-size: 11.5px;
+  background: #0f172a;
+  color: #f8fafc;
+  display: block;
+  padding: 12px 14px;
+  border-radius: 6px;
+  overflow-x: auto;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+.code-comment { color: #94a3b8; }
+.code-keyword { color: #f472b6; }
+.code-class { color: #38bdf8; }
+.code-str { color: #a7f3d0; }
+
+.toast-msg {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0f172a;
+  color: #ffffff;
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  display: none;
+  z-index: 999;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Prepress Toolbox · Screen Space Optimization · Ultra Compact</div>
+  <h1>CropBox 超界告警极致空间压缩与极简方案</h1>
+  <p>针对 Windows Forms 窗体高度极其敏感（总高度仅约 466px 且 AutoScroll=false）的现状，提出【0px 零高度增量】、【18px 边缝融合】与【24px 极窄单行】等极致简约方案，绝不推挤任何预设与底部操作区。</p>
+
+  <nav class="nav-tabs" role="tablist">
+    <button class="tab-btn active" data-scheme="zero-1" type="button">
+      ⭐ 方案 ZERO-1 · 看板顶栏融合 <span class="badge-zero">+0px 高度</span>
+    </button>
+    <button class="tab-btn" data-scheme="zero-2" type="button">
+      ⭐ 方案 ZERO-2 · 尺寸格联动微控 <span class="badge-zero">+0px 高度</span>
+    </button>
+    <button class="tab-btn" data-scheme="nano-18" type="button">
+      方案 NANO-18 · 看板底边微带 <span class="badge-rec">+18px 高度</span>
+    </button>
+    <button class="tab-btn" data-scheme="micro-24" type="button">
+      方案 MICRO-24 · 极窄单行胶囊 <span class="badge-rec">+24px 高度</span>
+    </button>
+    <button class="tab-btn" data-scheme="plan-a" type="button">
+      方案 A · 智能分段双药丸卡 <span class="badge-rec">+54px 高度</span>
+    </button>
+    <button class="tab-btn" data-scheme="legacy" type="button" style="color:#64748b;">
+      现状 (Before) <span style="font-size:9.5px;color:#ef4444;font-weight:bold;">+84px 严重拥挤</span>
+    </button>
+  </nav>
+</header>
+
+<main>
+  <div class="workspace">
+    <!-- 左侧：1:1 实机模拟窗体工作台 (360px) -->
+    <div class="station-wrapper">
+      <div class="station-frame">
+        <!-- 窗体标题栏 -->
+        <div class="station-titlebar">
+          <span class="title-text">093-07.04.014.000.001-HED-692-30pcs (3)</span>
+          <span style="font-size:12px; color:#64748b;">⌖</span>
+        </div>
+
+        <div class="station-body" id="stationBody">
+          <!-- 1. 材料网格 -->
+          <div class="w-card mat-grid">
+            <span class="mat-btn">ulyy</span>
+            <span class="mat-btn">50#yy</span>
+            <span class="mat-btn">100#yy</span>
+            <span class="mat-btn active">b</span>
+            <span class="mat-btn">kyb</span>
+            <span class="mat-btn">hc</span>
+            <span class="mat-btn">kyhc</span>
+            <span class="mat-btn">tm</span>
+            <span class="mat-btn">kytm</span>
+            <span class="mat-btn">gy</span>
+            <span class="mat-btn">ls</span>
+            <span class="mat-btn">ltb</span>
+            <span class="mat-btn">alb</span>
+            <span class="mat-btn">ltyy</span>
+            <span class="mat-btn">zdb</span>
+            <span class="mat-btn" style="color:#64748b;">更多材料</span>
+          </div>
+
+          <!-- 2. 输出路径 -->
+          <div class="w-card path-row">
+            <span>输出：<b class="link">Desktop</b></span>
+            <span class="btn-dir">📁 切换目录 ▾</span>
+          </div>
+
+          <!-- 3. 覆膜与形状 -->
+          <div class="w-card">
+            <div class="prop-line">
+              <span class="prop-label">覆膜</span>
+              <div class="prop-group">
+                <span class="prop-btn active">光膜</span>
+                <span class="prop-btn">哑膜</span>
+                <span class="prop-btn">红膜</span>
+                <span class="prop-btn">不过膜</span>
+              </div>
+            </div>
+            <div class="prop-line">
+              <span class="prop-label">形状</span>
+              <div class="prop-group">
+                <span class="prop-btn active">直角</span>
+                <span class="prop-btn">圆形</span>
+                <span class="prop-btn">异形</span>
+                <span class="prop-btn">圆角</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. 订单与数量 -->
+          <div class="w-card order-grid">
+            <div class="input-box"><span class="lbl">订单</span><span class="val">测试</span><span style="color:#94a3b8;font-size:10px;padding-right:4px;">无 ▾</span></div>
+            <div class="input-box"><span class="lbl">序号</span><span class="val" style="font-weight:bold;">21</span><span style="color:#94a3b8;font-size:11px;padding-right:4px;">🔍</span></div>
+            <div class="input-box"><span class="lbl">数量</span><span class="val" style="color:#94a3b8;">数量</span><span style="font-weight:bold;padding-right:6px;">0</span></div>
+            <div class="input-box"><span class="lbl">页序</span><span class="val" style="color:#94a3b8;">未启用</span><span style="color:#94a3b8;font-size:10px;padding-right:4px;">逐页 ▾</span></div>
+          </div>
+
+          <!-- ==============================================
+               排版核心参数看板 (包含 ZERO 方案的内部植入)
+               ============================================== -->
+          <div class="imposition-card" id="impositionCard">
+            <!-- 看板头部 -->
+            <div class="imposition-head" id="impositionHead">
+              <div style="background:#1677ff;color:#fff;border-radius:2px;padding:1px 4px;font-size:10px;font-weight:bold;">▧</div>
+              <div style="display:flex;gap:3px;">
+                <div class="seg-tabs"><span class="active">平张</span><span>卷装</span></div>
+                <div class="seg-tabs"><span class="active">连拼</span><span>折手</span></div>
+              </div>
+              <span id="impoHeadRightArea" style="display:flex;align-items:center;">
+                <!-- 方案 ZERO-1 会在此处动态挂载微型切换器 -->
+                <span style="color:#94a3b8;font-size:12px;margin-left:auto;">📄</span>
+              </span>
+            </div>
+
+            <!-- 看板指标网格 -->
+            <div class="metrics-grid">
+              <div class="metric-col"><span class="title">网格</span><span class="num" style="color:#1677ff;">5×6</span></div>
+              <div class="metric-col"><span class="title">布局数</span><span class="num" style="color:#fa8c16;">30</span></div>
+              <div class="metric-col"><span class="title">角度</span><span class="num" style="color:#722ed1;">270<sub style="font-size:8px;border:1px solid #d3adf7;border-radius:3px;padding:0 1px;vertical-align:top;margin-left:1px;">自动</sub></span></div>
+
+              <!-- 尺寸单元格 (方案 ZERO-2 在此处变形) -->
+              <div class="metric-col" id="metricDimCol">
+                <span class="title">尺寸</span>
+                <span class="num" style="color:#0958d9;" id="metricDimText">76×40<sub style="font-size:8px;background:#e6f4ff;color:#1677ff;border-radius:2px;padding:0 2px;">Z</sub></span>
+              </div>
+
+              <div class="metric-col"><span class="title">出血</span><span class="num" style="color:#f5222d;">2</span></div>
+              <div class="metric-col"><span class="title">颜色</span><span class="num" style="color:#1e293b;">黑白</span></div>
+            </div>
+
+            <!-- 方案 NANO-18 底边微带挂载点 -->
+            <div id="impoSeamContainer"></div>
+          </div>
+
+          <!-- ==============================================
+               外部独立警示区 (挂载独立方案 NANO-24 / A / Legacy)
+               ============================================== -->
+          <div id="externalWarningContainer"></div>
+
+          <!-- 6. 预设标签行 -->
+          <div class="w-card preset-bar">
+            <div class="preset-links">
+              <span>未命名</span>
+              <span>威立德</span>
+              <span class="active">前台</span>
+            </div>
+            <div class="preset-tags">
+              <span>● 一刀</span>
+              <span>● 前连拼</span>
+            </div>
+          </div>
+
+          <!-- 7. 底部操作按钮 -->
+          <div class="action-bar">
+            <button class="btn-action" style="flex:1;">← 批量处理</button>
+            <button class="btn-action" style="width:48px;">取消</button>
+            <button class="btn-action primary">确认并继续</button>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#94a3b8;padding:1px 2px 0;">
+            <span>页码：—</span>
+            <span>▼ 点击展开预览</span>
+          </div>
+
+        </div>
+      </div>
+      <p style="text-align:center; font-size:11px; color:#64748b; margin-top:8px;">
+        💡 实机高度监视：当前增量 <strong id="heightBadge" style="color:#16a34a;">+0 px</strong>（完全不产生滚动）
+      </p>
+    </div>
+
+    <!-- 右侧：方案深度解析 -->
+    <div class="analysis-panel">
+      <!-- 核心理念 -->
+      <section class="card-box">
+        <h2>
+          <span>为什么追求“极致空间占用”对本窗体至关重要？</span>
+          <span style="font-size:12px; color:#0284c7;">AutoScroll=false 严格受限架构</span>
+        </h2>
+        <p>
+          在当前项目架构中，<code>pnlStationContent</code> 采用 <code>FlowLayoutPanel(WrapContents=false, AutoScroll=false)</code>，固定总高度仅 <strong>466px</strong>。原版的 <code>pnlPageBoxChoiceCard</code> 强行塞入 <strong>84px</strong>，直接导致下方的预设卡片和主操作按钮被推到视窗底边缘外！
+        </p>
+        <p style="margin-top:8px;">
+          因此，<strong>“0px 额外占用”或“极致单行微带（18~24px）”</strong>是最具工程价值的方案——它让异常状态下的基准切换像“原生自带”一样安静优雅，不引发任何界面跳动。
+        </p>
+      </section>
+
+      <!-- 极致方案对比表格 -->
+      <section class="card-box">
+        <h2>极致空间方案全景对比</h2>
+        <table class="table-spec">
+          <thead>
+            <tr>
+              <th>方案</th>
+              <th>垂直增量</th>
+              <th>实现原理</th>
+              <th>印前操作便利性</th>
+              <th>推荐场景</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="background:#fefce8;">
+              <td><strong>⭐ 方案 ZERO-1<br>看板顶栏融合</strong></td>
+              <td><span class="tag-px zero">+0 px</span></td>
+              <td>借用看板顶栏 <code>[连拼 折手]</code> 右侧原本多余的空白区，放入 <code>⚠ [媒|裁]</code> 微型分段开关</td>
+              <td>一目了然，手眼路径极短，与平张/卷装同一水平线</td>
+              <td><strong style="color:#854d0e;">极力推荐！最佳工程平衡</strong></td>
+            </tr>
+            <tr style="background:#fefce8;">
+              <td><strong>⭐ 方案 ZERO-2<br>尺寸格联动微控</strong></td>
+              <td><span class="tag-px zero">+0 px</span></td>
+              <td>尺寸本身就是受影响的核心指标，在尺寸格上方加入橙色微角标，下方内嵌 <code>媒/裁</code> 微切</td>
+              <td>最符合印前直觉（“尺寸怎么变了？直接点这里切换”）</td>
+              <td><strong>喜欢指标一体化交互的用户</strong></td>
+            </tr>
+            <tr>
+              <td><strong>方案 NANO-18<br>看板底边微带</strong></td>
+              <td><span class="tag-px tiny">+18 px</span></td>
+              <td>作为排版看板的内置 Footer 缝合在底边，仅高 18px</td>
+              <td>带明确的超差数值显示（如 <code>+0.09mm</code>）</td>
+              <td>需要清晰看到超差数值的场景</td>
+            </tr>
+            <tr>
+              <td><strong>方案 MICRO-24<br>极窄单行胶囊</strong></td>
+              <td><span class="tag-px tiny">+24 px</span></td>
+              <td>独立单行卡片，高仅 24px，左告警右双药丸</td>
+              <td>比原版 84px 省下 60px 垂直空间</td>
+              <td>需要完全独立容器但要求极窄</td>
+            </tr>
+            <tr>
+              <td><strong>方案 A (前版)<br>智能分段双药丸卡</strong></td>
+              <td><span class="tag-px medium">+54 px</span></td>
+              <td>上方标题栏，下方横向双药丸按钮</td>
+              <td>信息完整，包含大字号尺寸与超差计算</td>
+              <td>大屏幕或允许窗口拉高的场景</td>
+            </tr>
+            <tr>
+              <td><strong>现状 (Before)</strong></td>
+              <td><span class="tag-px huge">+84 px</span></td>
+              <td>单列上下纵向堆叠两个 324px 全宽大按钮</td>
+              <td>严重推挤下方预设与确定按钮</td>
+              <td>❌ 需立即重构淘汰</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ZERO-1 落地代码 -->
+      <section class="card-box">
+        <h2>落地代码指引：方案 ZERO-1（0px 增量）如何写？</h2>
+        <p>
+          在现有的 <code>BuildImpositionDashboardCard()</code> 中，头部容器已包含 <code>pnlModeButtons</code>。只需在其右侧添加一个微型的 <code>pnlBoxChoiceMini</code>：
+        </p>
+
+        <pre><code><span class="code-comment">// 在 BuildImpositionDashboardCard() 中构建顶栏右侧的微型页框切换器 (0px 额外高度增量)</span>
+<span class="code-keyword">private void</span> <span class="code-class">SetupPageBoxMiniSwitchInDashboard</span>(<span class="code-class">Panel</span> pnlHead)
+{
+    pnlBoxChoiceMini = <span class="code-keyword">new</span> <span class="code-class">Panel</span>
+    {
+        Name = <span class="code-str">"pnlBoxChoiceMini"</span>,
+        Size = <span class="code-keyword">new</span> <span class="code-class">Size</span>(132, 20),
+        Location = <span class="code-keyword">new</span> <span class="code-class">Point</span>(205, 3), <span class="code-comment">// 位于 [连拼 折手] 按钮组右侧的空白区域</span>
+        BackColor = <span class="code-class">Color</span>.FromArgb(255, 251, 230), <span class="code-comment">// 浅琥珀警告色</span>
+        Visible = <span class="code-keyword">false</span> <span class="code-comment">// 默认隐藏，仅当超界时才显示</span>
+    };
+
+    <span class="code-comment">// 微型分段按钮组: 媒体框 / 裁剪框</span>
+    btnMiniMedia = CreateMiniBoxButton(<span class="code-str">"媒 80"</span>, isMedia: <span class="code-keyword">true</span>);
+    btnMiniCrop  = CreateMiniBoxButton(<span class="code-str">"裁 80.1"</span>, isMedia: <span class="code-keyword">false</span>);
+
+    pnlBoxChoiceMini.Controls.Add(btnMiniMedia);
+    pnlBoxChoiceMini.Controls.Add(btnMiniCrop);
+    pnlHead.Controls.Add(pnlBoxChoiceMini);
+}
+
+<span class="code-comment">// 当检测到超界时，仅需更新文本并设为 Visible = true，完全不改动 pnlStationContent！</span>
+<span class="code-keyword">internal void</span> <span class="code-class">UpdatePageBoxChoiceFromInspection</span>(<span class="code-class">PdfInspectorInfo</span> inspection)
+{
+    <span class="code-keyword">if</span> (page?.MediaBox == <span class="code-keyword">null</span> || page.CropBox == <span class="code-keyword">null</span>)
+    {
+        pnlBoxChoiceMini.Visible = <span class="code-keyword">false</span>;
+        <span class="code-keyword">return</span>;
+    }
+
+    btnMiniMedia.Text = $<span class="code-str">"媒 {Math.Round(page.MediaBox.Width * 25.4 / 72)}"</span>;
+    btnMiniCrop.Text  = $<span class="code-str">"裁 {Math.Round(page.CropBox.Width * 25.4 / 72, 1)}"</span>;
+    pnlBoxChoiceMini.Visible = <span class="code-keyword">true</span>;
+}</code></pre>
+      </section>
+    </div>
+  </div>
+</main>
+
+<div class="toast-msg" id="toast">已切换选项</div>
+
+<script>
+let currentScheme = 'zero-1';
+let selectedSource = 'MediaBox';
+
+let mediaW = 80.0, mediaH = 44.0;
+let cropW  = 80.09, cropH = 44.19;
+
+function selectSource(src) {
+  selectedSource = src;
+  renderScheme(currentScheme);
+  showToast(`已切换为【${src === 'MediaBox' ? '媒体框 MediaBox (推荐规范)' : '裁剪框 CropBox (扩展全部)'}】`);
+}
+
+function showToast(text) {
+  const toast = document.getElementById('toast');
+  toast.textContent = text;
+  toast.style.display = 'block';
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => { toast.style.display = 'none'; }, 1600);
+}
+
+function renderScheme(scheme) {
+  currentScheme = scheme;
+
+  const headRightArea = document.getElementById('impoHeadRightArea');
+  const metricDimCol = document.getElementById('metricDimCol');
+  const metricDimText = document.getElementById('metricDimText');
+  const impoSeamContainer = document.getElementById('impoSeamContainer');
+  const externalContainer = document.getElementById('externalWarningContainer');
+  const heightBadge = document.getElementById('heightBadge');
+
+  // 复位各挂载点
+  headRightArea.innerHTML = '<span style="color:#94a3b8;font-size:12px;margin-left:auto;">📄</span>';
+  metricDimCol.className = 'metric-col';
+  metricDimText.innerHTML = `76×40<sub style="font-size:8px;background:#e6f4ff;color:#1677ff;border-radius:2px;padding:0 2px;">Z</sub>`;
+  impoSeamContainer.innerHTML = '';
+  externalContainer.innerHTML = '';
+
+  const mediaLabel = `${Math.round(mediaW)}×${Math.round(mediaH)}`;
+  const cropLabel  = `${cropW.toFixed(1)}×${cropH.toFixed(1)}`;
+  const diffStr    = `+${(cropW - mediaW).toFixed(2)}×${(cropH - mediaH).toFixed(2)}`;
+
+  if (scheme === 'zero-1') {
+    // 方案 ZERO-1: 顶栏融合 (0px)
+    heightBadge.textContent = '+0 px (零高度增量)';
+    heightBadge.style.color = '#15803d';
+
+    headRightArea.innerHTML = `
+      <div class="impo-head-box-switch" title="第1页页框超界，超差 ${diffStr} mm">
+        <span class="warn-tag">⚠</span>
+        <div class="box-pills">
+          <button type="button" class="box-pill-btn media-btn ${selectedSource === 'MediaBox' ? 'active' : ''}" onclick="selectSource('MediaBox')">
+            媒 ${mediaLabel}
+          </button>
+          <button type="button" class="box-pill-btn ${selectedSource === 'CropBox' ? 'active' : ''}" onclick="selectSource('CropBox')">
+            裁 ${cropLabel}
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  else if (scheme === 'zero-2') {
+    // 方案 ZERO-2: 尺寸格联动微控 (0px)
+    heightBadge.textContent = '+0 px (零高度增量)';
+    heightBadge.style.color = '#15803d';
+
+    metricDimCol.className = 'metric-col dim-interactive';
+    metricDimCol.title = `第1页 CropBox 超出 MediaBox (${diffStr}mm)，点击切换基准`;
+    const curDim = selectedSource === 'MediaBox' ? mediaLabel : cropLabel;
+    metricDimText.innerHTML = `
+      <span class="dim-warn-badge">⚠超差</span>
+      <span style="font-size:11.5px;font-weight:bold;color:${selectedSource === 'MediaBox' ? '#0958d9' : '#d46b08'};">${curDim}</span>
+      <div class="dim-switch-pills">
+        <span class="dim-p-btn ${selectedSource === 'MediaBox' ? 'active' : ''}" onclick="event.stopPropagation();selectSource('MediaBox')">媒</span>
+        <span class="dim-p-btn ${selectedSource === 'CropBox' ? 'active' : ''}" onclick="event.stopPropagation();selectSource('CropBox')">裁</span>
+      </div>
+    `;
+  }
+  else if (scheme === 'nano-18') {
+    // 方案 NANO-18: 看板底边缝合微带 (18px)
+    heightBadge.textContent = '+18 px (仅增加 18px 边缝)';
+    heightBadge.style.color = '#16a34a';
+
+    impoSeamContainer.innerHTML = `
+      <div class="impo-seam-strip">
+        <span class="strip-label">⚠ 超界 ${diffStr}mm</span>
+        <div class="strip-actions">
+          <button type="button" class="strip-btn ${selectedSource === 'MediaBox' ? 'active' : ''}" onclick="selectSource('MediaBox')">
+            ● 媒体框 ${mediaLabel}
+          </button>
+          <button type="button" class="strip-btn ${selectedSource === 'CropBox' ? 'active' : ''}" onclick="selectSource('CropBox')">
+            ○ 裁剪框 ${cropLabel}
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  else if (scheme === 'micro-24') {
+    // 方案 MICRO-24: 极窄单行胶囊栏 (24px)
+    heightBadge.textContent = '+24 px (独立单行)';
+    heightBadge.style.color = '#0284c7';
+
+    externalContainer.innerHTML = `
+      <div class="box-choice-micro-24">
+        <div class="micro-left">
+          <span>⚠ 超差 ${diffStr}</span>
+        </div>
+        <div class="micro-pills">
+          <button type="button" class="micro-pill ${selectedSource === 'MediaBox' ? 'active' : ''}" onclick="selectSource('MediaBox')">
+            ● 媒体框 ${mediaLabel}
+          </button>
+          <button type="button" class="micro-pill ${selectedSource === 'CropBox' ? 'active' : ''}" onclick="selectSource('CropBox')">
+            ○ 裁剪框 ${cropLabel}
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  else if (scheme === 'plan-a') {
+    // 方案 A: 54px 紧凑双药丸卡
+    heightBadge.textContent = '+54 px (独立卡片)';
+    heightBadge.style.color = '#d97706';
+
+    externalContainer.innerHTML = `
+      <div class="box-choice-plan-a">
+        <div class="warn-header">
+          <div class="warn-title">
+            <svg class="warn-icon" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v304c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 496c-26.5 0-48-21.5-48-48s21.5-48 48-48 48 21.5 48 48-21.5 48-48 48z"/></svg>
+            <span>第1页页框超界 · 统一基准</span>
+          </div>
+          <span class="diff-badge">超差 ${diffStr} mm</span>
+        </div>
+        <div class="choice-pills">
+          <button type="button" class="pill-btn ${selectedSource === 'MediaBox' ? 'active' : ''}" onclick="selectSource('MediaBox')">
+            <span class="name-wrap">
+              <span class="radio-dot"></span>
+              <span>媒体框</span>
+              <span class="mini-badge-rec">规范</span>
+            </span>
+            <span class="dim-text">${mediaLabel} mm</span>
+          </button>
+          <button type="button" class="pill-btn ${selectedSource === 'CropBox' ? 'active' : ''}" onclick="selectSource('CropBox')">
+            <span class="name-wrap">
+              <span class="radio-dot"></span>
+              <span>裁剪框</span>
+            </span>
+            <span class="dim-text">${cropLabel}</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  else if (scheme === 'legacy') {
+    // 现状 84px
+    heightBadge.textContent = '+84 px (原版严重挤压)';
+    heightBadge.style.color = '#dc2626';
+
+    externalContainer.innerHTML = `
+      <div class="box-choice-legacy">
+        <div class="legacy-title">第1页 CropBox 超出 MediaBox · 已选${selectedSource === 'MediaBox' ? '媒体框' : '裁剪框'}</div>
+        <div class="legacy-btn-group">
+          <button type="button" class="legacy-btn ${selectedSource === 'MediaBox' ? 'primary' : ''}" onclick="selectSource('MediaBox')">
+            媒体框 MediaBox  ${mediaW.toFixed(4)} × ${mediaH.toFixed(4)} mm
+          </button>
+          <button type="button" class="legacy-btn ${selectedSource === 'CropBox' ? 'primary' : ''}" onclick="selectSource('CropBox')">
+            裁剪框 CropBox  ${cropW.toFixed(4)} × ${cropH.toFixed(4)} mm
+          </button>
+        </div>
+      </div>
+    `;
+  }
+}
+
+// 绑定导航事件
+document.querySelectorAll('.tab-btn[data-scheme]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn[data-scheme]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderScheme(btn.dataset.scheme);
+  });
+});
+
+// 默认渲染 ZERO-1
+renderScheme('zero-1');
+</script>
+
+</body>
+</html>

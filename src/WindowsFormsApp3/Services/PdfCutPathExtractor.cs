@@ -2,15 +2,21 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using PdfMatrix = iText.Kernel.Geom.Matrix;
 using iText.Kernel.Pdf;
+using iText.Kernel.Pdf.Canvas.Parser;
+using iText.Kernel.Pdf.Canvas.Parser.Data;
+using iText.Kernel.Pdf.Canvas.Parser.Listener;
 using WindowsFormsApp3.Utils;
 
 namespace WindowsFormsApp3.Services
 {
     /// <summary>
     /// PDF裁切路径提取器 - 从PDF最后一页提取裁切路径
-    /// 支持的颜色操作符：K(CMYK)、RG(RGB)、G(灰度)、CS+SCN(命名颜色空间)
-    /// 裁切路径坐标已在CropBox可视区域空间中，无需额外坐标变换
+    /// 使用PDF内容解析器读取描边路径，并应用完整的当前变换矩阵。
     /// </summary>
     public static class PdfCutPathExtractor
     {
@@ -27,12 +33,101 @@ namespace WindowsFormsApp3.Services
                 {
                     if (doc.GetNumberOfPages() < 2) return false;
                     var lastPage = doc.GetPage(doc.GetNumberOfPages());
-                    float[] bounds;
-                    byte[] pathBytes = ExtractAndConvertCutPath(lastPage, doc, out bounds);
-                    return pathBytes != null && pathBytes.Length > 0;
+                    using (var cutPath = ExtractClosedCutPath(lastPage))
+                    {
+                        return PdfBleedPathOffsetter.CanOffset(cutPath);
+                    }
                 }
             }
             catch (Exception ex) { LogHelper.Debug("CanExtractCutPathFromLastPage: " + ex.Message); return false; }
+        }
+
+        /// <summary>
+        /// 用 PDF 内容解析器识别完整绘图指令和变换矩阵；有歧义的模板页不猜测裁切线。
+        /// </summary>
+        internal static GraphicsPath ExtractClosedCutPath(PdfPage page)
+        {
+            if (page == null) return null;
+            var listener = new ClosedCutPathListener();
+            try
+            {
+                new PdfCanvasProcessor(listener).ProcessPageContent(page);
+                return listener.TakeOnlyPath();
+            }
+            finally
+            {
+                listener.Dispose();
+            }
+        }
+
+        private sealed class ClosedCutPathListener : IEventListener, IDisposable
+        {
+            private readonly List<GraphicsPath> _paths = new List<GraphicsPath>();
+
+            public ICollection<EventType> GetSupportedEvents()
+            {
+                return new[] { EventType.RENDER_PATH };
+            }
+
+            public void EventOccurred(IEventData data, EventType type)
+            {
+                if (type != EventType.RENDER_PATH || !(data is PathRenderInfo renderInfo) ||
+                    (renderInfo.GetOperation() & PathRenderInfo.STROKE) == 0 || renderInfo.IsPathModifiesClippingPath())
+                    return;
+
+                var subpaths = renderInfo.GetPath().GetSubpaths().Where(path => path.GetSegments().Count > 0 && !path.IsDegenerate()).ToList();
+                if (subpaths.Count != 1 || !subpaths[0].IsClosed()) return;
+                var graphicsPath = new GraphicsPath();
+                try
+                {
+                    var matrix = renderInfo.GetCtm();
+                    foreach (var segment in subpaths[0].GetSegments())
+                    {
+                        var points = segment.GetBasePoints();
+                        if (points.Count == 2)
+                        {
+                            graphicsPath.AddLine(Transform(points[0], matrix), Transform(points[1], matrix));
+                        }
+                        else if (points.Count == 4)
+                        {
+                            graphicsPath.AddBezier(Transform(points[0], matrix), Transform(points[1], matrix),
+                                Transform(points[2], matrix), Transform(points[3], matrix));
+                        }
+                        else
+                        {
+                            return;
+                        }
+                    }
+                    graphicsPath.CloseFigure();
+                    _paths.Add(graphicsPath);
+                    graphicsPath = null;
+                }
+                finally
+                {
+                    graphicsPath?.Dispose();
+                }
+            }
+
+            private static PointF Transform(iText.Kernel.Geom.Point point, PdfMatrix matrix)
+            {
+                double x = point.GetX(), y = point.GetY();
+                return new PointF((float)(x * matrix.Get(PdfMatrix.I11) + y * matrix.Get(PdfMatrix.I21) + matrix.Get(PdfMatrix.I31)),
+                    (float)(x * matrix.Get(PdfMatrix.I12) + y * matrix.Get(PdfMatrix.I22) + matrix.Get(PdfMatrix.I32)));
+            }
+
+            public GraphicsPath TakeOnlyPath()
+            {
+                if (_paths.Count != 1) return null;
+                GraphicsPath result = _paths[0];
+                _paths.Clear();
+                return result;
+            }
+
+            public void Dispose()
+            {
+                foreach (var path in _paths) path.Dispose();
+                _paths.Clear();
+            }
         }
 
         /// <summary>

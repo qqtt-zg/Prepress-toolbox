@@ -1117,12 +1117,12 @@ namespace WindowsFormsApp3.Forms.Main
             var uLayout = CreateFieldUnit("排版模式", _selLayoutMode, PresetIgnoreOptions.LayoutMode, 216, 52);
             uLayout.Location = new Point(238, 94);
 
-            // 整行全宽: 一式N联拼版与参数子面板 (常态呈现完整功能，消灭空白区域)
+            // 整行全宽：PDF 页序复制与参数子面板。
             var pnlDualWrap = new Panel { Location = new Point(12, 154), Size = new Size(440, 78) };
             var pnlDualTop = new Panel { Dock = DockStyle.Top, Height = 22, BackColor = Color.Transparent };
             _chkIsDualCopy = new CheckBox
             {
-                Text = "开启一式N联拼版",
+                Text = "启用PDF页序复制",
                 Location = new Point(0, 0),
                 AutoSize = true,
                 Font = new Font("Microsoft YaHei UI", 8.5F, FontStyle.Bold),
@@ -1149,7 +1149,7 @@ namespace WindowsFormsApp3.Forms.Main
             pnlDualTop.Controls.Add(_chkIsDualCopy);
             pnlDualTop.Controls.Add(lDual);
 
-            // 一式N联参数面板 (3列) - 常态呈现，禁用时置灰，消除空白断层
+            // 页序复制参数面板：禁用时置灰。
             _pnlDualCopySub = new Panel
             {
                 Location = new Point(0, 24),
@@ -1164,17 +1164,17 @@ namespace WindowsFormsApp3.Forms.Main
                     e.Graphics.DrawPath(pen, path);
             };
 
-            // 联数
-            var lblC1 = new Label { Text = "联数 (份数):", Location = new Point(8, 6), AutoSize = true, Font = new Font("Microsoft YaHei UI", 7.5F), ForeColor = TextMutedColor };
+            // 重复次数
+            var lblC1 = new Label { Text = "重复次数:", Location = new Point(8, 6), AutoSize = true, Font = new Font("Microsoft YaHei UI", 7.5F), ForeColor = TextMutedColor };
             _numCopyCount = new AntdUI.InputNumber { Location = new Point(8, 22), Size = new Size(134, 24), Radius = 3, Value = 2M, Minimum = 2M, Maximum = 16M, Enabled = false };
 
-            // 类型
-            var lblC2 = new Label { Text = "一式类型:", Location = new Point(152, 6), AutoSize = true, Font = new Font("Microsoft YaHei UI", 7.5F), ForeColor = TextMutedColor };
+            // 页序方式
+            var lblC2 = new Label { Text = "页序方式:", Location = new Point(152, 6), AutoSize = true, Font = new Font("Microsoft YaHei UI", 7.5F), ForeColor = TextMutedColor };
             _selCopyType = new AntdUI.Select { Location = new Point(152, 22), Size = new Size(134, 24), Radius = 3, Font = new Font("Microsoft YaHei UI", 8F), Enabled = false };
-            _selCopyType.Items.AddRange(new object[] { "联", "份" });
+            _selCopyType.Items.AddRange(new object[] { "逐页重复（1122）", "整套循环（123123）" });
 
             // 方向
-            var lblC3 = new Label { Text = "倍数方向:", Location = new Point(296, 6), AutoSize = true, Font = new Font("Microsoft YaHei UI", 7.5F), ForeColor = TextMutedColor };
+            var lblC3 = new Label { Text = "自动排版方向:", Location = new Point(296, 6), AutoSize = true, Font = new Font("Microsoft YaHei UI", 7.5F), ForeColor = TextMutedColor };
             _selCopyMode = new AntdUI.Select { Location = new Point(296, 22), Size = new Size(136, 24), Radius = 3, Font = new Font("Microsoft YaHei UI", 8F), Enabled = false };
             _selCopyMode.Items.AddRange(new object[] { "自适应列", "自适应行", "不旋转列", "不旋转行" });
 
@@ -1697,50 +1697,32 @@ namespace WindowsFormsApp3.Forms.Main
         private void LoadPresets()
         {
             _presets = AppSettings.MaterialPresets ?? new List<MaterialSelectionPreset>();
-            foreach (var p in _presets)
-            {
-                if (string.IsNullOrWhiteSpace(p.GroupName))
-                    p.GroupName = "未命名";
-            }
-
-            // 初始化真实用户分组列表（默认只有“未命名”）
-            _groups = new List<string> { "未命名" };
-
-            // 从配置中加载已保存的用户自定义分组（严格剔除 HTML 示例假分组）
-            var savedGroups = AppSettings.MaterialPresetGroups ?? new List<string>();
-            foreach (var g in savedGroups)
-            {
-                if (string.IsNullOrWhiteSpace(g)) continue;
-                string trim = g.Trim();
-                if (IsMockGroup(trim)) continue;
-                if (!_groups.Contains(trim, StringComparer.OrdinalIgnoreCase))
-                    _groups.Add(trim);
-            }
-
-            // 从已有预设中自动汇总分组（同样清除假数据归入未命名）
-            foreach (var p in _presets)
-            {
-                if (IsMockGroup(p.GroupName))
-                    p.GroupName = "未命名";
-
-                if (!_groups.Contains(p.GroupName, StringComparer.OrdinalIgnoreCase))
-                    _groups.Add(p.GroupName);
-            }
-
-            string lastGroup = AppSettings.LastSelectedPresetGroup ?? "未命名";
-            _activeGroupName = _groups.Contains(lastGroup, StringComparer.OrdinalIgnoreCase) ? lastGroup : "未命名";
-
-            AppSettings.MaterialPresetGroups = _groups;
-            AppSettings.Save();
+            NormalizePresetGroups(AppSettings.MaterialPresetGroups);
+            SaveAllPresetsToStorage();
 
             LoadMaterialsToInspector();
             RefreshGroupSidebar();
             RefreshAllPresetDecks();
         }
 
-        private static bool IsMockGroup(string groupName)
+        private void NormalizePresetGroups(IEnumerable<string> savedGroups)
         {
-            return groupName == "常用标签" || groupName == "卷装专区" || groupName == "特种模切";
+            _groups = (savedGroups ?? Enumerable.Empty<string>())
+                .Where(group => !string.IsNullOrWhiteSpace(group))
+                .Select(group => group.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            foreach (var preset in _presets)
+            {
+                if (!string.IsNullOrWhiteSpace(preset.GroupName) &&
+                    !_groups.Contains(preset.GroupName.Trim(), StringComparer.OrdinalIgnoreCase))
+                    _groups.Add(preset.GroupName.Trim());
+            }
+            if (_groups.Count == 0) _groups.Add("未命名");
+            foreach (var preset in _presets)
+                preset.GroupName = string.IsNullOrWhiteSpace(preset.GroupName) ? _groups[0] :
+                    _groups.First(group => string.Equals(group, preset.GroupName.Trim(), StringComparison.OrdinalIgnoreCase));
+            _activeGroupName = _groups.FirstOrDefault(group =>
+                string.Equals(group, AppSettings.LastSelectedPresetGroup, StringComparison.OrdinalIgnoreCase)) ?? _groups[0];
         }
 
         private void LoadMaterialsToInspector()
@@ -1764,9 +1746,16 @@ namespace WindowsFormsApp3.Forms.Main
             _flpGroupList.SuspendLayout();
             _flpGroupList.Controls.Clear();
 
-            _cmbGroupName.Items.Clear();
-            foreach (var g in _groups) _cmbGroupName.Items.Add(g);
-            _cmbGroupName.Items.Add("＋新建组...");
+            bool wasUpdatingUi = _isUpdatingUi;
+            _isUpdatingUi = true;
+            try
+            {
+                _cmbGroupName.Items.Clear();
+                foreach (var g in _groups) _cmbGroupName.Items.Add(g);
+                _cmbGroupName.Items.Add("＋新建组...");
+                _cmbGroupName.Text = _activePreset?.GroupName ?? _activeGroupName;
+            }
+            finally { _isUpdatingUi = wasUpdatingUi; }
 
             foreach (var groupName in _groups)
             {
@@ -1871,72 +1860,88 @@ namespace WindowsFormsApp3.Forms.Main
         private void ShowGroupContextMenu(string groupName, Control anchor, Point pt)
         {
             var cms = new ContextMenuStrip();
-            if (groupName == "未命名")
-            {
-                var item = cms.Items.Add("默认基础分组不可修改或删除");
-                item.Enabled = false;
-                cms.Show(anchor, pt);
-                return;
-            }
-
+            int groupIndex = _groups.FindIndex(group => string.Equals(group, groupName, StringComparison.OrdinalIgnoreCase));
+            cms.Items.Add("上移分组", null, (s, e) => MovePresetGroup(groupName, groupIndex - 1)).Enabled = groupIndex > 0;
+            cms.Items.Add("下移分组", null, (s, e) => MovePresetGroup(groupName, groupIndex + 1)).Enabled = groupIndex >= 0 && groupIndex < _groups.Count - 1;
+            cms.Items.Add("置顶分组", null, (s, e) => MovePresetGroup(groupName, 0)).Enabled = groupIndex > 0;
+            cms.Items.Add("置底分组", null, (s, e) => MovePresetGroup(groupName, _groups.Count - 1)).Enabled = groupIndex >= 0 && groupIndex < _groups.Count - 1;
+            cms.Items.Add(new ToolStripSeparator());
             cms.Items.Add("✏️ 重命名分组", null, (s, e) =>
             {
                 string newName = PromptInput("重命名分组", "请输入新分组名称:", groupName);
                 if (string.IsNullOrWhiteSpace(newName)) return;
-                newName = newName.Trim();
-                if (newName == groupName) return;
-
-                if (_groups.Any(g => g.Equals(newName, StringComparison.OrdinalIgnoreCase)))
+                if (!RenamePresetGroup(groupName, newName))
                 {
-                    AntdUI.Message.error(this, $"已存在名为【{newName}】的分组！");
+                    AntdUI.Message.error(this, "分组名称已存在或原分组不存在");
                     return;
                 }
-
-                int idx = _groups.IndexOf(groupName);
-                if (idx >= 0) _groups[idx] = newName;
-
-                foreach (var p in _presets)
-                {
-                    if (p.GroupName == groupName) p.GroupName = newName;
-                }
-
-                if (_activeGroupName == groupName) _activeGroupName = newName;
-
-                AppSettings.MaterialPresetGroups = _groups;
-                SaveAllPresetsToStorage();
-
-                RefreshGroupSidebar();
-                RefreshAllPresetDecks();
-                AntdUI.Message.success(this, $"分组已成功重命名为【{newName}】！");
+                AntdUI.Message.success(this, $"分组已重命名为【{newName.Trim()}】");
             });
-
-            cms.Items.Add("🗑️ 删除分组", null, (s, e) =>
+            var deleteItem = cms.Items.Add("🗑️ 删除分组", null, (s, e) =>
             {
-                int count = _presets.Count(p => p.GroupName == groupName);
-                string confirmMsg = count > 0
-                    ? $"确定要删除分组【{groupName}】吗？\n该组下的 {count} 个预设将自动转移到【未命名】分组。"
-                    : $"确定要删除空分组【{groupName}】吗？";
-
-                if (MessageBox.Show(this, confirmMsg, "删除分组确认", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-                {
-                    _groups.Remove(groupName);
-                    foreach (var p in _presets)
-                    {
-                        if (p.GroupName == groupName) p.GroupName = "未命名";
-                    }
-
-                    if (_activeGroupName == groupName) _activeGroupName = "未命名";
-
-                    AppSettings.MaterialPresetGroups = _groups;
-                    SaveAllPresetsToStorage();
-
-                    RefreshGroupSidebar();
-                    SwitchActiveGroup(_activeGroupName);
-                    AntdUI.Message.success(this, $"分组【{groupName}】已删除！");
-                }
+                if (_groups.Count <= 1) return;
+                string targetGroup = GetGroupDeletionTarget(groupName);
+                int count = _presets.Count(p => string.Equals(p.GroupName, groupName, StringComparison.OrdinalIgnoreCase));
+                string message = count > 0
+                    ? $"确定删除分组【{groupName}】吗？\n该组下的 {count} 个预设将转移到【{targetGroup}】，预设不会被删除。"
+                    : $"确定删除空分组【{groupName}】吗？";
+                if (MessageBox.Show(this, message, "删除分组确认", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+                if (DeletePresetGroup(groupName)) AntdUI.Message.success(this, $"分组【{groupName}】已删除");
             });
-
+            deleteItem.Enabled = _groups.Count > 1;
+            deleteItem.ToolTipText = _groups.Count > 1 ? "保留预设并转移至剩余分组" : "至少保留一个分组";
+            cms.ShowItemToolTips = true;
             cms.Show(anchor, pt);
+        }
+
+        internal bool MovePresetGroup(string groupName, int targetIndex)
+        {
+            int sourceIndex = _groups.FindIndex(group => string.Equals(group, groupName, StringComparison.OrdinalIgnoreCase));
+            if (sourceIndex < 0 || targetIndex < 0 || targetIndex >= _groups.Count || sourceIndex == targetIndex) return false;
+            string group = _groups[sourceIndex];
+            _groups.RemoveAt(sourceIndex);
+            _groups.Insert(targetIndex, group);
+            SaveAllPresetsToStorage();
+            RefreshGroupSidebar();
+            return true;
+        }
+
+        internal bool RenamePresetGroup(string groupName, string newName)
+        {
+            if (string.IsNullOrWhiteSpace(newName)) return false;
+            newName = newName.Trim();
+            int index = _groups.FindIndex(group => string.Equals(group, groupName, StringComparison.OrdinalIgnoreCase));
+            if (index < 0 || _groups.Where((group, i) => i != index)
+                .Any(group => string.Equals(group, newName, StringComparison.OrdinalIgnoreCase))) return false;
+            string oldName = _groups[index];
+            _groups[index] = newName;
+            foreach (var preset in _presets)
+                if (string.Equals(preset.GroupName, oldName, StringComparison.OrdinalIgnoreCase)) preset.GroupName = newName;
+            if (string.Equals(_activeGroupName, oldName, StringComparison.OrdinalIgnoreCase)) _activeGroupName = newName;
+            SaveAllPresetsToStorage();
+            RefreshGroupSidebar();
+            RefreshAllPresetDecks();
+            return true;
+        }
+
+        private string GetGroupDeletionTarget(string groupName)
+        {
+            return _groups.FirstOrDefault(group => !string.Equals(group, groupName, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(group, _activeGroupName, StringComparison.OrdinalIgnoreCase)) ??
+                _groups.First(group => !string.Equals(group, groupName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        internal bool DeletePresetGroup(string groupName)
+        {
+            if (_groups.Count <= 1 || !_groups.Contains(groupName, StringComparer.OrdinalIgnoreCase)) return false;
+            string targetGroup = GetGroupDeletionTarget(groupName);
+            foreach (var preset in _presets)
+                if (string.Equals(preset.GroupName, groupName, StringComparison.OrdinalIgnoreCase)) preset.GroupName = targetGroup;
+            _groups.RemoveAll(group => string.Equals(group, groupName, StringComparison.OrdinalIgnoreCase));
+            if (string.Equals(_activeGroupName, groupName, StringComparison.OrdinalIgnoreCase)) _activeGroupName = targetGroup;
+            SaveAllPresetsToStorage();
+            SwitchActiveGroup(_activeGroupName);
+            return true;
         }
 
         private void SwitchActiveGroup(string groupName)
@@ -2335,7 +2340,7 @@ namespace WindowsFormsApp3.Forms.Main
                 _selLayoutMode.Text = preset.LayoutMode == "Folding" ? "折手" : "连拼";
                 _chkIsDualCopy.Checked = preset.IsDualCopy;
                 _numCopyCount.Value = Math.Max(2, Math.Min(16, preset.CopyCount));
-                _selCopyType.Text = preset.CopyType == CopyType.Duplicate ? "份" : "联";
+                _selCopyType.Text = preset.CopyType == CopyType.Duplicate ? "整套循环（123123）" : "逐页重复（1122）";
                 _selCopyMode.Text = preset.CopyMode switch
                 {
                     CopyMode.AutoByRow => "自适应行",
@@ -2430,7 +2435,7 @@ namespace WindowsFormsApp3.Forms.Main
         {
             if (_activePreset == null) return;
             _activePreset.Name = _txtPresetName.Text.Trim();
-            _activePreset.GroupName = string.IsNullOrWhiteSpace(_cmbGroupName.Text) ? "未命名" : _cmbGroupName.Text.Trim();
+            _activePreset.GroupName = string.IsNullOrWhiteSpace(_cmbGroupName.Text) ? _groups[0] : _cmbGroupName.Text.Trim();
             _activePreset.ShowInPresetButtons = _chkShowInButtons.Checked;
 
             _activePreset.SelectedMaterial = _selMaterial.Text;
@@ -2463,7 +2468,7 @@ namespace WindowsFormsApp3.Forms.Main
 
             _activePreset.IsDualCopy = _chkIsDualCopy.Checked;
             _activePreset.CopyCount = (int)_numCopyCount.Value;
-            _activePreset.CopyType = _selCopyType.Text == "份" ? CopyType.Duplicate : CopyType.Layout;
+            _activePreset.CopyType = _selCopyType.Text == "整套循环（123123）" ? CopyType.Duplicate : CopyType.Layout;
             _activePreset.CopyMode = _selCopyMode.Text switch
             {
                 "自适应行" => CopyMode.AutoByRow,
@@ -2537,6 +2542,8 @@ namespace WindowsFormsApp3.Forms.Main
         private void SaveAllPresetsToStorage()
         {
             AppSettings.MaterialPresets = _presets;
+            AppSettings.MaterialPresetGroups = _groups.ToList();
+            AppSettings.LastSelectedPresetGroup = _activeGroupName;
             AppSettings.Save();
         }
 
@@ -2662,7 +2669,7 @@ namespace WindowsFormsApp3.Forms.Main
                         var backupData = new
                         {
                             ExportTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                            Version = "2.7.0",
+                            Version = "2.7.1",
                             PresetGroups = _groups,
                             Presets = _presets
                         };
@@ -2767,8 +2774,7 @@ namespace WindowsFormsApp3.Forms.Main
                             }
                         }
 
-                        if (!_groups.Contains("未命名", StringComparer.OrdinalIgnoreCase))
-                            _groups.Insert(0, "未命名");
+                        NormalizePresetGroups(_groups);
 
                         AppSettings.MaterialPresetGroups = _groups;
                         SaveAllPresetsToStorage();
@@ -2880,7 +2886,7 @@ namespace WindowsFormsApp3.Forms.Main
 
         private void ExecuteBatchMoveGroup(string targetGroup)
         {
-            string grp = string.IsNullOrWhiteSpace(targetGroup) ? "未命名" : targetGroup.Trim();
+            string grp = string.IsNullOrWhiteSpace(targetGroup) ? _groups[0] : targetGroup.Trim();
             if (!_groups.Contains(grp, StringComparer.OrdinalIgnoreCase))
             {
                 _groups.Add(grp);
@@ -3003,13 +3009,6 @@ namespace WindowsFormsApp3.Forms.Main
             string name = PromptInput("新建预设分组", "请输入分组名称:");
             if (string.IsNullOrWhiteSpace(name)) return;
             name = name.Trim();
-
-            if (name.Equals("未命名", StringComparison.OrdinalIgnoreCase))
-            {
-                AntdUI.Message.info(this, "【未命名】为默认基础分组，已存在。");
-                SwitchActiveGroup("未命名");
-                return;
-            }
 
             if (_groups.Any(g => g.Equals(name, StringComparison.OrdinalIgnoreCase)))
             {

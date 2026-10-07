@@ -170,6 +170,308 @@ namespace WindowsFormsApp3.Tests.Services
         }
 
         [Fact]
+        public void RenameFileImmediately_NarrowCircleBleed_Should_CreateOutputFile()
+        {
+            string sourcePath = Path.Combine(_testDirectory, "10x40mm (2).pdf");
+            string outputPath = Path.Combine(_exportDirectory, "narrow_circle_processed.pdf");
+            using (var document = new PdfDocument(new PdfWriter(sourcePath)))
+            {
+                document.AddNewPage(new iText.Kernel.Geom.PageSize(
+                    (float)(40 * 72 / 25.4), (float)(10 * 72 / 25.4)));
+            }
+
+            var fileInfo = new FileRenameInfo
+            {
+                FullPath = sourcePath,
+                OriginalName = Path.GetFileName(sourcePath),
+                NewName = Path.GetFileName(outputPath)
+            };
+            var options = new PdfProcessingOptions
+            {
+                IsPdfFile = true,
+                AddPdfLayers = true,
+                ShapeType = global::WindowsFormsApp3.ShapeType.Circle,
+                FinalDimensions = "36x6C",
+                TetBleed = 2,
+                LayoutMode = LayoutMode.Continuous,
+                CopyType = CopyType.Layout,
+                RequireLayerCheck = false
+            };
+
+            bool success = _fileRenameService.RenameFileImmediately(fileInfo, _exportDirectory, true, options);
+
+            Assert.True(success, fileInfo.ErrorMessage);
+            Assert.True(File.Exists(outputPath));
+        }
+
+        [Fact]
+        public void RenameFileImmediately_RoundedPageRoundRect_Should_CreateOutputFile()
+        {
+            string sourcePath = Path.Combine(_testDirectory, "rounded_page.pdf");
+            string outputPath = Path.Combine(_exportDirectory, "rounded_page_processed.pdf");
+            using (var document = new PdfDocument(new PdfWriter(sourcePath)))
+            {
+                document.AddNewPage(new iText.Kernel.Geom.PageSize(153.071f, 209.754f));
+            }
+
+            var fileInfo = new FileRenameInfo
+            {
+                FullPath = sourcePath,
+                OriginalName = Path.GetFileName(sourcePath),
+                NewName = Path.GetFileName(outputPath)
+            };
+            var options = new PdfProcessingOptions
+            {
+                IsPdfFile = true,
+                AddPdfLayers = true,
+                ShapeType = global::WindowsFormsApp3.ShapeType.RoundRect,
+                RoundRadius = 3,
+                FinalDimensions = "71x51R3",
+                TetBleed = 1.5,
+                LayoutMode = LayoutMode.Continuous,
+                CopyType = CopyType.Layout,
+                RequireLayerCheck = false
+            };
+
+            bool success = _fileRenameService.RenameFileImmediately(fileInfo, _exportDirectory, true, options);
+
+            Assert.True(success, fileInfo.ErrorMessage);
+            Assert.True(File.Exists(outputPath));
+        }
+
+        [Fact]
+        public void RenameFileImmediately_WithShape_Should_AlignPageBoxesToDisplayedSize()
+        {
+            string sourcePath = Path.Combine(_testDirectory, "fractional_page.pdf");
+            string outputPath = Path.Combine(_exportDirectory, "fractional_page_processed.pdf");
+            using (var document = new PdfDocument(new PdfWriter(sourcePath)))
+            {
+                document.AddNewPage(new iText.Kernel.Geom.PageSize(
+                    (float)(100.06 * 72 / 25.4), (float)(50.04 * 72 / 25.4)));
+            }
+
+            var fileInfo = new FileRenameInfo
+            {
+                FullPath = sourcePath,
+                OriginalName = Path.GetFileName(sourcePath),
+                NewName = Path.GetFileName(outputPath)
+            };
+            var options = new PdfProcessingOptions
+            {
+                IsPdfFile = true,
+                AddPdfLayers = true,
+                ShapeType = global::WindowsFormsApp3.ShapeType.RightAngle,
+                FinalDimensions = "96.1x46Z",
+                TetBleed = 2,
+                LayoutMode = LayoutMode.Continuous,
+                CopyType = CopyType.Layout,
+                RequireLayerCheck = false
+            };
+
+            Assert.True(_fileRenameService.RenameFileImmediately(fileInfo, _exportDirectory, true, options), fileInfo.ErrorMessage);
+            using (var document = new PdfDocument(new PdfReader(outputPath)))
+            {
+                var cropBox = document.GetPage(1).GetCropBox();
+                Assert.InRange(cropBox.GetWidth() * 25.4 / 72, 100.099, 100.101);
+                Assert.InRange(cropBox.GetHeight() * 25.4 / 72, 49.999, 50.001);
+            }
+        }
+
+        [Theory]
+        [InlineData(PdfPageBoxSource.MediaBox, 79.9999, 44.0000)]
+        [InlineData(PdfPageBoxSource.CropBox, 80.0899, 44.1924)]
+        public void RenameFileImmediately_WithPageBoxChoice_Should_UnifyAllOutputBoxes(
+            PdfPageBoxSource source, double expectedWidthMm, double expectedHeightMm)
+        {
+            string sourcePath = Path.Combine(_testDirectory, "outside_crop_" + source + ".pdf");
+            string outputPath = Path.Combine(_exportDirectory, "outside_crop_" + source + "_processed.pdf");
+            using (var document = new PdfDocument(new PdfWriter(sourcePath)))
+            {
+                for (int pageNumber = 0; pageNumber < 2; pageNumber++)
+                {
+                    PdfPage page = document.AddNewPage();
+                    page.SetMediaBox(new iText.Kernel.Geom.Rectangle(18.1587f, 24.5117f, 226.7713f, 124.7243f));
+                    page.SetCropBox(new iText.Kernel.Geom.Rectangle(18.0314f, 24.2391f, 227.0266f, 125.2699f));
+                }
+            }
+
+            var fileInfo = new FileRenameInfo
+            {
+                FullPath = sourcePath,
+                OriginalName = Path.GetFileName(sourcePath),
+                NewName = Path.GetFileName(outputPath)
+            };
+            var options = new PdfProcessingOptions
+            {
+                IsPdfFile = true,
+                AddPdfLayers = true,
+                ShapeType = global::WindowsFormsApp3.ShapeType.RightAngle,
+                FinalDimensions = "76x40Z",
+                TetBleed = 2,
+                PageBoxSource = source,
+                PageBoxReferencePage = 1,
+                LayoutMode = LayoutMode.Continuous,
+                CopyType = CopyType.Layout,
+                RequireLayerCheck = false
+            };
+
+            Assert.True(_fileRenameService.RenameFileImmediately(fileInfo, _exportDirectory, true, options), fileInfo.ErrorMessage);
+            using (var document = new PdfDocument(new PdfReader(outputPath)))
+            {
+                Assert.Equal(2, document.GetNumberOfPages());
+                for (int pageNumber = 1; pageNumber <= 2; pageNumber++)
+                {
+                    PdfPage page = document.GetPage(pageNumber);
+                    var box = page.GetCropBox();
+                    Assert.InRange(box.GetWidth() * 25.4 / 72, expectedWidthMm - 0.01, expectedWidthMm + 0.01);
+                    Assert.InRange(box.GetHeight() * 25.4 / 72, expectedHeightMm - 0.01, expectedHeightMm + 0.01);
+                    Assert.Equal(box.GetWidth(), page.GetMediaBox().GetWidth());
+                    Assert.Equal(box.GetHeight(), page.GetTrimBox().GetHeight());
+                    Assert.Equal(box.GetWidth(), page.GetBleedBox().GetWidth());
+                    Assert.Equal(box.GetHeight(), page.GetArtBox().GetHeight());
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(PdfPageBoxSource.MediaBox, 77.6111)]
+        [InlineData(PdfPageBoxSource.CropBox, 78.3167)]
+        public void RenameFileImmediately_SpecialShapeWithPageBoxChoice_Should_UseSelectedSize(
+            PdfPageBoxSource source, double expectedSizeMm)
+        {
+            string sourcePath = Path.Combine(_testDirectory, "special_box_" + source + ".pdf");
+            string outputPath = Path.Combine(_exportDirectory, "special_box_" + source + "_processed.pdf");
+            using (var document = new PdfDocument(new PdfWriter(sourcePath)))
+            {
+                PdfPage content = document.AddNewPage();
+                content.SetMediaBox(new iText.Kernel.Geom.Rectangle(0, 0, 220, 220));
+                content.SetCropBox(new iText.Kernel.Geom.Rectangle(-1, -1, 222, 222));
+
+                PdfPage template = document.AddNewPage();
+                template.SetMediaBox(new iText.Kernel.Geom.Rectangle(0, 0, 220, 220));
+                template.SetCropBox(new iText.Kernel.Geom.Rectangle(-1, -1, 222, 222));
+                var canvas = new PdfCanvas(template);
+                canvas.MoveTo(20, 20).LineTo(180, 20).LineTo(180, 60)
+                    .LineTo(60, 60).LineTo(60, 180).LineTo(20, 180).ClosePathStroke();
+                canvas.Release();
+            }
+
+            var fileInfo = new FileRenameInfo
+            {
+                FullPath = sourcePath,
+                OriginalName = Path.GetFileName(sourcePath),
+                NewName = Path.GetFileName(outputPath)
+            };
+            var options = new PdfProcessingOptions
+            {
+                IsPdfFile = true,
+                AddPdfLayers = true,
+                ShapeType = global::WindowsFormsApp3.ShapeType.Special,
+                TetBleed = 5,
+                PageBoxSource = source,
+                PageBoxReferencePage = 1,
+                LayoutMode = LayoutMode.Continuous,
+                CopyType = CopyType.Layout,
+                RequireLayerCheck = false
+            };
+
+            Assert.True(_fileRenameService.RenameFileImmediately(fileInfo, _exportDirectory, true, options), fileInfo.ErrorMessage);
+            using (var document = new PdfDocument(new PdfReader(outputPath)))
+            {
+                Assert.Equal(1, document.GetNumberOfPages());
+                PdfPage page = document.GetPage(1);
+                Assert.InRange(page.GetCropBox().GetWidth() * 25.4 / 72,
+                    expectedSizeMm - 0.01, expectedSizeMm + 0.01);
+                Assert.Equal(page.GetMediaBox().GetWidth(), page.GetCropBox().GetWidth());
+                Assert.Equal(page.GetTrimBox().GetHeight(), page.GetCropBox().GetHeight());
+            }
+        }
+
+        [Fact]
+        public void RenameFileImmediately_PageBoxChoiceWithoutShape_Should_StillUnifyBoxes()
+        {
+            string sourcePath = Path.Combine(_testDirectory, "box_only.pdf");
+            string outputPath = Path.Combine(_exportDirectory, "box_only_processed.pdf");
+            using (var document = new PdfDocument(new PdfWriter(sourcePath)))
+            {
+                PdfPage page = document.AddNewPage();
+                page.SetMediaBox(new iText.Kernel.Geom.Rectangle(0, 0, 220, 220));
+                page.SetCropBox(new iText.Kernel.Geom.Rectangle(-1, -1, 222, 222));
+            }
+
+            var fileInfo = new FileRenameInfo
+            {
+                FullPath = sourcePath,
+                OriginalName = Path.GetFileName(sourcePath),
+                NewName = Path.GetFileName(outputPath)
+            };
+            var options = new PdfProcessingOptions
+            {
+                IsPdfFile = true,
+                AddPdfLayers = false,
+                PageBoxSource = PdfPageBoxSource.MediaBox,
+                PageBoxReferencePage = 1,
+                LayoutMode = LayoutMode.Continuous,
+                CopyType = CopyType.Layout
+            };
+
+            Assert.True(_fileRenameService.RenameFileImmediately(fileInfo, _exportDirectory, true, options), fileInfo.ErrorMessage);
+            using (var document = new PdfDocument(new PdfReader(outputPath)))
+            {
+                PdfPage page = document.GetPage(1);
+                Assert.Equal(page.GetMediaBox().GetWidth(), page.GetCropBox().GetWidth());
+                Assert.InRange(page.GetCropBox().GetWidth() * 25.4 / 72, 77.60, 77.62);
+            }
+        }
+
+        [Fact]
+        public void RenameFileImmediately_ExistingLayers_Should_StillApplySelectedPageBox()
+        {
+            string sourcePath = Path.Combine(_testDirectory, "layered_box_choice.pdf");
+            string outputPath = Path.Combine(_exportDirectory, "layered_box_choice_processed.pdf");
+            using (var document = new PdfDocument(new PdfWriter(sourcePath)))
+            {
+                document.AddNewPage(new iText.Kernel.Geom.PageSize(220, 220));
+                PdfPage second = document.AddNewPage(new iText.Kernel.Geom.PageSize(200, 200));
+                second.SetCropBox(new iText.Kernel.Geom.Rectangle(-1, -1, 202, 202));
+                foreach (string name in new[] { "Dots_AddCounter", "Dots_L_B_出血线" })
+                {
+                    var layer = new iText.Kernel.Pdf.Layer.PdfLayer(name, document);
+                    var canvas = new PdfCanvas(second);
+                    canvas.BeginLayer(layer).EndLayer();
+                    canvas.Release();
+                }
+            }
+
+            var fileInfo = new FileRenameInfo
+            {
+                FullPath = sourcePath,
+                OriginalName = Path.GetFileName(sourcePath),
+                NewName = Path.GetFileName(outputPath)
+            };
+            var options = new PdfProcessingOptions
+            {
+                IsPdfFile = true,
+                AddPdfLayers = true,
+                PageBoxSource = PdfPageBoxSource.CropBox,
+                PageBoxReferencePage = 2,
+                LayoutMode = LayoutMode.Continuous,
+                CopyType = CopyType.Layout
+            };
+
+            Assert.True(_fileRenameService.RenameFileImmediately(fileInfo, _exportDirectory, true, options), fileInfo.ErrorMessage);
+            using (var document = new PdfDocument(new PdfReader(outputPath)))
+            {
+                for (int pageNumber = 1; pageNumber <= 2; pageNumber++)
+                {
+                    PdfPage page = document.GetPage(pageNumber);
+                    Assert.InRange(page.GetCropBox().GetWidth() * 25.4 / 72, 71.25, 71.27);
+                    Assert.Equal(page.GetMediaBox().GetWidth(), page.GetCropBox().GetWidth());
+                }
+            }
+        }
+
+        [Fact]
         public void RenameFileImmediately_WithFoldingLayoutMode_NoShape_Should_AddBlankPages_And_OutputSingleCleanFile()
         {
             // 准备 3 页的测试 PDF（版数为 4 时应自动补齐 1 页空白页到 4 页）

@@ -145,6 +145,8 @@ namespace WindowsFormsApp3.Services
             if (pdfInfo == null)
                 throw new ArgumentNullException(nameof(pdfInfo));
 
+            rotationMode = config.RotationMode ?? rotationMode;
+
             return await Task.Run(() =>
             {
                 var startTime = DateTime.Now;
@@ -315,7 +317,9 @@ namespace WindowsFormsApp3.Services
             if (config.Rows > 0 || config.Columns > 0)
             {
                 return CalculateForcedFlatSheetLayout(
-                    pageWidth, pageHeight, usableWidth, usableHeight, config, pdfInfo.PageRotation);
+                    pageWidth, pageHeight, usableWidth, usableHeight, config, pdfInfo.PageRotation,
+                    config.RotationMode ?? (copyMode == CopyMode.FixedNoRotationByColumn || copyMode == CopyMode.FixedNoRotationByRow
+                        ? RollRotationMode.Force0Degree : (RollRotationMode?)null));
             }
 
             // 调用标准布局计算逻辑，但增加偶数列约束
@@ -323,7 +327,6 @@ namespace WindowsFormsApp3.Services
                 pageWidth, pageHeight, usableWidth, usableHeight, config, pdfInfo.PageRotation, copyCount, copyMode);
 
             result.MaterialType = MaterialType.FlatSheet;
-            result.Success = true;
 
             return result;
         }
@@ -341,6 +344,9 @@ namespace WindowsFormsApp3.Services
             int copyCount = 0,
             CopyMode copyMode = CopyMode.AutoByColumn)
         {
+            if (config.RotationMode == RollRotationMode.Auto)
+                copyMode = copyMode == CopyMode.FixedNoRotationByRow ? CopyMode.AutoByRow :
+                    copyMode == CopyMode.FixedNoRotationByColumn ? CopyMode.AutoByColumn : copyMode;
             // 计算不旋转时的布局
             int columnsNormal = (int)Math.Floor(usableWidth / pageWidth);
             int rowsNormal = (int)Math.Floor(usableHeight / pageHeight);
@@ -419,7 +425,15 @@ namespace WindowsFormsApp3.Services
                     useRotation = evenLayoutRotated > evenLayoutNormal;
                 }
             }
+            if (config.RotationMode.HasValue && config.RotationMode != RollRotationMode.Auto)
+                useRotation = config.RotationMode == RollRotationMode.Force270Degree;
+            else if (config.RotationMode == RollRotationMode.Auto)
+                useRotation = !IsSquareDimension(pageWidth, pageHeight, 0.09f) && evenLayoutRotated > evenLayoutNormal;
             var selectedResult = useRotation ? evenRotatedResult : evenNormalResult;
+            if (config.RotationMode.HasValue &&
+                (selectedResult.Columns * (useRotation ? pageHeight : pageWidth) > usableWidth + 0.01f ||
+                 selectedResult.Rows * (useRotation ? pageWidth : pageHeight) > usableHeight + 0.01f))
+                return CreateFailedResult("指定旋转方向与布局约束无法容纳在纸张可印刷区域内。", MaterialType.FlatSheet);
 
             // 计算实际页面尺寸（考虑旋转）
             float actualPageWidth = useRotation ? pageHeight : pageWidth;
@@ -536,9 +550,9 @@ namespace WindowsFormsApp3.Services
             if (config.Rows > 0 || config.Columns > 0)
             {
                 RollRotationMode? rotationMode =
-                    copyMode == CopyMode.FixedNoRotationByColumn || copyMode == CopyMode.FixedNoRotationByRow
+                    config.RotationMode ?? (copyMode == CopyMode.FixedNoRotationByColumn || copyMode == CopyMode.FixedNoRotationByRow
                         ? RollRotationMode.Force0Degree
-                        : (RollRotationMode?)null;
+                        : (RollRotationMode?)null);
                 return CalculateForcedRollMaterialLayout(
                     pageWidth, pageHeight, usableWidth, config, rotationMode);
             }
@@ -548,7 +562,6 @@ namespace WindowsFormsApp3.Services
                 pageWidth, pageHeight, usableWidth, config, pdfInfo.PageRotation, copyCount, copyMode);
 
             result.MaterialType = MaterialType.RollMaterial;
-            result.Success = true;
 
             return result;
         }
@@ -565,6 +578,9 @@ namespace WindowsFormsApp3.Services
             int copyCount = 0,
             CopyMode copyMode = CopyMode.AutoByColumn)
         {
+            if (config.RotationMode == RollRotationMode.Auto)
+                copyMode = copyMode == CopyMode.FixedNoRotationByRow ? CopyMode.AutoByRow :
+                    copyMode == CopyMode.FixedNoRotationByColumn ? CopyMode.AutoByColumn : copyMode;
             // 计算固定1行时的最大可能列数（不旋转和旋转两种情况）
             int maxColumnsWithoutRotation = (int)Math.Floor(usableWidth / pageWidth);
             int maxColumnsWithRotation = (int)Math.Floor(usableWidth / pageHeight);
@@ -652,7 +668,15 @@ namespace WindowsFormsApp3.Services
                 }
             }
             
+            if (config.RotationMode.HasValue && config.RotationMode != RollRotationMode.Auto)
+                useRotation = config.RotationMode == RollRotationMode.Force270Degree;
+            else if (config.RotationMode == RollRotationMode.Auto &&
+                (copyMode == CopyMode.FixedNoRotationByColumn || copyMode == CopyMode.FixedNoRotationByRow))
+                useRotation = !IsSquareDimension(pageWidth, pageHeight, 0.09f) && usedWidthRotated > usedWidthNormal;
             int optimalColumns = useRotation ? evenRotatedResult.Columns : evenNormalResult.Columns;
+            if (config.RotationMode.HasValue &&
+                (optimalColumns < 1 || optimalColumns * (useRotation ? pageHeight : pageWidth) > usableWidth + 0.01f))
+                return CreateFailedResult("指定旋转方向与布局约束无法容纳在卷装幅宽内。", MaterialType.RollMaterial);
             float actualUtilization = useRotation ? utilizationRotated : utilizationNormal;
 
             LogHelper.Debug($"[ImpositionService] 卷装一式N联选择: 不旋转={evenNormalResult.Columns}列(利用率{utilizationNormal:F1}%), 旋转90度={evenRotatedResult.Columns}列(利用率{utilizationRotated:F1}%), 选择{(useRotation ? "旋转" : "不旋转")}");
@@ -739,8 +763,17 @@ namespace WindowsFormsApp3.Services
         /// <param name="filePath">PDF文件路径</param>
         /// <param name="cancellationToken">取消令牌</param>
         /// <returns>排版用PDF文件信息</returns>
+        public Task<ImpositionPdfInfo> AnalyzePdfFileAsync(
+            string filePath,
+            CancellationToken cancellationToken = default)
+        {
+            return AnalyzePdfFileAsync(filePath, PdfPageBoxSource.Automatic, 1, cancellationToken);
+        }
+
         public async Task<ImpositionPdfInfo> AnalyzePdfFileAsync(
             string filePath,
+            PdfPageBoxSource pageBoxSource,
+            int referencePageNumber,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(filePath))
@@ -771,35 +804,48 @@ namespace WindowsFormsApp3.Services
                             if (document.GetNumberOfPages() > 0)
                             {
                                 var firstPage = document.GetFirstPage();
-                                var mediaBox = firstPage.GetPageSize();
-                                var cropBox = firstPage.GetCropBox();
+                                int framePageNumber = pageBoxSource == PdfPageBoxSource.Automatic ? 1 : referencePageNumber;
+                                if (framePageNumber < 1 || framePageNumber > document.GetNumberOfPages())
+                                    throw new ArgumentOutOfRangeException(nameof(referencePageNumber), "页面框基准页码无效");
+                                var framePage = document.GetPage(framePageNumber);
+                                var mediaBox = framePage.GetMediaBox();
+                                var cropBox = framePage.GetCropBox();
+
+                                // 与页面框统一处理共用所选原始框；毫米换算不再使用近似常量。
+                                basePdfInfo.FirstPageSize = new WindowsFormsApp3.Utils.PageSize
+                                {
+                                    Width = mediaBox.GetWidth() * 25.4 / 72,
+                                    Height = mediaBox.GetHeight() * 25.4 / 72
+                                };
 
                                 // 获取页面旋转角度
                                 pageRotation = firstPage.GetRotation();
                                 LogHelper.Debug($"[排版分析] 检测到PDF页面旋转角度: {pageRotation}°");
 
-                                // 获取原始宽高（未旋转前的尺寸）
-                                float rawWidth = cropBox != null ? cropBox.GetWidth() : mediaBox.GetWidth();
-                                float rawHeight = cropBox != null ? cropBox.GetHeight() : mediaBox.GetHeight();
-
-                                // 如果有有效的裁剪框且不同于媒体框
-                                if (cropBox != null &&
-                                    Math.Abs(cropBox.GetWidth() - mediaBox.GetWidth()) > 0.1 &&
-                                    Math.Abs(cropBox.GetHeight() - mediaBox.GetHeight()) > 0.1)
-                                {
-                                    hasCropBox = true;
-                                }
+                                bool validCrop = cropBox != null && cropBox.GetWidth() > 0 && cropBox.GetHeight() > 0;
+                                bool cropInsideMedia = validCrop && cropBox.GetLeft() >= mediaBox.GetLeft() - 0.0001 &&
+                                    cropBox.GetBottom() >= mediaBox.GetBottom() - 0.0001 &&
+                                    cropBox.GetRight() <= mediaBox.GetRight() + 0.0001 &&
+                                    cropBox.GetTop() <= mediaBox.GetTop() + 0.0001;
+                                if (pageBoxSource == PdfPageBoxSource.CropBox && !validCrop)
+                                    throw new InvalidOperationException("所选裁剪框尺寸无效");
+                                hasCropBox = pageBoxSource == PdfPageBoxSource.CropBox ||
+                                    (pageBoxSource == PdfPageBoxSource.Automatic && cropInsideMedia);
+                                var selectedBox = hasCropBox ? cropBox : mediaBox;
+                                float rawWidth = selectedBox.GetWidth();
+                                float rawHeight = selectedBox.GetHeight();
 
                                 // 注意：这里保存的是原始未旋转的宽高，具体旋转处理由GetEffectivePageWidth/Height方法负责
-                                cropBoxWidth = rawWidth * 0.3528f; // 转换为毫米
-                                cropBoxHeight = rawHeight * 0.3528f;
+                                cropBoxWidth = (float)((validCrop ? cropBox.GetWidth() : mediaBox.GetWidth()) * 25.4 / 72);
+                                cropBoxHeight = (float)((validCrop ? cropBox.GetHeight() : mediaBox.GetHeight()) * 25.4 / 72);
 
-                                LogHelper.Debug($"[排版分析] 原始裁剪框尺寸（未旋转）: {cropBoxWidth:F1}x{cropBoxHeight:F1}mm");
+                                LogHelper.Debug($"[排版分析] 第{framePageNumber}页排版基准={(hasCropBox ? "CropBox" : "MediaBox")}, 原始尺寸={rawWidth * 25.4 / 72:0.####}x{rawHeight * 25.4 / 72:0.####}mm, 用户选择={pageBoxSource}");
                             }
                         }
                     }
                     catch (Exception ex)
                     {
+                        if (pageBoxSource != PdfPageBoxSource.Automatic) throw;
                         // 裁剪框获取失败时使用媒体框
                         LogHelper.Debug($"[排版分析] 获取裁剪框信息失败: {ex.Message}");
                     }
@@ -1237,7 +1283,8 @@ namespace WindowsFormsApp3.Services
             FlatSheetConfiguration config,
             int pdfPageRotation = 0)
         {
-            if (config.Rows > 0 || config.Columns > 0)
+            if (config.Rows > 0 || config.Columns > 0 ||
+                (config.RotationMode.HasValue && config.RotationMode != RollRotationMode.Auto))
             {
                 return CalculateForcedFlatSheetLayout(pageWidth, pageHeight, usableWidth, usableHeight, config, pdfPageRotation);
             }
@@ -1316,13 +1363,19 @@ namespace WindowsFormsApp3.Services
             float usableWidth,
             float usableHeight,
             FlatSheetConfiguration config,
-            int pdfPageRotation)
+            int pdfPageRotation,
+            RollRotationMode? rotationMode = null)
         {
             var normal = CreateFlatSheetCandidate(pageWidth, pageHeight, false);
             var rotated = CreateFlatSheetCandidate(pageHeight, pageWidth, true);
 
             var candidates = new[] { normal, rotated }.Where(candidate => candidate.IsFeasible).ToList();
-            if (IsSquareDimension(pageWidth, pageHeight, 0.09f))
+            rotationMode = config.RotationMode ?? rotationMode;
+            if (rotationMode == RollRotationMode.Force0Degree)
+                candidates = candidates.Where(candidate => !candidate.UseRotation).ToList();
+            else if (rotationMode == RollRotationMode.Force270Degree)
+                candidates = candidates.Where(candidate => candidate.UseRotation).ToList();
+            else if (IsSquareDimension(pageWidth, pageHeight, 0.09f))
             {
                 candidates = candidates.Where(candidate => !candidate.UseRotation).ToList();
             }

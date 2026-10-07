@@ -137,6 +137,8 @@ namespace WindowsFormsApp3.Models
     /// </summary>
     public class FlatSheetConfiguration
     {
+        /// <summary>独立页面方向策略；空值保持旧版自动选择行为。</summary>
+        public RollRotationMode? RotationMode { get; set; }
         /// <summary>
         /// 配置名称
         /// </summary>
@@ -266,6 +268,8 @@ namespace WindowsFormsApp3.Models
     /// </summary>
     public class RollMaterialConfiguration
     {
+        /// <summary>独立页面方向策略；空值兼容旧版调用参数。</summary>
+        public RollRotationMode? RotationMode { get; set; }
         /// <summary>
         /// 配置名称
         /// </summary>

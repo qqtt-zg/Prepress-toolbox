@@ -8,6 +8,43 @@ namespace WindowsFormsApp3.Tests.Forms
 {
     public class TemporaryImpositionParametersFormTests
     {
+        [StaFact]
+        public void RotationSelection_ShouldApplyOnlyCurrentMaterial_AndNotMutateSourceBeforeApply()
+        {
+            var source = new TemporaryImpositionParameters
+            {
+                PaperWidth = 320, PaperHeight = 232,
+                FlatSheetRotationMode = RollRotationMode.Auto,
+                RollMaterialRotationMode = RollRotationMode.Force270Degree
+            };
+            using (var form = new TemporaryImpositionParametersForm(true, source))
+            {
+                var button = form.Controls.Find("rotationPolicy1", true)[0];
+                typeof(Control).GetMethod("OnClick", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    .Invoke(button, new object[] { System.EventArgs.Empty });
+                Assert.Equal(RollRotationMode.Auto, source.FlatSheetRotationMode);
+                typeof(TemporaryImpositionParametersForm).GetMethod("ApplyButton_Click",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    .Invoke(form, new object[] { form, System.EventArgs.Empty });
+                Assert.Equal(DialogResult.OK, form.DialogResult);
+                Assert.Equal(RollRotationMode.Force0Degree, form.Parameters.FlatSheetRotationMode);
+                Assert.Equal(RollRotationMode.Force270Degree, form.Parameters.RollMaterialRotationMode);
+                Assert.Equal(RollRotationMode.Auto, source.FlatSheetRotationMode);
+            }
+        }
+
+        [StaFact]
+        public void Cancel_ShouldLeaveRotationParametersUnchanged()
+        {
+            var source = new TemporaryImpositionParameters { FixedWidth = 320, MinLength = 150, RollMaterialRotationMode = RollRotationMode.Auto };
+            using (var form = new TemporaryImpositionParametersForm(false, source))
+            {
+                typeof(Control).GetMethod("OnClick", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    .Invoke(form.Controls.Find("rotationPolicy2", true)[0], new object[] { System.EventArgs.Empty });
+                form.DialogResult = DialogResult.Cancel;
+                Assert.Equal(RollRotationMode.Auto, form.Parameters.RollMaterialRotationMode);
+            }
+        }
         [Fact]
         public void FlatSheetMode_ShouldInitializeAllInputsWithParent()
         {
@@ -72,7 +109,7 @@ namespace WindowsFormsApp3.Tests.Forms
         {
             foreach (Control child in control.Controls)
             {
-                if (child is AntdUI.Input input)
+                if (child is AntdUI.Input input && !(child is AntdUI.Select))
                 {
                     list.Add(input);
                 }

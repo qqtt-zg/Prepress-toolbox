@@ -1,0 +1,73 @@
+{
+  "stationWidth": 360,
+  "stationHeight": 595,
+  "contentX": 0,
+  "contentY": 26,
+  "contentHeight": 553,
+  "cards": [
+    {
+      "name": "pnlMaterialsCard",
+      "x": 10,
+      "y": 4,
+      "width": 340,
+      "height": 127,
+      "visible": true
+    },
+    {
+      "name": "pnlOutputPathCard",
+      "x": 10,
+      "y": 135,
+      "width": 340,
+      "height": 25,
+      "visible": true
+    },
+    {
+      "name": "pnlCraftMatrixCard",
+      "x": 10,
+      "y": 164,
+      "width": 340,
+      "height": 55,
+      "visible": true
+    },
+    {
+      "name": "tlpOrderParametersCard",
+      "x": 10,
+      "y": 223,
+      "width": 340,
+      "height": 58,
+      "visible": true
+    },
+    {
+      "name": "pnlImpositionDashboardCard",
+      "x": 10,
+      "y": 285,
+      "width": 340,
+      "height": 82,
+      "visible": true
+    },
+    {
+      "name": "pnlPageBoxChoiceCard",
+      "x": 10,
+      "y": 371,
+      "width": 340,
+      "height": 84,
+      "visible": true
+    },
+    {
+      "name": "presetBrowserCard",
+      "x": 10,
+      "y": 459,
+      "width": 340,
+      "height": 56,
+      "visible": true
+    },
+    {
+      "name": "pnlActionBar",
+      "x": 10,
+      "y": 519,
+      "width": 340,
+      "height": 28,
+      "visible": true
+    }
+  ]
+}

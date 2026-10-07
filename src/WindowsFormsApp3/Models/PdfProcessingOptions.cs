@@ -18,6 +18,12 @@ namespace WindowsFormsApp3.Models
         /// </summary>
         public bool AddPdfLayers { get; set; }
 
+        /// <summary>页面框超界时用户选择的统一基准。</summary>
+        public PdfPageBoxSource PageBoxSource { get; set; } = PdfPageBoxSource.Automatic;
+
+        /// <summary>基准框所在页码，从1开始。</summary>
+        public int PageBoxReferencePage { get; set; } = 1;
+
         /// <summary>
         /// 是否使用PDF最后一页（兼容旧版本）
         /// </summary>

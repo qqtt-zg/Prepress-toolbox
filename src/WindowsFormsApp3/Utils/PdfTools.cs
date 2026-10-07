@@ -5,6 +5,7 @@ using Spire.Pdf;
 using Spire.Pdf.Graphics;
 using Spire.Pdf.Graphics.Layer;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using iText.Kernel.Pdf;
 using iText.Kernel.Geom;
 using iText.Kernel.Pdf.Canvas;
@@ -102,7 +103,8 @@ namespace WindowsFormsApp3.Utils
             return Services.PdfCutPathExtractor.CanExtractCutPathFromLastPage(filePath);
         }
 
-        public static bool AddDotsAddCounterLayer(string filePath, string finalDimensions, ShapeType shapeType, double roundRadius = 0)
+        public static bool AddDotsAddCounterLayer(string filePath, string finalDimensions, ShapeType shapeType,
+            double roundRadius = 0, double bleedMm = 0, bool normalizeDisplayedSize = true)
         {
             LogHelper.Debug($"AddDotsAddCounterLayer调用（枚举版本），参数: filePath={filePath}, shapeType={shapeType}, roundRadius={roundRadius}");
 
@@ -121,11 +123,13 @@ namespace WindowsFormsApp3.Utils
                     return false;
                 }
 
+                if (double.IsNaN(bleedMm) || double.IsInfinity(bleedMm) || bleedMm < 0) return false;
+
                 // 异形处理直接调用专用方法
                 if (shapeType == ShapeType.Special)
                 {
                     LogHelper.Debug("检测到异形，调用ProcessSpecialShapePdf");
-                    return ProcessSpecialShapePdf(filePath);
+                    return ProcessSpecialShapePdf(filePath, bleedMm, normalizeDisplayedSize);
                 }
 
                 // 跳过页面重排 - 文件已经通过ProcessPdfFileInternalSync完成页面重排和标识页插入
@@ -283,15 +287,79 @@ namespace WindowsFormsApp3.Utils
                                 break;
                         }
 
-                        // 在Dots_L_B_出血线图层上绘制绿色居中矩形
-                        float bleedRectX = 0;
-                        float bleedRectY = 0;
-                        float bleedRectWidth = page.Size.Width;
-                        float bleedRectHeight = page.Size.Height;
+                        // 从实际裁切轮廓偏移，圆形和圆角不再使用页面矩形作为出血线。
+                        using (var cutPath = new GraphicsPath())
+                        {
+                            if (shapeType == ShapeType.Circle)
+                            {
+                                cutPath.AddEllipse(rectX, rectY, actualRectWidth, actualRectHeight);
+                            }
+                            else if (shapeType == ShapeType.RoundRect && roundRadius > 0)
+                            {
+                                float radius = Math.Min((float)(roundRadius * 2.83465), Math.Min(actualRectWidth, actualRectHeight) / 2);
+                                float diameter = radius * 2;
+                                cutPath.AddArc(rectX, rectY, diameter, diameter, 180, 90);
+                                cutPath.AddArc(rectX + actualRectWidth - diameter, rectY, diameter, diameter, 270, 90);
+                                cutPath.AddArc(rectX + actualRectWidth - diameter, rectY + actualRectHeight - diameter, diameter, diameter, 0, 90);
+                                cutPath.AddArc(rectX, rectY + actualRectHeight - diameter, diameter, diameter, 90, 90);
+                                cutPath.CloseFigure();
+                            }
+                            else
+                            {
+                                cutPath.AddRectangle(new RectangleF(rectX, rectY, actualRectWidth, actualRectHeight));
+                            }
 
-                        Spire.Pdf.Graphics.PdfPen greenPen = new Spire.Pdf.Graphics.PdfPen(System.Drawing.Color.Green, 0.01f);
-                        Spire.Pdf.Graphics.PdfCanvas bleedLayerCanvas = bleedLayer.CreateGraphics(page.Canvas);
-                        bleedLayerCanvas.DrawRectangle(greenPen, bleedRectX, bleedRectY, bleedRectWidth, bleedRectHeight);
+                            float requestedBleedPoints = (float)(bleedMm * 72 / 25.4);
+                            float availableMargin = Math.Min(Math.Min(rectX, rectY),
+                                Math.Min(page.Size.Width - rectX - actualRectWidth,
+                                    page.Size.Height - rectY - actualRectHeight));
+                            const float pageSizeRoundingTolerancePoints = 0.1f;
+                            if (requestedBleedPoints - availableMargin > pageSizeRoundingTolerancePoints)
+                            {
+                                LogHelper.Debug($"页面出血空间不足: required={requestedBleedPoints}pt, available={availableMargin}pt");
+                                return false;
+                            }
+
+                            // PDF页框常有百分之一毫米量级的舍入差；仅在容差内收紧实际偏移量。
+                            float effectiveBleedPoints = Math.Min(requestedBleedPoints, availableMargin);
+                            using (var bleedPath = bleedMm > 0
+                                ? CreateFittingStandardBleedPath(shapeType, rectX, rectY, actualRectWidth,
+                                    actualRectHeight, roundRadius, effectiveBleedPoints,
+                                    page.Size.Width, page.Size.Height, pageSizeRoundingTolerancePoints)
+                                : (GraphicsPath)cutPath.Clone())
+                            {
+                                RectangleF bounds = bleedPath.GetBounds();
+                                if (bounds.Left < -0.01f || bounds.Top < -0.01f ||
+                                    bounds.Right > page.Size.Width + 0.01f || bounds.Bottom > page.Size.Height + 0.01f)
+                                {
+                                    LogHelper.Debug($"出血轮廓超出页面可视范围: bounds={bounds}, page={page.Size}, bleed={bleedMm}mm");
+                                    return false;
+                                }
+
+                                using (var simplifiedBleed = bleedMm > 0
+                                    ? PdfBleedPathOffsetter.SimplifyClosedPath(bleedPath, cutPath)
+                                    : (GraphicsPath)bleedPath.Clone())
+                                {
+                                    var greenPath = new Spire.Pdf.Graphics.PdfPath();
+                                    PointF[] points = simplifiedBleed.PathPoints;
+                                    byte[] types = simplifiedBleed.PathTypes;
+                                    PointF current = points[0];
+                                    for (int pointIndex = 1; pointIndex < points.Length; pointIndex++)
+                                    {
+                                        if ((types[pointIndex] & 7) == 3)
+                                        {
+                                            greenPath.AddBezier(current, points[pointIndex], points[pointIndex + 1], points[pointIndex + 2]);
+                                            pointIndex += 2;
+                                        }
+                                        else greenPath.AddLine(current, points[pointIndex]);
+                                        current = points[pointIndex];
+                                    }
+                                    greenPath.CloseAllFigures();
+                                    var greenPen = new Spire.Pdf.Graphics.PdfPen(System.Drawing.Color.Green, 0.01f);
+                                    bleedLayer.CreateGraphics(page.Canvas).DrawPath(greenPen, greenPath);
+                                }
+                            }
+                        }
                     }
 
                     // 保存修改后的PDF文件
@@ -302,14 +370,14 @@ namespace WindowsFormsApp3.Utils
 
                     document.Close();
 
-                    File.Delete(filePath);
-                    File.Move(tempFilePath, filePath);
-
-                    if (!SetAllPageBoxesToCropBox(filePath))
+                    if (!SetAllPageBoxesToCropBox(tempFilePath, normalizeDisplayedSize))
                     {
                         LogHelper.Debug("AddDotsAddCounterLayer最终页面框统一失败");
                         return false;
                     }
+
+                    File.Delete(filePath);
+                    File.Move(tempFilePath, filePath);
 
                     LogHelper.Debug("AddDotsAddCounterLayer（枚举版本）完成");
                     return true;
@@ -320,6 +388,79 @@ namespace WindowsFormsApp3.Utils
                 LogHelper.Debug("添加图层失败: " + ex.Message);
                 return false;
             }
+        }
+
+        private static GraphicsPath CreateFittingStandardBleedPath(ShapeType shapeType, float rectX, float rectY,
+            float rectWidth, float rectHeight, double roundRadiusMm, float bleedPoints,
+            float pageWidth, float pageHeight, float roundingTolerancePoints)
+        {
+            GraphicsPath path = CreateStandardBleedPath(shapeType, rectX, rectY, rectWidth, rectHeight,
+                roundRadiusMm, bleedPoints);
+            RectangleF bounds = path.GetBounds();
+            float overflow = Math.Max(Math.Max(-bounds.Left, -bounds.Top),
+                Math.Max(bounds.Right - pageWidth, bounds.Bottom - pageHeight));
+
+            if (overflow > 0.01f && overflow <= roundingTolerancePoints)
+            {
+                // 曲线离散化有时比理论边界多出极小一段；按实测超出量重建等距轮廓。
+                path.Dispose();
+                float adjustedBleedPoints = Math.Max(0, bleedPoints - overflow - 0.01f);
+                path = CreateStandardBleedPath(shapeType, rectX, rectY, rectWidth, rectHeight,
+                    roundRadiusMm, adjustedBleedPoints);
+            }
+
+            return path;
+        }
+
+        private static GraphicsPath CreateStandardBleedPath(ShapeType shapeType, float rectX, float rectY,
+            float rectWidth, float rectHeight, double roundRadiusMm, float bleedPoints)
+        {
+            var path = new GraphicsPath();
+            float outerX = rectX - bleedPoints;
+            float outerY = rectY - bleedPoints;
+            float outerWidth = rectWidth + bleedPoints * 2;
+            float outerHeight = rectHeight + bleedPoints * 2;
+
+            if (shapeType == ShapeType.Circle)
+            {
+                // 椭圆的等距线不是简单放大的椭圆；沿每个采样点的单位法线外扩。
+                const int sampleCount = 512;
+                var points = new PointF[sampleCount];
+                double radiusX = rectWidth / 2.0;
+                double radiusY = rectHeight / 2.0;
+                double centerX = rectX + radiusX;
+                double centerY = rectY + radiusY;
+                for (int i = 0; i < sampleCount; i++)
+                {
+                    double angle = 2 * Math.PI * i / sampleCount;
+                    double cosine = Math.Cos(angle);
+                    double sine = Math.Sin(angle);
+                    double normalX = cosine / radiusX;
+                    double normalY = sine / radiusY;
+                    double normalLength = Math.Sqrt(normalX * normalX + normalY * normalY);
+                    points[i] = new PointF(
+                        (float)(centerX + radiusX * cosine + bleedPoints * normalX / normalLength),
+                        (float)(centerY + radiusY * sine + bleedPoints * normalY / normalLength));
+                }
+                path.AddPolygon(points);
+            }
+            else if (shapeType == ShapeType.RoundRect && roundRadiusMm > 0)
+            {
+                float radius = Math.Min((float)(roundRadiusMm * 72 / 25.4), Math.Min(rectWidth, rectHeight) / 2);
+                float outerRadius = radius + bleedPoints;
+                float diameter = outerRadius * 2;
+                path.AddArc(outerX, outerY, diameter, diameter, 180, 90);
+                path.AddArc(outerX + outerWidth - diameter, outerY, diameter, diameter, 270, 90);
+                path.AddArc(outerX + outerWidth - diameter, outerY + outerHeight - diameter, diameter, diameter, 0, 90);
+                path.AddArc(outerX, outerY + outerHeight - diameter, diameter, diameter, 90, 90);
+                path.CloseFigure();
+            }
+            else
+            {
+                path.AddRectangle(new RectangleF(outerX, outerY, outerWidth, outerHeight));
+            }
+
+            return path;
         }
 
         /// <summary>
@@ -376,9 +517,10 @@ namespace WindowsFormsApp3.Utils
 
 
         /// <returns>是否处理成功</returns>
-        public static bool ProcessSpecialShapePdf(string filePath)
+        public static bool ProcessSpecialShapePdf(string filePath, double bleedMm = 0,
+            bool normalizeDisplayedSize = true)
         {
-            return Services.PdfSpecialShapeProcessor.ProcessSpecialShapePdf(filePath);
+            return Services.PdfSpecialShapeProcessor.ProcessSpecialShapePdf(filePath, bleedMm, normalizeDisplayedSize);
         }        /// <summary>
         /// 使用iText7库将所有页面的MediaBox、TrimBox、BleedBox和ArtBox设置为与CropBox相同
         /// 这是避免页面内容被截断的核心方法
@@ -891,7 +1033,8 @@ public static bool ReorganizePagesWithIndirectReference(string filePath)
     }
 }
 
-        public static bool SetAllPageBoxesToCropBox(string filePath)
+        public static bool SetAllPageBoxesToCropBox(string filePath, bool normalizeDisplayedSize = false,
+            PdfPageBoxSource pageBoxSource = PdfPageBoxSource.Automatic, int referencePageNumber = 1)
         {
             LogHelper.Debug("SetAllPageBoxesToCropBox调用（iText7版本），文件路径: " + filePath);
             try
@@ -971,6 +1114,44 @@ public static bool ReorganizePagesWithIndirectReference(string filePath)
                 {
                     LogHelper.Debug("无法确定统一的基准框，终止处理");
                     return false;
+                }
+
+                if (pageBoxSource != PdfPageBoxSource.Automatic)
+                {
+                    if (referencePageNumber < 1 || referencePageNumber > pageSizes.Count)
+                    {
+                        LogHelper.Debug($"页面框基准页码无效: {referencePageNumber}");
+                        return false;
+                    }
+                    var reference = pageSizes[referencePageNumber - 1];
+                    unifiedBaseBox = pageBoxSource == PdfPageBoxSource.MediaBox
+                        ? reference.mediaBox
+                        : reference.cropBox;
+                    if (unifiedBaseBox == null || unifiedBaseBox.GetWidth() <= 0 || unifiedBaseBox.GetHeight() <= 0)
+                    {
+                        LogHelper.Debug($"所选页面框无效: {pageBoxSource}, 第{referencePageNumber}页");
+                        return false;
+                    }
+                    LogHelper.Debug($"使用第{referencePageNumber}页 {pageBoxSource} 统一所有页面框");
+                }
+
+                if (normalizeDisplayedSize)
+                {
+                    float displayedWidth = GetDisplayedPageDimensionPoints(unifiedBaseBox.GetWidth());
+                    float displayedHeight = GetDisplayedPageDimensionPoints(unifiedBaseBox.GetHeight());
+                    if (displayedWidth <= 0 || displayedHeight <= 0)
+                    {
+                        LogHelper.Debug("显示尺寸无效，终止页面框对齐");
+                        return false;
+                    }
+
+                    // 围绕原页框中心微调，页面内容在下方统一流程中同步平移，不改变图像缩放比例。
+                    unifiedBaseBox = new iText.Kernel.Geom.Rectangle(
+                        unifiedBaseBox.GetLeft() - (displayedWidth - unifiedBaseBox.GetWidth()) / 2,
+                        unifiedBaseBox.GetBottom() - (displayedHeight - unifiedBaseBox.GetHeight()) / 2,
+                        displayedWidth,
+                        displayedHeight);
+                    LogHelper.Debug($"按界面显示尺寸对齐页面框: {displayedWidth:F4}x{displayedHeight:F4}pt");
                 }
 
                 // 第二阶段：将所有页面的页面框设置为统一尺寸
@@ -1119,6 +1300,26 @@ public static bool ReorganizePagesWithIndirectReference(string filePath)
                 LogHelper.Debug("=== PDF页面框处理异常结束 ===");
                 return false;
             }
+        }
+
+        /// <summary>材料选择框的一位小数显示规则，供显示和页框差异判断共同使用。</summary>
+        internal static string FormatPageDimensionForDisplay(double millimeters)
+        {
+            return Math.Abs(millimeters - Math.Round(millimeters)) < 0.001
+                ? $"{Math.Round(millimeters):F0}" : $"{millimeters:F1}";
+        }
+
+        internal static double GetPageDimensionForDisplay(double millimeters)
+        {
+            return double.Parse(FormatPageDimensionForDisplay(millimeters), System.Globalization.CultureInfo.CurrentCulture);
+        }
+
+        private static float GetDisplayedPageDimensionPoints(float rawPoints)
+        {
+            double readMillimeters = Math.Round(rawPoints * 25.4 / 72, 2);
+            string displayed = readMillimeters.ToString("0.#", System.Globalization.CultureInfo.CurrentCulture);
+            double displayedMillimeters = double.Parse(displayed, System.Globalization.CultureInfo.CurrentCulture);
+            return (float)(displayedMillimeters * 72 / 25.4);
         }
 
         /// <summary>
