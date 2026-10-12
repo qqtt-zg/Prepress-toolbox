@@ -65,6 +65,8 @@ namespace WindowsFormsApp3
         [DllImport("user32.dll")]
         private static extern bool BringWindowToTop(IntPtr hWnd);
         [DllImport("user32.dll")]
+        private static extern bool EnableWindow(IntPtr hWnd, bool enable);
+        [DllImport("user32.dll")]
         private static extern void SwitchToThisWindow(IntPtr hWnd, bool fAltTab);
 
         private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
@@ -310,6 +312,8 @@ namespace WindowsFormsApp3
 
         // 本次材料选择使用的临时排版参数，不回写全局自动排版设置。
         private TemporaryImpositionParameters _temporaryImpositionParameters;
+        private AntdUI.Button _temporaryLayoutButton;
+        private int _layoutCalculationRevision;
         private AntdUI.Input _rowsInput;
         private AntdUI.Input _columnsInput;
         private bool _isUpdatingLayoutInputs;
@@ -918,6 +922,10 @@ namespace WindowsFormsApp3
             EnsureTemporaryImpositionParameters();
             _temporaryImpositionParameters.RequestedRows = rows;
             _temporaryImpositionParameters.RequestedColumns = columns;
+            _temporaryImpositionParameters.Strategy = rows > 0 || columns > 0 ? ImpositionLayoutStrategy.FixedGrid : ImpositionLayoutStrategy.Automatic;
+            _temporaryImpositionParameters.IsLayoutMultipleEnabled = false;
+            _temporaryImpositionParameters.RequestedLayoutQuantity = 0;
+            _temporaryImpositionParameters.StoreLayout(flatSheetRadioButton?.Checked == true);
             SaveTemporaryImpositionParameters(_temporaryImpositionParameters);
             OnImpositionSettingsChanged(sender, e);
         }
@@ -2428,10 +2436,13 @@ namespace WindowsFormsApp3
       
         // 颜色模式和膜类型的CheckedChanged事件已使用lambda表达式在InitializeEventHandlers方法中处理
 
-        private void ConfirmButton_Click(object sender, EventArgs e)
+        private async void ConfirmButton_Click(object sender, EventArgs e)
         {
             try
             {
+                if (confirmButton != null) confirmButton.Enabled = false;
+                await LoadBatchPageBoxChoicesAsync(_batchItems.ToList());
+                if (IsDisposed || Disposing) return;
                 if (ValidateForm())
                 {
                     if (enableImpositionCheckbox?.Checked == true &&
@@ -2457,6 +2468,10 @@ namespace WindowsFormsApp3
             catch (Exception ex)
             {
                 MessageBox.Show($"确认操作失败: {ex.Message}\n\n错误类型: {ex.GetType().Name}", "系统错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                if (!IsDisposed && !Disposing && confirmButton != null) confirmButton.Enabled = true;
             }
         }
 
@@ -4155,6 +4170,8 @@ namespace WindowsFormsApp3
                 RefreshGroupSummaryHeader();
                 RenderGroupCards();
                 dgvBatchFiles?.Refresh();
+                _activeBatchPageBoxItem = null;
+                _ = LoadBatchPageBoxChoicesAsync(_batchItems.ToList());
             }
             catch (Exception ex)
             {
@@ -4266,6 +4283,7 @@ namespace WindowsFormsApp3
                     RefreshGroupSummaryHeader();
                     RenderGroupCards();
                     dgvBatchFiles?.Refresh();
+                    _ = LoadBatchPageBoxChoicesAsync(addedItems);
                 }
             }
             catch (Exception ex)
@@ -4649,6 +4667,8 @@ namespace WindowsFormsApp3
                 });
 
                 if (this.IsDisposed) return;
+                await LoadBatchPageBoxChoicesAsync(snapshot, refresh: true);
+                if (this.IsDisposed) return;
 
                 // 4. 重新计算大版开料版数与行列分布
                 UpdateBatchOrderNumbers();
@@ -4722,6 +4742,7 @@ namespace WindowsFormsApp3
                 }
                 else
                 {
+                    RestoreSingleFilePageBoxSelection();
                     ShiftMainControls(-BATCH_PANEL_WIDTH);
                     targetLeft = _singleStationWindowLeft ?? (this.Left + BATCH_PANEL_WIDTH);
                     _singleStationWindowLeft = null;
@@ -5668,6 +5689,7 @@ namespace WindowsFormsApp3
             catch { }
 
             UpdatePinButtonAppearance(isTopMost);
+            FindTemporaryImpositionDialog()?.RestoreOwnerWindowLayer();
 
             if (persist)
             {
@@ -5725,6 +5747,14 @@ namespace WindowsFormsApp3
         {
             try
             {
+                // 延迟的 Shown 回调不能在模态参数窗口打开后再抢到它前面。
+                var dialog = FindTemporaryImpositionDialog();
+                if (dialog != null)
+                {
+                    EnsureMainWindowNotTopMost();
+                    dialog.RestoreOwnerWindowLayer();
+                    return;
+                }
                 // 1. 确保主界面绝不随材料选择框进入 TopMost 层级
                 EnsureMainWindowNotTopMost();
 
@@ -6093,6 +6123,11 @@ namespace WindowsFormsApp3
 
             try
             {
+                if (_batchItems.Count > 0)
+                {
+                    await LoadBatchPageBoxChoicesAsync(_batchItems.ToList());
+                    return;
+                }
                 var inspection = await Task.Run(() => new PdfInspectorService().InspectPdf(filePath));
                 if (IsDisposed || Disposing || !IsHandleCreated ||
                     !string.Equals(CurrentFileName, filePath, StringComparison.OrdinalIgnoreCase))
@@ -7030,7 +7065,7 @@ namespace WindowsFormsApp3
         {
             try
             {
-                string snapshot = parameters == null ? string.Empty : JsonConvert.SerializeObject(parameters);
+                string snapshot = parameters == null ? string.Empty : JsonConvert.SerializeObject(parameters.CloneWithoutLayoutOverrides());
                 AppSettings.SetValue(TemporaryImpositionSnapshotKey, snapshot);
                 AppSettings.Save();
             }
@@ -7055,7 +7090,8 @@ namespace WindowsFormsApp3
                     string.Equals(p.Name, AppSettings.LastUsedMaterialPreset, StringComparison.OrdinalIgnoreCase));
                 if (lastPreset?.TemporaryImpositionParameters != null)
                 {
-                    _temporaryImpositionParameters = lastPreset.TemporaryImpositionParameters.Clone();
+                    _temporaryImpositionParameters = lastPreset.TemporaryImpositionParameters.CloneWithoutLayoutOverrides();
+                    LoadDefaultLayoutStrategy();
                     _forceRotationEnabled = _temporaryImpositionParameters.IsForceRotationEnabled;
                     SaveTemporaryImpositionParameters(_temporaryImpositionParameters);
                     return;
@@ -7068,6 +7104,8 @@ namespace WindowsFormsApp3
                     _temporaryImpositionParameters = JsonConvert.DeserializeObject<TemporaryImpositionParameters>(snapshot);
                     if (_temporaryImpositionParameters != null)
                     {
+                        _temporaryImpositionParameters.ResetLayoutOverrides();
+                        LoadDefaultLayoutStrategy();
                         _forceRotationEnabled = _temporaryImpositionParameters.IsForceRotationEnabled;
                         return;
                     }
@@ -7094,8 +7132,19 @@ namespace WindowsFormsApp3
                 RollMarginRight = GetFloatValue(AppSettings.Get("Imposition_RollMarginRight") as string, 0),
                 RequestedRows = GetIntValue(AppSettings.Get("Imposition_Rows") as string, 0),
                 RequestedColumns = GetIntValue(AppSettings.Get("Imposition_Columns") as string, 0),
+                FlatSheetRotationMode = AppSettings.Get("Imposition_FlatRotationMode") == null ? (RollRotationMode?)null : (RollRotationMode)AppSettings.GetValue<int>("Imposition_FlatRotationMode"),
+                RollMaterialRotationMode = AppSettings.Get("Imposition_RollRotationMode") == null ? (RollRotationMode?)null : (RollRotationMode)AppSettings.GetValue<int>("Imposition_RollRotationMode"),
                 IsForceRotationEnabled = _forceRotationEnabled
             };
+            LoadDefaultLayoutStrategy();
+        }
+
+        private void LoadDefaultLayoutStrategy()
+        {
+            _temporaryImpositionParameters.RequestedRows = GetIntValue(AppSettings.Get("Imposition_Rows") as string, 0);
+            _temporaryImpositionParameters.RequestedColumns = GetIntValue(AppSettings.Get("Imposition_Columns") as string, 0);
+            _temporaryImpositionParameters.Strategy = _temporaryImpositionParameters.RequestedRows > 0 || _temporaryImpositionParameters.RequestedColumns > 0
+                ? ImpositionLayoutStrategy.FixedGrid : ImpositionLayoutStrategy.Automatic;
         }
 
         private RollRotationMode GetCurrentRotationMode(bool? isFlatSheet = null)
@@ -7117,52 +7166,102 @@ namespace WindowsFormsApp3
                 : _temporaryImpositionParameters.RollMaterialRotationMode) ?? RollRotationMode.Auto;
         }
 
-        private void OpenTemporaryImpositionParameters(bool focusRotation = false)
+        private async void OpenTemporaryImpositionParameters(bool focusRotation = false,
+            bool focusLayoutQuantity = false, bool focusLayoutGrid = false)
         {
             EnsureTemporaryImpositionParameters();
             GetCurrentRotationMode();
             bool isFlatSheet = flatSheetRadioButton?.Checked == true;
-            var parameters = _temporaryImpositionParameters.Clone();
-
-            // 卷装使用独立边距字段，避免覆盖平张本次临时边距。
-            if (!isFlatSheet)
+            var parameters = _temporaryImpositionParameters.ForMaterial(isFlatSheet);
+            parameters.Enabled = enableImpositionCheckbox?.Checked == true;
+            if (focusLayoutQuantity && parameters.RequestedLayoutQuantity == 0)
+                parameters.RequestedLayoutQuantity = Math.Max(1, _currentImpositionResult?.OptimalLayoutQuantity ?? 1);
+            if (focusLayoutQuantity) parameters.Strategy = ImpositionLayoutStrategy.FixedQuantity;
+            if (focusLayoutGrid)
             {
-                parameters.MarginTop = parameters.RollMarginTop;
-                parameters.MarginBottom = parameters.RollMarginBottom;
-                parameters.MarginLeft = parameters.RollMarginLeft;
-                parameters.MarginRight = parameters.RollMarginRight;
+                parameters.Strategy = ImpositionLayoutStrategy.FixedGrid;
+                parameters.RequestedLayoutQuantity = 0;
+                if (parameters.RequestedRows == 0 && parameters.RequestedColumns == 0)
+                {
+                    parameters.RequestedRows = Math.Max(1, _currentImpositionResult?.Rows ?? 1);
+                    parameters.RequestedColumns = Math.Max(1, _currentImpositionResult?.Columns ?? 1);
+                }
             }
 
-            using (var form = new TemporaryImpositionParametersForm(isFlatSheet, parameters, focusRotation))
+            parameters.StoreLayout(isFlatSheet);
+            var previewInfo = await WindowsFormsApp3.Presenters.TemporaryImpositionParametersPresenter.AnalyzePreviewAsync(
+                _impositionService, _activeBatchPageBoxItem?.FilePath ?? CurrentFileName,
+                SelectedPageBoxSource, SelectedPageBoxReferencePage, (float)_initialWidth, (float)_initialHeight);
+            if (IsDisposed || Disposing) return;
+            using (var form = new TemporaryImpositionParametersForm(isFlatSheet, parameters, focusRotation,
+                previewInfo, _impositionService, focusLayoutQuantity, focusLayoutGrid))
             {
-                if (form.ShowDialog(this) != DialogResult.OK)
+                if (ShowTemporaryImpositionDialog(form) != DialogResult.OK)
                 {
                     return;
                 }
 
-                var updated = form.Parameters.Clone();
-                if (!isFlatSheet)
+                ApplyTemporaryImpositionParameters(form.Parameters, form.IsFlatSheet);
+            }
+        }
+
+        private void ApplyTemporaryImpositionParameters(TemporaryImpositionParameters parameters, bool isFlatSheet)
+        {
+            _temporaryImpositionParameters = parameters.ForMaterial(isFlatSheet);
+            if (flatSheetRadioButton != null) flatSheetRadioButton.Checked = isFlatSheet;
+            if (rollMaterialRadioButton != null) rollMaterialRadioButton.Checked = !isFlatSheet;
+            if (enableImpositionCheckbox != null) enableImpositionCheckbox.Checked = parameters.Enabled;
+            // 排版约束方向不回写页序复制的 CopyMode。
+            _forceRotationEnabled = false;
+            SaveTemporaryImpositionParameters(_temporaryImpositionParameters);
+            _isUpdatingLayoutInputs = true;
+            _rowsInput.Text = _temporaryImpositionParameters.RequestedRows > 0 ? _temporaryImpositionParameters.RequestedRows.ToString() : string.Empty;
+            _columnsInput.Text = _temporaryImpositionParameters.RequestedColumns > 0 ? _temporaryImpositionParameters.RequestedColumns.ToString() : string.Empty;
+            _isUpdatingLayoutInputs = false;
+            OnImpositionSettingsChanged(this, EventArgs.Empty);
+            UpdateCustomImpositionCapsule();
+        }
+
+        private TemporaryImpositionParametersForm FindTemporaryImpositionDialog()
+        {
+            return OwnedForms.OfType<TemporaryImpositionParametersForm>()
+                .FirstOrDefault(form => !form.IsDisposed && form.Visible && form.Modal);
+        }
+
+        private DialogResult ShowTemporaryImpositionDialog(TemporaryImpositionParametersForm dialog)
+        {
+            var active = FindTemporaryImpositionDialog();
+            if (active != null)
+            {
+                active.RestoreOwnerWindowLayer();
+                return DialogResult.Cancel;
+            }
+            bool wasEnabled = Enabled;
+            dialog.Owner = this;
+            dialog.TopMost = TopMost;
+            // ShowDialog 仅临时禁用原生 HWND；托管状态也要禁用，才能在重建句柄后继续保持模态。
+            Enabled = false;
+            EventHandler preserveModalState = (s, e) =>
+            {
+                if (IsDisposed || !IsHandleCreated) return;
+                BeginInvoke(new Action(() =>
                 {
-                    updated.RollMarginTop = updated.MarginTop;
-                    updated.RollMarginBottom = updated.MarginBottom;
-                    updated.RollMarginLeft = updated.MarginLeft;
-                    updated.RollMarginRight = updated.MarginRight;
-                    updated.MarginTop = _temporaryImpositionParameters.MarginTop;
-                    updated.MarginBottom = _temporaryImpositionParameters.MarginBottom;
-                    updated.MarginLeft = _temporaryImpositionParameters.MarginLeft;
-                    updated.MarginRight = _temporaryImpositionParameters.MarginRight;
+                    if (IsDisposed || Disposing || !IsHandleCreated || dialog.IsDisposed || !dialog.Visible || !dialog.Modal) return;
+                    Enabled = false;
+                    EnableWindow(Handle, false);
+                }));
+            };
+            HandleCreated += preserveModalState;
+            try { return dialog.ShowDialog(this); }
+            finally
+            {
+                HandleCreated -= preserveModalState;
+                if (!IsDisposed && !Disposing)
+                {
+                    Enabled = wasEnabled;
+                    // 模态结束或句柄销毁可能使原生置顶标志改变，按图钉偏好恢复父窗。
+                    ApplyTopMostState(AppSettings.MaterialFormTopMost, false);
                 }
-                _temporaryImpositionParameters = updated;
-                _copyMode = updated.LayoutConstraintDirection ?? _copyMode;
-                if (copyModeComboBox != null) copyModeComboBox.SelectedIndex = (int)_copyMode;
-                _forceRotationEnabled = _temporaryImpositionParameters.IsForceRotationEnabled;
-                SaveTemporaryImpositionParameters(_temporaryImpositionParameters);
-                _isUpdatingLayoutInputs = true;
-                _rowsInput.Text = _temporaryImpositionParameters.RequestedRows > 0 ? _temporaryImpositionParameters.RequestedRows.ToString() : string.Empty;
-                _columnsInput.Text = _temporaryImpositionParameters.RequestedColumns > 0 ? _temporaryImpositionParameters.RequestedColumns.ToString() : string.Empty;
-                _isUpdatingLayoutInputs = false;
-                OnImpositionSettingsChanged(this, EventArgs.Empty);
-                UpdateCustomImpositionCapsule();
             }
         }
 
@@ -7757,7 +7856,7 @@ namespace WindowsFormsApp3
                         CopyMode = _copyMode,
                         CopyType = _copyType,
                         EnableImposition = enableImpositionCheckbox?.Checked == true,
-                        TemporaryImpositionParameters = _temporaryImpositionParameters?.Clone(),
+                        TemporaryImpositionParameters = _temporaryImpositionParameters?.CloneWithoutLayoutOverrides(),
                         ExportPath = SelectedExportPath ?? "",
                         RoundRadius = RoundRadius,
                         MaterialType = flatSheetRadioButton?.Checked == true ? "FlatSheet" : "RollMaterial",
@@ -8008,7 +8107,8 @@ namespace WindowsFormsApp3
 
                 if (preset.TemporaryImpositionParameters != null)
                 {
-                    _temporaryImpositionParameters = preset.TemporaryImpositionParameters.Clone();
+                    _temporaryImpositionParameters = preset.TemporaryImpositionParameters.CloneWithoutLayoutOverrides();
+                    LoadDefaultLayoutStrategy();
                     _temporaryImpositionParameters.MigrateRotationModes(
                         preset.IsDualCopy ? preset.CopyMode : CopyMode.AutoByColumn, _currentImpositionResult?.RotationAngle ?? 0);
                     _forceRotationEnabled = _temporaryImpositionParameters.IsForceRotationEnabled;
@@ -8074,7 +8174,7 @@ namespace WindowsFormsApp3
                 // 加载倍数方向
                 if (!ignoreOptions.HasFlag(PresetIgnoreOptions.CopyMode))
                 {
-                    _copyMode = _temporaryImpositionParameters.LayoutConstraintDirection ?? preset.CopyMode;
+                    _copyMode = preset.CopyMode;
                     if (copyModeComboBox != null)
                     {
                         copyModeComboBox.SelectedIndex = (int)_copyMode;
@@ -9150,7 +9250,7 @@ namespace WindowsFormsApp3
                 // 设置默认值
                 if (enableImpositionCheckbox != null)
                 {
-                    enableImpositionCheckbox.Checked = false; // 默认不启用
+                    enableImpositionCheckbox.Checked = AppSettings.GetValue<bool>("Imposition_Enabled", AppSettings.EnableImpositionChecked);
                 }
 
                 if (flatSheetRadioButton != null && rollMaterialRadioButton != null)
@@ -9227,12 +9327,20 @@ namespace WindowsFormsApp3
         {
             try
             {
+                if ((sender == flatSheetRadioButton && flatSheetRadioButton?.Checked == true) ||
+                    (sender == rollMaterialRadioButton && rollMaterialRadioButton?.Checked == true))
+                {
+                    EnsureTemporaryImpositionParameters();
+                    _temporaryImpositionParameters = _temporaryImpositionParameters.ForMaterial(flatSheetRadioButton?.Checked == true);
+                    _isUpdatingLayoutInputs = true;
+                    if (_rowsInput != null) _rowsInput.Text = _temporaryImpositionParameters.RequestedRows > 0 ? _temporaryImpositionParameters.RequestedRows.ToString() : "";
+                    if (_columnsInput != null) _columnsInput.Text = _temporaryImpositionParameters.RequestedColumns > 0 ? _temporaryImpositionParameters.RequestedColumns.ToString() : "";
+                    _isUpdatingLayoutInputs = false;
+                }
                 // 当任何排版设置改变时，自动重新计算并更新显示
                 if (enableImpositionCheckbox != null && enableImpositionCheckbox.Checked)
                 {
-                    Task.Run(() => _isDuplicateLayoutEnabled && _copyType == CopyType.Layout
-                        ? CalculateDuplicateLayout()
-                        : CalculateAndUpdateLayout());
+                    _ = CalculateAndUpdateLayout();
                 }
                 else
                 {
@@ -9255,10 +9363,13 @@ namespace WindowsFormsApp3
         /// </summary>
         private async Task CalculateAndUpdateLayout()
         {
+            int calculationRevision = System.Threading.Interlocked.Increment(ref _layoutCalculationRevision);
             try
             {
                 // 防抖处理 - 等待一段时间避免频繁计算
                 await Task.Delay(200);
+                if (IsDisposed || Disposing || calculationRevision != _layoutCalculationRevision ||
+                    enableImpositionCheckbox?.Checked != true) return;
 
                 if (InvokeRequired)
                 {
@@ -9283,10 +9394,10 @@ namespace WindowsFormsApp3
                 
                 // 尝试获取PDF文件路径
                 string pdfFilePath = null;
-                if (!string.IsNullOrEmpty(CurrentFileName))
+                if (!string.IsNullOrEmpty(_activeBatchPageBoxItem?.FilePath ?? CurrentFileName))
                 {
                     // 使用当前文件名作为文件路径
-                    pdfFilePath = CurrentFileName;
+                    pdfFilePath = _activeBatchPageBoxItem?.FilePath ?? CurrentFileName;
                     LogHelper.Debug($"[MaterialSelectFormModern] 使用当前文件路径: {pdfFilePath}");
                 }
 
@@ -9297,7 +9408,7 @@ namespace WindowsFormsApp3
                         // 方案A：调用 AnalyzePdfFileAsync 获取真实PDF信息
                         pdfInfo = await _impositionService.AnalyzePdfFileAsync(pdfFilePath,
                             SelectedPageBoxSource, SelectedPageBoxReferencePage);
-                        if (IsDisposed || Disposing || pageBoxRevision != _pageBoxSelectionRevision) return;
+                        if (IsDisposed || Disposing || pageBoxRevision != _pageBoxSelectionRevision || calculationRevision != _layoutCalculationRevision || enableImpositionCheckbox?.Checked != true) return;
                         
                         // 保存PDF的有效尺寸（根据PageRotation调整后的显示尺寸）
                         float rawWidth = 0;
@@ -9365,33 +9476,13 @@ namespace WindowsFormsApp3
                 // 使用实际的ImpositionService进行计算
                 ImpositionResult result = null;
 
-                // 根据一式两联状态选择计算方法
-                if (_isDuplicateLayoutEnabled && _copyType == CopyType.Layout)
-                {
-                    // 一式两联模式：使用偶数列计算
-                    if (config is FlatSheetConfiguration flatSheetConfig)
-                    {
-                        result = await _impositionService.CalculateOptimalEvenColumnsLayoutAsync(flatSheetConfig, pdfInfo, _copyCount, _copyMode);
-                    }
-                    else if (config is RollMaterialConfiguration rollMaterialConfig)
-                    {
-                        result = await _impositionService.CalculateOptimalEvenColumnsLayoutAsync(rollMaterialConfig, pdfInfo, _copyCount, _copyMode);
-                    }
-                }
-                else
-                {
-                    // 标准模式：使用普通布局计算
-                    if (config is FlatSheetConfiguration flatSheetConfig)
-                    {
-                        result = await _impositionService.CalculateFlatSheetLayoutAsync(flatSheetConfig, pdfInfo);
-                    }
-                    else if (config is RollMaterialConfiguration rollMaterialConfig)
-                    {
-                        result = await _impositionService.CalculateRollMaterialLayoutAsync(rollMaterialConfig, pdfInfo, default, GetCurrentRollRotationMode());
-                    }
-                }
+                // 页序复制与排版独立：布局只读取临时排版配置。
+                if (config is FlatSheetConfiguration flatSheetConfig)
+                    result = await _impositionService.CalculateFlatSheetLayoutAsync(flatSheetConfig, pdfInfo);
+                else if (config is RollMaterialConfiguration rollMaterialConfig)
+                    result = await _impositionService.CalculateRollMaterialLayoutAsync(rollMaterialConfig, pdfInfo);
 
-                if (IsDisposed || Disposing || pageBoxRevision != _pageBoxSelectionRevision) return;
+                if (IsDisposed || Disposing || pageBoxRevision != _pageBoxSelectionRevision || calculationRevision != _layoutCalculationRevision || enableImpositionCheckbox?.Checked != true) return;
                 if (result != null)
                 {
                     // 保存当前排版计算结果
@@ -9412,7 +9503,7 @@ namespace WindowsFormsApp3
                     LogHelper.Debug($"[MaterialSelectFormModern] 布局计算完成: {result.Rows}x{result.Columns}, 利用率: {result.SpaceUtilization:F1}%, 旋转角度: {result.RotationAngle}°");
 
                     // 计算两种布局数并缓存（用于平张列和卷装列同时显示）
-                    await CalculateBothLayoutTypesAsync(pdfInfo, pageBoxRevision);
+                    await CalculateBothLayoutTypesAsync(pdfInfo, pageBoxRevision, calculationRevision);
                 }
                 else
                 {
@@ -9422,6 +9513,7 @@ namespace WindowsFormsApp3
             }
             catch (Exception ex)
             {
+                if (calculationRevision != _layoutCalculationRevision || IsDisposed || Disposing) return;
                 LogHelper.Error($"[MaterialSelectFormModern] 计算布局时发生错误: {ex.Message}");
                 if (InvokeRequired)
                 {
@@ -9441,7 +9533,7 @@ namespace WindowsFormsApp3
         /// 计算平张和卷装两种布局类型并缓存结果
         /// 用于平张列和卷装列同时显示
         /// </summary>
-        private async Task CalculateBothLayoutTypesAsync(ImpositionPdfInfo pdfInfo, int pageBoxRevision)
+        private async Task CalculateBothLayoutTypesAsync(ImpositionPdfInfo pdfInfo, int pageBoxRevision, int calculationRevision)
         {
             try
             {
@@ -9469,7 +9561,7 @@ namespace WindowsFormsApp3
                 }
 
                 // 更新缓存
-                if (IsDisposed || Disposing || pageBoxRevision != _pageBoxSelectionRevision) return;
+                if (IsDisposed || Disposing || pageBoxRevision != _pageBoxSelectionRevision || calculationRevision != _layoutCalculationRevision || enableImpositionCheckbox?.Checked != true) return;
                 if (flatSheetResult != null && flatSheetResult.OptimalLayoutQuantity > 0)
                 {
                     LayoutResultsCache.UpdateFlatSheetLayoutResults(flatSheetResult.Rows, flatSheetResult.Columns);
@@ -9504,19 +9596,22 @@ namespace WindowsFormsApp3
             try
             {
                 EnsureTemporaryImpositionParameters();
-                if ((_temporaryImpositionParameters.IsPaperSizeUnlocked || _temporaryImpositionParameters.PaperWidth > 0) && _temporaryImpositionParameters.PaperWidth > 0 && _temporaryImpositionParameters.PaperHeight > 0)
+                var effective = _temporaryImpositionParameters.EffectiveLayout(true);
+                if ((effective.IsPaperSizeUnlocked || effective.PaperWidth > 0) && effective.PaperWidth > 0 && effective.PaperHeight > 0)
                 {
                     return new FlatSheetConfiguration
                     {
                         RotationMode = GetCurrentRotationMode(true),
-                        PaperWidth = _temporaryImpositionParameters.PaperWidth,
-                        PaperHeight = _temporaryImpositionParameters.PaperHeight,
-                        MarginTop = _temporaryImpositionParameters.MarginTop,
-                        MarginBottom = _temporaryImpositionParameters.MarginBottom,
-                        MarginLeft = _temporaryImpositionParameters.MarginLeft,
-                        MarginRight = _temporaryImpositionParameters.MarginRight,
-                        Rows = _temporaryImpositionParameters.RequestedRows,
-                        Columns = _temporaryImpositionParameters.RequestedColumns
+                        PaperWidth = effective.PaperWidth,
+                        PaperHeight = effective.PaperHeight,
+                        MarginTop = effective.MarginTop,
+                        MarginBottom = effective.MarginBottom,
+                        MarginLeft = effective.MarginLeft,
+                        MarginRight = effective.MarginRight,
+                        Rows = effective.RequestedRows,
+                        Columns = effective.RequestedColumns,
+                        LayoutMultiple = effective.IsLayoutMultipleEnabled ? effective.LayoutMultiple : 1,
+                        LayoutMultipleDirection = effective.LayoutConstraintDirection ?? CopyMode.AutoByColumn
                     };
                 }
 
@@ -9548,8 +9643,10 @@ namespace WindowsFormsApp3
                     MarginBottom = GetFloatValue(marginBottomStr, 0),
                     MarginLeft = GetFloatValue(marginLeftStr, 0),
                     MarginRight = GetFloatValue(marginRightStr, 0),
-                    Rows = GetIntValue(rowsStr, 0),
-                    Columns = GetIntValue(columnsStr, 0)
+                    Rows = effective.RequestedRows,
+                    Columns = effective.RequestedColumns,
+                    LayoutMultiple = effective.IsLayoutMultipleEnabled ? effective.LayoutMultiple : 1,
+                    LayoutMultipleDirection = effective.LayoutConstraintDirection ?? CopyMode.AutoByColumn
                 };
             }
             catch (Exception ex)
@@ -9567,19 +9664,23 @@ namespace WindowsFormsApp3
             try
             {
                 EnsureTemporaryImpositionParameters();
-                if ((_temporaryImpositionParameters.IsRollSizeUnlocked || _temporaryImpositionParameters.FixedWidth > 0) && _temporaryImpositionParameters.FixedWidth > 0 && _temporaryImpositionParameters.MinLength > 0)
+                var effective = _temporaryImpositionParameters.EffectiveLayout(false);
+                if ((effective.IsRollSizeUnlocked || effective.FixedWidth > 0) && effective.FixedWidth > 0 && effective.MinLength > 0)
                 {
                     return new RollMaterialConfiguration
                     {
                         RotationMode = GetCurrentRotationMode(false),
-                        FixedWidth = _temporaryImpositionParameters.FixedWidth,
-                        MinLength = _temporaryImpositionParameters.MinLength,
-                        MarginTop = _temporaryImpositionParameters.RollMarginTop,
-                        MarginBottom = _temporaryImpositionParameters.RollMarginBottom,
-                        MarginLeft = _temporaryImpositionParameters.RollMarginLeft,
-                        MarginRight = _temporaryImpositionParameters.RollMarginRight,
-                        Rows = _temporaryImpositionParameters.RequestedRows,
-                        Columns = _temporaryImpositionParameters.RequestedColumns
+                        FixedWidth = effective.FixedWidth,
+                        MinLength = effective.MinLength,
+                        MarginTop = effective.RollMarginTop,
+                        MarginBottom = effective.RollMarginBottom,
+                        MarginLeft = effective.RollMarginLeft,
+                        MarginRight = effective.RollMarginRight,
+                        UseExactRows = true,
+                        Rows = effective.RequestedRows,
+                        Columns = effective.RequestedColumns,
+                        LayoutMultiple = effective.IsLayoutMultipleEnabled ? effective.LayoutMultiple : 1,
+                        LayoutMultipleDirection = effective.LayoutConstraintDirection ?? CopyMode.AutoByColumn
                     };
                 }
 
@@ -9609,8 +9710,11 @@ namespace WindowsFormsApp3
                     MarginBottom = GetFloatValue(marginBottomStr, 10f),
                     MarginLeft = GetFloatValue(marginLeftStr, 10f),
                     MarginRight = GetFloatValue(marginRightStr, 10f),
-                    Rows = GetIntValue(AppSettings.Get("Imposition_Rows") as string, 0),
-                    Columns = GetIntValue(AppSettings.Get("Imposition_Columns") as string, 0)
+                    UseExactRows = true,
+                    Rows = effective.RequestedRows,
+                    Columns = effective.RequestedColumns,
+                    LayoutMultiple = effective.IsLayoutMultipleEnabled ? effective.LayoutMultiple : 1,
+                    LayoutMultipleDirection = effective.LayoutConstraintDirection ?? CopyMode.AutoByColumn
                 };
             }
             catch (Exception ex)
@@ -10483,7 +10587,7 @@ namespace WindowsFormsApp3
                 // 恢复启用排版复选框状态
                 if (enableImpositionCheckbox != null)
                 {
-                    bool enableImposition = AppSettings.EnableImpositionChecked;
+                    bool enableImposition = AppSettings.GetValue<bool>("Imposition_Enabled", AppSettings.EnableImpositionChecked);
                     enableImpositionCheckbox.Checked = enableImposition;
                     LogHelper.Debug($"[MaterialSelectFormModern] 恢复启用排版状态: {enableImposition}");
                 }
@@ -10557,8 +10661,6 @@ namespace WindowsFormsApp3
                 }
 
                 EnsureTemporaryImpositionParameters();
-                _copyMode = _temporaryImpositionParameters.LayoutConstraintDirection ?? _copyMode;
-                if (copyModeComboBox != null) copyModeComboBox.SelectedIndex = (int)_copyMode;
                 LogHelper.Debug("[MaterialSelectFormModern] 排版控件状态已从AppSettings恢复");
             }
             catch (Exception ex)
@@ -10725,157 +10827,6 @@ namespace WindowsFormsApp3
         private RollRotationMode? GetCurrentRollRotationMode()
         {
             return GetCurrentRotationMode(false);
-        }
-
-        /// <summary>
-        /// 按重复布局约束计算行列数，并遵守独立页面方向策略。
-        /// </summary>
-        private async Task CalculateDuplicateLayout()
-        {
-            try
-            {
-                if (IsDisposed || Disposing) return;
-                if (InvokeRequired)
-                {
-                    Invoke((Action)(async () => await CalculateDuplicateLayout()));
-                    return;
-                }
-
-                // 更新显示为计算中状态
-                int pageBoxRevision = _pageBoxSelectionRevision;
-                UpdateLayoutDisplay("计算中...");
-
-                // 获取当前配置
-                var config = GetCurrentImpositionConfiguration();
-                if (config == null)
-                {
-                    UpdateLayoutDisplay("配置错误");
-                    return;
-                }
-
-                // 获取PDF信息
-                ImpositionPdfInfo pdfInfo = null;
-                string pdfFilePath = CurrentFileName;
-
-                if (!string.IsNullOrEmpty(pdfFilePath) && System.IO.File.Exists(pdfFilePath))
-                {
-                    try
-                    {
-                        pdfInfo = await _impositionService.AnalyzePdfFileAsync(pdfFilePath,
-                            SelectedPageBoxSource, SelectedPageBoxReferencePage);
-
-                        // 保存PDF的有效尺寸
-                        if (IsDisposed || Disposing || pageBoxRevision != _pageBoxSelectionRevision) return;
-                        float rawWidth = 0;
-                        float rawHeight = 0;
-
-                        if (pdfInfo.HasCropBox && pdfInfo.CropBoxWidth > 0 && pdfInfo.CropBoxHeight > 0)
-                        {
-                            rawWidth = pdfInfo.CropBoxWidth;
-                            rawHeight = pdfInfo.CropBoxHeight;
-                        }
-                        else if (pdfInfo.FirstPageSize != null)
-                        {
-                            rawWidth = (float)pdfInfo.FirstPageSize.Width;
-                            rawHeight = (float)pdfInfo.FirstPageSize.Height;
-                        }
-
-                        // 根据PageRotation调整宽高
-                        if (pdfInfo.PageRotation == 90 || pdfInfo.PageRotation == 270)
-                        {
-                            _pdfOriginalWidth = (double)rawHeight;
-                            _pdfOriginalHeight = (double)rawWidth;
-                        }
-                        else
-                        {
-                            _pdfOriginalWidth = (double)rawWidth;
-                            _pdfOriginalHeight = (double)rawHeight;
-                        }
-
-                        LogHelper.Debug($"[一式两联] 获取PDF信息: 旋转={pdfInfo.PageRotation}°, 尺寸={_pdfOriginalWidth:F1}x{_pdfOriginalHeight:F1}mm");
-                    }
-                    catch (Exception ex)
-                    {
-                        LogHelper.Error($"[一式两联] 获取PDF信息失败: {ex.Message}", ex);
-                        if (SelectedPageBoxSource != PdfPageBoxSource.Automatic) throw;
-                    }
-                }
-
-                // 如果未能获取PDF信息，使用备选方案
-                if (pdfInfo == null)
-                {
-                    pdfInfo = new ImpositionPdfInfo
-                    {
-                        FilePath = "Demo.pdf",
-                        FileName = "Demo.pdf",
-                        PageCount = 1,
-                        FirstPageSize = new Utils.PageSize { Width = (float)_initialWidth, Height = (float)_initialHeight },
-                        HasCropBox = false,
-                        CropBoxWidth = (float)_initialWidth,
-                        CropBoxHeight = (float)_initialHeight,
-                        PageRotation = 0
-                    };
-                    _pdfOriginalWidth = _initialWidth;
-                    _pdfOriginalHeight = _initialHeight;
-                }
-
-                // 计算布局
-                ImpositionResult result = null;
-                var materialType = flatSheetRadioButton?.Checked == true ? "FlatSheet" : "RollMaterial";
-
-                if (materialType == "FlatSheet")
-                {
-                    // 对于平张材料，需要获取配置对象
-                    dynamic flatSheetConfig = config;
-                    result = await _impositionService.CalculateOptimalEvenColumnsLayoutAsync(flatSheetConfig, pdfInfo, _copyCount, _copyMode);
-                }
-                else
-                {
-                    dynamic rollMaterialConfig = config;
-                    result = await _impositionService.CalculateOptimalEvenColumnsLayoutAsync(rollMaterialConfig, pdfInfo, _copyCount, _copyMode);
-                }
-
-                if (result != null)
-                {
-                    // 保存计算结果
-                    if (IsDisposed || Disposing || pageBoxRevision != _pageBoxSelectionRevision) return;
-                    _currentImpositionResult = result;
-
-                    // 更新布局计算结果缓存（根据用户选择的类型）
-                    if (materialType == "FlatSheet")
-                    {
-                        LayoutResultsCache.UpdateFlatSheetLayoutResults(result.Rows, result.Columns);
-                    }
-                    else
-                    {
-                        LayoutResultsCache.UpdateRollMaterialLayoutResults(result.Rows, result.Columns);
-                    }
-
-                    // 更新显示
-                    UpdateLayoutDisplay(result);
-                    LogHelper.Info($"[一式两联] 布局计算完成: {result.Rows}x{result.Columns}, 利用率: {result.SpaceUtilization:F1}%, 列数为最优偶数");
-                }
-                else
-                {
-                    UpdateLayoutDisplay("计算失败");
-                    LogHelper.Warn("[一式两联] 布局计算返回空结果");
-                }
-            }
-            catch (Exception ex)
-            {
-                LogHelper.Error($"[一式两联] 计算布局时发生错误: {ex.Message}", ex);
-                if (InvokeRequired)
-                {
-                    Invoke((Action)(() =>
-                    {
-                        UpdateLayoutDisplay("计算错误");
-                    }));
-                }
-                else
-                {
-                    UpdateLayoutDisplay("计算错误");
-                }
-            }
         }
 
         #endregion

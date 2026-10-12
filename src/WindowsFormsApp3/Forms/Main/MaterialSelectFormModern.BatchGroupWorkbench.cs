@@ -349,6 +349,11 @@ namespace WindowsFormsApp3
 
                 foreach (var item in _batchItems)
                 {
+                    if (item.PageBoxChoicePage != null)
+                    {
+                        UpdateBatchPageBoxDimensions(item);
+                        continue;
+                    }
                     if (item.IsLocked) continue;
 
                     if (item.RawPdfWidth <= 0 || item.RawPdfHeight <= 0)
@@ -740,7 +745,8 @@ namespace WindowsFormsApp3
                 {
                     try
                     {
-                        pdfInfo = await _impositionService.AnalyzePdfFileAsync(item.FilePath);
+                        pdfInfo = await _impositionService.AnalyzePdfFileAsync(item.FilePath,
+                            item.PageBoxSource ?? PdfPageBoxSource.Automatic, item.PageBoxReferencePage);
                     }
                     catch (Exception ex)
                     {
@@ -774,11 +780,7 @@ namespace WindowsFormsApp3
                 }
 
                 ImpositionResult result = null;
-                if (_isDuplicateLayoutEnabled)
-                {
-                    result = await _impositionService.CalculateOptimalEvenColumnsLayoutAsync(config, pdfInfo);
-                }
-                else if (config is RollMaterialConfiguration rollConfig)
+                if (config is RollMaterialConfiguration rollConfig)
                 {
                     result = await _impositionService.CalculateRollMaterialLayoutAsync(
                         rollConfig, pdfInfo, default, GetCurrentRollRotationMode());
@@ -937,6 +939,7 @@ namespace WindowsFormsApp3
         {
             var dgv = new DataGridView
             {
+                Tag = grp,
                 BackgroundColor = Color.White,
                 BorderStyle = BorderStyle.None,
                 RowHeadersVisible = false,
@@ -971,6 +974,7 @@ namespace WindowsFormsApp3
             };
             var colFileName = new DataGridViewTextBoxColumn
             {
+                CellTemplate = new BatchPageBoxFileNameCell(),
                 DataPropertyName = "FileName",
                 HeaderText = "文件名",
                 Width = 150,
@@ -994,9 +998,14 @@ namespace WindowsFormsApp3
             var colPageCount = CreatePageCountColumn(45);
             var colDim = new DataGridViewTextBoxColumn
             {
+                CellTemplate = new BatchPageBoxChoiceCell
+                {
+                    GetTheme = () => _activeTheme,
+                    SourceSelected = SelectBatchPageBoxSource
+                },
                 DataPropertyName = "Dimensions",
-                HeaderText = "尺寸",
-                Width = 65,
+                HeaderText = "尺寸 / 选用基准",
+                Width = 116,
                 ReadOnly = true
             };
             var colLayout = new DataGridViewTextBoxColumn
@@ -1018,6 +1027,8 @@ namespace WindowsFormsApp3
 
             var bindingList = new BindingList<BatchFileItem>(grp.Items);
             dgv.DataSource = bindingList;
+            ConfigureBatchPageBoxRows(dgv, grp.Items);
+            dgv.DataBindingComplete += (s, e) => ConfigureBatchPageBoxRows(dgv, grp.Items);
             RestoreBatchGridSelection(dgv, bindingList);
             dgv.SelectionChanged += (s, e) =>
             {
@@ -1121,8 +1132,7 @@ namespace WindowsFormsApp3
                 TryMoveFilesBetweenGroups(payload.SourceGroupId, grp.GroupId, payload.FilePaths);
             };
 
-            int totalHeight = dgv.ColumnHeadersHeight + grp.Items.Count * dgv.RowTemplate.Height + 2;
-            dgv.Height = Math.Max(26, totalHeight);
+            ConfigureBatchPageBoxRows(dgv, grp.Items);
 
             dgv.CurrentCellDirtyStateChanged += (s, e) =>
             {
@@ -1134,8 +1144,11 @@ namespace WindowsFormsApp3
 
             dgv.CellClick += (s, e) =>
             {
-                if (e.RowIndex >= 0 && e.RowIndex < bindingList.Count)
+                if (e.RowIndex >= 0 && e.RowIndex < bindingList.Count && e.ColumnIndex >= 0 &&
+                    (dgv.Columns[e.ColumnIndex].DataPropertyName != nameof(BatchFileItem.Dimensions) ||
+                        bindingList[e.RowIndex].PageBoxChoicePage == null))
                 {
+                    ActivateBatchPageBoxItem(bindingList[e.RowIndex]);
                     QueueBatchFilePreview(bindingList[e.RowIndex]?.FilePath);
                 }
 

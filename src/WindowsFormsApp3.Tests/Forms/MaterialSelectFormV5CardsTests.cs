@@ -36,6 +36,61 @@ namespace WindowsFormsApp3.Tests.Forms
         }
 
         [StaFact]
+        public void TemporaryLayoutCommit_ShouldPreservePageCopyAndGlobalDefaults()
+        {
+            AppSettings.Set("Imposition_PaperWidth", "320");
+            using (var form = new MaterialSelectFormModern(new List<string> { "PET" }, @"C:\test\Job_90x80mm.pdf", "Job", 1,
+                "90", "80", null, -1, -1, -1, -1, "A01"))
+            {
+                var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                typeof(MaterialSelectFormModern).GetField("_copyMode", flags).SetValue(form, CopyMode.AutoByColumn);
+                typeof(MaterialSelectFormModern).GetField("_copyCount", flags).SetValue(form, 2);
+                typeof(MaterialSelectFormModern).GetField("_copyType", flags).SetValue(form, CopyType.Duplicate);
+                typeof(MaterialSelectFormModern).GetField("_isDuplicateLayoutEnabled", flags).SetValue(form, true);
+                var parameters = form.GetTemporaryImpositionParameters();
+                parameters.Enabled = false; parameters.PaperWidth = 350;
+                parameters.Strategy = ImpositionLayoutStrategy.Multiple;
+                parameters.LayoutMultiple = 3; parameters.IsLayoutMultipleEnabled = true;
+                parameters.LayoutConstraintDirection = CopyMode.AutoByRow;
+                parameters.StoreLayout(true);
+                typeof(MaterialSelectFormModern).GetMethod("ApplyTemporaryImpositionParameters", flags)
+                    .Invoke(form, new object[] { parameters, true });
+                Assert.Equal(CopyMode.AutoByColumn, form.GetCopyMode());
+                Assert.Equal(2, form.GetDuplicateCount());
+                Assert.Equal("320", AppSettings.GetValue<string>("Imposition_PaperWidth"));
+                Assert.Equal(350, form.GetTemporaryImpositionParameters().PaperWidth);
+                Assert.Equal(CopyMode.AutoByRow, form.GetTemporaryImpositionParameters().LayoutConstraintDirection);
+            }
+        }
+
+        [StaFact]
+        public void DefaultSettingsSave_ShouldWriteExplicitAutomaticRowsAndIndependentRotations()
+        {
+            AppSettings.Set("Imposition_Rows", "4"); AppSettings.Set("Imposition_Columns", "2");
+            var service = new ImpositionSettingsService();
+            var p = service.Load(); p.Strategy = ImpositionLayoutStrategy.Automatic;
+            p.FlatSheetRotationMode = RollRotationMode.Force0Degree;
+            p.RollMaterialRotationMode = RollRotationMode.Force270Degree;
+            service.Save(p);
+            Assert.Equal("0", AppSettings.GetValue<string>("Imposition_Rows"));
+            Assert.Equal("0", AppSettings.GetValue<string>("Imposition_Columns"));
+            Assert.Equal(RollRotationMode.Force0Degree, service.Load().FlatSheetRotationMode);
+            Assert.Equal(RollRotationMode.Force270Degree, service.Load().RollMaterialRotationMode);
+        }
+
+        [StaFact]
+        public void NewMaterialTask_ShouldUseSavedDefaultEnabledState()
+        {
+            AppSettings.EnableImpositionChecked = false;
+            AppSettings.Set("Imposition_Enabled", true);
+            using (var form = new MaterialSelectFormModern(new List<string> { "PET" }, @"C:\test\Job_90x80mm.pdf", "Job", 1,
+                "90", "80", null, -1, -1, -1, -1, "A01"))
+            {
+                Assert.True(form.GetIsImpositionEnabled());
+            }
+        }
+
+        [StaFact]
         public void V5RightStation_ShouldContainSevenCards_AndCorrectWidth()
         {
             AppSettings.MaterialFormPreviewExpanded = false;
@@ -102,6 +157,39 @@ namespace WindowsFormsApp3.Tests.Forms
                     TextFormatFlags.SingleLine | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
                 Assert.True(orderModeTextSize.Width <= form.BtnOrderNumberMode.Width - 4,
                     $"订单号模式文本宽 {orderModeTextSize.Width}px，按钮宽 {form.BtnOrderNumberMode.Width}px");
+            }
+        }
+
+        [StaFact]
+        public void LayoutEditors_ShouldBeAccessible_AndSnapshotShouldExcludeTemporaryOverrides()
+        {
+            using (var form = new MaterialSelectFormModern(
+                new List<string> { "PP" }, @"C:\test\Layout_90x80mm.pdf", "Layout", 1.0,
+                "90", "80", null, -1, -1, -1, -1, "A01"))
+            {
+                foreach (var name in new[] { "layoutGridEditor", "layoutQuantityEditor" })
+                {
+                    var editor = form.Controls.Find(name, true).Single();
+                    Assert.Equal(Cursors.Hand, editor.Cursor);
+                    Assert.True(editor.TabStop);
+                    Assert.Equal(AccessibleRole.PushButton, editor.AccessibleRole);
+                }
+                Assert.NotEmpty(form.Controls.Find("btnTemporaryImposition", true));
+                var p = new TemporaryImpositionParameters
+                {
+                    PaperWidth = 320, PaperHeight = 464, RequestedRows = 3, RequestedColumns = 2,
+                    RequestedLayoutQuantity = 6, IsLayoutMultipleEnabled = true
+                };
+                typeof(MaterialSelectFormModern).GetMethod("SaveTemporaryImpositionParameters",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    .Invoke(form, new object[] { p });
+                var saved = Newtonsoft.Json.JsonConvert.DeserializeObject<TemporaryImpositionParameters>(
+                    AppSettings.GetValue<string>("MaterialFormTemporaryImpositionParameters"));
+                Assert.Equal(0, saved.RequestedRows);
+                Assert.Equal(0, saved.RequestedColumns);
+                Assert.False(saved.IsLayoutMultipleEnabled);
+                Assert.Equal(320, saved.PaperWidth);
+                Assert.Equal(3, p.RequestedRows);
             }
         }
 
@@ -361,7 +449,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Fact]
+        [StaFact]
         public void InplaceRoundRadius_ShouldSwitchVisibility_AndPersistValues()
         {
             AppSettings.MaterialFormPreviewExpanded = false;
@@ -427,7 +515,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Fact]
+        [StaFact]
         public void LoadPreset_WithMaterialEnabled_ShouldSelectMaterialButtonAndProperty()
         {
             AppSettings.MaterialFormPreviewExpanded = false;
@@ -477,7 +565,7 @@ namespace WindowsFormsApp3.Tests.Forms
                 }
             }
 
-        [Fact]
+        [StaFact]
         public void LoadPresetButtons_ShouldGroupUnderUnnamed_AndFilterCorrectly()
         {
             AppSettings.MaterialFormPreviewExpanded = false;

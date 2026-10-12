@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>V5 · 方案 B · 简化操作</title>
+<style>
+:root{--blue:#1677ff;--ink:#26384d;--muted:#6e8095;--line:#dbe4ef;--soft:#edf5ff;--roll:#a86b29;--green:#147962;--error:#ac5145}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#eef2f7;color:var(--ink)}body{font:12px/1.4 "Microsoft YaHei UI","Microsoft YaHei",sans-serif}
+button,input,select{font:inherit;color:inherit}button{cursor:pointer}button:disabled{opacity:.4;cursor:not-allowed}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #85baff;outline-offset:2px}h1,h2,h3,p{margin:0}input[type=number]{font-family:Consolas,monospace}input[type=range]{accent-color:var(--blue)}[hidden]{display:none!important}
+.page{width:100%;max-width:1500px;height:100dvh;margin:0 auto;padding:8px 12px;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;gap:6px}
+.demo-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:32px}.demo-brand{font-size:12px;font-weight:600;white-space:nowrap}.demo-tools,.entry-bar,.entry-bar>div{display:flex;align-items:center;gap:6px}.demo-tools>label{font-size:11px;color:var(--muted)}.demo-tools select{max-width:165px;height:27px;border:1px solid var(--line);border-radius:4px;background:white;padding:2px 5px;font-size:11px}.entry-bar button{height:28px;border:1px solid #ccd9e9;border-radius:4px;padding:3px 10px;background:white;font-size:11px;color:#667c96}.entry-bar button.selected{background:var(--soft);color:var(--blue);border-color:#8ab9f8}.entry-description{font-size:10px;color:var(--muted)}
+.btn{border:1px solid var(--line);border-radius:4px;background:white;padding:4px 11px;min-height:26px;font-size:11px}.btn:hover{border-color:#8ab8f4;color:var(--blue);background:#f7faff}.btn.primary{background:var(--blue);color:white;border-color:var(--blue)}
+.window{display:flex;flex-direction:column;min-width:0;min-height:0;border:1px solid #becddf;border-radius:6px;background:white;box-shadow:0 6px 18px #293d5409}
+.windowhead{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 12px;border-bottom:1px solid var(--line);flex:0 0 auto}.windowhead h2{font-size:15px;font-weight:600;line-height:1.3}.windowhead p{font-size:10px;color:var(--muted);margin-top:2px}.mode-badge{font-size:10px;vertical-align:middle;font-weight:normal;color:var(--blue);background:var(--soft);padding:1px 5px;border:1px solid #cbdff8;border-radius:3px;margin-left:5px}.materialtabs{display:flex;background:#edf1f6;padding:2px;border-radius:4px;flex-shrink:0}.materialtabs button{border:0;border-radius:3px;padding:3px 10px;min-width:56px;background:transparent;color:var(--muted);font-size:11px}.materialtabs button.selected{background:white;color:var(--blue);box-shadow:0 1px 3px #1f385112}.materialtabs button.selected.roll{color:var(--roll)}
+#settingsForm{display:flex;flex-direction:column;flex:1;min-height:0}.settings-origin{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 12px;border-bottom:1px solid var(--line);background:#fafcfe;flex:0 0 auto}.enable-label{display:flex;gap:6px;align-items:center;font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer}.settings-origin>span{font-size:10px;color:#657b95;text-align:right;line-height:1.3}.settings-origin small{font-size:10px;display:inline;margin-left:8px;color:var(--muted)}
+.switch{appearance:none;width:26px;height:15px;border-radius:10px;margin:0;background:#becad8;position:relative;cursor:pointer;flex-shrink:0}.switch::after{content:'';position:absolute;width:9px;height:9px;top:3px;left:3px;border-radius:50%;background:white}.switch:checked{background:var(--blue)}.switch:checked::after{transform:translateX(11px)}
+.windowbody{display:grid;grid-template-columns:minmax(355px,43%) minmax(0,1fr);flex:1;min-height:0;align-items:stretch}
+.settings{padding:10px 12px;display:grid;grid-template-columns:1fr;gap:7px;align-content:start;min-width:0;min-height:0}
+.parameter-group{min-width:0}.sectionhead{display:flex;justify-content:space-between;align-items:center;gap:5px;margin-bottom:6px}.sectionhead h3{font-size:12px;font-weight:600;line-height:1.3}.scope,.source-tag{font-size:10px;color:var(--muted)}.source-tag{padding:1px 4px;border-radius:3px;background:#f2f5f9;white-space:nowrap}.source-tag.custom{color:#9c672b;background:#fbf3e9}
+.field-resets{display:flex;gap:4px;align-items:center;margin-bottom:6px;font-size:10px;color:var(--muted);flex-wrap:wrap}.field-resets button{font-size:10px;padding:1px 4px;border:1px solid #dce6f1;border-radius:3px;background:#fafcff;color:#637f9e;min-height:20px}.field-resets button:hover{color:var(--blue);border-color:#89b9f7}
+.basicgrid,.rowfields,.constraintfields{display:grid;grid-template-columns:1fr 1fr;gap:6px}.marginfields{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:6px}
+.field{display:flex;align-items:center;gap:4px;min-width:0}.field>label{min-width:44px;font-size:11px;color:#62798f;white-space:nowrap}.inputwrap{display:flex;align-items:center;height:27px;border:1px solid var(--line);border-radius:4px;background:white;min-width:0;flex:1}.inputwrap:focus-within{border-color:var(--blue);box-shadow:0 0 0 1px #1677ff18}.inputwrap input{width:100%;min-width:0;padding:3px 5px;border:0;outline:none;background:transparent;font-size:13px}.inputwrap span{font-size:10px;color:var(--muted);padding-right:4px;white-space:nowrap}.marginfields .field>label{min-width:33px}.hint,.product-help{margin-top:4px;font-size:10px;color:var(--muted);line-height:1.35;overflow-wrap:anywhere}
+.pdf-tools{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:5px}.pdf-tools>span{font-size:10px;color:var(--muted)}.pdf-button{color:var(--blue);font-size:11px;padding:3px 7px;min-height:24px}.pdf-picker{background:#f4f8fd;border:1px solid #d6e4f6;border-radius:4px;padding:5px 6px;margin-top:4px;font-size:10px;color:var(--muted)}.pdf-picker>div{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}.pdf-picker .btn{font-size:10px;padding:2px 5px;min-height:22px}
+.product-context{padding:7px 8px;background:#fbfdff;border:1px solid #dbe5f1;border-radius:4px}.product-inputs{display:grid;grid-template-columns:auto 1fr auto auto 1fr;align-items:center;gap:5px;font-size:11px;color:var(--muted)}.product-inputs .inputwrap{height:25px}.product-inputs input:disabled{color:#58718f;background:#f4f7fb}.product-reference{display:flex;gap:6px;align-items:center;margin-top:5px;font-size:10px;color:var(--muted)}.product-reference select{flex:1;min-width:0;font-size:11px;height:25px;border:1px solid var(--line);border-radius:3px;padding:2px 4px;background:white}
+.direction-heading{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:11px;margin-bottom:4px}.direction-heading span{font-size:10px;color:var(--muted)}.rotation{display:flex;gap:4px}.rotation button{flex:1;border:1px solid var(--line);border-radius:4px;background:white;font-size:11px;height:25px;padding:2px 0}.rotation button.selected{background:var(--soft);color:var(--blue);border-color:#91bdff}
+.layouttabs{display:flex;gap:0;background:#f0f3f8;padding:2px;border-radius:4px;margin-bottom:6px}.layouttabs button{flex:1;border:0;background:transparent;border-radius:3px;height:23px;padding:2px 0;font-size:11px;color:var(--muted)}.layouttabs button.selected{background:white;color:var(--ink);box-shadow:0 1px 3px #26384d10}.rowfields .field{display:grid;grid-template-columns:26px minmax(48px,1fr) 45px;gap:4px}.rowfields .field>label{min-width:0}.autocheck{display:flex;align-items:center;gap:3px;font-size:10px;color:var(--muted);cursor:pointer}.autocheck input{width:12px;height:12px;accent-color:var(--blue);margin:0}.rowfields input:disabled{color:#6d8ab0;background:#f4f7fb}.choices{margin-top:5px}.choices select{width:100%;height:26px;border:1px solid #cbdcf0;border-radius:4px;background:white;padding:2px 5px;font-size:11px}
+.constraintbox{padding:7px 8px;border:1px solid #d8e4f2;border-radius:4px;background:#f8faff}.switchrow{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;cursor:pointer}.switchrow>span{font-size:10px;font-weight:normal;color:var(--muted);margin-left:auto}.constraintfields{margin-top:6px}.constraintfields select{flex:1;min-width:0;border:1px solid var(--line);border-radius:4px;background:white;height:25px;padding:2px 3px;font-size:11px}.disabled{opacity:.45}
+.preview{padding:9px 12px;background:#f7f9fc;border-left:1px solid var(--line);min-width:0;min-height:0;display:flex;flex-direction:column;gap:6px}.preview-visual{display:flex;flex-direction:column;min-width:0;min-height:120px;flex:1;gap:5px}.previewhead{display:flex;justify-content:space-between;align-items:center;gap:6px;flex:0 0 auto}.previewhead h3{font-size:12px}.product-size{display:block;font-size:10px;color:var(--muted);margin-top:2px}.align{display:flex;border:1px solid #d3ddeb;border-radius:4px;flex-shrink:0}.align button{border:0;padding:3px 6px;background:white;font-size:10px;color:var(--muted)}.align button.selected{color:var(--blue);background:#e8f1ff}
+.zoom-toolbar{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:10px;color:var(--muted);flex:0 0 auto}.zoom-toolbar>div{display:flex;align-items:center;gap:3px}.zoom-toolbar button{border:1px solid #d9e3ef;border-radius:3px;background:white;padding:2px 5px;min-height:22px;font-size:11px;color:#597391}.zoom-toolbar button.selected{background:#edf5ff;color:var(--blue);border-color:#a8caf7}.zoom-toolbar span{min-width:43px;text-align:center}
+.stage{flex:1;min-width:0;min-height:95px;display:flex;align-items:center;justify-content:center;border-radius:4px;background-image:radial-gradient(#d2dce9 1px,transparent 1px);background-size:14px 14px;overflow:hidden}.stage svg{width:100%;height:100%;max-width:none}.stage .empty{font-size:11px;color:var(--error);padding:10px;text-align:center}.legend{display:flex;justify-content:center;gap:12px;align-items:center;font-size:10px;color:var(--muted);flex:0 0 auto}.legend span{display:flex;align-items:center;gap:4px}.legend i{width:10px;height:8px;border:1px solid #83b2f0;background:#e8f2ff}.legend .dash{border:1px dashed #93a3b8;background:transparent}
+.preview-navigation{padding:4px 6px;background:white;border:1px solid #dce5ef;border-radius:4px;flex:0 0 auto}.preview-navigation>div{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)}.preview-navigation input{flex:1;min-width:0;height:12px;accent-color:var(--blue)}.preview-navigation p{font-size:10px;color:var(--muted);line-height:1.3;margin-top:2px}
+.preview-results{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:5px;align-content:start;flex:0 0 auto;min-width:0}.previewmetrics{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:6px 8px;border:1px solid #dce4ee;border-radius:4px;background:white;min-height:44px}.gridvalue{font:21px/1.15 Consolas,monospace;color:var(--ink)}.previewmetrics p{font-size:10px;color:var(--muted);margin-top:2px}.count{text-align:right;color:var(--muted);font-size:10px}.count b{display:block;font:25px/1 Consolas,monospace;color:var(--blue)}.lengthbar{display:flex;flex-direction:column;justify-content:center;gap:3px;padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:white;font-size:10px;color:var(--muted)}.lengthbar strong{font:19px/1.2 Consolas,monospace;color:var(--roll)}
+.offsets{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;font-size:10px;color:var(--muted)}.offsets>div{padding:3px 0;border:1px solid #dce5ef;border-radius:3px;background:white}.offsets b{display:block;font:13px/1.4 Consolas,monospace;color:var(--ink)}.status{grid-column:1/-1;font-size:11px;line-height:1.4;padding:6px 8px;border:1px solid #c3dfd3;border-radius:4px;background:#edf8f4;color:var(--green);overflow-wrap:anywhere}.status.error{color:var(--error);background:#fff4f0;border-color:#ebccc4}.status.warning{color:#946126;background:#fff7ea;border-color:#ead6b8}.status.paused{color:#687b91;background:#edf1f7;border-color:#d4deea}.conflict-actions{grid-column:1/-1;display:flex;gap:5px}.conflict-actions .btn{color:var(--blue);font-size:11px;min-height:23px;padding:2px 6px}
+.windowfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex:0 0 auto;padding:7px 12px;border-top:1px solid var(--line);background:#fff}.windowfoot>div{display:flex;align-items:center;gap:6px}.restore{border:0;background:transparent;color:var(--blue);padding:3px 0;font-size:11px}.draftstate{font-size:10px;color:var(--muted);margin-right:3px}
+.workbench{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 10px;border:1px solid var(--line);border-radius:4px;background:white;min-width:0}.workbench h3{font-size:11px}.workbench p{font-size:10px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}.appliedmetrics{display:flex;gap:17px;text-align:center;font-size:10px;color:var(--muted);flex-shrink:0}.appliedmetrics b{display:block;font:14px/1.5 Consolas,"Microsoft YaHei UI",monospace;color:var(--blue);white-space:nowrap}.appliedmetrics .rolltext{color:var(--roll)}.footer{font-size:10px;color:#7e90a6;display:flex;justify-content:space-between;gap:8px;line-height:1.3}
+.toast{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);background:#293e56;color:white;font-size:12px;border-radius:4px;padding:8px 13px;max-width:90vw;opacity:0;pointer-events:none;z-index:20}.toast.show{opacity:1}
+.help-dialog{width:min(1000px,calc(100vw - 32px));border:1px solid #c5d3e4;border-radius:6px;padding:16px;background:white;color:var(--ink)}.help-dialog::backdrop{background:#26394c66}.help-title{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}.help-title h2{font-size:16px}.help-title p{font-size:11px;color:var(--muted)}.parameter-audit summary{font-size:12px;font-weight:600;margin-bottom:9px;cursor:pointer}.parameter-audit summary>span{font-size:10px;color:var(--muted);margin-left:10px}.audit-grid,.notes{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.audit-grid h3,.notes h3{font-size:12px;margin-bottom:5px}.audit-grid p,.notes p{font-size:11px;color:#63768b}.audit-grid small{display:block;font-size:10px;color:var(--muted);margin-top:3px}.notes{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}.number{display:inline-block;margin-right:5px;color:var(--blue)}.scenario-controls{display:flex;gap:5px;flex-wrap:wrap;margin-top:12px}.scenario{padding:4px 7px;border:1px solid var(--line);border-radius:3px;background:white;font-size:11px}.scenario-controls>span{font-size:11px;color:var(--muted)}.help-dialog .footer{margin-top:12px}
+@media(max-width:1100px){.marginfields{grid-template-columns:repeat(2,1fr)}.demo-brand{font-size:11px}.demo-tools>label{display:none}.appliedmetrics{gap:10px}.field>label{min-width:42px}}
+@media(min-width:760px) and (max-height:850px){.windowbody{grid-template-columns:60% minmax(0,1fr)}.settings{grid-template-columns:1fr 1fr;gap:5px 8px;padding:7px 9px}.direction-group{grid-column:1/-1}.specs-group,.product-group,.layout-group,.constraints-group{align-self:start}.marginfields{grid-template-columns:repeat(2,1fr)}.preview{padding:7px 9px}.hint,.product-help{font-size:10px}.product-reference{gap:4px}.field>label{min-width:42px}.rowfields .field>label{min-width:0}.constraintfields .field>label{min-width:42px}.field-resets>span{display:none}.basicgrid .field{display:block}.basicgrid .field>label{display:block;font-size:10px;line-height:1.3;margin-bottom:2px}.sectionhead{margin-bottom:4px}.field-resets{margin-bottom:4px}}
+@media(max-width:759px){.page{padding:6px 8px;gap:4px}.demo-brand{display:none}.demo-bar{gap:5px}.entry-description{display:none}.demo-tools select{max-width:140px}.windowhead{padding:6px 9px}.settings-origin{padding:4px 9px}.settings-origin small{display:block;margin-left:0}.windowbody{grid-template-columns:1fr;grid-template-rows:auto minmax(150px,1fr)}.settings{grid-template-columns:1fr 1fr;gap:6px 8px;padding:7px 9px}.direction-group{grid-column:1/-1}.marginfields{grid-template-columns:repeat(2,1fr)}.preview{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,39%);gap:8px;border-left:0;border-top:1px solid var(--line);padding:7px 9px}.preview-visual{min-height:140px}.preview-results{align-self:center}.previewhead .align{display:none}.previewhead,.zoom-toolbar{gap:4px}.previewhead h3{font-size:11px}.zoom-toolbar button{padding:2px 4px}.legend{gap:5px;flex-wrap:wrap}.preview-navigation p{font-size:10px}.windowfoot{padding:5px 9px}.draftstate{display:none}.appliedmetrics{gap:9px}.workbench{padding:5px 8px}.workbench p{max-width:260px}.footer{font-size:10px}.footer span:last-child{display:none}.product-help{font-size:10px}.hint{line-height:1.3}}
+@media(max-width:560px){.entry-bar button{padding:3px 6px;font-size:11px}.demo-tools select{max-width:110px}.demo-tools .btn{padding:3px 6px}.settings{gap:6px}.field>label{min-width:32px;font-size:10px}.marginfields .field>label{min-width:32px}.inputwrap input{font-size:12px;padding:3px}.inputwrap span{padding-right:3px}.sectionhead h3{font-size:11px}.source-tag{font-size:10px}.field-resets{gap:3px}.field-resets span{display:none}.field-resets button{padding:1px 3px}.product-reference{display:block}.product-reference label{font-size:10px;display:block;margin-bottom:2px}.product-reference select{width:100%}.product-inputs{gap:3px}.scope{font-size:10px}.rowfields{grid-template-columns:1fr}.constraintfields{grid-template-columns:1fr}.direction-heading span{font-size:10px}.preview{grid-template-columns:minmax(0,1fr) 180px;gap:5px}.align{display:none}.zoom-toolbar{flex-wrap:wrap}.preview-results{gap:3px}.gridvalue{font-size:17px}.count b{font-size:21px}.lengthbar strong{font-size:15px}.previewmetrics{padding:4px 5px}.lengthbar{padding:4px 5px}.offsets{gap:3px}.offsets b{font-size:11px}.offsets>div{font-size:10px}.status{font-size:10px;padding:5px}.conflict-actions{flex-wrap:wrap}.windowfoot>div{gap:5px}.windowfoot .btn{padding:3px 7px;font-size:11px}.restore{font-size:10px}.workbench{align-items:center;gap:5px}.workbench>div:first-child{max-width:125px}.appliedmetrics{display:grid;grid-template-columns:repeat(3,1fr);gap:2px 6px}.appliedmetrics b{font-size:11px}.help-dialog{padding:12px}.audit-grid,.notes{gap:9px}.audit-grid h3,.notes h3{font-size:11px}.audit-grid p,.notes p{font-size:10px}}
+@media(max-height:650px) and (min-width:760px){.page{padding-top:5px;padding-bottom:5px;gap:4px}.windowhead{padding:5px 10px}.windowhead p{font-size:10px}.settings-origin{padding:4px 10px}.settings{gap:5px}.sectionhead{margin-bottom:4px}.field-resets{margin-bottom:4px}.inputwrap{height:25px}.hint,.product-help{margin-top:3px}.product-context{padding:5px 6px}.product-reference{margin-top:4px}.direction-heading{margin-bottom:3px}.windowfoot{padding:5px 10px}.workbench{padding-top:4px;padding-bottom:4px}.preview{gap:4px}.preview-visual{gap:4px}.status{padding:5px 6px}.offsets>div{padding:2px 0}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.marginfields .field>label{min-width:12px}.pdf-picker{padding:4px 5px}.pdf-picker .paper-source{display:flex;align-items:center;gap:5px}.pdf-picker label{font-size:10px;white-space:nowrap}.pdf-picker select{flex:1;min-width:0;height:25px;border:1px solid var(--line);border-radius:3px;background:white;padding:2px 4px;font-size:11px}
+
+@media(max-width:560px){.basicgrid .field{display:block}.basicgrid .field>label{display:block;font-size:10px;margin-bottom:2px;line-height:1.3}.marginfields .field>label{min-width:12px}.settings-origin small{display:none}}
+
+.reference-settings-group{min-width:0;display:flex;flex-direction:column;gap:6px;align-self:start}
+.reference-settings-group .direction-group{grid-column:auto}
+.paper-dialog{width:min(420px,calc(100vw - 24px));border:1px solid #bfd0e5;border-radius:5px;padding:12px;margin:auto;background:white}
+.paper-dialog::backdrop{background:#26394c66}
+.paper-dialog-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.paper-dialog-head h3{font-size:13px}
+@media(min-width:561px) and (max-width:759px){
+.windowhead>div:first-child{display:flex;align-items:center;gap:8px}.windowhead p{margin-top:0}
+.settings-origin small{display:inline;margin-left:6px}.settings{gap:5px 7px}
+.sectionhead{margin-bottom:4px}.field-resets{margin-bottom:4px}.product-context{padding:5px 6px}
+.product-context .hint,.product-help{margin-top:3px}.product-reference{margin-top:4px}
+.direction-heading{margin-bottom:3px}.rotation button{height:23px}
+.preview-navigation{display:flex;flex-wrap:wrap;align-items:center;gap:2px 5px;padding:3px 4px}
+.preview-navigation>div{flex:1;min-width:130px}
+.preview-navigation p{margin:0;font-size:10px}
+}
+
+@media(min-width:561px) and (max-width:759px) and (max-height:760px){
+.preview{padding-top:4px;padding-bottom:4px}.preview-visual{gap:3px}.stage{min-height:61px}
+.zoom-toolbar button{min-height:20px;padding:1px 4px}.legend{line-height:1.2}
+.preview-navigation{padding:2px 4px}.preview-navigation p{line-height:1.2}
+}
+
+.gridvalue{white-space:nowrap}
+@media(min-width:561px) and (max-width:759px){
+.previewmetrics{padding:5px 6px;gap:4px}.gridvalue{font-size:17px}.count b{font-size:21px}
+}
+
+/* 两行摘要：常态不使用独立结果卡片；只有异常才展开完整提示。 */
+.preview-results{display:flex;flex-direction:column;gap:4px;align-self:stretch;align-content:normal;padding:8px 0;border-top:1px solid #d9e3ef;flex:0 0 auto}
+.result-primary{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:22px}
+.result-item{display:flex;align-items:baseline;gap:5px;white-space:nowrap;min-width:0;font-size:11px;color:var(--muted)}
+.result-item>b{font:15px/1.3 Consolas,monospace;color:var(--ink)}
+.result-item:first-child>b,.result-item:nth-child(2)>b{color:var(--blue)}
+.result-item:last-child>b{color:var(--roll)}
+.result-secondary{display:flex;justify-content:space-between;align-items:center;gap:7px;min-height:18px}
+.preview-results .offsets{display:flex;flex-wrap:wrap;align-items:center;gap:7px;text-align:left;font-size:11px;color:var(--muted);min-width:0}
+.preview-results .offsets>span{white-space:nowrap}
+.preview-results .offsets b{display:inline;font:12px/1.3 Consolas,monospace;color:#425a77}
+.preview-results .status{display:inline-flex;align-items:center;gap:5px;grid-column:auto;min-height:0;margin:0;padding:0;border:0;border-radius:0;background:transparent;font-size:11px;line-height:1.4;white-space:nowrap;color:var(--green)}
+.preview-results .status::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.preview-results .status.paused{color:var(--muted)}
+.preview-results.has-issue .result-secondary{display:flex;flex-wrap:wrap;align-items:flex-start}
+.preview-results.has-issue .status{display:block;flex-basis:100%;padding:6px 8px;border:1px solid #ebccc4;border-radius:4px;background:#fff4f0;color:var(--error);white-space:normal}
+.preview-results.has-issue .status.warning{border-color:#ead6b8;background:#fff7ea;color:#946126}
+.preview-results.has-issue .status::before{display:none}
+.preview-results .conflict-actions{margin-top:1px}
+@media(min-width:760px) and (max-width:1100px){.result-primary{gap:5px}.result-item{gap:3px;font-size:10px}.result-item>b{font-size:13px}.preview-results .offsets{gap:5px;font-size:10px}.preview-results .offsets b{font-size:11px}.preview-results .status{font-size:10px}}
+@media(max-width:759px){.preview-results{align-self:center;gap:5px;padding:6px 0}.result-primary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 6px}.result-item{gap:3px;font-size:10px}.result-item>b{font-size:12px}.result-secondary{flex-wrap:wrap;gap:4px}.preview-results .offsets{gap:4px 6px;font-size:10px}.preview-results .offsets b{font-size:11px}.preview-results .status{font-size:10px}.preview-results.has-issue .status{padding:5px 6px}.conflict-actions{gap:4px}}
+
+.strategy-group{grid-column:1/-1;min-width:0}
+.strategy-tabs{display:flex;gap:3px;background:#edf2f8;border:1px solid #dce5ef;border-radius:5px;padding:3px;margin-bottom:7px}
+.strategy-tabs button{flex:1;min-width:0;border:0;border-radius:3px;background:transparent;color:#647b94;min-height:27px;padding:3px 8px;font-size:12px;white-space:nowrap}
+.strategy-tabs button.selected{background:var(--blue);color:white;box-shadow:0 1px 3px #1677ff20}
+.strategy-tabs button:disabled{opacity:.55;cursor:not-allowed}.strategy-tabs button span{font-size:10px;margin-left:5px;color:#8291a5}
+.automatic-panel{padding:8px 10px;border:1px solid #dce7f5;border-radius:4px;background:#f8fbff;font-size:11px;color:#607b9a}
+.automatic-panel b{font-size:11px;font-weight:500;color:#405d7f}.automatic-panel p{margin-top:3px;color:var(--muted);font-size:10px}
+.specified-fields{display:grid;grid-template-columns:160px minmax(0,1fr);align-items:start;gap:8px}
+.specified-fields .layouttabs{margin:0;min-height:27px}.specified-fields .rowfields{grid-template-columns:repeat(2,minmax(0,1fr))}
+.quantity-fields{display:grid;grid-template-columns:minmax(115px,.9fr) minmax(0,1.1fr);gap:5px 7px;align-items:center}
+.quantity-fields .hint{grid-column:1/-1;margin-top:0}.quantity-fields .choices{margin-top:0}
+.strategy-group .constraintbox{padding:7px 9px}.strategy-group .constraintfields{margin-top:0;grid-template-columns:minmax(170px,1fr) minmax(130px,1fr)}
+.preview-title{display:flex;align-items:center;gap:5px;flex-wrap:wrap}.layout-mode-badge{font-size:10px;line-height:1.4;padding:1px 5px;background:#e7f1ff;border:1px solid #c8ddf9;border-radius:3px;color:var(--blue);white-space:nowrap}
+@media(max-width:759px){.strategy-tabs button{font-size:11px;padding:3px 5px}.specified-fields{grid-template-columns:120px minmax(0,1fr);gap:7px}.quantity-fields{grid-template-columns:minmax(130px,1fr) minmax(0,1fr)}.preview-title{gap:3px}}
+@media(max-width:560px){.strategy-tabs{gap:2px;padding:2px}.strategy-tabs button{font-size:11px;padding:3px}.strategy-tabs button span{font-size:9px;margin-left:3px}.specified-fields{grid-template-columns:1fr;gap:5px}.specified-fields .layouttabs{max-width:none}.strategy-group .constraintfields{grid-template-columns:1fr 1fr}.strategy-group .constraintfields .field>label{min-width:32px}.preview-title{gap:3px}.layout-mode-badge{font-size:10px;padding:1px 3px}}
+
+
+/* 方案 B：三种策略直接可见，常用参数采用表单控件，低频操作集中到更多。 */
+.scheme-b .compare-link{font-size:11px;color:#607e9f;text-decoration:none;white-space:nowrap;padding:4px 6px}.scheme-b .compare-link:hover{color:var(--blue)}
+.scheme-b .select-field select{flex:1;min-width:0;height:28px;padding:3px 7px;border:1px solid #d4e0ee;border-radius:4px;background:#fff;font-size:12px;color:#385573}
+.scheme-b .direction-group{margin-top:2px}.scheme-b .select-field>label{min-width:50px;color:#6a7e94;font-size:11px}
+.scheme-b .specified-fields{grid-template-columns:180px minmax(0,1fr)}.scheme-b .specified-fields .format-field{height:28px}.scheme-b .specified-fields .select-field>label{min-width:48px}
+.scheme-b .zoom-toolbar{padding-bottom:2px}.scheme-b .simplified-zoom{gap:12px}.scheme-b .simplified-zoom>.select-field{flex:1;max-width:250px;display:flex;gap:7px}.scheme-b .simplified-zoom select{height:25px;font-size:11px}.scheme-b .preview-percent{display:flex;gap:5px;align-items:center;font-size:11px;color:var(--muted)}.scheme-b .preview-percent input{width:55px;height:25px;border:1px solid var(--line);border-radius:4px;background:white;text-align:center;font:12px Consolas,monospace;padding:2px 3px}
+.scheme-b .previewhead{min-height:30px}.scheme-b .preview-results{padding-top:7px;padding-bottom:7px}.scheme-b .more-entry{display:flex;gap:9px;align-items:center}.scheme-b .more-entry>span{font-size:10px;color:#8291a2}.scheme-b .more-button{background:#f9fbfd;color:#536e8e}.scheme-b .windowfoot .primary{min-width:112px}
+.scheme-b .strategy-tabs{background:#f5f7fa;border-color:#e2e8f0;padding:3px}.scheme-b .strategy-tabs button{font-size:12px}.scheme-b .strategy-tabs button.selected{background:var(--blue)}
+.more-dialog{width:min(440px,calc(100vw - 24px));padding:16px;border:1px solid #c2d2e5;border-radius:6px;background:white;color:var(--ink)}.more-dialog::backdrop{background:#26394c66}.more-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:13px}.more-head h2{font-size:16px;font-weight:600}.more-head p{font-size:10px;color:var(--muted);margin-top:3px}.more-section{padding:11px 0;border-top:1px solid #e1e8f1}.more-section>label{font-size:11px;color:#6c8198;display:block;margin-bottom:6px}.more-action{display:flex;gap:7px}.more-action select{height:29px;min-width:0;flex:1;border:1px solid var(--line);border-radius:4px;background:white;padding:3px 6px;font-size:12px}.more-foot{padding-top:10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:9px;align-items:center}.more-foot>span{font-size:10px;color:var(--muted)}.paper-more:has(#flatPdfTools[hidden]){display:none}
+@media(max-width:1100px){.scheme-b .specified-fields{grid-template-columns:155px minmax(0,1fr)}.scheme-b .select-field>label{min-width:44px}.scheme-b .specified-fields .select-field>label{min-width:44px}}
+@media(max-width:759px){.scheme-b .specified-fields{grid-template-columns:130px minmax(0,1fr)}.scheme-b .simplified-zoom{gap:6px;flex-wrap:wrap}.scheme-b .simplified-zoom>.select-field{flex:1}.scheme-b .preview-percent{gap:3px}.scheme-b .preview-percent input{width:48px}.scheme-b .more-entry>span{display:none}}
+@media(max-width:560px){.scheme-b .specified-fields{grid-template-columns:1fr}.scheme-b .simplified-zoom>.select-field{max-width:none;flex-basis:100%}.scheme-b .preview-percent{justify-content:flex-end;width:100%}.scheme-b .select-field select{font-size:11px;padding:3px 5px}.scheme-b .windowfoot .primary{min-width:100px}.scheme-b .strategy-tabs button{font-size:11px}}
+
+</style>
+</head>
+<body class="scheme-b">
+<main class="page">
+<div class="demo-bar"><div class="demo-brand">自动排版 · 方案 B</div><div class="entry-bar"><div role="group" aria-label="打开入口"><button type="button" data-entry="settings">设置 → 自动排版</button><button type="button" data-entry="temporary">材料选择框 → 本次参数</button></div><span class="entry-description" id="entryDescription">仅作用于当前任务</span></div>
+<div class="demo-tools"><label for="scenarioSelect">体验场景</label><select id="scenarioSelect" aria-label="体验场景"><option value="roll">卷装 4行2列</option><option value="auto">自动行数 × 3</option><option value="extend">卷装 30行</option><option value="asymmetric">非对称边距</option><option value="conflict">倍数与幅宽冲突</option></select><a class="compare-link" href="V5卷装参数与居中布局预览方案.html" target="_blank" rel="noopener">查看方案 A ↗</a></div></div>
+<section class="window" aria-label="临时排版界面方案">
+ <div class="windowhead"><div><h2><span id="windowTitle">本次排版参数</span> <span class="mode-badge" id="entryTag">本次任务</span></h2><p id="materialDescription">卷装参数与行列设置 · 仅本次操作</p></div><div class="materialtabs" role="group" aria-label="材料类型"><button type="button" data-material="flat">平张</button><button type="button" class="roll" data-material="roll">卷装</button></div></div>
+ <form id="settingsForm" novalidate>
+ <div class="settings-origin"><label class="enable-label" for="impositionEnabled"><input id="impositionEnabled" type="checkbox" class="switch" checked><span id="enableCaption">启用本次排版</span></label><span id="originDescription">默认设置 → 本次草稿<small>应用仅更新当前材料选择，取消不保存</small></span></div>
+ <div class="windowbody">
+  <div class="settings" id="parametersPane" aria-label="左侧参数调整">
+   <section class="parameter-group specs-group"><div class="sectionhead"><h3 id="specTitle">卷装材料规格</h3><span class="source-tag" id="sourceTag">沿用设置基准</span></div>
+   <div class="basicgrid"><div class="field"><label for="width" id="widthLabel">固定宽度</label><div class="inputwrap"><input id="width" type="number" min="0.01" step="0.01"><span>mm</span></div></div><div class="field"><label for="length" id="lengthLabel">最小长度</label><div class="inputwrap"><input id="length" type="number" min="0.01" step="0.01"><span>mm</span></div></div></div>
+   
+   <p class="hint" id="lengthHelp">幅宽固定，实际开料长度根据行数计算，且不小于最小开料长度。</p>
+   <div class="marginfields"><div class="field"><label for="marginLeft" title="左边距">左</label><div class="inputwrap"><input id="marginLeft" type="number" min="0" step="0.01"><span>mm</span></div></div><div class="field"><label for="marginRight" title="右边距">右</label><div class="inputwrap"><input id="marginRight" type="number" min="0" step="0.01"><span>mm</span></div></div><div class="field"><label for="marginTop" title="上边距">上</label><div class="inputwrap"><input id="marginTop" type="number" min="0" step="0.01"><span>mm</span></div></div><div class="field"><label for="marginBottom" title="下边距">下</label><div class="inputwrap"><input id="marginBottom" type="number" min="0" step="0.01"><span>mm</span></div></div></div></section>
+   <div class="reference-settings-group"><div class="product-context parameter-group product-group"><div class="sectionhead"><h3 id="productTitle">当前成品尺寸</h3><span class="source-tag" id="productTag">来自当前 PDF</span></div><div class="product-inputs"><label for="productWidth">宽</label><div class="inputwrap"><input id="productWidth" type="number" min="0.01" step="0.01"><span>mm</span></div><span>×</span><label for="productHeight">高</label><div class="inputwrap"><input id="productHeight" type="number" min="0.01" step="0.01"><span>mm</span></div></div><p class="hint" id="productSource">示例订单_90×80.pdf · 第 1 页 · CropBox</p><div class="product-reference"><label for="referenceSelect" id="referenceCaption">切换示例任务</label><select id="referenceSelect"><option value="normal">示例订单_90×80.pdf</option><option value="small">示例标签_40×60.pdf</option><option value="large">示例大页_200×300.pdf</option></select></div><p class="product-help" id="productHelp">成品尺寸与纸张尺寸分别显示；此处读取任务尺寸。</p></div>
+   <section class="parameter-group direction-group"><div class="field select-field"><label for="rotationSetting">页面方向</label><select id="rotationSetting"><option value="auto">自动选择方向</option><option value="0">禁止旋转 · 0°</option><option value="270">固定方向 · 270°</option></select></div></section>
+   </div>
+   <section class="parameter-group layout-group strategy-group">
+    <div class="sectionhead"><h3>排版方式</h3><span class="scope" id="manualScope">只使用当前方式的参数</span></div>
+    <div class="strategy-tabs" role="group" aria-label="排版方式">
+     <button type="button" id="strategyAuto" data-strategy="auto">自动择优</button>
+     <button type="button" id="strategyFixed" data-strategy="fixed">指定布局</button>
+     <button type="button" id="strategyMultiple" data-strategy="multiple">倍数布局<span id="multipleScope" hidden>仅本次</span></button>
+    </div>
+    <div class="automatic-panel" id="automaticFields"><b>自动计算行列与布局数</b><p>根据材料、成品尺寸和页面方向择优，结果在右侧显示。</p></div>
+    <div class="specified-fields" id="specifiedFields" hidden>
+     <div class="field select-field format-field"><label for="specifiedFormat">指定方式</label><select id="specifiedFormat"><option value="grid">按行列</option><option value="count" id="countOption">按布局数</option></select></div>
+     <div id="gridFields"><div class="rowfields">
+      <div class="field"><label for="rows">行数</label><div class="inputwrap"><input id="rows" type="number" min="1" step="1" placeholder="自动"><span>行</span></div><label class="autocheck"><input id="autoRows" type="checkbox">自动</label></div>
+      <div class="field"><label for="columns">列数</label><div class="inputwrap"><input id="columns" type="number" min="1" step="1" placeholder="自动"><span>列</span></div><label class="autocheck"><input id="autoColumns" type="checkbox">自动</label></div>
+     </div><p class="hint" id="gridHelp">至少指定一项，另一项可以自动计算。</p></div>
+     <div id="countFields" class="quantity-fields" hidden><div class="field"><label for="targetCount">每纸布局</label><div class="inputwrap"><input id="targetCount" type="number" min="1" step="1"><span>个</span></div></div><div class="choices" id="choices" aria-label="可用行列组合"></div><p class="hint">输入数量后选择行列组合，卷装长度自动延展。</p></div>
+    </div>
+    <div class="constraintbox" id="constraintBox" hidden>
+     <div class="constraintfields" id="constraintFields"><div class="field"><label for="direction">约束方向</label><select id="direction"><option value="column">按列</option><option value="row">按行</option></select></div><div class="field"><label for="multiple">倍数 N</label><div class="inputwrap"><input id="multiple" type="number" min="2" max="16"><span>倍</span></div></div></div>
+     <p class="hint">满足指定方向的倍数后自动计算行列，不使用手动布局值。</p>
+    </div>
+   </section>
+  </div>
+  <aside class="preview" id="previewPane" aria-label="右侧排版预览"><div class="preview-visual">
+
+   <div class="previewhead"><div><div class="preview-title"><h3>排版预览</h3><span class="layout-mode-badge" id="layoutModeBadge">指定布局</span></div><small class="product-size" id="previewScope">按当前文件尺寸计算</small></div></div>
+   <div class="zoom-toolbar simplified-zoom"><div class="field select-field"><label for="previewView">预览范围</label><select id="previewView"><option value="fit">整张预览</option><option value="detail">按幅宽看局部</option><option value="custom">自定比例</option></select></div><div class="preview-percent"><label for="previewScale">缩放</label><input id="previewScale" type="number" min="1" max="400" step="1" aria-label="预览缩放百分比"><span>%</span></div></div>
+   <div class="stage" id="stage" aria-label="按实际尺寸比例绘制的排版"></div>
+   <div class="preview-navigation" id="previewNavigation" hidden><div id="panXRow"><label for="panX">横向位置</label><input id="panX" type="range" min="0" max="100" step="1" value="50"></div><div id="panYRow"><label for="panY">纵向位置</label><input id="panY" type="range" min="0" max="100" step="1" value="0"></div><p id="visibleRange">查看当前局部</p></div>
+   <div class="legend"><span><i></i>排版页面</span><span><i class="dash"></i>可印刷区域</span><span id="alignmentLegend">按可印刷区域居中</span></div>
+  </div><div class="preview-results" id="previewResults">
+   <div class="result-primary" aria-label="排版结果摘要">
+    <span class="result-item"><span>网格</span><b class="gridvalue" id="gridValue">4×2</b></span>
+    <span class="result-item"><span>布局</span><b id="layoutValue">8</b><span>个</span></span>
+    <span class="result-item"><span>角度</span><b id="orientation">0°</b></span>
+    <span class="result-item"><span id="lengthMetricLabel">开料</span><b id="actualLength">420 mm</b></span>
+   </div>
+   <div class="result-secondary">
+    <div class="offsets" aria-label="网格距材料四边的留白，单位毫米"><span class="offset-label">留白(mm)</span><span>左 <b id="leftGap">70</b></span><span>右 <b id="rightGap">70</b></span><span>上 <b id="topGap">50</b></span><span>下 <b id="bottomGap">50</b></span></div>
+    <span class="status" id="validation" role="status" aria-live="polite">布局可用</span>
+   </div>
+   <div class="conflict-actions" id="conflictActions" hidden><button type="button" class="btn" id="autoAxis">改为自动择优</button></div>
+  </div>
+  </aside>
+ </div>
+ <div class="windowfoot"><div class="more-entry"><button type="button" class="btn more-button" id="showMore">更多 ⋯</button><span>恢复参数、PDF 导入与说明</span></div><div><span class="draftstate" id="draftState">尚未应用</span><button type="button" class="btn" id="cancel">取消</button><button type="submit" class="btn primary" id="apply">应用本次参数</button></div></div>
+ </form>
+</section>
+<section class="workbench" aria-label="工作台应用反馈"><div><h3 id="feedbackTitle">材料选择框 · 已应用参数</h3><p id="appliedNote">卷装 · 手动布局 · 列数 2 倍数</p></div><div class="appliedmetrics"><div>排版<b id="appliedEnabled">启用</b></div><div>材料<b class="rolltext" id="appliedMaterial">卷装</b></div><div>网格<b id="appliedGrid">4×2</b></div><div>布局数<b id="appliedCount">8</b></div><div>开料长度<b class="rolltext" id="appliedLength">420 mm</b></div><div>页序复制<b>逐页 2 次</b></div></div></section>
+<footer class="footer"><span>交互方案：页面内模拟，不写入真实设置或PDF。</span><span>方案 B：常驻主操作按钮减少，参数完整保留</span></footer>
+</main>
+<dialog class="pdf-picker paper-dialog" id="pdfSizePicker" hidden><div class="paper-dialog-head"><h3>从示例PDF获取纸张尺寸</h3><button type="button" class="btn" id="closePaperPicker">取消</button></div><div class="paper-source"><label for="paperPdfSelect">示例纸张PDF</label><select id="paperPdfSelect"><option value="">选择尺寸…</option><option value="320,464">320×464 mm</option><option value="210,297">A4 · 210×297 mm</option></select></div></dialog>
+<dialog id="moreDialog" class="more-dialog"><div class="more-head"><div><h2>更多操作</h2><p>只作用于当前编辑的材料，不会自动保存。</p></div><button type="button" class="btn" id="closeMore">关闭</button></div><section class="more-section"><label for="parameterAction">恢复参数</label><div class="more-action"><select id="parameterAction"><option value="default" id="defaultAction">恢复当前材料默认参数</option><option value="auto">恢复自动择优</option><option value="width">仅恢复宽度</option><option value="length">仅恢复高度／最小长度</option><option value="margins">仅恢复四边距</option><option value="rotation">仅恢复页面方向</option><option value="rows">仅恢复行列方式</option></select><button type="button" class="btn" id="executeParameterAction">执行</button></div></section><section class="more-section paper-more"><div class="pdf-tools" id="flatPdfTools" hidden><button type="button" class="btn pdf-button" id="getPdfSize">从PDF获取纸张尺寸</button><span>回填纸张宽高</span></div></section><section class="more-section"><div class="field select-field"><label for="previewAlignment">预览对齐</label><select id="previewAlignment"><option value="center">按可印刷区域居中</option><option value="start">靠左上（对比）</option></select></div></section><div class="more-foot"><button type="button" class="btn" id="showHelp">参数与操作说明</button><span>选择预览对齐不会修改文件。</span></div></dialog>
+<dialog class="help-dialog" id="helpDialog"><div class="help-title"><div><h2>参数与操作说明</h2><p>方案 B：保留三种策略；方向、指定方式和预览范围用下拉选择；低频操作集中到“更多”。</p></div><button type="button" class="btn" id="closeHelp">关闭</button></div><details class="parameter-audit"><summary>已核对的设置参数 · 15 个参数 + 1 个快捷操作<span>来源：设置 → 自动排版</span></summary><div class="audit-grid"><div><h3>平张 · 6 项</h3><p>纸张宽度、纸张高度<br>上边距、下边距、左边距、右边距</p><small>快捷操作：从PDF获取尺寸 → 回填纸张宽高</small></div><div><h3>卷装 · 6 项</h3><p>固定宽度、最小长度<br>上边距、下边距、左边距、右边距</p><small>固定宽度限定材料幅宽；实际开料长度是计算结果</small></div><div><h3>共用 · 3 项</h3><p>启用排版功能<br>行数、列数（行 × 列）</p><small>行列是现有共用基准；本次草稿可以按材料分别调整</small></div></div></details>
+<section class="notes"><div><h3><span class="number">01</span>同一界面，两种保存范围</h3><p>设置入口保存后续任务的默认参数；材料选择入口只应用当前任务。切换入口保留各自未保存草稿，取消还原本次打开前的参数。</p></div><div><h3><span class="number">02</span>预览校验与保存校验分开</h3><p>默认设置的参数合法即可保存，样本放不下只提醒。临时应用必须适合当前文件；平张检查宽高，卷装仅横向限宽、长度自动延展。</p></div><div><h3><span class="number">03</span>自动值、手动值与来源明确</h3><p>自动择优、指定布局、倍数布局互斥。切换保留各自输入，只计算当前方式；倍数仅本次有效，默认设置入口禁用。</p></div></section>
+<footer class="footer"><span>交互方案 · 默认保存与 PDF 来源均为页面内模拟，不写入软件或真实文件。</span><span>所有数值为示例基准，并非当前软件真实设置；使用矩形网格，未模拟出血、间距、刀线。</span></footer>
+<div class="scenario-controls"><span>体验场景</span><button class="scenario" data-scene="roll">卷装 · 4 行 2 列</button><button class="scenario" data-scene="auto">卷装 · 自动行数 × 3 倍数</button><button class="scenario" data-scene="extend">卷装 · 30 行自动延长</button><button class="scenario" data-scene="asymmetric">非对称边距</button><button class="scenario" data-scene="conflict">倍数与幅宽冲突</button></div>
+<div class="scenario-controls"><button type="button" class="btn" data-pdfsize="320,464">示例大版_320×464.pdf</button><button type="button" class="btn" data-pdfsize="210,297">示例A4_210×297.pdf</button></div></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const SETTINGS_BASE = {enabled:true,rows:0,columns:0,flat:{width:320,length:464,left:10,right:10,top:10,bottom:10},roll:{width:320,length:420,left:10,right:10,top:10,bottom:10}};
+const makeConfig = roll => ({...SETTINGS_BASE[roll?'roll':'flat'],rotation:'auto',mode:'grid',rows:4,columns:2,target:8,choice:'',strategy:'fixed',constraint:false,direction:'column',multiple:2});
+let savedDefaults = {enabled:true,type:'roll',configs:{flat:{...makeConfig(false),rows:0,columns:0,strategy:'auto',constraint:false},roll:{...makeConfig(true),rows:0,columns:0,strategy:'auto',constraint:false}}};
+let applied = {enabled:true,type:'roll',configs:{flat:makeConfig(false),roll:makeConfig(true)}};
+let globalDraft = structuredClone(savedDefaults), temporaryDraft = structuredClone(applied), draft = temporaryDraft;
+let hostMode='temporary', alignment='center', result=null, timer, pdfPickerOpen=false;
+let viewMode='fit', zoom=20, panHorizontal=50, panVertical=0;
+const files = {normal:{name:'示例订单_90×80.pdf',width:90,height:80},small:{name:'示例标签_40×60.pdf',width:40,height:60},large:{name:'示例大页_200×300.pdf',width:200,height:300}};
+let taskFile='normal', referenceFile='normal', referenceSize={width:90,height:80};
+const numberFields = {width:'width',length:'length',marginLeft:'left',marginRight:'right',marginTop:'top',marginBottom:'bottom',rows:'rows',columns:'columns',targetCount:'target',multiple:'multiple'};
+const current = () => draft.configs[draft.type];
+const product = () => hostMode==='settings'?referenceSize:files[taskFile];
+const integer = (n,min,max) => Number.isInteger(n)&&n>=min&&n<=max;
+const fmt = n => Number.isInteger(n)?String(n):n.toFixed(2).replace(/0+$/,'').replace(/\.$/,'');
+function strategy(s){return s.strategy||'fixed';}
+function effectiveConfiguration(s){
+    const active={...s};
+    if(strategy(s)==='auto'){active.rows=0;active.columns=0;active.mode='grid';active.choice='';active.constraint=false;}
+    else if(strategy(s)==='multiple'){active.rows=0;active.columns=0;active.mode='grid';active.choice='';active.constraint=true;}
+    else active.constraint=false;
+    return active;
+}
+function selectStrategy(value){
+    if(hostMode==='settings'&&value==='multiple')return;
+    const s=current(),previous=result;
+    if(value==='fixed'&&s.mode==='grid'&&!s.rows&&!s.columns){s.rows=previous?.ok?previous.r:1;s.columns=previous?.ok?previous.c:1;}
+    s.strategy=value;s.constraint=value==='multiple';
+    if(hostMode==='settings')s.mode='grid';
+    syncSharedRows();write();
+}
+function validateParameters(type,s) {
+    s=effectiveConfiguration(s);
+    if(!Number.isFinite(s.width)||s.width<=0||!Number.isFinite(s.length)||s.length<=0||![s.left,s.right,s.top,s.bottom].every(n=>Number.isFinite(n)&&n>=0))return {ok:false,kind:'parameter',message:'材料尺寸须为正数，四边距须为非负数。'};
+    if(s.width<=s.left+s.right||(type==='flat'&&s.length<=s.top+s.bottom))return {ok:false,kind:'parameter',message:'边距已占满材料，可印刷区域必须大于 0。'};
+    if(s.constraint&&!integer(s.multiple,2,16))return {ok:false,kind:'parameter',message:'约束倍数请输入 2–16 的整数。'};
+    if(s.mode==='grid'&&(!Number.isSafeInteger(s.rows)||s.rows<0||!Number.isSafeInteger(s.columns)||s.columns<0))return {ok:false,kind:'parameter',message:'手动行列须为非负整数；自动模式不固定行列。'};
+    if(s.mode==='count'&&(!Number.isSafeInteger(s.target)||s.target<1))return {ok:false,kind:'parameter',message:'布局数须为正整数。'};
+    if(strategy(s)==='fixed'&&s.mode==='grid'&&!s.rows&&!s.columns)return {ok:false,kind:'manual-empty',message:'请至少指定行数或列数；全部自动时请选择“自动择优”。'};
+    return {ok:true};
+}
+function calculate(type,s,size=product()){
+ s=effectiveConfiguration(s);
+ const basic=validateParameters(type,s);if(!basic.ok)return basic;
+ if(!Number.isFinite(size.width)||size.width<=0||!Number.isFinite(size.height)||size.height<=0)return {ok:false,kind:'reference',message:'预览成品尺寸须为正数；纸张默认参数与预览尺寸分开保存。'};
+ const axis=s.direction==='column'?'列':'行';
+ if(s.constraint&&s.mode==='grid'){const v=s.direction==='column'?s.columns:s.rows;if(v>0&&v%s.multiple!==0)return {ok:false,kind:'multiple-conflict',axis,value:v,message:`指定${axis}数 ${v} 不是 ${s.multiple} 的倍数。请修改${axis}数、倍数或关闭约束；保留当前输入。`};}
+ const candidates=[];
+ const angles=s.rotation==='auto'?[0,270]:[Number(s.rotation)];
+ for(const angle of angles){
+  const w=angle===0?size.width:size.height,h=angle===0?size.height:size.width;
+  const maxColumns=Math.floor((s.width-s.left-s.right)/w),maxRows=Math.floor((s.length-s.top-s.bottom)/h);
+  const add=(r,c)=>{if(r<1||c<1||c>maxColumns||(type==='flat'&&r>maxRows))return;if(s.constraint&&(s.direction==='column'?c:r)%s.multiple!==0)return;const actualLength=type==='roll'?Math.max(s.length,s.top+r*h+s.bottom):s.length;candidates.push({r,c,angle,w,h,n:r*c,actualLength,usedWidth:c*w,usedHeight:r*h});};
+  if(s.mode==='count'){
+   for(let c=1;c<=Math.min(maxColumns,s.target);c++){const r=s.target/c;if(Number.isSafeInteger(r))add(r,c);}
+  }else{
+   let c=s.columns||maxColumns;
+   let r=s.rows||(type==='roll'?Math.max(1,Math.ceil((s.length-s.top-s.bottom)/h)):maxRows);
+   if(s.constraint){if(s.direction==='column'&&!s.columns)c-=c%s.multiple;if(s.direction==='row'&&!s.rows)r=type==='roll'?Math.ceil(r/s.multiple)*s.multiple:r-r%s.multiple;}
+   add(r,c);
+  }
+ }
+ if(!candidates.length){
+  if(type==='roll')return {ok:false,kind:'roll-width-or-combination',message:s.mode==='count'?`卷装布局数 ${s.target} 在可用幅宽 ${fmt(s.width-s.left-s.right)} mm 内，无法组合出满足当前倍数约束的整数网格。请调整布局数、约束或幅宽；长度可自动延展。`:`卷装可用幅宽 ${fmt(s.width-s.left-s.right)} mm，当前列数或列倍数在所选方向下放不下。请调整列数、幅宽或页面方向；增加行数只会延长材料。`};
+  return {ok:false,kind:'flat-range-or-combination',message:s.mode==='count'?`平张布局数 ${s.target} 无法在当前纸张宽高内组成满足约束的网格。请调整布局数、约束或纸张尺寸。`:'平张网格超出可印刷宽度或高度，或倍数约束无法满足。请减少行列或调整纸张尺寸。'};
+ }
+ candidates.sort((a,b)=>type==='roll'?b.usedWidth-a.usedWidth||a.angle-b.angle||a.r-b.r:b.n-a.n||a.angle-b.angle||a.r-b.r);
+ const chosen=candidates.find(c=>`${c.r}-${c.c}-${c.angle}`===s.choice)||candidates[0];
+ const extraWidth=s.width-s.left-s.right-chosen.usedWidth,extraHeight=chosen.actualLength-s.top-s.bottom-chosen.usedHeight;
+ const x=s.left+(alignment==='center'?extraWidth/2:0),y=s.top+(alignment==='center'?extraHeight/2:0);
+ return {ok:true,...chosen,candidates,x,y,leftGap:x,rightGap:s.width-x-chosen.usedWidth,topGap:y,bottomGap:chosen.actualLength-y-chosen.usedHeight};
+}
+
+function svgElement(tag,attrs,text){const el=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [name,value]of Object.entries(attrs||{}))el.setAttribute(name,String(value));if(text!==undefined)el.textContent=text;return el;}
+
+function draw(s,r) {
+    const stage=$('stage'); stage.replaceChildren();
+    $('previewView').disabled=$('previewScale').disabled=!r.ok;
+    if(!r.ok){$('previewNavigation').hidden=true;const empty=document.createElement('div');empty.className='empty';empty.textContent=r.disabled?'排版已停用 · 参数草稿保留':'暂无可用布局 · 请检查尺寸、方向或约束';stage.append(empty);return;}
+    const stageWidth=stage.clientWidth||450,stageHeight=stage.clientHeight||280;
+    const fullWidth=s.width+130,fullHeight=r.actualLength+110;
+    const fitScale=Math.min(stageWidth/fullWidth,stageHeight/fullHeight);
+    if(viewMode==='fit')zoom=fitScale/3.77952756*100;
+    const scale=viewMode==='fit'?fitScale:zoom/100*3.77952756;
+    const visibleWidth=stageWidth/scale,visibleHeight=stageHeight/scale;
+    const x=-65+Math.max(0,fullWidth-visibleWidth)*panHorizontal/100-Math.max(0,visibleWidth-fullWidth)/2;
+    const y=-55+Math.max(0,fullHeight-visibleHeight)*panVertical/100-Math.max(0,visibleHeight-fullHeight)/2;
+    $('previewScale').value=Math.round(zoom);$('previewView').value=viewMode==='fit'?'fit':viewMode==='detail'?'detail':'custom';
+
+    $('previewNavigation').hidden=viewMode==='fit'||(visibleWidth>=fullWidth&&visibleHeight>=fullHeight);
+    $('panXRow').hidden=visibleWidth>=fullWidth;$('panYRow').hidden=visibleHeight>=fullHeight;
+    $('panX').value=panHorizontal;$('panY').value=panVertical;
+    const start=Math.max(0,Math.min(r.actualLength,y)),end=Math.max(start,Math.min(r.actualLength,y+visibleHeight));
+    $('visibleRange').textContent=`纵向 ${fmt(start)}–${fmt(end)} mm`;
+    const svg=svgElement('svg',{viewBox:`${x} ${y} ${visibleWidth} ${visibleHeight}`,role:'img','aria-label':`${draft.type==='roll'?'卷装':'平张'}，${r.r}行${r.c}列；左留白${fmt(r.leftGap)}毫米，右留白${fmt(r.rightGap)}毫米。`});
+    const defs=svgElement('defs'),marker=svgElement('marker',{id:'arrow',markerWidth:6,markerHeight:6,refX:3,refY:3,orient:'auto-start-reverse'});
+    marker.append(svgElement('path',{d:'M0,0 L6,3 L0,6',fill:'#8498b1'}));defs.append(marker);svg.append(defs);
+    svg.append(svgElement('rect',{x:5,y:6,width:s.width,height:r.actualLength,fill:'#e8edf5'}));
+    svg.append(svgElement('rect',{x:0,y:0,width:s.width,height:r.actualLength,fill:'#fff',stroke:'#b4c5d9','stroke-width':1.5}));
+    const pw=s.width-s.left-s.right,ph=r.actualLength-s.top-s.bottom;
+    svg.append(svgElement('rect',{x:s.left,y:s.top,width:pw,height:ph,fill:'none',stroke:'#97aabd','stroke-dasharray':'4 4','stroke-width':1}));
+    if(alignment==='center'){
+        svg.append(svgElement('line',{x1:s.left+pw/2,y1:s.top,x2:s.left+pw/2,y2:r.actualLength-s.bottom,stroke:'#d5e1f0','stroke-dasharray':'3 4'}));
+        svg.append(svgElement('line',{x1:s.left,y1:s.top+ph/2,x2:s.width-s.right,y2:s.top+ph/2,stroke:'#d5e1f0','stroke-dasharray':'3 4'}));
+    }
+    if(r.n>400){
+        const pattern=svgElement('pattern',{id:'page-grid',width:r.w,height:r.h,patternUnits:'userSpaceOnUse'});
+        pattern.append(svgElement('rect',{x:.6,y:.6,width:r.w-1.2,height:r.h-1.2,fill:'#e6f1ff',stroke:'#79aceb','stroke-width':1}));defs.append(pattern);
+        const group=svgElement('g',{transform:`translate(${r.x} ${r.y})`});group.append(svgElement('rect',{x:0,y:0,width:r.usedWidth,height:r.usedHeight,fill:'url(#page-grid)'}));svg.append(group);
+    }else for(let row=0;row<r.r;row++)for(let col=0;col<r.c;col++){
+        svg.append(svgElement('rect',{x:r.x+col*r.w+.6,y:r.y+row*r.h+.6,width:r.w-1.2,height:r.h-1.2,fill:'#e6f1ff',stroke:'#79aceb','stroke-width':1}));
+        if(r.r<=10)svg.append(svgElement('text',{x:r.x+(col+.5)*r.w,y:r.y+(row+.5)*r.h+4,'text-anchor':'middle',fill:'#789dcc','font-family':'Consolas, monospace','font-size':12},row*r.c+col+1));
+    }
+    const line=(x1,y1,x2,y2)=>svg.append(svgElement('line',{x1,y1,x2,y2,stroke:'#8498b1','stroke-width':1,'marker-start':'url(#arrow)','marker-end':'url(#arrow)'}));
+    line(0,-24,s.width,-24);line(-24,0,-24,r.actualLength);
+    svg.append(svgElement('text',{x:s.width/2,y:-34,'text-anchor':'middle',fill:'#658098','font-size':12,'font-family':'Microsoft YaHei UI, sans-serif'},`${draft.type==='roll'?'幅宽':'纸宽'} ${fmt(s.width)} mm`));
+    svg.append(svgElement('text',{x:-34,y:r.actualLength/2,transform:`rotate(-90 -34 ${r.actualLength/2})`,'text-anchor':'middle',fill:'#658098','font-size':12,'font-family':'Microsoft YaHei UI, sans-serif'},`${draft.type==='roll'?'开料长度':'纸高'} ${fmt(r.actualLength)} mm`));
+    if(draft.type==='roll')svg.append(svgElement('line',{x1:-6,y1:r.actualLength,x2:s.width+6,y2:r.actualLength,stroke:'#b78244','stroke-width':1.8,'stroke-dasharray':'5 3'}));
+    stage.append(svg);
+}
+function showToast(text){clearTimeout(timer);$('toast').textContent=text;$('toast').classList.add('show');timer=setTimeout(()=>$('toast').classList.remove('show'),3000);}
+function syncSharedRows(){if(hostMode!=='settings')return;const s=current();for(const type of ['flat','roll']){draft.configs[type].rows=s.rows;draft.configs[type].columns=s.columns;draft.configs[type].strategy=strategy(s);draft.configs[type].constraint=false;}}
+function write(){const s=current();for(const [id,key]of Object.entries(numberFields))$(id).value=(key==='rows'||key==='columns')?(s[key]||''):s[key];$('autoRows').checked=s.rows===0;$('autoColumns').checked=s.columns===0;$('impositionEnabled').checked=draft.enabled;$('direction').value=s.direction;const size=product();$('productWidth').value=size.width;$('productHeight').value=size.height;$('referenceSelect').value=hostMode==='settings'?referenceFile:taskFile;render();}
+function read(){const s=current();for(const [id,key]of Object.entries(numberFields)){if(key==='rows'&&$('autoRows').checked)s[key]=0;else if(key==='columns'&&$('autoColumns').checked)s[key]=0;else s[key]=$(id).value===''?NaN:Number($(id).value);}draft.enabled=$('impositionEnabled').checked;s.constraint=strategy(s)==='multiple';s.direction=$('direction').value;s.choice='';syncSharedRows();render();}
+function defaultComparable(s){
+    const v=effectiveConfiguration(s);
+    const values=Object.fromEntries(['width','length','left','right','top','bottom','rotation','rows','columns','strategy','mode'].map(key=>[key,v[key]]));
+    if(strategy(s)==='multiple'){values.direction=v.direction;values.multiple=v.multiple;}
+    if(strategy(s)==='fixed'&&s.mode==='count'){values.target=v.target;values.choice=v.choice;}
+    return values;
+}
+function render(){
+    const s=current(),roll=draft.type==='roll',global=hostMode==='settings';
+    $('windowTitle').textContent=global?'自动排版设置':'本次排版参数';$('entryTag').textContent=global?'默认设置':'本次任务';
+    $('entryDescription').textContent=global?'保存默认':'仅当前任务';$('enableCaption').textContent=global?'默认启用排版':'启用本次排版';
+    $('originDescription').innerHTML=global?'默认参数<small>保存供后续任务使用</small>':'本次草稿<small>不修改默认参数</small>';
+    for(const btn of document.querySelectorAll('[data-entry]')){const active=btn.dataset.entry===hostMode;btn.classList.toggle('selected',active);btn.setAttribute('aria-pressed',active);}
+    $('specTitle').textContent=roll?'卷装材料规格':'平张纸张规格';$('widthLabel').textContent=roll?'固定宽度':'纸张宽度';$('lengthLabel').textContent=roll?'最小长度':'纸张高度';
+    $('flatPdfTools').hidden=roll;$('pdfSizePicker').hidden=roll||!pdfPickerOpen;if(!pdfPickerOpen&&$('pdfSizePicker').open)$('pdfSizePicker').close();
+    const custom=JSON.stringify(defaultComparable(s))!==JSON.stringify(defaultComparable(savedDefaults.configs[draft.type]));
+    $('sourceTag').textContent=global?(custom?'未保存修改':'已保存默认'):(custom?'本次覆盖默认':strategy(s)==='multiple'||(strategy(s)==='fixed'&&s.mode==='count')?'本次布局约束':'沿用默认参数');$('sourceTag').classList.toggle('custom',custom||(!global&&(strategy(s)==='multiple'||(strategy(s)==='fixed'&&s.mode==='count'))));
+    $('lengthHelp').textContent=roll?'横向限幅宽，长度自动延展；最小长度是下限。':'纸张宽高固定，四边距扣除后为可印刷区域。';
+    $('materialDescription').textContent=global?'默认参数 · 用于后续任务':'本次参数 · 不覆盖默认设置';
+    $('manualScope').textContent=global?'默认共用':roll?'长度可延展':'宽高固定';
+    $('gridHelp').textContent=global?'默认行列共用；至少指定一项。':'至少指定一项，另一项可以自动计算。';
+    const selectedStrategy=strategy(s);
+    for(const button of document.querySelectorAll('[data-strategy]')){const active=button.dataset.strategy===selectedStrategy;button.classList.toggle('selected',active);button.setAttribute('aria-pressed',active);}
+    $('strategyMultiple').disabled=global;$('multipleScope').hidden=!global;$('strategyMultiple').title=global?'倍数布局仅用于本次参数，不保存到默认设置':'按行或列的倍数自动计算';
+    $('automaticFields').hidden=selectedStrategy!=='auto';$('specifiedFields').hidden=selectedStrategy!=='fixed';$('constraintBox').hidden=selectedStrategy!=='multiple';
+    $('layoutModeBadge').textContent=selectedStrategy==='auto'?'自动择优':selectedStrategy==='multiple'?(s.direction==='row'?'行':'列')+s.multiple+' 倍数':'指定布局';
+$('countOption').disabled=global;$('countOption').textContent=global?'按布局数（仅本次）':'按布局数';
+    $('productTitle').textContent=global?'预览成品尺寸':'当前成品尺寸';$('productTag').textContent=global?'仅用于预览':'读取任务（示例）';
+    $('productWidth').disabled=$('productHeight').disabled=!global;
+    $('referenceCaption').textContent=global?'参考成品 PDF':'切换示例任务';
+    const file=files[global?referenceFile:taskFile],manualReference=global&&(referenceSize.width!==file.width||referenceSize.height!==file.height);$('productSource').textContent=manualReference?'手动输入的预览尺寸 · 不写入默认纸张参数':`${file.name} · 第 1 页 · CropBox（示例）`;if(manualReference)$('productTag').textContent='手动预览尺寸';
+    $('productHelp').textContent=global?'仅用于预览，不保存为纸张尺寸。':'读取任务尺寸，参数修改不改变成品。';
+    $('previewScope').textContent=global?'样本不适合仍可保存合法默认':'当前文件适合布局后才能应用';
+    for(const btn of document.querySelectorAll('[data-material]')){const active=btn.dataset.material===draft.type;btn.classList.toggle('selected',active);btn.setAttribute('aria-pressed',active);}
+    $('rotationSetting').value=s.rotation;
+    $('previewAlignment').value=alignment;
+    $('gridFields').hidden=s.mode!=='grid';$('countFields').hidden=s.mode!=='count';$('specifiedFormat').value=s.mode;
+
+    $('autoRows').checked=s.rows===0;$('autoColumns').checked=s.columns===0;$('rows').disabled=s.rows===0;$('columns').disabled=s.columns===0;
+    $('direction').disabled=$('multiple').disabled=selectedStrategy!=='multiple';
+    result=calculate(draft.type,s);const active=draft.enabled&&result.ok;draw(s,draft.enabled?result:{ok:false,disabled:true});$('choices').replaceChildren();
+    $('rows').placeholder=result.ok?`${result.r}（自动）`:'自动';$('columns').placeholder=result.ok?`${result.c}（自动）`:'自动';
+    if(selectedStrategy==='fixed'&&s.mode==='count'&&result.ok){
+        s.choice=`${result.r}-${result.c}-${result.angle}`;
+        const choice=document.createElement('select');choice.id='layoutChoice';choice.setAttribute('aria-label','可用行列组合');
+        for(const item of result.candidates){const option=document.createElement('option');option.value=`${item.r}-${item.c}-${item.angle}`;option.textContent=`${item.r} 行 × ${item.c} 列 · ${item.angle}°`;choice.append(option);}
+        choice.value=s.choice;choice.addEventListener('change',()=>{s.choice=choice.value;render();});$('choices').append(choice);
+    }
+    $('gridValue').textContent=active?`${result.r}×${result.c}`:'— × —';$('layoutValue').textContent=active?result.n:'—';$('orientation').textContent=active?`${result.angle}°`:'—';
+    $('lengthMetricLabel').textContent=roll?'开料':'纸高';$('actualLength').textContent=active?`${fmt(result.actualLength)} mm`:'—';
+    for(const key of ['leftGap','rightGap','topGap','bottomGap'])$(key).textContent=active?fmt(result[key]):'—';
+    $('alignmentLegend').textContent=alignment==='center'?'按可印刷区域居中':'当前靠左上放置';
+    $('conflictActions').hidden=global||result.ok||['parameter','reference'].includes(result.kind);
+    if(selectedStrategy==='fixed'&&result.ok)$('layoutModeBadge').textContent='指定 '+result.r+'×'+result.c;
+    const checks=['flat','roll'].map(type=>validateParameters(type,draft.configs[type]));const invalid=checks.find(r=>!r.ok);
+    const warning=global&&!result.ok&&!invalid;
+    $('validation').classList.toggle('warning',warning);$('validation').classList.toggle('error',(global&&!!invalid)||(!result.ok&&!warning));$('validation').classList.toggle('paused',!draft.enabled&&result.ok);
+    const statusDetail=global&&invalid?invalid.message:warning?'预览样本放不下；默认参数合法，可以保存默认设置。':!result.ok?result.message:!draft.enabled?'排版已停用，参数草稿保留。':roll?`${strategy(s)==='fixed'&&s.mode==='grid'&&s.rows>0?'指定':'自动计算'} ${result.r} 行；实际长度 ${fmt(result.actualLength)} mm。卷装纵向无固定上限。`:`${result.r} 行 × ${result.c} 列可容纳；网格按可印刷区域${alignment==='center'?'居中':'左上'}显示。`;
+    const issue=global?!!invalid||!result.ok:!result.ok;
+    $('previewResults').classList.toggle('has-issue',issue);
+    $('validation').textContent=issue?statusDetail:!draft.enabled?'排版停用':global?'参数可保存':'布局可用';
+    $('validation').title=statusDetail;
+    $('apply').disabled=global?!!invalid:!result.ok;
+    $('apply').textContent=global?'保存默认设置':'应用本次参数';$('defaultAction').textContent=global?'撤销当前材料未保存修改':'恢复当前材料默认参数';
+    const baseline=global?savedDefaults:applied;const dirty=draft.enabled!==baseline.enabled||(!global&&draft.type!==baseline.type)||['flat','roll'].some(type=>JSON.stringify(defaultComparable(draft.configs[type]))!==JSON.stringify(defaultComparable(baseline.configs[type])));
+    $('draftState').textContent=dirty?(global?'默认草稿 · 未保存':'本次草稿 · 未应用'):(global?'已保存默认':'已应用本次参数');
+}
+function renderApplied(){
+    const global=hostMode==='settings',state=global?savedDefaults:applied,s=state.configs[state.type],r=calculate(state.type,s),valid=state.enabled&&r.ok;
+    $('feedbackTitle').textContent=global?'默认设置 · 已保存参数':'材料选择框 · 已应用参数';$('appliedEnabled').textContent=state.enabled?'启用':'停用';
+    $('appliedMaterial').textContent=state.type==='roll'?'卷装':'平张';
+    $('appliedGrid').textContent=global?`${s.rows||'自动'}×${s.columns||'自动'}`:valid?`${r.r}×${r.c}`:'—';
+    $('appliedCount').textContent=global?'按文件计算':valid?r.n:'—';$('appliedLength').textContent=global?`${fmt(s.length)} mm`:valid?`${fmt(r.actualLength)} mm`:'—';
+    $('appliedNote').textContent=global?`平张 ${fmt(state.configs.flat.width)}×${fmt(state.configs.flat.length)} mm；卷装幅宽 ${fmt(state.configs.roll.width)} mm / 最小长度 ${fmt(state.configs.roll.length)} mm；倍数不保存。`:!state.enabled?'本次排版停用；页序复制保持原设置。':!r.ok?'已应用参数在新示例文件下不适合，请调整本次参数。':`本次${state.type==='roll'?'卷装':'平张'} · ${strategy(s)==='auto'?'自动择优':strategy(s)==='multiple'?(s.direction==='column'?'列':'行')+'数 '+s.multiple+' 倍数':'指定布局'} · 页序复制独立。`;
+}
+function switchHost(mode){if(hostMode==='settings')globalDraft=draft;else temporaryDraft=draft;hostMode=mode;draft=mode==='settings'?globalDraft:temporaryDraft;pdfPickerOpen=false;write();renderApplied();}
+for(const id of Object.keys(numberFields))$(id).addEventListener('input',read);
+$('impositionEnabled').addEventListener('change',read);$('direction').addEventListener('change',read);
+for(const button of document.querySelectorAll('[data-strategy]'))button.addEventListener('click',()=>selectStrategy(button.dataset.strategy));
+for(const [id,key]of [['autoRows','rows'],['autoColumns','columns']])$(id).addEventListener('change',()=>{current()[key]=$(id).checked?0:result?.ok?result[key==='rows'?'r':'c']:1;syncSharedRows();write();});
+for(const id of ['productWidth','productHeight'])$(id).addEventListener('input',()=>{if(hostMode!=='settings')return;referenceSize={width:Number($('productWidth').value),height:Number($('productHeight').value)};current().choice='';render();renderApplied();});
+$('referenceSelect').addEventListener('change',()=>{if(hostMode==='settings'){referenceFile=$('referenceSelect').value;referenceSize={width:files[referenceFile].width,height:files[referenceFile].height};}else taskFile=$('referenceSelect').value;viewMode='fit';write();renderApplied();});
+for(const btn of document.querySelectorAll('[data-entry]'))btn.addEventListener('click',()=>switchHost(btn.dataset.entry));
+for(const btn of document.querySelectorAll('[data-material]'))btn.addEventListener('click',()=>{draft.type=btn.dataset.material;pdfPickerOpen=false;viewMode='fit';write();});
+$('rotationSetting').addEventListener('change',()=>{current().rotation=$('rotationSetting').value;current().choice='';render();});
+function setSpecifiedFormat(value){
+    if(hostMode==='settings'&&value==='count')return;
+    const s=current();
+    if(value==='grid'&&s.mode==='count'&&result.ok){s.rows=result.r;s.columns=result.c;}
+    if(value==='count'&&s.mode==='grid'&&result.ok)s.target=result.n;
+    s.mode=value;s.choice='';syncSharedRows();write();
+}
+$('specifiedFormat').addEventListener('change',()=>setSpecifiedFormat($('specifiedFormat').value));
+$('getPdfSize').addEventListener('click',()=>{$('moreDialog').close();pdfPickerOpen=true;render();$('pdfSizePicker').showModal();});
+for(const btn of document.querySelectorAll('[data-pdfsize]'))btn.addEventListener('click',()=>{const size=btn.dataset.pdfsize.split(',').map(Number);draft.configs.flat.width=size[0];draft.configs.flat.length=size[1];pdfPickerOpen=false;write();showToast('示例大版 PDF 尺寸已回填纸张宽高；成品预览尺寸不变。');});
+$('showMore').addEventListener('click',()=>$('moreDialog').showModal());
+$('closeMore').addEventListener('click',()=>$('moreDialog').close());
+$('executeParameterAction').addEventListener('click',()=>{
+    const action=$('parameterAction').value,s=current(),base=savedDefaults.configs[draft.type];
+    if(action==='default')draft.configs[draft.type]=structuredClone(base);
+    else if(action==='auto'){s.strategy='auto';s.rows=s.columns=0;s.constraint=false;s.choice='';}
+    else if(action==='margins'){for(const key of ['left','right','top','bottom'])s[key]=base[key];}
+    else if(action==='rows'){s.rows=base.rows;s.columns=base.columns;s.mode='grid';s.strategy=strategy(base);s.constraint=false;}
+    else s[action]=base[action];
+    current().choice='';syncSharedRows();$('moreDialog').close();write();showToast('已恢复所选参数；尚未保存或应用。');
+});
+$('previewAlignment').addEventListener('change',()=>{alignment=$('previewAlignment').value;render();});
+$('cancel').addEventListener('click',()=>{draft=structuredClone(hostMode==='settings'?savedDefaults:applied);write();showToast(hostMode==='settings'?'已放弃默认设置草稿，已保存参数不变。':'已放弃本次草稿，默认设置不变。');});
+$('settingsForm').addEventListener('submit',e=>{e.preventDefault();if(hostMode==='settings'){if(['flat','roll'].some(type=>!validateParameters(type,draft.configs[type]).ok))return;savedDefaults=structuredClone(draft);for(const type of ['flat','roll']){savedDefaults.configs[type]=effectiveConfiguration(draft.configs[type]);savedDefaults.configs[type].constraint=false;savedDefaults.configs[type].mode='grid';savedDefaults.configs[type].choice='';}showToast('已模拟保存默认设置；预览成品尺寸、倍数和本次草稿未写入默认参数。');}else{if(!result.ok)return;applied.enabled=draft.enabled;applied.type=draft.type;applied.configs[draft.type]=structuredClone(current());showToast('已应用当前材料的本次参数，默认设置和页序复制不变。');}write();renderApplied();});
+$('autoAxis').addEventListener('click',()=>selectStrategy('auto'));
+function setPreviewView(value){
+    if(!result.ok)return;
+    if(value==='fit'){viewMode='fit';panHorizontal=50;panVertical=0;}
+    else if(value==='detail'){viewMode='detail';zoom=($('stage').clientWidth||450)/(current().width+130)/3.77952756*100;panHorizontal=50;panVertical=0;}
+    else viewMode='zoom';
+    render();
+}
+$('previewView').addEventListener('change',()=>setPreviewView($('previewView').value));
+$('previewScale').addEventListener('change',()=>{const value=Number($('previewScale').value);if(Number.isFinite(value)&&value>=1&&value<=400){viewMode='zoom';zoom=value;render();}else{$('previewScale').value=Math.round(zoom);showToast('缩放范围为 1%–400%。');}});
+$('panX').addEventListener('input',()=>{panHorizontal=Number($('panX').value);render();});$('panY').addEventListener('input',()=>{panVertical=Number($('panY').value);render();});
+for(const btn of document.querySelectorAll('[data-scene]'))btn.addEventListener('click',()=>{if(hostMode!=='temporary')switchHost('temporary');draft.enabled=true;draft.type='roll';draft.configs.roll=makeConfig(true);const s=current();alignment='center';viewMode='fit';if(btn.dataset.scene==='extend'){s.rows=30;s.columns=2;}if(btn.dataset.scene==='auto'){s.strategy='multiple';s.constraint=true;s.direction='row';s.multiple=3;}if(btn.dataset.scene==='asymmetric'){s.left=10;s.right=30;s.top=15;s.bottom=35;}if(btn.dataset.scene==='conflict'){s.strategy='multiple';s.constraint=true;s.direction='column';s.multiple=4;}write();if(btn.dataset.scene==='extend')setPreviewView('detail');});
+write();renderApplied();
+
+$('scenarioSelect').addEventListener('change',()=>{const button=Array.from(document.querySelectorAll('[data-scene]')).find(b=>b.dataset.scene===$('scenarioSelect').value);button?.click();});
+
+$('paperPdfSelect').addEventListener('change',()=>{const value=$('paperPdfSelect').value;if(!value)return;const button=Array.from(document.querySelectorAll('[data-pdfsize]')).find(b=>b.dataset.pdfsize===value);button?.click();$('paperPdfSelect').value='';});
+$('closePaperPicker').addEventListener('click',()=>{pdfPickerOpen=false;$('pdfSizePicker').close();render();});
+$('pdfSizePicker').addEventListener('cancel',()=>{pdfPickerOpen=false;});
+$('showHelp').addEventListener('click',()=>{$('moreDialog').close();$('helpDialog').showModal();});
+$('closeHelp').addEventListener('click',()=>$('helpDialog').close());
+
+if(typeof window!=='undefined')window.addEventListener('resize',()=>render());
+if(typeof ResizeObserver!=='undefined'){let previewFrame;const previewObserver=new ResizeObserver(()=>{cancelAnimationFrame(previewFrame);previewFrame=requestAnimationFrame(()=>render());});previewObserver.observe($('stage'));}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+{
+  "results": [
+    {
+      "viewport": [
+        1280,
+        900
+      ],
+      "parameters": {
+        "x": 13,
+        "y": 123.890625,
+        "width": 539.21875,
+        "height": 652.109375,
+        "bottom": 776
+      },
+      "preview": {
+        "x": 552.21875,
+        "y": 123.890625,
+        "width": 714.78125,
+        "height": 652.109375,
+        "bottom": 776
+      },
+      "strategy": {
+        "x": 25,
+        "y": 451.78125,
+        "width": 515.21875,
+        "height": 108.09375,
+        "bottom": 559.875
+      },
+      "summary": {
+        "x": 565.21875,
+        "y": 706,
+        "width": 689.78125,
+        "height": 61,
+        "bottom": 767
+      },
+      "stage": {
+        "x": 565.21875,
+        "y": 198.890625,
+        "width": 689.78125,
+        "height": 482.109375,
+        "bottom": 681
+      },
+      "visibleButtons": 28,
+      "editorButtons": 25,
+      "fonts": {
+        ".sectionhead h3": "12px",
+        ".field>label": "11px",
+        ".hint": "10px",
+        ".inputwrap input": "13px",
+        ".result-item>b": "15px"
+      }
+    },
+    {
+      "viewport": [
+        1280,
+        800
+      ],
+      "parameters": {
+        "x": 13,
+        "y": 123.890625,
+        "width": 752.390625,
+        "height": 552.109375,
+        "bottom": 676
+      },
+      "preview": {
+        "x": 765.390625,
+        "y": 123.890625,
+        "width": 501.609375,
+        "height": 552.109375,
+        "bottom": 676
+      },
+      "strategy": {
+        "x": 22,
+        "y": 312.28125,
+        "width": 734.390625,
+        "height": 106.09375,
+        "bottom": 418.375
+      },
+      "summary": {
+        "x": 775.390625,
+        "y": 608,
+        "width": 482.609375,
+        "height": 61,
+        "bottom": 669
+      },
+      "stage": {
+        "x": 775.390625,
+        "y": 196.890625,
+        "width": 482.609375,
+        "height": 386.109375,
+        "bottom": 583
+      },
+      "visibleButtons": 28,
+      "editorButtons": 25,
+      "fonts": {
+        ".sectionhead h3": "12px",
+        ".field>label": "10px",
+        ".hint": "10px",
+        ".inputwrap input": "13px",
+        ".result-item>b": "15px"
+      }
+    }
+  ],
+  "roundTripErrors": [
+    "selectedStrategy is not defined"
+  ]
+}

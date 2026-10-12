@@ -1,0 +1,1166 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>自动排版设置界面 · 原生 1:1 真实物理比例与排版间距模拟 (完美无截断)</title>
+<style>
+:root {
+  --blue: #1264d6;
+  --blue-hover: #0c4fb3;
+  --blue-light: #edf5ff;
+  --blue-border: #91bcf8;
+  --ink: #1e293b;
+  --muted: #64748b;
+  --line: #cbd5e1;
+  --line-light: #e2e8f0;
+  --bg: #e2e8f0;
+  --surface: #ffffff;
+  --green: #0f766e;
+  --green-light: #ccfbf1;
+  --font-mono: Consolas, "JetBrains Mono", monospace;
+  --font-ui: "Microsoft YaHei UI", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font: 12px/1.4 var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 顶部页面工具条 */
+.top-nav {
+  background: #1e293b;
+  color: #fff;
+  padding: 8px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brand h1 {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+.brand .badge {
+  background: rgba(255,255,255,0.15);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: #cbd5e1;
+}
+
+.mode-group, .size-group {
+  display: flex;
+  background: rgba(0,0,0,0.3);
+  padding: 2px;
+  border-radius: 5px;
+  gap: 3px;
+  align-items: center;
+}
+.nav-label {
+  font-size: 11px;
+  color: #94a3b8;
+  padding: 0 6px;
+}
+.nav-btn {
+  border: 0;
+  background: transparent;
+  color: #cbd5e1;
+  padding: 4px 10px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.nav-btn:hover { color: #fff; }
+.nav-btn.active {
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+
+/* 居中舞台 */
+.stage-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 10px;
+  gap: 10px;
+  overflow: auto;
+}
+
+.info-bar {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 16px;
+  font-size: 12px;
+  color: #334155;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.info-bar b { color: var(--blue); }
+
+/* Windows Forms 1:1 像素窗口容器 */
+.winforms-window {
+  background: var(--surface);
+  border: 1px solid #708090;
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 原生标题栏 */
+.win-titlebar {
+  height: 28px;
+  background: #e2e8f0;
+  border-bottom: 1px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #1e293b;
+  user-select: none;
+  flex-shrink: 0;
+}
+.win-titlebar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.win-sys-btn {
+  width: 14px;
+  height: 14px;
+  border: 1px solid #94a3b8;
+  border-radius: 2px;
+  background: #f1f5f9;
+}
+
+/* 编辑器客户区 */
+.editor-client {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* 顶栏标题 */
+.editor-top-title {
+  height: 30px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--line-light);
+  flex-shrink: 0;
+  background: #f8fafc;
+  gap: 8px;
+}
+.main-heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* 双栏排布工作区 */
+.editor-workspace {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 左侧参数区 */
+.params-area {
+  border-right: 1px solid var(--line-light);
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+  background: #fafbfc;
+}
+
+/* 材料切换卡片 */
+.material-switch-card {
+  background: #fff;
+  border: 1px solid var(--line-light);
+  border-radius: 4px;
+  padding: 4px 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  flex-shrink: 0;
+}
+.segmented-tab {
+  display: flex;
+  background: #e2e8f0;
+  border-radius: 3px;
+  padding: 2px;
+  gap: 2px;
+}
+.seg-btn {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 3px 0;
+  font-size: 11px;
+  color: var(--muted);
+  border-radius: 2px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.12s;
+}
+.seg-btn.active {
+  background: #fff;
+  color: var(--blue);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* 卡片模块 */
+.card-unit {
+  background: #fff;
+  border: 1px solid var(--line-light);
+  border-radius: 4px;
+  padding: 6px 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  flex-shrink: 0;
+}
+.unit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.unit-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.tool-link {
+  font-size: 10px;
+  color: var(--blue);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 1px 3px;
+}
+.tool-link:hover { text-decoration: underline; }
+
+.grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+.grid-4col {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.ctrl-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+}
+.ctrl-item label {
+  font-size: 9.5px;
+  color: var(--muted);
+}
+.num-input {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: #fff;
+  height: 23px;
+  padding: 0 4px;
+}
+.num-input:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 1px rgba(18, 100, 214, 0.2);
+}
+.num-input input {
+  border: 0;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font: 11px var(--font-mono);
+  color: var(--ink);
+}
+.num-input .unit {
+  font-size: 9.5px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.btn-group-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+.btn-group-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+.select-btn {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 3px;
+  padding: 3px 0;
+  font-size: 10.5px;
+  color: var(--muted);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.12s;
+}
+.select-btn.active {
+  border-color: var(--blue);
+  background: var(--blue-light);
+  color: var(--blue);
+  font-weight: 600;
+}
+
+/* 策略次级展开面板 */
+.strategy-subpanel {
+  padding: 5px 6px;
+  background: #f8fafc;
+  border: 1px solid var(--line-light);
+  border-radius: 3px;
+}
+
+/* 右侧画布与预览区 */
+.preview-area {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  gap: 6px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.preview-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--line-light);
+  padding-bottom: 4px;
+  flex-shrink: 0;
+}
+.preview-heading {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.preview-legend {
+  display: flex;
+  gap: 10px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.legend-item { display: flex; align-items: center; gap: 3px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 1px; }
+.legend-dot.paper { border: 1px solid #64748b; background: #fff; }
+.legend-dot.printable { border: 1px dashed var(--blue); background: rgba(237, 245, 255, 0.5); }
+.legend-dot.grid { border: 1px solid #1677ff; background: #e6f1ff; }
+
+/* 画布舞台 */
+.canvas-stage {
+  flex: 1;
+  background-color: #fafbfc;
+  background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+  background-size: 14px 14px;
+  border: 1px solid var(--line-light);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  min-height: 180px;
+}
+
+#previewSvg {
+  width: 100%;
+  height: 100%;
+}
+
+.preview-footer-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 4px 2px 4px;
+  border-top: 1px solid var(--line-light);
+  flex-shrink: 0;
+  background: #ffffff;
+}
+.stat-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.stat-row-primary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.big-stat {
+  font: 26px/1 var(--font-mono);
+  font-weight: 700;
+  color: var(--blue);
+  letter-spacing: -0.5px;
+}
+.big-stat-unit {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 2px;
+  font-weight: normal;
+}
+.product-size-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #edf5ff;
+  border: 1px solid #b9d5fc;
+  border-radius: 4px;
+  padding: 3px 9px;
+  font-size: 13px;
+  color: #1264d6;
+  font-weight: 600;
+}
+.product-size-pill b {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  letter-spacing: 0.2px;
+}
+.grid-layout-desc {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+.stat-row-secondary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: #475569;
+}
+.stat-row-secondary .divider {
+  color: #cbd5e1;
+}
+.stat-row-secondary b {
+  font-family: var(--font-mono);
+  color: #1e293b;
+}
+.status-tag {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 600;
+  background: var(--green-light);
+  color: var(--green);
+  white-space: nowrap;
+}
+
+/* 原生底部栏 */
+.win-footbar {
+  height: 34px;
+  background: #f8fafc;
+  border-top: 1px solid #cbd5e1;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.win-foot-left { display: flex; gap: 10px; }
+.win-foot-right { display: flex; gap: 8px; align-items: center; }
+.text-action {
+  background: transparent;
+  border: 0;
+  color: var(--blue);
+  font-size: 11px;
+  cursor: pointer;
+}
+.text-action:hover { text-decoration: underline; }
+.btn-commit {
+  background: var(--blue);
+  color: #fff;
+  border: 1px solid var(--blue);
+  padding: 3px 14px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn-commit:hover { background: var(--blue-hover); }
+.btn-discard {
+  background: #fff;
+  color: #334155;
+  border: 1px solid var(--line);
+  padding: 3px 12px;
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<header class="top-nav">
+  <div class="brand">
+    <h1>印前工具箱 · 排版参数编辑器原生 1:1 尺寸模拟</h1>
+    <span class="badge">整合边距间距 + 零滚动条自适应</span>
+  </div>
+
+  <div class="size-group">
+    <span class="nav-label">真实显示尺寸:</span>
+    <button class="nav-btn active" id="btnSize941" onclick="setSize(941, 529)">941 × 529 (设置页实际可用)</button>
+    <button class="nav-btn" id="btnSize1160" onclick="setSize(1160, 720)">1160 × 720 (任务弹窗标准)</button>
+    <button class="nav-btn" id="btnSize880" onclick="setSize(880, 520)">880 × 520 (紧凑窗口)</button>
+  </div>
+
+  <div class="mode-group">
+    <span class="nav-label">场景:</span>
+    <button class="nav-btn active" id="btnModeGlobal" onclick="setMode('global')">⚙️ 系统设置模式</button>
+    <button class="nav-btn" id="btnModeTask" onclick="setMode('task')">📄 材料选择框</button>
+  </div>
+</header>
+
+<main class="stage-center">
+
+  <div class="info-bar">
+    <span>当前物理尺寸: <b id="lblCurrentSize">941 × 529 px (1:1 原生像素)</b></span>
+    <span>规格与间隙: <b>大版宽/高 + 四周边距 + 水平/垂直排版间距紧凑整合，垂直高度完美收敛</b></span>
+    <span>真实比例: <b>生产网格中每一个成品尺寸、长宽比与模间距严格按毫米物理比例绘制</b></span>
+  </div>
+
+  <!-- 真实 1:1 物理像素窗口 -->
+  <div class="winforms-window" id="windowContainer" style="width: 941px; height: 529px;">
+
+    <!-- 原生标题栏 -->
+    <div class="win-titlebar">
+      <span id="winTitleText">大诚重命名工具 · 选项设置 (Options) &gt; 自动排版设置</span>
+      <div class="win-titlebar-right">
+        <span class="win-sys-btn"></span>
+        <span class="win-sys-btn"></span>
+        <span class="win-sys-btn"></span>
+      </div>
+    </div>
+
+    <!-- 客户区 -->
+    <div class="editor-client">
+
+      <!-- 顶栏标题 -->
+      <div class="editor-top-title">
+        <span class="main-heading" id="clientTitle">大诚重命名工具 · 选项设置 (Options) &gt; 自动排版设置</span>
+      </div>
+
+      <!-- 双栏排布工作区 -->
+      <div class="editor-workspace">
+        <div class="params-area" id="paramsArea"></div>
+        <div class="preview-area" id="previewArea"></div>
+      </div>
+
+      <!-- 底部操作条 -->
+      <div class="win-footbar">
+        <div class="win-foot-left">
+          <button class="text-action" onclick="resetDefaults()">恢复推荐参数</button>
+          <button class="text-action" onclick="resetGridToAuto()">恢复全自动择优 (行列归0)</button>
+        </div>
+        <div class="win-foot-right">
+          <span style="font-size:10px; color:var(--muted);" id="saveStatus">设置已同步 (未修改)</span>
+          <button class="btn-discard" onclick="toast('已取消修改')">取消</button>
+          <button class="btn-commit" id="btnCommitText" onclick="toast(currMode==='global'?'已保存默认设置':'已应用本次参数')">保存默认设置</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</main>
+
+<script>
+let currWidth = 941;
+let currHeight = 529;
+let currMode = 'global';    // 'global' | 'task'
+let currMaterial = 'flat';  // 'flat' | 'roll'
+
+let flatW = 320, flatH = 464;
+let rollW = 320, rollMinL = 350;
+let margins = { l: 10, r: 10, t: 10, b: 10 };
+
+// 🎯 排版间距 (Spacing) 默认默认为 0
+let spacingX = 0; // 水平间距 (列间距, mm)
+let spacingY = 0; // 垂直间距 (行间距, mm)
+
+let rotation = 'forbid';
+
+let strategyMode = 'grid';
+let rows = 0; // 0 为自动择优！大于 0 为手动指定
+let cols = 0; // 0 为自动择优！大于 0 为手动指定
+let multipleN = 2, multipleDir = 'col';
+
+let taskW = 90, taskH = 80;
+
+function setSize(w, h) {
+  currWidth = w;
+  currHeight = h;
+  const win = document.getElementById('windowContainer');
+  win.style.width = w + 'px';
+  win.style.height = h + 'px';
+
+  document.getElementById('lblCurrentSize').textContent = `${w} × ${h} px (1:1 原生像素)`;
+  document.getElementById('btnSize941').classList.toggle('active', w === 941);
+  document.getElementById('btnSize1160').classList.toggle('active', w === 1160);
+  document.getElementById('btnSize880').classList.toggle('active', w === 880);
+
+  renderAll();
+}
+
+function setMode(mode) {
+  currMode = mode;
+  document.getElementById('btnModeGlobal').classList.toggle('active', mode === 'global');
+  document.getElementById('btnModeTask').classList.toggle('active', mode === 'task');
+
+  if (mode === 'global') {
+    document.getElementById('winTitleText').textContent = '大诚重命名工具 · 选项设置 (Options) > 自动排版设置';
+    document.getElementById('clientTitle').textContent = '大诚重命名工具 · 选项设置 (Options) > 自动排版设置';
+    document.getElementById('btnCommitText').textContent = '保存默认设置';
+  } else {
+    document.getElementById('winTitleText').textContent = '本次排版参数 · 当前任务';
+    document.getElementById('clientTitle').textContent = '本次排版参数 · 当前任务';
+    document.getElementById('btnCommitText').textContent = '应用本次参数';
+  }
+
+  renderAll();
+}
+
+function setMaterial(mat) {
+  currMaterial = mat;
+  renderAll();
+}
+
+function setStrategyMode(mode) {
+  strategyMode = mode;
+  renderAll();
+}
+
+function resetGridToAuto() {
+  strategyMode = 'grid';
+  rows = 0;
+  cols = 0;
+  toast('行列已归 0，已切换为自动择优');
+  renderAll();
+}
+
+function renderAll() {
+  renderParams();
+  renderPreview();
+}
+
+function renderParams() {
+  const isFlat = currMaterial === 'flat';
+  const isGlobal = currMode === 'global';
+  const container = document.getElementById('paramsArea');
+
+  const gridStateText = (rows === 0 && cols === 0)
+    ? '当前：全自动择优 (行列均为 0)'
+    : (rows > 0 && cols === 0)
+      ? `当前：手动指定 ${rows} 行，列数自动`
+      : (rows === 0 && cols > 0)
+        ? `当前：手动指定 ${cols} 列，行数自动`
+        : `当前：手动指定 ${rows} 行 × ${cols} 列`;
+
+  let html = `
+    <!-- 1. 材料切换卡片 (置于左侧参数区顶部) -->
+    <div class="material-switch-card">
+      <div class="segmented-tab">
+        <button class="seg-btn ${isFlat ? 'active' : ''}" onclick="setMaterial('flat')">平张材料 (Sheet)</button>
+        <button class="seg-btn ${!isFlat ? 'active' : ''}" onclick="setMaterial('roll')">卷装材料 (Roll)</button>
+      </div>
+    </div>
+
+    <!-- 2. 大版规格、四周边距与排版间距整合卡片 (紧凑高内聚，省出45px高度空间) -->
+    <div class="card-unit">
+      <div class="unit-head">
+        <span class="unit-title">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+          ${isFlat ? '平张大版规格' : '卷装材料规格'}
+        </span>
+        <button class="tool-link" onclick="resetSpecs()">↺ 恢复推荐</button>
+      </div>
+
+      <div class="grid-2col">
+        <div class="ctrl-item">
+          <label>${isFlat ? '纸张宽度' : '固定幅宽'}</label>
+          <div class="num-input">
+            <input type="number" value="${isFlat ? flatW : rollW}" onchange="updateSpec('w', this.value)">
+            <span class="unit">mm</span>
+          </div>
+        </div>
+        <div class="ctrl-item">
+          <label>${isFlat ? '纸张高度' : '最小长度'}</label>
+          <div class="num-input">
+            <input type="number" value="${isFlat ? flatH : rollMinL}" onchange="updateSpec('h', this.value)">
+            <span class="unit">mm</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 四周边距 -->
+      <div style="margin-top: 2px;">
+        <div class="ctrl-item">
+          <label>四周边距 (Margins)</label>
+          <div class="grid-4col">
+            <div class="num-input"><input type="number" value="${margins.l}" onchange="margins.l=parseFloat(this.value)||0; renderPreview();"><span class="unit">左</span></div>
+            <div class="num-input"><input type="number" value="${margins.r}" onchange="margins.r=parseFloat(this.value)||0; renderPreview();"><span class="unit">右</span></div>
+            <div class="num-input"><input type="number" value="${margins.t}" onchange="margins.t=parseFloat(this.value)||0; renderPreview();"><span class="unit">上</span></div>
+            <div class="num-input"><input type="number" value="${margins.b}" onchange="margins.b=parseFloat(this.value)||0; renderPreview();"><span class="unit">下</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🎯 排版间距 (Spacing) -->
+      <div style="margin-top: 4px;">
+        <div class="ctrl-item">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label>成品拼版间距 (Spacing)</label>
+            <button class="tool-link" style="padding:0;" onclick="spacingX=0; spacingY=0; renderAll(); toast('间距已清零');">清零</button>
+          </div>
+          <div class="grid-2col" style="margin-bottom:0;">
+            <div class="num-input"><input type="number" min="0" step="0.5" value="${spacingX}" onchange="spacingX=parseFloat(this.value)||0; renderPreview();"><span class="unit">水平列距</span></div>
+            <div class="num-input"><input type="number" min="0" step="0.5" value="${spacingY}" onchange="spacingY=parseFloat(this.value)||0; renderPreview();"><span class="unit">垂直行距</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 移除左侧冗余的“当前文件成品尺寸”卡片，空间完全释放给核心排版参数！
+  html += `
+    <!-- 3. 页面方向偏好 -->
+    <div class="card-unit">
+      <div class="unit-head">
+        <span class="unit-title">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          页面方向偏好
+        </span>
+      </div>
+      <div class="btn-group-3">
+        <button class="select-btn ${rotation==='auto'?'active':''}" onclick="rotation='auto'; renderAll();">自动方向</button>
+        <button class="select-btn ${rotation==='forbid'?'active':''}" onclick="rotation='forbid'; renderAll();">禁止旋转 (0°)</button>
+        <button class="select-btn ${rotation==='270'?'active':''}" onclick="rotation='270'; renderAll();">固定 270°</button>
+      </div>
+    </div>
+  `;
+
+  // 4. 排版方式
+  html += `
+    <div class="card-unit">
+      <div class="unit-head">
+        <span class="unit-title">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          ${isGlobal ? '默认排版方式' : '本次排版方式'}
+        </span>
+      </div>
+
+      <div class="btn-group-2">
+        <button class="select-btn ${strategyMode==='grid'?'active':''}" onclick="setStrategyMode('grid')">网格布局 (可手动/0自动)</button>
+        <button class="select-btn ${strategyMode==='multiple'?'active':''}" onclick="setStrategyMode('multiple')">倍数约束布局</button>
+      </div>
+
+      ${strategyMode === 'grid' ? `
+        <div class="strategy-subpanel">
+          <div class="grid-2col" style="margin-bottom:0;">
+            <div class="ctrl-item">
+              <label>手动行数 (0 为自动)</label>
+              <div class="num-input"><input type="number" min="0" value="${rows}" onchange="rows=parseInt(this.value)||0; renderAll();"><span class="unit">行</span></div>
+            </div>
+            <div class="ctrl-item">
+              <label>手动列数 (0 为自动)</label>
+              <div class="num-input"><input type="number" min="0" value="${cols}" onchange="cols=parseInt(this.value)||0; renderAll();"><span class="unit">列</span></div>
+            </div>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+            <span style="font-size:9.5px; color:${(rows===0&&cols===0)?'#0f766e':'#1e40af'}; font-weight:500;">
+              💡 ${gridStateText}
+            </span>
+            ${(rows>0||cols>0)?`<button class="tool-link" onclick="resetGridToAuto()">一键归0</button>`:''}
+          </div>
+        </div>
+      ` : `
+        <div class="strategy-subpanel">
+          <div class="grid-2col" style="margin-bottom:0;">
+            <div class="ctrl-item">
+              <label>倍数 N</label>
+              <div class="num-input"><input type="number" min="2" value="${multipleN}" onchange="multipleN=parseInt(this.value)||2; renderPreview();"><span class="unit">倍</span></div>
+            </div>
+            <div class="ctrl-item">
+              <label>约束方向</label>
+              <div class="num-input">
+                <select style="border:0;width:100%;font-size:11px;outline:none;background:transparent;" onchange="multipleDir=this.value; renderPreview();">
+                  <option value="col" ${multipleDir==='col'?'selected':''}>按列数倍数</option>
+                  <option value="row" ${multipleDir==='row'?'selected':''}>按行数倍数</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <span style="font-size:9.5px; color:#64748b; display:block; margin-top:3px;">严格保证${multipleDir==='col'?'列数':'行数'}为 ${multipleN} 的整倍数。</span>
+        </div>
+      `}
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
+function renderPreview() {
+  const container = document.getElementById('previewArea');
+  const isFlat = currMaterial === 'flat';
+  const isGlobal = currMode === 'global';
+
+  const paperW = isFlat ? flatW : rollW;
+  const paperH = isFlat ? flatH : rollMinL;
+  const printW = paperW - margins.l - margins.r;
+  const printH = paperH - margins.t - margins.b;
+
+  let html = '';
+
+  if (isGlobal) {
+    // 【系统设置模式】：纯粹大版物理外框 + 净有效印刷安全区图示（方案 B）
+    html = `
+      <div class="preview-topbar">
+        <span class="preview-heading">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          ${isFlat ? '平张大版规格与有效印刷区 (Paper Schematic)' : '卷装材料规格图示 (Roll Schematic)'}
+        </span>
+        <div class="preview-legend">
+          <span class="legend-item"><i class="legend-dot paper"></i> 纸张外框</span>
+          <span class="legend-item"><i class="legend-dot printable"></i> 净印刷安全区</span>
+        </div>
+      </div>
+
+      <div class="canvas-stage" id="stageContainer">
+        <svg id="previewSvg" viewBox="0 0 460 380"></svg>
+      </div>
+
+      <div class="preview-footer-stats">
+        <div class="stat-main">
+          <div class="stat-row-primary">
+            <span class="big-stat">${printW} × ${printH}<span class="big-stat-unit">mm</span></span>
+            <span class="grid-layout-desc">大版有效印刷安全区</span>
+            <span class="status-tag">大版规格就绪</span>
+          </div>
+          <div class="stat-row-secondary">
+            <span>物理尺寸: <b>${paperW} × ${paperH} mm</b></span>
+            <span class="divider">|</span>
+            <span>四周边距: <b>左${margins.l} 右${margins.r} 上${margins.t} 下${margins.b} mm</b></span>
+            <span class="divider">|</span>
+            <span>默认间距: <b>水平${spacingX}mm · 垂直${spacingY}mm</b></span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.innerHTML = html;
+    drawSchematicSvg(paperW, paperH, printW, printH);
+
+  } else {
+    // 【任务模式】：每一个成品严格按真实毫米物理比例绘制！带间距与真实居中留白！
+    let cellW = taskW;
+    let cellH = taskH;
+
+    let autoC = Math.max(1, Math.floor((printW + spacingX) / (cellW + spacingX)));
+    let autoR = Math.max(1, Math.floor((printH + spacingY) / (cellH + spacingY)));
+
+    let r = autoR;
+    let c = autoC;
+
+    if (strategyMode === 'grid') {
+      r = rows > 0 ? rows : autoR;
+      c = cols > 0 ? cols : autoC;
+    } else {
+      if (multipleDir === 'col') c = Math.max(multipleN, Math.floor(autoC / multipleN) * multipleN);
+      else r = Math.max(multipleN, Math.floor(autoR / multipleN) * multipleN);
+    }
+
+    const gridW = c * cellW + (c - 1) * spacingX;
+    const gridH = r * cellH + (r - 1) * spacingY;
+    const total = (r > 0 && c > 0) ? r * c : 0;
+    const isOver = gridW > printW || gridH > printH;
+
+    html = `
+      <div class="preview-topbar">
+        <span class="preview-heading">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          本次排版生产预览 · 真实物理比例 (Real Scale Grid)
+        </span>
+        <div class="preview-legend">
+          <span class="legend-item"><i class="legend-dot paper"></i> 纸张外框</span>
+          <span class="legend-item"><i class="legend-dot printable"></i> 净安全区</span>
+          <span class="legend-item"><i class="legend-dot grid"></i> 真实比例成品</span>
+        </div>
+      </div>
+
+      <div class="canvas-stage" id="stageContainer">
+        <svg id="previewSvg" viewBox="0 0 460 380"></svg>
+      </div>
+
+      <div class="preview-footer-stats">
+        <div class="stat-main">
+          <div class="stat-row-primary">
+            <span class="big-stat">${isOver ? '0' : total}<span class="big-stat-unit">个 / 纸</span></span>
+            <span class="product-size-pill">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              成品尺寸: <b>${cellW} × ${cellH} mm</b>
+            </span>
+            <span class="grid-layout-desc">${isOver ? '⚠️ 超出大版安全区' : `${r} 行 × ${c} 列 · 居中真实对齐`}</span>
+            <span class="status-tag" style="${isOver ? 'background:#fee2e2;color:#991b1b;':''}">${isOver ? '超版需减少行列' : '排版已就绪'}</span>
+          </div>
+          <div class="stat-row-secondary">
+            <span>成品间距: <b>水平 ${spacingX}mm · 垂直 ${spacingY}mm</b></span>
+            <span class="divider">|</span>
+            <span>排版网格尺寸: <b>${gridW.toFixed(1)} × ${gridH.toFixed(1)} mm</b></span>
+            <span class="divider">|</span>
+            <span>大版安全区: <b>${printW} × ${printH} mm</b></span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.innerHTML = html;
+    drawProductionGridSvg(paperW, paperH, printW, printH, cellW, cellH, r, c, gridW, gridH, isOver);
+  }
+}
+
+// 🎯 核心渲染器 1：方案 B 纯净大版与净安全区真实比例 SVG 绘制
+function drawSchematicSvg(paperW, paperH, printW, printH) {
+  const svg = document.getElementById('previewSvg');
+  if (!svg) return;
+
+  const viewW = 460, viewH = 380;
+  const padding = 45;
+  const availW = viewW - padding * 2;
+  const availH = viewH - padding * 2;
+
+  const scale = Math.min(availW / paperW, availH / paperH);
+
+  const drawPaperW = paperW * scale;
+  const drawPaperH = paperH * scale;
+  const paperX = (viewW - drawPaperW) / 2;
+  const paperY = (viewH - drawPaperH) / 2;
+
+  const printX = paperX + margins.l * scale;
+  const printY = paperY + margins.t * scale;
+  const drawPrintW = printW * scale;
+  const drawPrintH = printH * scale;
+
+  svg.innerHTML = `
+    <!-- 纸张物理外框 -->
+    <rect x="${paperX}" y="${paperY}" width="${drawPaperW}" height="${drawPaperH}"
+          fill="#ffffff" stroke="#475569" stroke-width="1.8" rx="2" />
+
+    <!-- 净有效印刷安全区 -->
+    <rect x="${printX}" y="${printY}" width="${drawPrintW}" height="${drawPrintH}"
+          fill="#edf5ff" fill-opacity="0.55" stroke="#1264d6" stroke-width="1.6" stroke-dasharray="5,4" />
+
+    <text x="${printX + drawPrintW/2}" y="${printY + drawPrintH/2 - 8}"
+          text-anchor="middle" font-size="12" font-weight="600" fill="#1264d6">净有效印刷区</text>
+    <text x="${printX + drawPrintW/2}" y="${printY + drawPrintH/2 + 12}"
+          text-anchor="middle" font-size="15" font-family="${'Consolas, monospace'}" font-weight="700" fill="#1e3a8a">
+          ${printW} × ${printH} mm
+    </text>
+    <text x="${printX + drawPrintW/2}" y="${printY + drawPrintH/2 + 28}"
+          text-anchor="middle" font-size="9.5" fill="#64748b">
+          四周边距留白已扣除 (间距: H${spacingX} V${spacingY}mm)
+    </text>
+
+    <!-- 顶部标尺 -->
+    <line x1="${paperX}" y1="${paperY - 10}" x2="${paperX + drawPaperW}" y2="${paperY - 10}" stroke="#94a3b8" stroke-width="1" />
+    <text x="${paperX + drawPaperW/2}" y="${paperY - 14}" text-anchor="middle" font-size="9.5" font-family="${'Consolas, monospace'}" fill="#475569">
+      大版幅宽: ${paperW} mm
+    </text>
+
+    <!-- 底部标尺 -->
+    <line x1="${paperX}" y1="${paperY + drawPaperH + 10}" x2="${paperX + drawPaperW}" y2="${paperY + drawPaperH + 10}" stroke="#94a3b8" stroke-width="1" />
+    <text x="${paperX + drawPaperW/2}" y="${paperY + drawPaperH + 22}" text-anchor="middle" font-size="9.5" font-family="${'Consolas, monospace'}" fill="#475569">
+      大版高度: ${paperH} mm
+    </text>
+
+    <!-- 左右留白标注 -->
+    <text x="${paperX - 6}" y="${paperY + drawPaperH/2}" text-anchor="end" font-size="9" fill="#64748b">
+      左 ${margins.l}mm
+    </text>
+    <text x="${paperX + drawPaperW + 6}" y="${paperY + drawPaperH/2}" text-anchor="start" font-size="9" fill="#64748b">
+      右 ${margins.r}mm
+    </text>
+  `;
+}
+
+// 🎯 核心渲染器 2：真实物理比例生产拼版网格 SVG 绘制
+function drawProductionGridSvg(paperW, paperH, printW, printH, cellW, cellH, rows, cols, gridW, gridH, isOver) {
+  const svg = document.getElementById('previewSvg');
+  if (!svg) return;
+
+  const viewW = 460, viewH = 380;
+  const padding = 45;
+  const availW = viewW - padding * 2;
+  const availH = viewH - padding * 2;
+
+  const scale = Math.min(availW / paperW, availH / paperH);
+
+  const drawPaperW = paperW * scale;
+  const drawPaperH = paperH * scale;
+  const paperX = (viewW - drawPaperW) / 2;
+  const paperY = (viewH - drawPaperH) / 2;
+
+  const printX = paperX + margins.l * scale;
+  const printY = paperY + margins.t * scale;
+  const drawPrintW = printW * scale;
+  const drawPrintH = printH * scale;
+
+  const offsetLeftMm = Math.max(0, (printW - gridW) / 2);
+  const offsetTopMm = Math.max(0, (printH - gridH) / 2);
+
+  const gridStartX = printX + offsetLeftMm * scale;
+  const gridStartY = printY + offsetTopMm * scale;
+
+  const drawCellW = cellW * scale;
+  const drawCellH = cellH * scale;
+  const drawSpaceX = spacingX * scale;
+  const drawSpaceY = spacingY * scale;
+
+  let cellsSvg = '';
+  let index = 1;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cx = gridStartX + c * (drawCellW + drawSpaceX);
+      const cy = gridStartY + r * (drawCellH + drawSpaceY);
+
+      cellsSvg += `
+        <rect x="${cx}" y="${cy}" width="${drawCellW}" height="${drawCellH}"
+              fill="${isOver ? '#fee2e2' : '#e6f1ff'}"
+              stroke="${isOver ? '#e11d48' : '#1677ff'}" stroke-width="1.2" rx="1.5" />
+        <text x="${cx + drawCellW/2}" y="${cy + drawCellH/2 + 3.5}"
+              text-anchor="middle" font-size="${Math.max(8.5, Math.min(13, drawCellH*0.35))}"
+              font-family="${'Consolas, monospace'}" font-weight="600"
+              fill="${isOver ? '#be123c' : '#1d4ed8'}">
+              ${index++}
+        </text>
+      `;
+    }
+  }
+
+  svg.innerHTML = `
+    <!-- 纸张物理外框 -->
+    <rect x="${paperX}" y="${paperY}" width="${drawPaperW}" height="${drawPaperH}"
+          fill="#ffffff" stroke="#475569" stroke-width="1.8" rx="2" />
+
+    <!-- 净有效印刷安全区 (蓝色虚线框) -->
+    <rect x="${printX}" y="${printY}" width="${drawPrintW}" height="${drawPrintH}"
+          fill="none" stroke="#1264d6" stroke-width="1.4" stroke-dasharray="4,3" />
+
+    <!-- 真实比例成品矩形 -->
+    ${cellsSvg}
+
+    <!-- 标尺 -->
+    <line x1="${paperX}" y1="${paperY - 10}" x2="${paperX + drawPaperW}" y2="${paperY - 10}" stroke="#94a3b8" stroke-width="1" />
+    <text x="${paperX + drawPaperW/2}" y="${paperY - 14}" text-anchor="middle" font-size="9.5" font-family="${'Consolas, monospace'}" fill="#475569">
+      大版幅宽: ${paperW} mm
+    </text>
+
+    <line x1="${paperX}" y1="${paperY + drawPaperH + 10}" x2="${paperX + drawPaperW}" y2="${paperY + drawPaperH + 10}" stroke="#94a3b8" stroke-width="1" />
+    <text x="${paperX + drawPaperW/2}" y="${paperY + drawPaperH + 22}" text-anchor="middle" font-size="9.5" font-family="${'Consolas, monospace'}" fill="#475569">
+      大版高度: ${paperH} mm
+    </text>
+
+    <text x="${paperX - 6}" y="${paperY + drawPaperH/2}" text-anchor="end" font-size="9" fill="#64748b">
+      左 ${margins.l}mm
+    </text>
+    <text x="${paperX + drawPaperW + 6}" y="${paperY + drawPaperH/2}" text-anchor="start" font-size="9" fill="#64748b">
+      右 ${margins.r}mm
+    </text>
+  `;
+}
+
+function updateSpec(dim, val) {
+  val = parseFloat(val) || 0;
+  if (currMaterial === 'flat') {
+    if (dim === 'w') flatW = val;
+    else flatH = val;
+  } else {
+    if (dim === 'w') rollW = val;
+    else rollMinL = val;
+  }
+  renderPreview();
+}
+
+function resetSpecs() {
+  if (currMaterial === 'flat') { flatW = 320; flatH = 464; }
+  else { rollW = 320; rollMinL = 350; }
+  margins = { l: 10, r: 10, t: 10, b: 10 };
+  toast('已恢复标准规格');
+  renderAll();
+}
+
+function resetDefaults() {
+  resetSpecs();
+  spacingX = 0;
+  spacingY = 0;
+  rotation = 'forbid';
+  strategyMode = 'grid';
+  rows = 0;
+  cols = 0;
+  multipleN = 2;
+  multipleDir = 'col';
+  toast('已恢复全部推荐参数 (含间距)');
+  renderAll();
+}
+
+function toast(msg) {
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:6px 14px;border-radius:3px;font-size:11px;z-index:1000;box-shadow:0 3px 10px rgba(0,0,0,0.2);`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1500);
+}
+
+setSize(941, 529);
+</script>
+</body>
+</html>

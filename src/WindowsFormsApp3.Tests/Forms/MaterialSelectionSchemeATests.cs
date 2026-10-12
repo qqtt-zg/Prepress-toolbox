@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Threading;
 using WindowsFormsApp3.Models;
 using Xunit;
 
@@ -191,7 +192,7 @@ namespace WindowsFormsApp3.Tests.Forms
             Assert.Equal("100", result.BatchItems[0].Quantity);
         }
 
-        [Fact]
+        [StaFact]
         public void AppendPendingFiles_ShouldDynamicallyAddFilesAndAvoidDuplicates()
         {
             using (var form = new MaterialSelectFormModern(
@@ -234,7 +235,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Fact]
+        [StaFact]
         public void AppendPendingFiles_ShouldPreserveLockedGroupAndUseUnlockedLinkedGroup()
         {
             using (var form = CreateGroupTestForm())
@@ -262,7 +263,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Fact]
+        [StaFact]
         public void AppendPendingFiles_ShouldCreateUnlockedFallbackWhenNoLinkedGroupExists()
         {
             using (var form = CreateGroupTestForm())
@@ -295,7 +296,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Fact]
+        [StaFact]
         public void AppendPendingFiles_ShouldUseFirstEligibleGroupInDisplayOrder()
         {
             using (var form = CreateGroupTestForm())
@@ -317,7 +318,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Fact]
+        [StaFact]
         public void TryMoveFilesBetweenGroups_ShouldMoveOnlyBetweenUnlockedGroups()
         {
             using (var form = CreateGroupTestForm())
@@ -341,7 +342,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Theory]
+        [StaTheory]
         [InlineData(true, false)]
         [InlineData(false, true)]
         public void TryMoveFilesBetweenGroups_ShouldRejectLockedEndpointsAtomically(
@@ -369,7 +370,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Theory]
+        [StaTheory]
         [InlineData(true, false)]
         [InlineData(false, true)]
         public void TryMoveFilesBetweenGroups_ShouldRejectPreserveEndpoints(
@@ -397,7 +398,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Fact]
+        [StaFact]
         public void TryMoveFilesBetweenGroups_ShouldRejectDuplicateOwnershipWithoutPartialMutation()
         {
             using (var form = CreateGroupTestForm())
@@ -424,7 +425,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Fact]
+        [StaFact]
         public void SortBatchFilesByFileName_ShouldPreserveGroupsAndLocks()
         {
             using (var form = CreateGroupTestForm())
@@ -449,7 +450,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Fact]
+        [StaFact]
         public void QuantityAndDimensionSorting_ShouldPreserveGroupIdentityAndOrderingProjection()
         {
             using (var form = CreateGroupTestForm())
@@ -482,7 +483,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Fact]
+        [StaFact]
         public void ToggleBatchFileListPanel_ShouldNotRebuildExistingGroups()
         {
             using (var form = CreateGroupTestForm())
@@ -505,17 +506,19 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Fact]
+        [StaFact]
         public void PresetContextMenu_ShouldBeSuppressedForDynamicLeftPanelDescendant()
         {
             using (var form = CreateGroupTestForm())
             {
-                var handle = form.Handle;
+                // 右键菜单逻辑依赖面板实际可见，仅创建句柄不会显示父窗体。
+                form.Show();
                 form.SetPendingFiles(new[] { @"C:\test\A.pdf" });
                 form.ToggleBatchFileListPanel(true);
                 var leftPanel = form.Controls.Find("pnlFileList", true).Single();
                 var dynamicContainer = leftPanel.Controls.Find("pnlCardsContainer", true).Single();
 
+                Assert.True(leftPanel.Visible);
                 Assert.True(form.IsPresetContextMenuSuppressed(dynamicContainer, false));
                 Assert.True(form.IsPresetContextMenuSuppressed(dynamicContainer, true));
                 Assert.False(form.IsPresetContextMenuSuppressed(form, false));
@@ -534,6 +537,9 @@ namespace WindowsFormsApp3.Tests.Forms
 
         private static MaterialSelectFormModern CreateGroupTestForm()
         {
+            // 拖放控件必须在 STA 线程创建，提前断言可避免错误配置弹出系统异常对话框。
+            Assert.Equal(ApartmentState.STA, Thread.CurrentThread.GetApartmentState());
+
             return new MaterialSelectFormModern(
                 materials: new List<string> { "PET" },
                 fileName: @"C:\test\Initial.pdf",
@@ -574,7 +580,7 @@ namespace WindowsFormsApp3.Tests.Forms
             return group;
         }
 
-        [Fact]
+        [StaFact]
         public void MoveBatchItem_ShouldReorderItems_AndUpdateIndexAndOrderNumbers()
         {
             using (var form = new MaterialSelectFormModern(
@@ -616,7 +622,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
     
-        [Fact]
+        [StaFact]
         public void SetPendingFiles_WhenQuantityUnmatched_ShouldDefaultToOne_NotContaminatedByQuantityTextBox()
         {
             using (var form = new MaterialSelectFormModern(
@@ -656,7 +662,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Fact]
+        [StaFact]
         public void SetPendingFiles_WithExcelData_ShouldAutoFillMatchedQuantity_AndDefaultToOneForUnmatched()
         {
             var dt = new System.Data.DataTable();

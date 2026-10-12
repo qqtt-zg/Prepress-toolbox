@@ -270,10 +270,7 @@ namespace WindowsFormsApp3
             if (pnlPageBoxChoiceCard == null || IsDisposed) return;
             _pageBoxDetailsDropDown?.Close();
 
-            var issue = inspection?.Issues?.FirstOrDefault(item =>
-                item.Type == IssueType.OutOfBounds && string.Equals(item.BoxType, "CropBox", StringComparison.OrdinalIgnoreCase))
-                ?? inspection?.Issues?.FirstOrDefault(item => item.Type == IssueType.DifferentPageBoxes &&
-                    string.Equals(item.BoxType, "CropBox", StringComparison.OrdinalIgnoreCase));
+            var issue = Services.BatchPageBoxSelectionService.GetChoiceIssue(inspection);
             var page = issue == null ? null : inspection.AllPageBoxes
                 .FirstOrDefault(item => item.PageNumber == issue.PageNumber);
 
@@ -311,8 +308,10 @@ namespace WindowsFormsApp3
                 folderTreeViewToolTip?.SetToolTip(btnCropBoxChoice,
                     $"第{page.PageNumber}页 CropBox：{FormatPageBoxSize(page.CropBox)}；左下角 ({page.CropBox.Left:0.####}, {page.CropBox.Bottom:0.####}) pt。点击后按此尺寸与位置统一所有页面框。");
                 pnlPageBoxChoiceCard.Visible = true;
-                SelectPageBoxSource(issue.Type == IssueType.OutOfBounds
-                    ? PdfPageBoxSource.MediaBox : PdfPageBoxSource.CropBox);
+                var savedSource = _activeBatchPageBoxItem?.PageBoxSource;
+                SelectPageBoxSource(savedSource == PdfPageBoxSource.MediaBox || savedSource == PdfPageBoxSource.CropBox
+                    ? savedSource.Value
+                    : issue.Type == IssueType.OutOfBounds ? PdfPageBoxSource.MediaBox : PdfPageBoxSource.CropBox);
             }
 
             pnlStationContent?.PerformLayout();
@@ -380,9 +379,16 @@ namespace WindowsFormsApp3
             _pageBoxSelectionRevision++;
             if (_pageBoxChoicePage != null)
             {
+                if (_activeBatchPageBoxItem?.PageBoxChoicePage != null)
+                {
+                    Services.BatchPageBoxSelectionService.SelectSource(_activeBatchPageBoxItem, source);
+                    UpdateBatchPageBoxDimensions(_activeBatchPageBoxItem);
+                }
                 var selectedBox = source == PdfPageBoxSource.MediaBox ? _pageBoxChoicePage.MediaBox : _pageBoxChoicePage.CropBox;
-                _initialWidth = selectedBox.Width * 25.4 / 72;
-                _initialHeight = selectedBox.Height * 25.4 / 72;
+                _initialWidth = _activeBatchPageBoxItem?.PageBoxChoicePage != null
+                    ? _activeBatchPageBoxItem.RawPdfWidth : selectedBox.Width * 25.4 / 72;
+                _initialHeight = _activeBatchPageBoxItem?.PageBoxChoicePage != null
+                    ? _activeBatchPageBoxItem.RawPdfHeight : selectedBox.Height * 25.4 / 72;
                 _originalWidth = _initialWidth.ToString();
                 _originalHeight = _initialHeight.ToString();
                 UpdateDimensionsWithBleed();
@@ -393,6 +399,7 @@ namespace WindowsFormsApp3
             folderTreeViewToolTip?.SetToolTip(lblPageBoxChoiceTitle,
                 $"第{SelectedPageBoxReferencePage}页 {_pageBoxChoiceReason} · 已选{(source == PdfPageBoxSource.MediaBox ? "媒体框" : "裁剪框")}；点击尺寸统一全部页面框。");
             RefreshPageBoxLayout();
+            RefreshAllCardsData();
         }
 
         private static void UpdatePageBoxChoiceStyle(AntdUI.Button button, bool selected)
@@ -411,8 +418,7 @@ namespace WindowsFormsApp3
             {
                 ClearLayoutDisplay();
                 if (enableImpositionCheckbox?.Checked == true)
-                    _ = _isDuplicateLayoutEnabled && _copyType == CopyType.Layout
-                        ? CalculateDuplicateLayout() : CalculateAndUpdateLayout();
+                    _ = CalculateAndUpdateLayout();
             }
         }
 
@@ -1065,6 +1071,16 @@ namespace WindowsFormsApp3
             };
             _customSizeCapsule.Click += (s, e) => OpenTemporaryImpositionParameters();
             pnlImpoControlRow.Controls.Add(_customSizeCapsule);
+            _temporaryLayoutButton = new AntdUI.Button
+            {
+                Name = "btnTemporaryImposition", Text = "临时排版",
+                Location = new Point(31, 1), Size = new Size(111, 24),
+                Font = new Font("Microsoft YaHei UI", 8F), Radius = 4,
+                WaveSize = 0, Type = AntdUI.TTypeMini.Default
+            };
+            _temporaryLayoutButton.Click += (s, e) => OpenTemporaryImpositionParameters();
+            folderTreeViewToolTip?.SetToolTip(_temporaryLayoutButton, "调整本次大版、页面方向、布局数量与独立行列倍数约束");
+            pnlImpoControlRow.Controls.Add(_temporaryLayoutButton);
 
             // 1. 材料模式微型分段胶囊 (平张 / 卷装) - 靠右排列，与连拼/折手保持一致间距 6px
             segMaterialType = new MiniSegmentedControl("平张", "卷装")
@@ -1157,13 +1173,21 @@ namespace WindowsFormsApp3
                 tlpMetrics.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / 6F));
             }
 
-            // 1. 网格 (只读)
-            pnlPillGrid = CreateMetricPill("网格", () => _v5GridText, () => Color.FromArgb(22, 119, 255), null, null);
+            // 1. 网格：直达临时行列编辑。
+            pnlPillGrid = CreateMetricPill("网格", () => _v5GridText, () => Color.FromArgb(22, 119, 255),
+                (s, e) => OpenTemporaryImpositionParameters(focusLayoutGrid: true),
+                (s, e) => OpenTemporaryImpositionParameters(focusLayoutGrid: true));
             tlpMetrics.Controls.Add(pnlPillGrid, 0, 0);
 
-            // 2. 布局数 (只读)
-            pnlPillCount = CreateMetricPill("布局数", () => _v5CountText, () => Color.FromArgb(250, 140, 22), null, null);
+            // 2. 布局数：直达每纸数量编辑。
+            pnlPillCount = CreateMetricPill("布局数", () => _v5CountText, () => Color.FromArgb(250, 140, 22),
+                (s, e) => OpenTemporaryImpositionParameters(focusLayoutQuantity: true),
+                (s, e) => OpenTemporaryImpositionParameters(focusLayoutQuantity: true));
             tlpMetrics.Controls.Add(pnlPillCount, 1, 0);
+            pnlPillGrid.Name = "layoutGridEditor";
+            pnlPillCount.Name = "layoutQuantityEditor";
+            folderTreeViewToolTip?.SetToolTip(pnlPillGrid, "点击调整本次行列与倍数约束；留空表示自动布局");
+            folderTreeViewToolTip?.SetToolTip(pnlPillCount, "点击指定每纸布局数量并选择行列组合");
 
             // 3. 角度 (标题与数值均可点击切换)
             pnlPillRotation = CreateMetricPill("角度", () => _v5RotationText, () => Color.FromArgb(114, 46, 209),
@@ -1653,6 +1677,7 @@ namespace WindowsFormsApp3
                 SetStyle(
                     ControlStyles.OptimizedDoubleBuffer |
                     ControlStyles.AllPaintingInWmPaint |
+                    ControlStyles.Selectable |
                     ControlStyles.UserPaint,
                     true);
                 UpdateStyles();
@@ -1678,6 +1703,20 @@ namespace WindowsFormsApp3
                 Cursor = clickable ? Cursors.Hand : Cursors.Default,
                 Margin = new Padding(0)
             };
+
+            pnl.TabStop = clickable;
+            if (clickable)
+            {
+                pnl.AccessibleRole = AccessibleRole.PushButton;
+                pnl.AccessibleName = "调整" + label;
+                pnl.KeyDown += (s, e) =>
+                {
+                    if (e.KeyCode != Keys.Enter && e.KeyCode != Keys.Space) return;
+                    (titleClickHandler ?? valueClickHandler)?.Invoke(s, e);
+                    e.Handled = true;
+                    e.SuppressKeyPress = true;
+                };
+            }
 
             pnl.Paint += (s, e) =>
             {
@@ -1742,6 +1781,17 @@ namespace WindowsFormsApp3
                     {
                         TextRenderer.DrawText(g, val, fontVal,
                             Rectangle.Round(valueBounds), valueColor, centeredTextFlags);
+                        if ((label == "网格" || label == "布局数") && _temporaryImpositionParameters != null)
+                        {
+                            var effective = _temporaryImpositionParameters.EffectiveLayout(flatSheetRadioButton?.Checked == true);
+                            bool manual = effective.RequestedRows > 0 || effective.RequestedColumns > 0;
+                            string badge = label == "网格" && effective.IsLayoutMultipleEnabled
+                                ? $"×{effective.LayoutMultiple}" : manual ? "手动" : string.Empty;
+                            if (badge.Length > 0)
+                            using (var badgeFont = new Font("Microsoft YaHei UI", 5.5F))
+                                TextRenderer.DrawText(g, badge, badgeFont, new Rectangle(0, 0, pnl.Width - 1, 12),
+                                    Color.FromArgb(22, 119, 255), TextFormatFlags.Right | TextFormatFlags.NoPadding);
+                        }
                     }
                 }
             };
@@ -2376,11 +2426,9 @@ namespace WindowsFormsApp3
         {
             try
             {
-                int r = _currentImpositionResult?.Rows ?? 5;
-                int c = _currentImpositionResult?.Columns ?? 3;
-                _v5GridText = $"{r}×{c}";
-
-                _v5CountText = $"{_currentImpositionResult?.OptimalLayoutQuantity ?? 15}";
+                bool hasLayout = _currentImpositionResult?.Success == true && _currentImpositionResult.OptimalLayoutQuantity > 0;
+                _v5GridText = hasLayout ? $"{_currentImpositionResult.Rows}×{_currentImpositionResult.Columns}" : "—";
+                _v5CountText = hasLayout ? _currentImpositionResult.OptimalLayoutQuantity.ToString() : "—";
                 _v5RotationText = $"{_currentImpositionResult?.RotationAngle ?? (GetCurrentRotationMode() == RollRotationMode.Force270Degree ? 270 : 0)}";
 
                 if (!string.IsNullOrWhiteSpace(AdjustedDimensions))
@@ -2541,6 +2589,7 @@ namespace WindowsFormsApp3
                         _customSizeCapsule.Visible = false;
                     }
                 }
+                if (_temporaryLayoutButton != null) _temporaryLayoutButton.Visible = !_customSizeCapsule.Visible;
             }
             catch (Exception ex)
             {

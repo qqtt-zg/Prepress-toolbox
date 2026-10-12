@@ -353,6 +353,11 @@ namespace WindowsFormsApp3.Utils
                 // AntdUI.Button
                 else if (typeName == "Button")
                 {
+                    if (control.Tag?.ToString() == "custom_button" || control.Tag?.ToString() == "custom_style")
+                    {
+                        return; // 保留组件自主管理的选中高亮与色彩，防止被全局无差别覆盖
+                    }
+
                     var typeProperty = controlType.GetProperty("Type");
                     var typeValue = typeProperty?.GetValue(control);
                     var buttonType = typeValue?.ToString() ?? "Default";

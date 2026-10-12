@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大诚工具箱 · 品牌 Logo 设计方案对比展厅</title>
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-card: #1e293b;
+      --border-color: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.2);
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f1f5f9;
+      --bg-card: #ffffff;
+      --border-color: #cbd5e1;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent: #0284c7;
+      --accent-glow: rgba(2, 132, 199, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      padding: 32px 20px 80px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1320px;
+      margin: 0 auto;
+    }
+
+    /* 头部 */
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    /* 控制栏 */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 14px 20px;
+      margin-bottom: 32px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .group-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .btn-toggle {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-toggle:hover {
+      border-color: var(--accent);
+    }
+    .btn-toggle.active {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+      box-shadow: 0 2px 10px var(--accent-glow);
+    }
+
+    /* 方案主卡片网格 */
+    .plans-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 28px;
+      margin-bottom: 48px;
+    }
+
+    .plan-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    .plan-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 16px 36px var(--accent-glow);
+    }
+    .plan-tag {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+    .tag-a { background: #f97316; color: #fff; }
+    .tag-b { background: #10b981; color: #fff; }
+    .tag-c { background: #8b5cf6; color: #fff; }
+
+    .plan-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .plan-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    /* 图标主展示区 */
+    .icon-showcase {
+      width: 100%;
+      height: 220px;
+      border-radius: 16px;
+      background: radial-gradient(circle at center, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.12) 100%);
+      border: 1px dashed var(--border-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      cursor: pointer;
+      user-select: none;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .icon-showcase .main-svg {
+      width: 150px;
+      height: 150px;
+      filter: drop-shadow(0 12px 24px rgba(0,0,0,0.25));
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .icon-showcase:hover .main-svg {
+      transform: scale(1.05);
+    }
+    .icon-showcase .interaction-hint {
+      position: absolute;
+      bottom: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      background: rgba(0,0,0,0.4);
+      padding: 2px 8px;
+      border-radius: 4px;
+      backdrop-filter: blur(4px);
+    }
+
+    /* 参数详情 */
+    .specs-list {
+      list-style: none;
+      font-size: 13px;
+      margin-bottom: 20px;
+      flex-grow: 1;
+    }
+    .specs-list li {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .specs-list strong {
+      min-width: 68px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* 调色盘 */
+    .palette-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+    .palette-swatch {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.2);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      position: relative;
+    }
+    .palette-swatch::after {
+      content: attr(data-color);
+      position: absolute;
+      bottom: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      font-family: monospace;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* 状态切换对比栏 */
+    .states-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0, 0, 0, 0.15);
+      border-radius: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--border-color);
+    }
+    .state-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+    }
+    .state-item svg {
+      width: 48px;
+      height: 48px;
+    }
+    .state-item span {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* 小尺寸测试区 */
+    .section-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .size-test-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 40px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    .taskbar-simulation {
+      background: #18181b;
+      border-radius: 12px;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-top: 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+      overflow-x: auto;
+    }
+    .taskbar-label {
+      font-size: 12px;
+      color: #a1a1aa;
+      font-weight: 600;
+      min-width: 140px;
+    }
+    .taskbar-slots {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+    .sim-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .sim-desc {
+      font-size: 11px;
+      color: #71717a;
+    }
+
+    /* 纸张飞入动画关键帧 */
+    @keyframes eatPaper {
+      0% { transform: translate(25px, -35px) scale(0.6) rotate(15deg); opacity: 0; }
+      40% { opacity: 1; }
+      100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+    }
+    .animate-eat {
+      animation: eatPaper 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* 页脚 */
+    footer {
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-color);
+      padding-top: 24px;
+    }
+  </style>
+</head>
+<body data-theme="dark">
+  <div class="container">
+    <header>
+      <div class="badge">BRAND DESIGN CANDIDATES · V5</div>
+      <h1>大诚印前工具箱 · 品牌 Logo 方案对比展厅</h1>
+      <p class="subtitle">针对“个性趣味”定位，同步推进并精细呈现：矢量大头橘猫、复古像素终端与猫耳机械助理</p>
+    </header>
+
+    <!-- 工具与交互控制器 -->
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <span class="group-label">全局交互状态模拟：</span>
+        <button class="btn-toggle active" id="btn-idle" onclick="setGlobalState('idle')">
+          😴 闲置等待 (Idle)
+        </button>
+        <button class="btn-toggle" id="btn-active" onclick="setGlobalState('active')">
+          📄 拖入接收 (Active)
+        </button>
+      </div>
+
+      <div class="toolbar-group">
+        <span class="group-label">背景模式：</span>
+        <button class="btn-toggle active" id="btn-dark" onclick="setTheme('dark')">🌙 深色底</button>
+        <button class="btn-toggle" id="btn-light" onclick="setTheme('light')">☀️ 浅色底</button>
+      </div>
+    </div>
+
+    <!-- 方案对比卡片网格 -->
+    <div class="plans-grid">
+
+      <!-- 方案 A：矢量萌物橘猫 -->
+      <div class="plan-card">
+        <span class="plan-tag tag-a">方案 A</span>
+        <div class="plan-title">
+          <span>🐱 橘猫收件托盘</span>
+        </div>
+        <div class="plan-desc">纯粹矢量几何 · Popcat张嘴吞纸 · 极具亲和力</div>
+
+        <div class="icon-showcase" onclick="toggleCardState('a')">
+          <div id="icon-a-wrap">
+            <!-- 方案 A 矢量 SVG -->
+            <svg class="main-svg" id="svg-a" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- 应用图标圆角外框 -->
+              <rect width="200" height="200" rx="46" fill="#1E3A8A"/>
+              <!-- 内层明亮蓝色背景渐变 -->
+              <rect x="6" y="6" width="188" height="188" rx="42" fill="#2563EB"/>
+
+              <!-- 托盘下部底槽 (印前收件箱边缘) -->
+              <path d="M26 142C26 138 30 135 34 135H166C170 135 174 138 174 142V160C174 175 161 187 146 187H54C38 187 26 175 26 160V142Z" fill="#1D4ED8"/>
+              <rect x="42" y="146" width="116" height="5" rx="2.5" fill="#60A5FA" opacity="0.8"/>
+
+              <!-- 猫耳 (左 & 右) -->
+              <path d="M48 94L42 38C41 33 47 30 51 33L78 58C67 68 56 80 48 94Z" fill="#F97316"/>
+              <path d="M50 43L46 72C50 63 56 55 64 48L55 41C53 39 50 41 50 43Z" fill="#FDA4AF"/>
+              <path d="M152 94L158 38C159 33 153 30 149 33L122 58C133 68 144 80 152 94Z" fill="#F97316"/>
+              <path d="M150 43L154 72C150 63 144 55 136 48L145 41C147 39 150 41 150 43Z" fill="#FDA4AF"/>
+
+              <!-- 猫咪大圆头 -->
+              <ellipse cx="100" cy="106" rx="64" ry="54" fill="#F97316"/>
+              <!-- 额头虎斑 -->
+              <path d="M100 62V76M88 66L92 78M112 66L108 78" stroke="#EA580C" stroke-width="4.5" stroke-linecap="round"/>
+
+              <!-- 脸颊白色毛茸区域 -->
+              <path d="M56 120C56 102 76 96 100 96C124 96 144 102 144 120C144 138 124 148 100 148C76 148 56 138 56 120Z" fill="#FFF7ED"/>
+
+              <!-- 眼睛 (动态：通过 JS 切换) -->
+              <g id="a-eyes-idle">
+                <ellipse cx="76" cy="102" rx="7" ry="8" fill="#1E293B"/>
+                <circle cx="74" cy="99" r="2.5" fill="#FFFFFF"/>
+                <ellipse cx="124" cy="102" rx="7" ry="8" fill="#1E293B"/>
+                <circle cx="122" cy="99" r="2.5" fill="#FFFFFF"/>
+              </g>
+              <g id="a-eyes-active" style="display: none;">
+                <circle cx="76" cy="98" r="9" fill="#1E293B"/>
+                <circle cx="74" cy="95" r="3.5" fill="#FFFFFF"/>
+                <circle cx="124" cy="98" r="9" fill="#1E293B"/>
+                <circle cx="122" cy="95" r="3.5" fill="#FFFFFF"/>
+              </g>
+
+              <!-- 鼻子 -->
+              <polygon points="100,113 94,107 106,107" fill="#FB7185"/>
+
+              <!-- 嘴巴 (动态切换：闭嘴微笑 vs 经典吞纸大嘴) -->
+              <g id="a-mouth-idle">
+                <path d="M92 116C95 120 100 120 100 116C100 120 105 120 108 116" stroke="#C2410C" stroke-width="3" stroke-linecap="round"/>
+              </g>
+              <g id="a-mouth-active" style="display: none;">
+                <!-- 标志性圆形大嘴洞 -->
+                <ellipse cx="100" cy="128" rx="22" ry="24" fill="#7C2D12"/>
+                <path d="M84 134C88 146 112 146 116 134C112 138 88 138 84 134Z" fill="#FB7185"/>
+                <!-- 正被吸入的折角印前文件 -->
+                <g class="animate-eat">
+                  <path d="M92 104H116L124 112V136H92V104Z" fill="#FFFFFF" stroke="#3B82F6" stroke-width="2"/>
+                  <polygon points="116,104 116,112 124,112" fill="#DBEAFE"/>
+                  <line x1="97" y1="114" x2="111" y2="114" stroke="#93C5FD" stroke-width="2"/>
+                  <line x1="97" y1="122" x2="119" y2="122" stroke="#93C5FD" stroke-width="2"/>
+                </g>
+              </g>
+
+              <!-- 小白爪扒在托盘前沿 -->
+              <ellipse cx="64" cy="144" rx="12" ry="7" fill="#FFF7ED" stroke="#E2E8F0" stroke-width="2"/>
+              <ellipse cx="136" cy="144" rx="12" ry="7" fill="#FFF7ED" stroke="#E2E8F0" stroke-width="2"/>
+            </svg>
+          </div>
+          <span class="interaction-hint">点击卡片切换状态</span>
+        </div>
+
+        <ul class="specs-list">
+          <li><strong>视觉母题</strong> 饱满几何圆头橘猫 + 印前文件收件槽</li>
+          <li><strong>动效交互</strong> 文件拖入时，由呆萌微笑瞬间触发 Popcat 经典张嘴吞纸</li>
+          <li><strong>优势</strong> 亲和力极强，动作幽默解压，极具独立小工具气质</li>
+          <li><strong>小尺寸保障</strong> 16px 下仅保留“双耳外轮廓 + 圆脸 + 两点黑眸”，轮廓不碎</li>
+        </ul>
+
+        <div class="palette-row">
+          <div class="palette-swatch" style="background:#F97316;" data-color="#F97316"></div>
+          <div class="palette-swatch" style="background:#2563EB;" data-color="#2563EB"></div>
+          <div class="palette-swatch" style="background:#FFF7ED;" data-color="#FFF7ED"></div>
+          <div class="palette-swatch" style="background:#FB7185;" data-color="#FB7185"></div>
+        </div>
+
+        <div class="states-row">
+          <div class="state-item">
+            <span>闲置：温顺等待</span>
+          </div>
+          <div class="state-item">
+            <span>交互：嗷呜吞纸</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 方案 B：复古像素终端小打印机 -->
+      <div class="plan-card">
+        <span class="plan-tag tag-b">方案 B</span>
+        <div class="plan-title">
+          <span>📠 奶油像素终端</span>
+        </div>
+        <div class="plan-desc">16-bit 像素硬边 · 显像管绿屏 · 极客复古印刷</div>
+
+        <div class="icon-showcase" onclick="toggleCardState('b')">
+          <div id="icon-b-wrap">
+            <!-- 方案 B 矢量像素 SVG (48x48 像素网格精细矢量化) -->
+            <svg class="main-svg" id="svg-b" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- 应用图标圆角外框 -->
+              <rect width="200" height="200" rx="46" fill="#1C1917"/>
+              <rect x="6" y="6" width="188" height="188" rx="42" fill="#292524"/>
+
+              <!-- 奶油色复古终端外壳 (硬像素轮廓阶梯) -->
+              <rect x="36" y="40" width="128" height="124" rx="16" fill="#F5EFE6"/>
+              <rect x="36" y="152" width="128" height="12" fill="#D6CEBE"/>
+
+              <!-- 顶部进纸槽裂口 -->
+              <rect x="64" y="32" width="72" height="10" rx="3" fill="#1C1917"/>
+              <!-- 待处理纸张从顶部插着 -->
+              <g id="b-paper-top">
+                <rect x="74" y="20" width="52" height="16" rx="2" fill="#FFFFFF"/>
+                <line x1="80" y1="26" x2="114" y2="26" stroke="#94A3B8" stroke-width="2"/>
+              </g>
+
+              <!-- CRT 复古显像管凹陷绿屏 -->
+              <rect x="50" y="52" width="100" height="74" rx="10" fill="#0A1D13" stroke="#22543D" stroke-width="4"/>
+              <!-- 显像管扫描线微纹理 -->
+              <line x1="52" y1="64" x2="148" y2="64" stroke="#064E3B" stroke-width="2" opacity="0.4"/>
+              <line x1="52" y1="76" x2="148" y2="76" stroke="#064E3B" stroke-width="2" opacity="0.4"/>
+              <line x1="52" y1="88" x2="148" y2="88" stroke="#064E3B" stroke-width="2" opacity="0.4"/>
+              <line x1="52" y1="100" x2="148" y2="100" stroke="#064E3B" stroke-width="2" opacity="0.4"/>
+              <line x1="52" y1="112" x2="148" y2="112" stroke="#064E3B" stroke-width="2" opacity="0.4"/>
+
+              <!-- 屏幕像素表情 (动态切换) -->
+              <g id="b-screen-idle">
+                <!-- 睡眼闭目横线点阵 -_- -->
+                <rect x="68" y="86" width="18" height="6" fill="#34D399"/>
+                <rect x="114" y="86" width="18" height="6" fill="#34D399"/>
+                <rect x="96" y="94" width="8" height="4" fill="#34D399"/>
+                <!-- 浅绿色打瞌睡 zZ -->
+                <text x="134" y="70" font-family="monospace" font-size="12" font-weight="bold" fill="#10B981">z</text>
+              </g>
+              <g id="b-screen-active" style="display: none;">
+                <!-- 兴奋像素笑眼 ^O^ -->
+                <!-- 左眼 ^ -->
+                <polygon points="70,88 78,80 86,88 86,94 78,86 70,94" fill="#4EFA8B"/>
+                <!-- 右眼 ^ -->
+                <polygon points="114,88 122,80 130,88 130,94 122,86 114,94" fill="#4EFA8B"/>
+                <!-- 圆圆大嘴 O -->
+                <rect x="94" y="94" width="12" height="14" rx="3" fill="#4EFA8B"/>
+                <rect x="97" y="97" width="6" height="8" rx="2" fill="#0A1D13"/>
+              </g>
+
+              <!-- 机器下方控制区：机械橙色按键 + 状态指示灯 -->
+              <circle cx="60" cy="140" r="5" fill="#EA580C"/>
+              <rect x="74" y="137" width="14" height="6" rx="2" fill="#A8A29E"/>
+              <!-- 指示灯 (闲置橙 / 工作绿) -->
+              <circle id="b-led" cx="138" cy="140" r="4.5" fill="#F59E0B"/>
+
+              <!-- 下方吐出的切角小票/凭条 (PDF 拆分出纸) -->
+              <path d="M90 148H110V176L105 171L100 176L95 171L90 176V148Z" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1.5"/>
+              <line x1="94" y1="156" x2="106" y2="156" stroke="#94A3B8" stroke-width="2"/>
+              <line x1="94" y1="162" x2="106" y2="162" stroke="#94A3B8" stroke-width="2"/>
+            </svg>
+          </div>
+          <span class="interaction-hint">点击卡片切换状态</span>
+        </div>
+
+        <ul class="specs-list">
+          <li><strong>视觉母题</strong> 复古奶油色 Macintosh 终端 + 点阵票据打印机</li>
+          <li><strong>动效交互</strong> 文件拖入时，屏幕由睡眠横线切为绿色发光笑脸，LED 亮起绿灯</li>
+          <li><strong>优势</strong> 天生契合 Windows 像素对齐，具备浓厚的独立极客美学</li>
+          <li><strong>小尺寸保障</strong> 16×16 下每一个色块皆与物理网格严丝合缝，绝不虚边</li>
+        </ul>
+
+        <div class="palette-row">
+          <div class="palette-swatch" style="background:#F5EFE6;" data-color="#F5EFE6"></div>
+          <div class="palette-swatch" style="background:#10B981;" data-color="#10B981"></div>
+          <div class="palette-swatch" style="background:#EA580C;" data-color="#EA580C"></div>
+          <div class="palette-swatch" style="background:#1C1917;" data-color="#1C1917"></div>
+        </div>
+
+        <div class="states-row">
+          <div class="state-item">
+            <span>闲置：CRT打瞌睡</span>
+          </div>
+          <div class="state-item">
+            <span>交互：绿屏兴奋排版</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 方案 C：猫耳复古机械助理 -->
+      <div class="plan-card">
+        <span class="plan-tag tag-c">方案 C (合体)</span>
+        <div class="plan-title">
+          <span>🤖 猫耳机械助理</span>
+        </div>
+        <div class="plan-desc">几何科技感外壳 × 呆萌猫耳天线 × 两相融合</div>
+
+        <div class="icon-showcase" onclick="toggleCardState('c')">
+          <div id="icon-c-wrap">
+            <!-- 方案 C 矢量 SVG -->
+            <svg class="main-svg" id="svg-c" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- 应用图标圆角外框 -->
+              <rect width="200" height="200" rx="46" fill="#0F172A"/>
+              <rect x="6" y="6" width="188" height="188" rx="42" fill="#1E293B"/>
+
+              <!-- 猫耳天线 (结合两套特征的核心) -->
+              <!-- 左耳 -->
+              <polygon points="48,68 40,24 74,44" fill="#3B82F6"/>
+              <polygon points="46,32 50,60 66,46" fill="#F43F5E"/>
+              <!-- 右耳 -->
+              <polygon points="152,68 160,24 126,44" fill="#3B82F6"/>
+              <polygon points="154,32 150,60 134,46" fill="#F43F5E"/>
+
+              <!-- 机械主箱体 (深深蓝科技感) -->
+              <rect x="36" y="52" width="128" height="114" rx="20" fill="#3B82F6"/>
+              <rect x="42" y="58" width="116" height="102" rx="16" fill="#1D4ED8"/>
+
+              <!-- 正面大弧形深空猫面显示屏 -->
+              <rect x="52" y="66" width="96" height="74" rx="14" fill="#0F172A" stroke="#1E40AF" stroke-width="3"/>
+
+              <!-- 屏幕猫面像素交互 (动态切换) -->
+              <g id="c-screen-idle">
+                <!-- 像素猫眼打瞌睡 ^._.^ -->
+                <path d="M68 96C72 90 80 90 84 96" stroke="#38BDF8" stroke-width="4" stroke-linecap="round"/>
+                <path d="M116 96C120 90 128 90 132 96" stroke="#38BDF8" stroke-width="4" stroke-linecap="round"/>
+                <!-- 猫嘴 -->
+                <path d="M96 104C98 107 100 107 100 104C100 107 102 107 104 104" stroke="#38BDF8" stroke-width="3" stroke-linecap="round"/>
+              </g>
+              <g id="c-screen-active" style="display: none;">
+                <!-- 兴奋发光星形猫眼 (★.★) -->
+                <!-- 左星 -->
+                <polygon points="76,86 78,92 84,94 78,96 76,102 74,96 68,94 74,92" fill="#FBBF24"/>
+                <!-- 右星 -->
+                <polygon points="124,86 126,92 132,94 126,96 124,102 122,96 116,94 122,92" fill="#FBBF24"/>
+                <!-- 张嘴吞入出纸口 -->
+                <rect x="88" y="106" width="24" height="14" rx="4" fill="#F43F5E"/>
+                <!-- 飞入的打印纸 -->
+                <g class="animate-eat">
+                  <rect x="92" y="96" width="16" height="12" rx="1" fill="#FFFFFF"/>
+                  <line x1="95" y1="100" x2="105" y2="100" stroke="#38BDF8" stroke-width="1.5"/>
+                </g>
+              </g>
+
+              <!-- 机器底座与金属出纸托架 -->
+              <rect x="68" y="152" width="64" height="16" rx="4" fill="#94A3B8"/>
+              <rect x="76" y="156" width="48" height="4" rx="2" fill="#0F172A"/>
+
+              <!-- 侧边小机械旋钮 -->
+              <circle cx="34" cy="110" r="4" fill="#64748B"/>
+              <circle cx="166" cy="110" r="4" fill="#64748B"/>
+            </svg>
+          </div>
+          <span class="interaction-hint">点击卡片切换状态</span>
+        </div>
+
+        <ul class="specs-list">
+          <li><strong>视觉母题</strong> 现代深蓝几何机身 + 三角猫耳发光天线 + 屏幕猫猫颜文字</li>
+          <li><strong>动效交互</strong> 平时猫耳斜耷屏幕小憩，拖拽时猫耳立起发光，屏幕变星星眼吞纸</li>
+          <li><strong>优势</strong> 兼顾“印前工业软件的严谨秩序”与“猫咪的软萌互动”，包容度高</li>
+          <li><strong>小尺寸保障</strong> 几何方块 + 两个突出的猫耳尖角，在任务栏极具剪影辨识度</li>
+        </ul>
+
+        <div class="palette-row">
+          <div class="palette-swatch" style="background:#3B82F6;" data-color="#3B82F6"></div>
+          <div class="palette-swatch" style="background:#F43F5E;" data-color="#F43F5E"></div>
+          <div class="palette-swatch" style="background:#38BDF8;" data-color="#38BDF8"></div>
+          <div class="palette-swatch" style="background:#1E293B;" data-color="#1E293B"></div>
+        </div>
+
+        <div class="states-row">
+          <div class="state-item">
+            <span>闲置：打瞌睡天线</span>
+          </div>
+          <div class="state-item">
+            <span>交互：星眼吃纸模式</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 真实极端小尺寸对比测试区 (Windows 桌面模拟) -->
+    <div class="size-test-panel">
+      <div class="section-title">
+        <span>🖥️ Windows 任务栏与小尺寸清晰度模拟</span>
+      </div>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+        在 Windows 任务栏（40px/24px）与窗口标题栏（16px）极端尺寸下，对比三款图标的轮廓抗模糊能力：
+      </p>
+
+      <div class="taskbar-simulation">
+        <div class="taskbar-label">方案 A (橘猫收件)</div>
+        <div class="taskbar-slots">
+          <div class="sim-item">
+            <svg width="48" height="48" viewBox="0 0 200 200"><use href="#svg-a"/></svg>
+            <span class="sim-desc">48px 桌面</span>
+          </div>
+          <div class="sim-item">
+            <svg width="32" height="32" viewBox="0 0 200 200"><use href="#svg-a"/></svg>
+            <span class="sim-desc">32px 任务栏</span>
+          </div>
+          <div class="sim-item">
+            <svg width="20" height="20" viewBox="0 0 200 200"><use href="#svg-a"/></svg>
+            <span class="sim-desc">20px 托盘</span>
+          </div>
+          <div class="sim-item">
+            <svg width="16" height="16" viewBox="0 0 200 200"><use href="#svg-a"/></svg>
+            <span class="sim-desc">16px 标题栏</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="taskbar-simulation" style="margin-top: 12px;">
+        <div class="taskbar-label">方案 B (奶油终端)</div>
+        <div class="taskbar-slots">
+          <div class="sim-item">
+            <svg width="48" height="48" viewBox="0 0 200 200"><use href="#svg-b"/></svg>
+            <span class="sim-desc">48px 桌面</span>
+          </div>
+          <div class="sim-item">
+            <svg width="32" height="32" viewBox="0 0 200 200"><use href="#svg-b"/></svg>
+            <span class="sim-desc">32px 任务栏</span>
+          </div>
+          <div class="sim-item">
+            <svg width="20" height="20" viewBox="0 0 200 200"><use href="#svg-b"/></svg>
+            <span class="sim-desc">20px 托盘</span>
+          </div>
+          <div class="sim-item">
+            <svg width="16" height="16" viewBox="0 0 200 200"><use href="#svg-b"/></svg>
+            <span class="sim-desc">16px 标题栏</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="taskbar-simulation" style="margin-top: 12px;">
+        <div class="taskbar-label">方案 C (猫耳助理)</div>
+        <div class="taskbar-slots">
+          <div class="sim-item">
+            <svg width="48" height="48" viewBox="0 0 200 200"><use href="#svg-c"/></svg>
+            <span class="sim-desc">48px 桌面</span>
+          </div>
+          <div class="sim-item">
+            <svg width="32" height="32" viewBox="0 0 200 200"><use href="#svg-c"/></svg>
+            <span class="sim-desc">32px 任务栏</span>
+          </div>
+          <div class="sim-item">
+            <svg width="20" height="20" viewBox="0 0 200 200"><use href="#svg-c"/></svg>
+            <span class="sim-desc">20px 托盘</span>
+          </div>
+          <div class="sim-item">
+            <svg width="16" height="16" viewBox="0 0 200 200"><use href="#svg-c"/></svg>
+            <span class="sim-desc">16px 标题栏</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      大诚工具箱 (Prepress Toolbox) · 品牌视觉重塑提案 · 您可以在上方随时点击卡片体验状态切换
+    </footer>
+  </div>
+
+  <script>
+    let currentState = 'idle';
+
+    function setGlobalState(state) {
+      currentState = state;
+      document.getElementById('btn-idle').classList.toggle('active', state === 'idle');
+      document.getElementById('btn-active').classList.toggle('active', state === 'active');
+      applyStateToCard('a', state);
+      applyStateToCard('b', state);
+      applyStateToCard('c', state);
+    }
+
+    let cardStates = { a: 'idle', b: 'idle', c: 'idle' };
+
+    function toggleCardState(card) {
+      cardStates[card] = cardStates[card] === 'idle' ? 'active' : 'idle';
+      applyStateToCard(card, cardStates[card]);
+    }
+
+    function applyStateToCard(card, state) {
+      cardStates[card] = state;
+      const isIdle = state === 'idle';
+
+      if (card === 'a') {
+        document.getElementById('a-eyes-idle').style.display = isIdle ? 'block' : 'none';
+        document.getElementById('a-eyes-active').style.display = isIdle ? 'none' : 'block';
+        document.getElementById('a-mouth-idle').style.display = isIdle ? 'block' : 'none';
+        document.getElementById('a-mouth-active').style.display = isIdle ? 'none' : 'block';
+      } else if (card === 'b') {
+        document.getElementById('b-screen-idle').style.display = isIdle ? 'block' : 'none';
+        document.getElementById('b-screen-active').style.display = isIdle ? 'none' : 'block';
+        document.getElementById('b-led').setAttribute('fill', isIdle ? '#F59E0B' : '#10B981');
+      } else if (card === 'c') {
+        document.getElementById('c-screen-idle').style.display = isIdle ? 'block' : 'none';
+        document.getElementById('c-screen-active').style.display = isIdle ? 'none' : 'block';
+      }
+    }
+
+    function setTheme(theme) {
+      document.body.setAttribute('data-theme', theme);
+      document.getElementById('btn-dark').classList.toggle('active', theme === 'dark');
+      document.getElementById('btn-light').classList.toggle('active', theme === 'light');
+    }
+  </script>
+</body>
+</html>

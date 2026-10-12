@@ -24,7 +24,7 @@ namespace WindowsFormsApp3.Tests.Forms
             catch { }
         }
 
-        [Fact]
+        [StaFact]
         public void Test_OrderNumberMode_Button_And_Submenu_Structure()
         {
             AppSettings.Set("OrderNumberMode1", "无");
@@ -84,7 +84,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Fact]
+        [StaFact]
         public void Test_OrderNumberMode_Mode_Switching_And_Regex_Extraction()
         {
             using (var form = new MaterialSelectFormModern(
@@ -129,7 +129,7 @@ namespace WindowsFormsApp3.Tests.Forms
             }
         }
 
-        [Theory]
+        [StaTheory]
         [InlineData("AutoIncrement", OrderNumberMode.AutoIncrement, "自动递增 ▾")]
         [InlineData("RegexExtraction", OrderNumberMode.RegexExtraction, null)]
         [InlineData("None", OrderNumberMode.None, "无 ▾")]

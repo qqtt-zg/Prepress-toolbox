@@ -48,6 +48,95 @@ namespace WindowsFormsApp3.Services
 
         #region 核心布局计算
 
+        public async Task<List<ImpositionResult>> GetLayoutChoicesAsync(
+            object config, ImpositionPdfInfo pdfInfo, int layoutQuantity = 0,
+            CancellationToken cancellationToken = default)
+        {
+            if (config == null) throw new ArgumentNullException(nameof(config));
+            if (pdfInfo == null) throw new ArgumentNullException(nameof(pdfInfo));
+            var results = new List<ImpositionResult>();
+            if (layoutQuantity < 0)
+                return new List<ImpositionResult> { CreateFailedResult("每纸布局数量请输入正整数。", config is FlatSheetConfiguration ? MaterialType.FlatSheet : MaterialType.RollMaterial) };
+
+            var rowChoices = new SortedSet<int>();
+            if (layoutQuantity == 0) rowChoices.Add(1);
+            // 仅枚举因子，长卷的大数量不会触发逐页循环。
+            for (int divisor = 1; layoutQuantity > 0 && divisor <= layoutQuantity / divisor; divisor++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (layoutQuantity % divisor != 0) continue;
+                rowChoices.Add(divisor);
+                rowChoices.Add(layoutQuantity / divisor);
+            }
+            foreach (int rows in rowChoices)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (layoutQuantity > 0 && layoutQuantity % rows != 0) continue;
+                // 每个候选均走生产排版服务，预览不另建一套尺寸和约束算法。
+                if (config is FlatSheetConfiguration flat)
+                {
+                    var candidate = new FlatSheetConfiguration
+                    {
+                        PaperWidth = flat.PaperWidth, PaperHeight = flat.PaperHeight,
+                        MarginTop = flat.MarginTop, MarginBottom = flat.MarginBottom,
+                        MarginLeft = flat.MarginLeft, MarginRight = flat.MarginRight,
+                        RotationMode = flat.RotationMode, LayoutMultiple = flat.LayoutMultiple,
+                        LayoutMultipleDirection = flat.LayoutMultipleDirection,
+                        Rows = layoutQuantity > 0 ? rows : flat.Rows,
+                        Columns = layoutQuantity > 0 ? layoutQuantity / rows : flat.Columns
+                    };
+                    results.Add(await CalculateFlatSheetLayoutAsync(candidate, pdfInfo, cancellationToken));
+                }
+                else if (config is RollMaterialConfiguration roll)
+                {
+                    var candidate = new RollMaterialConfiguration
+                    {
+                        FixedWidth = roll.FixedWidth, MinLength = roll.MinLength,
+                        MarginTop = roll.MarginTop, MarginBottom = roll.MarginBottom,
+                        MarginLeft = roll.MarginLeft, MarginRight = roll.MarginRight,
+                        RotationMode = roll.RotationMode, LayoutMultiple = roll.LayoutMultiple,
+                        LayoutMultipleDirection = roll.LayoutMultipleDirection,
+                        UseExactRows = layoutQuantity > 0 || roll.UseExactRows,
+                        Rows = layoutQuantity > 0 ? rows : roll.Rows,
+                        Columns = layoutQuantity > 0 ? layoutQuantity / rows : roll.Columns
+                    };
+                    results.Add(await CalculateRollMaterialLayoutAsync(candidate, pdfInfo, cancellationToken));
+                }
+                else throw new ArgumentException("不支持的排版配置。", nameof(config));
+            }
+            var feasible = results.Where(r => r.Success && r.IsPrintable &&
+                (layoutQuantity == 0 || r.OptimalLayoutQuantity == layoutQuantity)).ToList();
+            if (feasible.Count > 0) return feasible;
+            return new List<ImpositionResult>
+            {
+                layoutQuantity > 0
+                    ? CreateFailedResult($"布局数 {layoutQuantity} 没有适合当前纸张或幅宽及页面方向的行列组合。", config is FlatSheetConfiguration ? MaterialType.FlatSheet : MaterialType.RollMaterial)
+                    : results.First()
+            };
+        }
+
+        private static string ValidateLayoutMultiple(int rows, int columns, int multiple, CopyMode direction)
+        {
+            if (multiple < 1 || multiple > 16) return "布局倍数请输入 2–16 的整数，关闭约束时使用 1。";
+            if (multiple == 1) return null;
+            bool byRow = direction == CopyMode.AutoByRow || direction == CopyMode.FixedNoRotationByRow;
+            int value = byRow ? rows : columns;
+            return value > 0 && value % multiple != 0
+                ? $"手动{(byRow ? "行" : "列")}数 {value} 不满足 {multiple} 的倍数约束。请调整布局、倍数或关闭约束。"
+                : null;
+        }
+
+        private static void ApplyLayoutMultiple(ref int rows, ref int columns, int requestedRows,
+            int requestedColumns, int multiple, CopyMode direction, bool isRoll = false)
+        {
+            if (multiple <= 1) return;
+            bool byRow = direction == CopyMode.AutoByRow || direction == CopyMode.FixedNoRotationByRow;
+            if (byRow && requestedRows == 0)
+                rows = isRoll ? ((rows + multiple - 1) / multiple) * multiple : rows - rows % multiple;
+            else if (!byRow && requestedColumns == 0)
+                columns -= columns % multiple;
+        }
+
         /// <summary>
         /// 计算平张模式的布局
         /// </summary>
@@ -85,6 +174,9 @@ namespace WindowsFormsApp3.Services
                             MaterialType = MaterialType.FlatSheet
                         };
                     }
+
+                    string constraintError = ValidateLayoutMultiple(config.Rows, config.Columns, config.LayoutMultiple, config.LayoutMultipleDirection);
+                    if (constraintError != null) return CreateFailedResult(constraintError, MaterialType.FlatSheet);
 
                     // 计算可用空间
                     float usableWidth = config.PrintableWidth;
@@ -167,6 +259,9 @@ namespace WindowsFormsApp3.Services
                             MaterialType = MaterialType.RollMaterial
                         };
                     }
+
+                    string constraintError = ValidateLayoutMultiple(config.Rows, config.Columns, config.LayoutMultiple, config.LayoutMultipleDirection);
+                    if (constraintError != null) return CreateFailedResult(constraintError, MaterialType.RollMaterial);
 
                     // 获取页面尺寸
                     float pageWidth = pdfInfo.GetEffectivePageWidth();
@@ -803,7 +898,6 @@ namespace WindowsFormsApp3.Services
                         {
                             if (document.GetNumberOfPages() > 0)
                             {
-                                var firstPage = document.GetFirstPage();
                                 int framePageNumber = pageBoxSource == PdfPageBoxSource.Automatic ? 1 : referencePageNumber;
                                 if (framePageNumber < 1 || framePageNumber > document.GetNumberOfPages())
                                     throw new ArgumentOutOfRangeException(nameof(referencePageNumber), "页面框基准页码无效");
@@ -819,7 +913,7 @@ namespace WindowsFormsApp3.Services
                                 };
 
                                 // 获取页面旋转角度
-                                pageRotation = firstPage.GetRotation();
+                                pageRotation = framePage.GetRotation();
                                 LogHelper.Debug($"[排版分析] 检测到PDF页面旋转角度: {pageRotation}°");
 
                                 bool validCrop = cropBox != null && cropBox.GetWidth() > 0 && cropBox.GetHeight() > 0;
@@ -1284,6 +1378,7 @@ namespace WindowsFormsApp3.Services
             int pdfPageRotation = 0)
         {
             if (config.Rows > 0 || config.Columns > 0 ||
+                config.LayoutMultiple > 1 ||
                 (config.RotationMode.HasValue && config.RotationMode != RollRotationMode.Auto))
             {
                 return CalculateForcedFlatSheetLayout(pageWidth, pageHeight, usableWidth, usableHeight, config, pdfPageRotation);
@@ -1320,6 +1415,9 @@ namespace WindowsFormsApp3.Services
             {
                 actualColumns = Math.Min(config.Columns, actualColumns);
             }
+
+            if (actualRows <= 0 || actualColumns <= 0)
+                return CreateFailedResult("页面无法容纳在纸张可印刷区域内，请调整大版尺寸或页面方向。", MaterialType.FlatSheet);
 
             // 确保至少为1
             actualRows = Math.Max(1, actualRows);
@@ -1416,6 +1514,8 @@ namespace WindowsFormsApp3.Services
                 int maximumRows = (int)Math.Floor(usableHeight / candidatePageHeight);
                 int columns = config.Columns > 0 ? config.Columns : maximumColumns;
                 int rows = config.Rows > 0 ? config.Rows : maximumRows;
+                ApplyLayoutMultiple(ref rows, ref columns, config.Rows, config.Columns,
+                    config.LayoutMultiple, config.LayoutMultipleDirection);
                 bool isFeasible = columns > 0 && rows > 0 && columns <= maximumColumns && rows <= maximumRows;
                 return (columns, rows, candidatePageWidth, candidatePageHeight, useRotation, isFeasible);
             }
@@ -1451,7 +1551,8 @@ namespace WindowsFormsApp3.Services
             RollRotationMode? rotationMode = null)
         {
             if (config.Rows > 0 || config.Columns > 0 ||
-                (rotationMode.HasValue && rotationMode.Value != RollRotationMode.Auto))
+                config.LayoutMultiple > 1 ||
+                rotationMode.HasValue)
             {
                 return CalculateForcedRollMaterialLayout(pageWidth, pageHeight, usableWidth, config, rotationMode);
             }
@@ -1527,6 +1628,8 @@ namespace WindowsFormsApp3.Services
             }
 
             int optimalColumns = useRotation ? columnsWithRotation : columnsWithoutRotation;
+            if (optimalColumns <= 0)
+                return CreateFailedResult("页面无法容纳在卷装材料固定宽度内，请调整幅宽或页面方向。", MaterialType.RollMaterial);
             float actualUtilization = useRotation ? utilizationRotated : utilizationNormal;
 
             LogHelper.Debug($"[ImpositionService] 卷装布局计算: 固定1行-不旋转={columnsWithoutRotation}列(宽度利用率{widthUtilizationNormal:F1}%, 空间利用率{utilizationNormal:F1}%), 旋转90度={columnsWithRotation}列(宽度利用率{widthUtilizationRotated:F1}%, 空间利用率{utilizationRotated:F1}%), 选择{(useRotation ? "旋转" : "不旋转")}");
@@ -1619,10 +1722,10 @@ namespace WindowsFormsApp3.Services
                 .ThenBy(candidate => candidate.UseRotation)
                 .First();
 
-            int minimumRowsForLength = (int)Math.Ceiling(
-                Math.Max(0, config.MinLength - config.MarginTop - config.MarginBottom) / selected.PageHeight);
-            int rows = Math.Max(1, Math.Max(config.Rows, minimumRowsForLength));
-            float actualMaterialLength = config.MarginTop + rows * selected.PageHeight + config.MarginBottom;
+            int rows = selected.Rows;
+            float actualMaterialLength = Math.Max(config.MinLength, config.MarginTop + rows * selected.PageHeight + config.MarginBottom);
+            if (float.IsNaN(actualMaterialLength) || float.IsInfinity(actualMaterialLength))
+                return CreateFailedResult("数值无法计算，请检查页面尺寸和行数。", MaterialType.RollMaterial);
             int layoutQuantity = selected.Columns * rows;
             float materialArea = config.FixedWidth * actualMaterialLength;
             float spaceUtilization = materialArea <= 0
@@ -1645,14 +1748,21 @@ namespace WindowsFormsApp3.Services
                 Description = $"卷装{rows}行×{selected.Columns}列 = {layoutQuantity}页，实际材料长度{actualMaterialLength:F1}mm，利用率{spaceUtilization:F1}%"
             };
 
-            (int Columns, float PageWidth, float PageHeight, bool UseRotation, float UsedWidth, bool IsFeasible) CreateRollCandidate(
+            (int Columns, int Rows, float PageWidth, float PageHeight, bool UseRotation, float UsedWidth, bool IsFeasible) CreateRollCandidate(
                 float candidatePageWidth, float candidatePageHeight, bool useRotation)
             {
                 int maximumColumns = (int)Math.Floor(usableWidth / candidatePageWidth);
                 int columns = config.Columns > 0 ? config.Columns : maximumColumns;
+                int minimumRows = Math.Max(1, (int)Math.Ceiling(
+                    Math.Max(0, config.MinLength - config.MarginTop - config.MarginBottom) / candidatePageHeight));
+                int rows = config.UseExactRows && config.Rows > 0
+                    ? config.Rows : Math.Max(config.Rows, minimumRows);
+                ApplyLayoutMultiple(ref rows, ref columns, config.Rows, config.Columns,
+                    config.LayoutMultiple, config.LayoutMultipleDirection, true);
                 float usedWidth = columns * candidatePageWidth;
-                bool isFeasible = columns > 0 && columns <= maximumColumns;
-                return (columns, candidatePageWidth, candidatePageHeight, useRotation, usedWidth, isFeasible);
+                bool isFeasible = columns > 0 && columns <= maximumColumns && rows > 0 &&
+                    (long)rows * columns <= int.MaxValue;
+                return (columns, rows, candidatePageWidth, candidatePageHeight, useRotation, usedWidth, isFeasible);
             }
         }
 

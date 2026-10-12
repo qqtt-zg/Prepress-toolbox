@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>V5 · 页序与临时排版交互方案</title>
+<style>
+:root{--ink:#233447;--muted:#718093;--line:#dce3ec;--blue:#1677ff;--blue-soft:#edf5ff;--orange:#b56820;--green:#178477;--bg:#eff2f6;--white:#fff;--shadow:0 20px 65px #23344716}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 "Microsoft YaHei UI","Microsoft YaHei",sans-serif}button,input,select{font:inherit;color:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.45}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #8dbfff;outline-offset:3px}button{transition:background .15s,border-color .15s,box-shadow .15s}h1,h2,h3,p{margin:0}input[type=number]{font-family:Consolas,monospace}input[type=checkbox]{accent-color:var(--blue);width:15px;height:15px;margin:0;cursor:pointer}.mono{font-family:Consolas,"Microsoft YaHei UI",monospace}.eyebrow{font:11px Consolas,monospace;color:var(--muted);letter-spacing:2px}.tag{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:11px;line-height:1.7;background:var(--blue-soft);color:var(--blue)}.muted{color:var(--muted)}.btn{border:1px solid var(--line);background:#fff;border-radius:5px;padding:7px 14px;font-size:12px}.btn:hover{border-color:#83b5f7;background:var(--blue-soft)}.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}.btn.primary:hover{background:#0967e7}.btn.text{border:0;background:transparent;color:var(--blue);padding:5px 0}.top{max-width:1180px;margin:auto;padding:34px 26px 25px}.topline{display:flex;align-items:center;justify-content:space-between;gap:15px}h1{font-size:29px;font-weight:600;letter-spacing:-1px;margin:6px 0 7px}.top p{color:var(--muted);font-size:13px}.proposal-label{border:1px solid #bccadc;padding:6px 11px;border-radius:5px;color:#62758b;font-size:12px;white-space:nowrap}.page{max-width:1180px;margin:auto;padding:0 26px 36px}.reviewbar{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #cfd9e5;padding:13px 0;gap:10px}.reviewbar>span{font-size:12px;color:var(--muted)}.scenarios{display:flex;gap:7px;flex-wrap:wrap}.scenario{font-size:12px;background:transparent;border:1px solid #cbd7e5;padding:5px 10px;border-radius:4px}.scenario:hover{border-color:var(--blue);color:var(--blue);background:white}.workspace{display:grid;grid-template-columns:360px minmax(0,1fr);gap:28px;align-items:start}.station{background:#fff;border:1px solid #bdcbdb;border-radius:7px;overflow:hidden;box-shadow:var(--shadow)}.titlebar{height:29px;background:#e4eaf2;display:flex;align-items:center;justify-content:space-between;padding:0 9px;font-size:12px;font-weight:bold}.stationbody{padding:9px}.card{border:1px solid var(--line);border-radius:4px;margin-bottom:6px;padding:5px}.materials{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.materials span{border:1px solid #e2e8f0;border-radius:3px;text-align:center;font-size:11px;padding:4px 2px}.materials .selected{color:var(--blue);border-color:#82b6ff;background:#f5faff}.pathline{font-size:11px;display:flex;justify-content:space-between}.pathline span:last-child{color:var(--blue)}.craftline{display:flex;gap:4px;font-size:11px;margin:3px 0}.craftline>span{flex:1;border:1px solid #e2e8f0;text-align:center}.craftline>b{font-weight:normal;width:29px}.craftline .selected{color:var(--blue);border-color:#82b6ff;background:#f7fbff}.orders{display:grid;grid-template-columns:1.06fr 1fr;gap:5px}.inputgroup{display:flex;height:27px;border:1px solid var(--line);border-radius:4px;align-items:center;overflow:hidden;font-size:11px}.inputgroup>b{height:100%;padding:0 6px;display:flex;align-items:center;background:#f3f6fa;font-weight:normal;border-right:1px solid var(--line);white-space:nowrap}.inputgroup>span{padding-left:7px}.inputgroup input{min-width:0;width:42px;border:0;background:transparent;padding:2px 4px;text-align:center;font-size:12px}.inputgroup select{min-width:0;flex:1;font-size:10px;background:transparent;border:0;cursor:pointer;padding:0 2px}.inputgroup label{display:flex;align-items:center;padding:0 4px}.inputgroup input[type=checkbox]{width:12px;height:12px}.inputgroup .unit{padding:0 2px;color:var(--muted);font-size:10px}.inputgroup.is-off{background:#fafbfd}.inputgroup.is-off input[type=number],.inputgroup.is-off select{opacity:.4}.orderhint{font-size:10px;color:#8994a3;padding:4px 2px 0}.dash{padding:5px}.controlrow{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-bottom:5px}.entry{display:inline-flex;gap:4px;align-items:center;border:1px solid #a7cfff;color:var(--blue);background:var(--blue-soft);border-radius:4px;font-size:11px;padding:3px 6px}.entry:hover{background:#dcecff;border-color:var(--blue)}.entry svg{width:13px;height:13px}.segments{display:flex;gap:0}.segments span{font-size:10px;padding:2px 5px;border:1px solid var(--line)}.segments .selected{color:var(--blue);background:#f1f7ff;border-color:#a7cfff}.metrics{display:grid;grid-template-columns:repeat(6,1fr);border:1px solid #b6d9ed;background:#f7fcff;border-radius:4px;overflow:hidden}.metric{position:relative;border:0;background:transparent;padding:5px 0;font-size:10px;color:var(--muted);line-height:1.6;text-align:center}.metric strong{display:block;font:600 13px/1.6 Consolas,"Microsoft YaHei UI",monospace;color:var(--blue)}button.metric:hover{background:#e2efff}button.metric::after{content:'↗';position:absolute;right:3px;top:1px;color:#a2bbd8;font-size:9px}.metric.orange strong{color:var(--orange)}.metric.purple strong{color:#8052b5}.metric.pink strong{color:#c46590}.dash-status{font-size:10px;color:#667a91;display:flex;align-items:center;gap:5px;padding:5px 2px 0;min-height:24px}.dash-status .dot{width:5px;height:5px;flex-shrink:0;border-radius:50%;background:#9faebf}.dash-status.active .dot{background:var(--blue)}.dash-status.active{color:var(--blue)}.presettitle{display:flex;gap:12px;font-size:11px;border-bottom:1px solid var(--line);padding:1px 3px 5px;color:var(--muted)}.presettitle b{color:var(--blue);font-weight:normal}.presetrow{display:flex;gap:5px;padding:7px 1px 2px}.presetrow span{font-size:11px;border:1px solid var(--line);padding:3px 7px;border-radius:3px}.stationfooter{display:flex;justify-content:space-between;gap:6px;padding-top:2px}.stationfooter .btn{font-size:11px;padding:5px 12px}.previewbar{font-size:10px;color:#8b97a7;text-align:right;border-top:1px solid var(--line);margin-top:7px;padding:4px 2px 0}.callout{position:relative;margin-top:11px;display:flex;gap:9px;font-size:12px;color:#64748a}.number{display:inline-flex;width:21px;height:21px;align-items:center;justify-content:center;flex-shrink:0;background:#dceaff;color:var(--blue);border-radius:50%;font:11px Consolas,monospace}.right-panel{background:#fff;border:1px solid var(--line);border-radius:7px;box-shadow:0 10px 30px #23344708;overflow:hidden}.panelhead{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.panelhead h2{font-size:17px;font-weight:600}.panelhead p{font-size:11px;color:var(--muted);margin-top:2px}.panelcontent{padding:20px 22px}.outputline{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:16px}.outputline strong{font-size:14px;font-weight:500}.pages{display:flex;gap:5px;flex-wrap:wrap;min-height:72px;align-items:flex-start}.pdfpage{width:35px;height:47px;background:#fff;border:1px solid #b6cdec;border-radius:3px;position:relative;display:flex;align-items:center;justify-content:center;color:var(--blue);font:16px Consolas,monospace;box-shadow:0 2px 3px #23344707}.pdfpage::before{content:'';width:11px;border-top:2px solid #d0dff0;position:absolute;top:9px;left:5px}.pdfpage::after{content:'';width:17px;border-top:2px solid #e0e8f2;position:absolute;bottom:9px;left:5px}.pdfpage[data-page='2']{background:#f6faf6;color:#4c7e65;border-color:#c5d8ca}.pdfpage[data-page='3']{background:#fffbf4;color:#a77637;border-color:#e3d5c0}.stripnote{font-size:11px;color:var(--muted);margin-top:0}.rule{height:1px;background:var(--line);margin:17px 0}.applied-result{display:grid;grid-template-columns:1fr 1.15fr;gap:18px;align-items:center}.mini-paper{width:126px;aspect-ratio:320/464;background:#f9fbfe;border:1px solid #b7c6d9;padding:5px;display:grid;gap:3px;box-shadow:5px 5px 0 #f1f4f8}.mini-paper span{border:1px solid #acc7e9;background:#eaf3ff;color:#6b9bd8;display:flex;align-items:center;justify-content:center;font:9px Consolas,monospace}.summary-number{font:38px/1.1 Consolas,monospace;letter-spacing:-2px}.summary-number small{font:12px "Microsoft YaHei UI",sans-serif;color:var(--muted);letter-spacing:0;margin-left:5px}.summarytext{font-size:12px;color:#64748a;margin-top:8px}.scope-note{background:#f4f7fb;border-radius:4px;font-size:11px;color:#6d7e90;padding:10px 12px;margin-top:18px}.bottomnotes{margin-top:25px;border-top:1px solid #cfd9e5;padding-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:25px}.bottomnotes h3{font-size:13px;margin-bottom:4px;display:flex;gap:8px;align-items:center}.bottomnotes p{font-size:12px;color:var(--muted)}.footer{color:#8896a7;font-size:10px;margin-top:20px;display:flex;justify-content:space-between;gap:10px}
+/* 临时排版窗口保持桌面工具的紧凑比例，草稿预览与已应用结果分开。 */
+dialog{padding:0;border:1px solid #c7d3e0;border-radius:9px;color:var(--ink);width:min(880px,calc(100vw - 36px));max-height:calc(100vh - 40px);box-shadow:0 25px 100px #11213642;background:white}dialog::backdrop{background:#263a515c;backdrop-filter:blur(3px)}.modalhead{padding:17px 22px 14px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--line)}.modalhead h2{font-size:19px;font-weight:600}.modalhead p{font-size:11px;color:var(--muted);margin-top:3px}.close{border:0;background:transparent;font-size:21px;color:var(--muted);padding:0 3px;line-height:1.2}.modalbody{display:grid;grid-template-columns:1.22fr 1fr}.settings{padding:18px 22px}.sectionlabel{font-size:12px;font-weight:bold;display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}.sectionlabel small{font-weight:normal;font-size:10px;color:var(--muted)}.basicgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field{display:flex;align-items:center;gap:7px}.field label{font-size:11px;color:var(--muted);min-width:49px}.inputwrap{display:flex;align-items:center;border:1px solid var(--line);border-radius:4px;background:#fff;min-width:0;flex:1;height:31px;overflow:hidden}.inputwrap:focus-within{border-color:var(--blue);box-shadow:0 0 0 2px #1677ff10}.inputwrap input{width:100%;min-width:0;border:0;outline:none;padding:4px 7px;background:transparent;font-size:13px}.inputwrap span{padding-right:6px;font-size:10px;color:var(--muted);white-space:nowrap}.rotation{display:flex;gap:4px;margin-top:10px}.rotation button{flex:1;font-size:11px;border:1px solid var(--line);background:#fff;border-radius:4px;padding:5px 0}.rotation button.selected{color:var(--blue);border-color:#94c1ff;background:var(--blue-soft)}.tabseg{display:flex;padding:3px;background:#f0f3f8;border-radius:5px;margin-bottom:12px}.tabseg button{flex:1;border:0;background:transparent;color:var(--muted);border-radius:3px;font-size:12px;padding:5px 0}.tabseg button.selected{color:var(--ink);background:white;box-shadow:0 1px 4px #23344713}.helpline{font-size:10px;color:var(--muted);margin-top:6px;line-height:1.7}.layout-inputs{display:grid;grid-template-columns:1fr 1fr;gap:9px}.count-input{max-width:200px}.choices{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;min-height:31px}.choice{border:1px solid var(--line);background:#fff;font:12px Consolas,monospace;border-radius:4px;padding:4px 10px}.choice.selected{background:var(--blue-soft);color:var(--blue);border-color:#8fbdff}.choice small{font-size:10px;margin-left:6px;color:#7b96b7}.constraint{background:#f8fafe;border:1px solid #d8e4f3;border-radius:5px;padding:11px 12px}.switchlabel{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;cursor:pointer}.switch{appearance:none!important;width:29px!important;height:17px!important;border-radius:12px;background:#bcc9d9;position:relative;transition:background .15s}.switch::after{content:'';position:absolute;left:3px;top:3px;width:11px;height:11px;border-radius:50%;background:white;transition:transform .15s}.switch:checked{background:var(--blue)}.switch:checked::after{transform:translateX(12px)}.constraintfields{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}.constraintfields.disabled{opacity:.4}.constraintfields select{height:31px;border:1px solid var(--line);border-radius:4px;background:white;font-size:12px;width:100%;padding:3px 7px}.temporary{font-size:10px;font-weight:normal;color:#8295ab;margin-left:auto}.preview{background:#f7f9fc;border-left:1px solid var(--line);padding:18px 22px;display:flex;flex-direction:column}.previewtop{display:flex;justify-content:space-between;align-items:center;font-size:12px}.previewtop span{font-size:10px;color:var(--muted)}.paper-stage{min-height:255px;display:flex;justify-content:center;align-items:center;margin:12px 0;position:relative;background-image:radial-gradient(#cfd9e4 1px,transparent 1px);background-size:14px 14px;border-radius:4px}.paper{width:156px;max-height:244px;background:#fff;border:1px solid #bdcadb;padding:5px;box-shadow:6px 6px 0 #e6edf6;display:grid;gap:3px;transition:width .15s}.paper span{border:1px solid #a8c7ed;background:#e6f1ff;display:flex;align-items:center;justify-content:center;font:11px Consolas,monospace;color:#7b9fcf}.paper.constrained span{border-color:#6eafff;background:#dcecff}.paper.empty{display:flex;align-items:center;justify-content:center;padding:14px;text-align:center;font-size:11px;color:#aa625e;background:#fff8f7;box-shadow:6px 6px 0 #f1e8e7}.previewresult{display:flex;justify-content:space-between;align-items:end;gap:10px;margin-top:1px}.previewresult strong{font:28px/1.1 Consolas,monospace;letter-spacing:-1px}.previewresult p{font-size:10px;color:var(--muted);margin-top:4px}.previewcount{text-align:right;font-size:11px;color:var(--muted)}.previewcount b{font:34px/1 Consolas,monospace;color:var(--blue);display:block;margin-bottom:3px}.statusbox{margin-top:14px;border:1px solid #bdd9d1;background:#eef8f5;border-radius:4px;padding:10px 11px;color:#30715f;font-size:11px;min-height:56px}.statusbox.error{border-color:#e8c4bf;background:#fff4f1;color:#a34f41}.statusbox.neutral{border-color:#dbe3ed;background:white;color:var(--muted)}.previewscope{font-size:10px;color:var(--muted);margin-top:auto;padding-top:17px}.modalfoot{padding:12px 22px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;background:white}.modalfoot>div{display:flex;align-items:center;gap:8px}.modalfoot .btn{padding:7px 17px}.footstate{font-size:11px;color:var(--muted)}.restore{font-size:11px;color:var(--blue);border:0;background:transparent;padding:5px 0}.toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,15px);background:#263b52;color:white;border-radius:5px;font-size:12px;padding:10px 17px;box-shadow:0 8px 30px #23344728;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:100}.toast.show{opacity:1;transform:translate(-50%,0)}[hidden]{display:none!important}@media(max-width:850px){.workspace{grid-template-columns:360px minmax(0,1fr);gap:15px}.top,.page{padding-left:18px;padding-right:18px}.panelcontent{padding:18px}.applied-result{grid-template-columns:1fr}.applied-result .mini-paper{display:none}.bottomnotes{gap:15px}.modalbody{grid-template-columns:1.2fr 1fr}.settings,.preview{padding:17px}.reviewbar{align-items:flex-start;flex-direction:column}}@media(max-width:660px){h1{font-size:24px}.proposal-label{display:none}.workspace{grid-template-columns:1fr}.station{max-width:360px;width:100%;margin:auto}.bottomnotes{grid-template-columns:1fr;gap:13px}.applied-result{grid-template-columns:1fr 1fr}.applied-result .mini-paper{display:grid}.modalbody{grid-template-columns:1fr}.preview{border-left:0;border-top:1px solid var(--line)}dialog{max-height:calc(100dvh - 20px)}.paper-stage{min-height:180px}.paper{width:106px;max-height:165px}.modalfoot{position:sticky;bottom:0;padding:12px 16px}.footstate{display:none}.footer{flex-direction:column}}@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header class="top">
+ <div class="topline"><div><div class="eyebrow">PREPRESS TOOLBOX / V5 / INTERACTION PROPOSAL</div><h1>页序归页序，排版在一处调整。</h1><p>恢复手动布局入口，将行列倍数约束并入「临时排版」。保留 V5 工作台的紧凑布局。</p></div><span class="proposal-label">交互方案 · 可点击体验</span></div>
+</header>
+<main class="page">
+ <div class="reviewbar"><span>点击工作台的 <b>网格</b>、<b>布局数</b> 或 <b>临时排版</b> 开始</span><div class="scenarios" aria-label="体验场景"><button class="scenario" data-scene="manual">体验手动 3 × 3</button><button class="scenario" data-scene="multiple">体验列数为 2 的倍数</button><button class="scenario" data-scene="conflict">体验约束冲突</button></div></div>
+ <div class="workspace">
+  <section aria-label="V5材料选择工作台">
+   <div class="station">
+    <div class="titlebar"><span>名片贴纸_90×80mm</span><span aria-hidden="true">⌖</span></div>
+    <div class="stationbody">
+     <div class="card materials" aria-label="材料"><span>PET</span><span class="selected">PP</span><span>PVC</span><span>PET环保</span><span>PET透明</span><span>PET哑光</span><span>PET镭射</span><span>PET磨砂</span><span>PET金色</span><span>PET银色</span><span>PET白色</span><span>PET红色</span><span>PET蓝色</span><span>PET绿色</span><span>PP环保</span></div>
+     <div class="card pathline"><span>输出：D:\订单\今日生产</span><span>▱ 切换目录⌄</span></div>
+     <div class="card"><div class="craftline"><b>覆膜</b><span class="selected">光膜</span><span>哑膜</span><span>红膜</span><span>不过膜</span></div><div class="craftline"><b>形状</b><span>圆形</span><span>异形</span><span class="selected">圆角</span></div></div>
+     <div class="card"><div class="orders"><div class="inputgroup"><b>订单</b><span>DC-1008</span></div><div class="inputgroup"><b>序号</b><span>B01</span></div><div class="inputgroup"><b>数量</b><span>1,000</span></div><div class="inputgroup" id="copyGroup"><b>页序</b><label title="启用PDF页序复制"><input id="copyEnabled" type="checkbox" checked aria-label="启用页序复制"></label><input id="copyCount" type="number" min="2" max="16" value="2" aria-label="页面复制次数"><span class="unit">次</span><select id="copyPattern" aria-label="页序方式"><option value="page">逐页</option><option value="set">整套</option></select></div></div><p class="orderhint">页序只复制 PDF 页面，不联动网格或布局数。</p></div>
+     <div class="card dash">
+      <div class="controlrow"><button class="entry" id="openParameters" title="统一设置尺寸、页面方向、手动布局和倍数约束"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12"/><path d="M5 2v4M11 6v4M7 10v4"/></svg>临时排版</button><div class="segments" aria-label="当前使用平张连拼"><span class="selected">平张</span><span>卷装</span></div><div class="segments"><span class="selected">连拼</span><span>折手</span></div><span class="muted" aria-hidden="true">▤</span></div>
+      <div class="metrics"><button class="metric" id="openGrid" title="点击手动设置行列"><span>网格</span><strong id="metricGrid">5×3</strong></button><button class="metric orange" id="openCount" title="点击按布局数调整"><span>布局数</span><strong id="metricCount">15</strong></button><button class="metric purple" id="openRotation" title="调整页面方向"><span>角度</span><strong id="metricAngle">0</strong></button><div class="metric"><span>尺寸</span><strong>90×80</strong></div><div class="metric pink"><span>出血</span><strong>0</strong></div><div class="metric"><span>颜色</span><strong style="color:#178477">彩色</strong></div></div>
+      <div class="dash-status" id="dashboardStatus"><i class="dot"></i><span id="dashboardStatusText">自动布局 · 无倍数约束</span></div>
+     </div>
+     <div class="card"><div class="presettitle"><b>常用预设</b><span>分类管理</span></div><div class="presetrow"><span>PP光膜</span><span>PP圆角</span><span>透明贴纸</span></div></div>
+     <div class="stationfooter"><button class="btn" id="reopen">重新打开材料框</button><button class="btn primary" id="confirmDemo">确认并继续</button></div><div class="previewbar">⌄ 点击展开预览</div>
+    </div>
+   </div>
+   <p class="callout"><span class="number">01</span><span>原有六格看板保持不变。<b>网格、布局数恢复可点击</b>，统一进入临时排版，不增加独立弹窗。</span></p>
+  </section>
+  <section class="right-panel" aria-label="已应用效果">
+   <div class="panelhead"><div><h2>已应用效果</h2><p>左侧页序实时生效；临时排版在点击「应用」后更新。</p></div><span class="tag">交互预览</span></div>
+   <div class="panelcontent">
+    <div class="outputline"><strong>PDF 页序</strong><span class="tag" id="copySummary">3 页 → 6 页</span></div><div class="pages" id="pages" aria-label="输出PDF页面顺序"></div><p class="stripnote" id="copyDescription">逐页重复 2 次：每一页连续复制。</p>
+    <div class="rule"></div>
+    <div class="applied-result"><div style="display:flex;justify-content:center"><div class="mini-paper" id="appliedPaper" aria-label="已应用排版网格"></div></div><div><div class="eyebrow" style="letter-spacing:1px">LAYOUT / 当前排版</div><div class="summary-number"><span id="summaryCount">15</span><small>个 / 纸</small></div><p class="summarytext" id="summaryGrid">5 行 × 3 列 · 自动择优</p><p class="summarytext" id="summaryConstraint">无倍数约束</p><button class="btn text" id="editApplied">调整本次排版 →</button></div></div>
+    <div class="scope-note">临时设置仅作用于本次材料选择；不修改全局设置或材料预设。点击左侧「重新打开材料框」，可体验临时设置复位。</div>
+   </div>
+  </section>
+ </div>
+ <section class="bottomnotes" aria-label="交互规则"><div><h3><span class="number">02</span>布局可按两种方式调整</h3><p>按行列：行、列可单独自动。按布局数：输入每纸数量，再选择可容纳的网格组合。</p></div><div><h3><span class="number">03</span>约束独立，冲突说清楚</h3><p>倍数单独输入，不读取页序复制次数。手动指定值不满足约束时提示原因，保留输入并禁止应用。</p></div><div><h3><span class="number">04</span>应用、取消与恢复自动</h3><p>窗口内实时预览草稿。应用后回写看板；取消放弃草稿。「恢复自动布局」同时清除手动布局与倍数约束。</p></div></section>
+ <footer class="footer"><span>UI 方案原型 · 未修改 WinForms 功能</span><span>示例：平张 320 × 464 mm / 成品 90 × 80 mm / 四边距 10 mm；简化模拟，不替代生产排版算法。</span></footer>
+</main>
+<dialog id="layoutDialog" aria-labelledby="dialogTitle">
+ <form id="settingsForm" novalidate>
+  <div class="modalhead"><div><h2 id="dialogTitle">临时排版</h2><p>大版尺寸、页面方向、布局数量与倍数约束，在这里一起调整。</p></div><button type="button" class="close" id="closeDialog" aria-label="关闭临时排版">×</button></div>
+  <div class="modalbody">
+   <div class="settings">
+    <div class="sectionlabel">大版与页面方向 <small>成品 90 × 80 mm</small></div>
+    <div class="basicgrid"><div class="field"><label for="paperWidth">纸张宽</label><div class="inputwrap"><input id="paperWidth" type="number" min="50" max="1200" step="1"><span>mm</span></div></div><div class="field"><label for="paperHeight">纸张高</label><div class="inputwrap"><input id="paperHeight" type="number" min="50" max="1200" step="1"><span>mm</span></div></div><div class="field"><label for="margin">四边距</label><div class="inputwrap"><input id="margin" type="number" min="0" max="100" step="1"><span>mm</span></div></div><div class="field"><span class="muted" style="font-size:10px">统一边距为本方案演示参数</span></div></div>
+    <div class="rotation" role="group" aria-label="页面方向"><button type="button" data-rotation="auto">自动择优</button><button type="button" data-rotation="0">禁止旋转</button><button type="button" data-rotation="270">固定 270°</button></div>
+    <div class="rule" style="margin:15px 0"></div>
+    <div class="sectionlabel">手动布局 <small>布局数由行 × 列确定</small></div>
+    <div class="tabseg" role="group" aria-label="布局输入方式"><button type="button" id="byGrid">按行列</button><button type="button" id="byCount">按布局数</button></div>
+    <div id="gridInputs"><div class="layout-inputs"><div class="field"><label for="rows">行数</label><div class="inputwrap"><input id="rows" type="number" min="0" max="24" placeholder="自动"><span>行</span></div></div><div class="field"><label for="columns">列数</label><div class="inputwrap"><input id="columns" type="number" min="0" max="24" placeholder="自动"><span>列</span></div></div></div><p class="helpline">留空或填 0 表示自动。单独设置一项，另一项择优计算。</p></div>
+    <div id="countInputs" hidden><div class="field count-input"><label for="targetCount">每纸布局</label><div class="inputwrap"><input id="targetCount" type="number" min="1" max="96"><span>个</span></div></div><div class="choices" id="gridChoices" aria-label="可用的行列组合"></div><p class="helpline">先输入数量，再选择可用组合；标签格式为「行 × 列」。</p></div>
+    <div class="rule" style="margin:15px 0"></div>
+    <div class="constraint"><label class="switchlabel" for="constraintEnabled"><input class="switch" id="constraintEnabled" type="checkbox">行列倍数约束<span class="temporary">本次使用</span></label><div class="constraintfields" id="constraintFields"><div class="field"><label for="direction">方向</label><select id="direction"><option value="column">按列</option><option value="row">按行</option></select></div><div class="field"><label for="multiple">倍数</label><div class="inputwrap"><input id="multiple" type="number" min="2" max="16"><span>倍</span></div></div></div><p class="helpline" id="constraintHelp">关闭时不限制行列倍数，与页序复制次数无关。</p></div>
+   </div>
+   <aside class="preview" aria-label="临时排版草稿预览"><div class="previewtop"><b>布局预览</b><span>未应用草稿</span></div><div class="paper-stage"><div class="paper" id="draftPaper"></div></div><div class="previewresult"><div><strong id="draftGrid">5 × 3</strong><p id="draftOrientation">行 × 列 · 0°</p></div><div class="previewcount"><b id="draftCount">15</b>个 / 纸</div></div><div class="statusbox" id="validation" role="status" aria-live="polite"></div><p class="previewscope">页序复制：<span id="draftCopyState"></span><br>这里的布局设置不会改变 PDF 页序或制作数量。</p></aside>
+  </div>
+  <div class="modalfoot"><button type="button" class="restore" id="restoreAuto">↺ 恢复自动布局</button><div><span class="footstate" id="draftState">尚未应用</span><button type="button" class="btn" id="cancelDialog">取消</button><button type="submit" class="btn primary" id="applyLayout">应用本次设置</button></div></div>
+ </form>
+</dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const defaults=()=>({width:320,height:464,margin:10,rotation:'auto',mode:'grid',rows:0,columns:0,target:15,choice:null,constraint:false,direction:'column',multiple:2});
+let applied=defaults(),draft=null,lastResult=null,toastTimer,lastFocus=null;
+const copy={enabled:true,count:2,pattern:'page'};
+const controls=['paperWidth','paperHeight','margin','rows','columns','targetCount','constraintEnabled','direction','multiple'];
+function integer(n,min,max){return Number.isInteger(n)&&n>=min&&n<=max;}
+// 示例算法只判断矩形网格、页面方向与倍数；实际实现复用应用排版服务。
+function solve(s){
+ if(!integer(s.width,50,1200)||!integer(s.height,50,1200)||!integer(s.margin,0,100)||s.width<=s.margin*2||s.height<=s.margin*2)return {ok:false,message:'纸张或边距无效。请输入有效尺寸，并保留可印刷区域。'};
+ if(s.constraint&&!integer(s.multiple,2,16))return {ok:false,message:'倍数请输入 2–16 的整数。'};
+ if(s.mode==='grid'&&(!integer(s.rows,0,24)||!integer(s.columns,0,24)))return {ok:false,message:'行、列请输入 0–24 的整数；留空表示自动。'};
+ if(s.mode==='count'&&!integer(s.target,1,96))return {ok:false,message:'每纸布局数请输入 1–96 的整数。'};
+ const axis=s.direction==='column'?'列':'行';
+ if(s.mode==='grid'&&s.constraint){const value=s.direction==='column'?s.columns:s.rows;if(value>0&&value%s.multiple!==0)return {ok:false,message:`手动${axis}数 ${value} 不满足 ${s.multiple} 的倍数约束。请调整${axis}数、倍数，或关闭约束。`};}
+ const orientations=s.rotation==='auto'?[0,270]:[Number(s.rotation)];
+ const choices=[];
+ for(const angle of orientations){
+  const w=angle===0?90:80,h=angle===0?80:90;
+  const maxC=Math.floor((s.width-s.margin*2)/w),maxR=Math.floor((s.height-s.margin*2)/h);
+  if(s.mode==='grid'){
+   let r=s.rows||maxR,c=s.columns||maxC;
+   if(s.constraint){if(s.direction==='column'&&!s.columns)c-=c%s.multiple;if(s.direction==='row'&&!s.rows)r-=r%s.multiple;}
+   if(r>0&&c>0&&r<=maxR&&c<=maxC)choices.push({r,c,angle,n:r*c,maxR,maxC});
+  }else{
+   for(let r=1;r<=maxR;r++){const c=s.target/r;if(!Number.isInteger(c)||c<1||c>maxC)continue;if(s.constraint&&(s.direction==='column'?c:r)%s.multiple!==0)continue;choices.push({r,c,angle,n:s.target,maxR,maxC});}
+  }
+ }
+ choices.sort((a,b)=>b.n-a.n||a.angle-b.angle||a.r-b.r);
+ const unique=choices.filter((v,i,a)=>a.findIndex(x=>x.r===v.r&&x.c===v.c&&x.angle===v.angle)===i);
+ if(!unique.length){const message=s.mode==='count'?`布局数 ${s.target} 没有可容纳${s.constraint?'且满足倍数约束':''}的行列组合。请调整数量${s.constraint?'或关闭约束':''}。`:s.constraint?`当前尺寸、页面方向和${axis}数 ${s.multiple} 倍数约束无法同时满足。请调整手动布局、约束或大版尺寸。`:'手动行列在当前纸张或页面方向下放不下。请减少行列，或调整大版尺寸及方向。';return {ok:false,message,choices:[]};}
+ const selected=unique.find(x=>`${x.r}-${x.c}-${x.angle}`===s.choice)||unique[0];
+ return {ok:true,...selected,choices:unique,message:s.constraint?`${axis}数 ${s.direction==='column'?selected.c:selected.r} = ${s.multiple} × ${(s.direction==='column'?selected.c:selected.r)/s.multiple}，满足倍数约束。`:s.mode==='count'?'该布局数量可容纳；可选择下方网格组合。':s.rows||s.columns?'手动布局可容纳，未启用倍数约束。':'根据可印刷区域自动择优，未启用倍数约束。'};
+}
+function paintPaper(el,result,config){
+ el.replaceChildren();el.classList.toggle('empty',!result.ok);el.classList.toggle('constrained',!!config.constraint);
+ el.style.aspectRatio=`${config.width}/${config.height}`;
+ if(!result.ok){el.textContent='暂无可用布局';el.style.gridTemplateColumns='';el.style.gridTemplateRows='';return;}
+ el.style.gridTemplateColumns=`repeat(${result.c},1fr)`;el.style.gridTemplateRows=`repeat(${result.r},1fr)`;
+ for(let i=0;i<result.n;i++){const cell=document.createElement('span');cell.textContent=i+1;el.append(cell);}
+}
+function notify(message){clearTimeout(toastTimer);$('toast').textContent=message;$('toast').classList.add('show');toastTimer=setTimeout(()=>$('toast').classList.remove('show'),3400);}
+function renderApplied(){
+ const result=solve(applied);if(!result.ok)return;
+ $('metricGrid').textContent=`${result.r}×${result.c}`;$('metricCount').textContent=result.n;$('metricAngle').textContent=result.angle;
+ const manual=applied.mode==='count'||applied.rows>0||applied.columns>0;
+ const axis=applied.direction==='column'?'列':'行';
+ $('dashboardStatusText').textContent=`${manual?'手动布局':'自动布局'} · ${applied.constraint?axis+'数 '+applied.multiple+' 倍数':'无倍数约束'}`;
+ $('dashboardStatus').classList.toggle('active',manual||applied.constraint);
+ $('summaryCount').textContent=result.n;$('summaryGrid').textContent=`${result.r} 行 × ${result.c} 列 · ${result.angle}°${manual?' · 手动':''}`;
+ $('summaryConstraint').textContent=applied.constraint?`${axis}数须为 ${applied.multiple} 的倍数 · 仅本次`:'无倍数约束';
+ paintPaper($('appliedPaper'),result,applied);
+}
+function renderCopy(){
+ $('copyGroup').classList.toggle('is-off',!copy.enabled);$('copyCount').disabled=!copy.enabled;$('copyPattern').disabled=!copy.enabled;
+ const seq=[];if(!copy.enabled)seq.push(1,2,3);else if(copy.pattern==='page'){for(let p=1;p<=3;p++)for(let i=0;i<copy.count;i++)seq.push(p);}else{for(let i=0;i<copy.count;i++)seq.push(1,2,3);}
+ $('pages').replaceChildren();for(const p of seq.slice(0,18)){const el=document.createElement('span');el.className='pdfpage';el.dataset.page=p;el.textContent=p;$('pages').append(el);}if(seq.length>18){const el=document.createElement('span');el.className='muted';el.textContent='…';$('pages').append(el);}
+ $('copySummary').textContent=`3 页 → ${seq.length} 页`;
+ $('copyDescription').textContent=!copy.enabled?'未启用复制，保留原始 1、2、3 页。':`${copy.pattern==='page'?'逐页重复':'整套循环'} ${copy.count} 次${seq.length>18?'（显示前 18 页）':''}；网格和布局数保持不变。`;
+ if($('layoutDialog').open)renderDraft();
+}
+function writeDraft(){
+ $('paperWidth').value=draft.width;$('paperHeight').value=draft.height;$('margin').value=draft.margin;
+ $('rows').value=draft.rows||'';$('columns').value=draft.columns||'';$('targetCount').value=draft.target;
+ $('constraintEnabled').checked=draft.constraint;$('direction').value=draft.direction;$('multiple').value=draft.multiple;
+ renderDraft();
+}
+function readDraft(){
+ draft.width=Number($('paperWidth').value);draft.height=Number($('paperHeight').value);draft.margin=$('margin').value===''?NaN:Number($('margin').value);
+ draft.rows=Number($('rows').value);draft.columns=Number($('columns').value);draft.target=Number($('targetCount').value);
+ draft.constraint=$('constraintEnabled').checked;draft.direction=$('direction').value;draft.multiple=Number($('multiple').value);
+ renderDraft();
+}
+function renderDraft(){
+ $('gridInputs').hidden=draft.mode!=='grid';$('countInputs').hidden=draft.mode!=='count';
+ $('byGrid').classList.toggle('selected',draft.mode==='grid');$('byCount').classList.toggle('selected',draft.mode==='count');
+ $('byGrid').setAttribute('aria-pressed',draft.mode==='grid');$('byCount').setAttribute('aria-pressed',draft.mode==='count');
+ for(const btn of document.querySelectorAll('[data-rotation]')){const on=btn.dataset.rotation===draft.rotation;btn.classList.toggle('selected',on);btn.setAttribute('aria-pressed',on);}
+ $('constraintFields').classList.toggle('disabled',!draft.constraint);$('direction').disabled=!draft.constraint;$('multiple').disabled=!draft.constraint;
+ const axis=draft.direction==='column'?'列':'行';$('constraintHelp').textContent=draft.constraint?`${axis}数须为 ${draft.multiple} 的整数倍；独立于页序复制。`:'关闭时不限制行列倍数，与页序复制次数无关。';
+ const result=solve(draft);lastResult=result;
+ $('gridChoices').replaceChildren();
+ if(draft.mode==='count'&&result.ok){
+  draft.choice=`${result.r}-${result.c}-${result.angle}`;
+  for(const item of result.choices){const key=`${item.r}-${item.c}-${item.angle}`;const btn=document.createElement('button');btn.type='button';btn.className='choice'+(key===draft.choice?' selected':'');btn.setAttribute('aria-pressed',key===draft.choice);btn.textContent=`${item.r} × ${item.c}`;const small=document.createElement('small');small.textContent=`${item.angle}°`;btn.append(small);btn.addEventListener('click',()=>{draft.choice=key;renderDraft();});$('gridChoices').append(btn);}
+ }
+ paintPaper($('draftPaper'),result,draft);$('draftGrid').textContent=result.ok?`${result.r} × ${result.c}`:'— × —';$('draftCount').textContent=result.ok?result.n:'—';$('draftOrientation').textContent=result.ok?`行 × 列 · ${result.angle}°`:'请调整输入或约束';
+ $('validation').textContent=result.message;$('validation').className='statusbox'+(result.ok?'':' error');$('applyLayout').disabled=!result.ok;
+ $('draftCopyState').textContent=copy.enabled?`${copy.pattern==='page'?'逐页':'整套'} ${copy.count} 次`:'未启用';
+ $('draftState').textContent=result.ok?'预览可用 · 尚未应用':'存在冲突 · 无法应用';
+}
+function openDialog(mode,scene){
+ lastFocus=document.activeElement;draft=structuredClone(applied);
+ if(mode&&mode!==draft.mode){draft.mode=mode;draft.choice=null;if(mode==='count')draft.target=solve(applied).n;}
+ if(scene==='manual'){draft={...draft,mode:'grid',rows:3,columns:3,constraint:false};}
+ if(scene==='multiple'){draft={...draft,mode:'grid',rows:0,columns:0,constraint:true,direction:'column',multiple:2};}
+ if(scene==='conflict'){draft={...draft,mode:'grid',rows:3,columns:3,constraint:true,direction:'column',multiple:2};}
+ writeDraft();$('layoutDialog').showModal();
+ setTimeout(()=>{(mode==='count'?$('targetCount'):mode==='grid'?$('rows'):$('paperWidth')).focus();},0);
+}
+function cancelDialog(){if(!$('layoutDialog').open)return;$('layoutDialog').close();notify('已取消，保留上次应用的排版设置。');}
+$('openParameters').addEventListener('click',()=>openDialog());$('openGrid').addEventListener('click',()=>openDialog('grid'));$('openCount').addEventListener('click',()=>openDialog('count'));$('editApplied').addEventListener('click',()=>openDialog());$('openRotation').addEventListener('click',()=>openDialog());
+for(const btn of document.querySelectorAll('[data-scene]'))btn.addEventListener('click',()=>openDialog('grid',btn.dataset.scene));
+for(const id of controls)$(id).addEventListener(id==='constraintEnabled'||id==='direction'?'change':'input',readDraft);
+for(const btn of document.querySelectorAll('[data-rotation]'))btn.addEventListener('click',()=>{draft.rotation=btn.dataset.rotation;draft.choice=null;renderDraft();});
+$('byGrid').addEventListener('click',()=>{if(draft.mode==='grid')return;const result=solve(draft);if(result.ok){draft.rows=result.r;draft.columns=result.c;}draft.mode='grid';draft.choice=null;writeDraft();});
+$('byCount').addEventListener('click',()=>{if(draft.mode==='count')return;const result=solve(draft);if(result.ok)draft.target=result.n;draft.mode='count';draft.choice=null;writeDraft();});
+$('restoreAuto').addEventListener('click',()=>{draft.mode='grid';draft.rows=0;draft.columns=0;draft.choice=null;draft.constraint=false;writeDraft();});
+$('settingsForm').addEventListener('submit',e=>{e.preventDefault();readDraft();if(!lastResult.ok)return;applied=structuredClone(draft);renderApplied();$('layoutDialog').close();notify('已应用本次排版设置，页序复制保持不变。');});
+$('cancelDialog').addEventListener('click',cancelDialog);$('closeDialog').addEventListener('click',cancelDialog);
+$('layoutDialog').addEventListener('cancel',e=>{e.preventDefault();cancelDialog();});$('layoutDialog').addEventListener('close',()=>{draft=null;if(lastFocus)lastFocus.focus();});
+$('copyEnabled').addEventListener('change',()=>{copy.enabled=$('copyEnabled').checked;renderCopy();});
+$('copyPattern').addEventListener('change',()=>{copy.pattern=$('copyPattern').value;renderCopy();});
+$('copyCount').addEventListener('input',()=>{const n=Number($('copyCount').value);$('copyCount').setAttribute('aria-invalid',!integer(n,2,16));if(integer(n,2,16)){copy.count=n;renderCopy();}});
+$('copyCount').addEventListener('change',()=>{if(!integer(Number($('copyCount').value),2,16)){notify('复制次数请输入 2–16 的整数。');$('copyCount').value=copy.count;$('copyCount').setAttribute('aria-invalid','false');}});
+$('reopen').addEventListener('click',()=>{applied=defaults();renderApplied();notify('已模拟重新打开材料框：临时布局和约束复位，页序保持原设置。');});
+$('confirmDemo').addEventListener('click',()=>notify('方案演示：本次设置已就绪，不执行文件处理。'));
+renderCopy();renderApplied();
+</script>
+</body>
+</html>

@@ -206,6 +206,10 @@ namespace WindowsFormsApp3.Models
         /// </summary>
         public CopyMode CopyMode { get; set; } = CopyMode.AutoByColumn;
 
+        /// <summary>独立的行列倍数约束；1 表示不约束。</summary>
+        public int LayoutMultiple { get; set; } = 1;
+        public CopyMode LayoutMultipleDirection { get; set; } = CopyMode.AutoByColumn;
+
         /// <summary>
         /// 布局计算模式
         /// </summary>
@@ -252,10 +256,10 @@ namespace WindowsFormsApp3.Models
                 return result;
             }
 
-            if ((Rows > 0 && Rows > 8) || (Columns > 0 && Columns > 8))
+            if (Rows < 0 || Columns < 0 || (long)Math.Max(1, Rows) * Math.Max(1, Columns) > int.MaxValue)
             {
                 result.IsValid = false;
-                result.ErrorMessage = "行数和列数不能超过8";
+                result.ErrorMessage = "行列必须为非负整数，布局总数不能超过整数范围";
                 return result;
             }
 
@@ -332,6 +336,13 @@ namespace WindowsFormsApp3.Models
         /// </summary>
         public CopyMode CopyMode { get; set; } = CopyMode.AutoByColumn;
 
+        /// <summary>独立的行列倍数约束；1 表示不约束。</summary>
+        public int LayoutMultiple { get; set; } = 1;
+        public CopyMode LayoutMultipleDirection { get; set; } = CopyMode.AutoByColumn;
+
+        /// <summary>临时手动行数为精确值，低于最小长度要求时提示冲突。</summary>
+        public bool UseExactRows { get; set; }
+
         /// <summary>
         /// 布局计算模式
         /// </summary>
@@ -378,10 +389,10 @@ namespace WindowsFormsApp3.Models
                 return result;
             }
 
-            if ((Rows > 0 && Rows > 8) || (Columns > 0 && Columns > 8))
+            if (Rows < 0 || Columns < 0 || (long)Math.Max(1, Rows) * Math.Max(1, Columns) > int.MaxValue)
             {
                 result.IsValid = false;
-                result.ErrorMessage = "行数和列数不能超过8";
+                result.ErrorMessage = "行列必须为非负整数，布局总数不能超过整数范围";
                 return result;
             }
 

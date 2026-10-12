@@ -28,6 +28,7 @@
 
   <!-- SVG图标文件资源 -->
   <ItemGroup>
+    <EmbeddedResource Include="Resources\Icons\PageBoxWarning.svg" />
     <Content Include="Resources\Icons\*.svg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

@@ -40,6 +40,14 @@ namespace WindowsFormsApp3.Models
         public string PreservePrefix { get; set; } = "";
         public double RawPdfWidth { get; set; } = 0;
         public double RawPdfHeight { get; set; } = 0;
+        /// <summary>每项独立的页面框选择；空值表示尚未检查，兼容旧调用方。</summary>
+        public PdfPageBoxSource? PageBoxSource { get; set; }
+        public int PageBoxReferencePage { get; set; } = 1;
+        public PageBoxInfo PageBoxChoicePage { get; set; }
+        public IssueType? PageBoxIssueType { get; set; }
+        /// <summary>扣除当前出血后的两项成品尺寸，仅用于列表显示，不改写原始页面框。</summary>
+        public string MediaBoxFinalDimensions { get; set; }
+        public string CropBoxFinalDimensions { get; set; }
         public string ExportPath { get; set; } = "";
     }
 

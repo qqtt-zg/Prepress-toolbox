@@ -1028,6 +1028,8 @@ namespace WindowsFormsApp3.Presenters
                 for (int i = 0; i < batchItems.Count; i++)
                 {
                     var item = batchItems[i];
+                    var itemPageBoxSource = BatchPageBoxSelectionService.ResolveSource(item, selectionResult);
+                    int itemPageBoxReferencePage = BatchPageBoxSelectionService.ResolveReferencePage(item, selectionResult);
                     _view.UpdateProgress(i + 1, batchItems.Count, $"正在处理并保存 ({i + 1}/{batchItems.Count}): {item.FileName}");
 
                     var currentFileInfo = CreateFileRenameInfo(item.FilePath);
@@ -1047,11 +1049,11 @@ namespace WindowsFormsApp3.Presenters
                     currentFileInfo.Quantity = item.Quantity ?? "";
                     currentFileInfo.SerialNumber = item.SerialNumber ?? (i + 1).ToString();
                     ImpositionPdfInfo selectedBoxPdfInfo = null;
-                    if (selectionResult.PageBoxSource != PdfPageBoxSource.Automatic &&
+                    if (itemPageBoxSource != PdfPageBoxSource.Automatic &&
                         item.FilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
                     {
                         selectedBoxPdfInfo = await (_impositionService ?? new ImpositionService()).AnalyzePdfFileAsync(
-                            item.FilePath, selectionResult.PageBoxSource, selectionResult.PageBoxReferencePage);
+                            item.FilePath, itemPageBoxSource, itemPageBoxReferencePage);
                         currentFileInfo.Width = selectedBoxPdfInfo.GetEffectivePageWidth().ToString("R");
                         currentFileInfo.Height = selectedBoxPdfInfo.GetEffectivePageHeight().ToString("R");
                     }
@@ -1121,13 +1123,13 @@ namespace WindowsFormsApp3.Presenters
                             if (pdfInfo == null && File.Exists(item.FilePath))
                             {
                                 pdfInfo = await _impositionService.AnalyzePdfFileAsync(item.FilePath,
-                                    selectionResult.PageBoxSource, selectionResult.PageBoxReferencePage);
+                                    itemPageBoxSource, itemPageBoxReferencePage);
                             }
                         }
                         catch (Exception ex)
                         {
                             _logger?.LogWarning($"[ProcessApplyToAllBatchAsync] 获取真实PDF信息失败，将使用备选尺寸: {ex.Message}");
-                            if (selectionResult.PageBoxSource != PdfPageBoxSource.Automatic) throw;
+                            if (itemPageBoxSource != PdfPageBoxSource.Automatic) throw;
                         }
 
                         if (pdfInfo == null)
@@ -1231,7 +1233,7 @@ namespace WindowsFormsApp3.Presenters
 
                     bool itemNeedsRotation = itemRotationAngle != 0;
                     bool isPdfFile = item.FilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
-                    bool needsPdfProcessing = isPdfFile && (NeedsPageRepetition(_currentCopyType, _currentCopyCount, _currentDuplicateCount) || _currentIsShapeSelected || _currentPageBoxSource != PdfPageBoxSource.Automatic || itemNeedsRotation || _currentAddIdentifierPage ||
+                    bool needsPdfProcessing = isPdfFile && (NeedsPageRepetition(_currentCopyType, _currentCopyCount, _currentDuplicateCount) || _currentIsShapeSelected || itemPageBoxSource != PdfPageBoxSource.Automatic || itemNeedsRotation || _currentAddIdentifierPage ||
                         (_currentEnableImposition && _currentLayoutMode == LayoutMode.Folding && itemLayoutQuantity > 0));
 
                     // 准备最终目标文件路径（处理重命名冲突）
@@ -1252,8 +1254,8 @@ namespace WindowsFormsApp3.Presenters
                             ShapeType = _currentShapeType,
                             RoundRadius = _currentRoundRadius,
                             TetBleed = _currentTetBleed,
-                            PageBoxSource = _currentPageBoxSource,
-                            PageBoxReferencePage = _currentPageBoxReferencePage,
+                            PageBoxSource = itemPageBoxSource,
+                            PageBoxReferencePage = itemPageBoxReferencePage,
                             FinalDimensions = itemFinalDimensions,
                             RotationAngle = itemRotationAngle,
                             LayoutMode = _currentLayoutMode,
@@ -4357,11 +4359,12 @@ namespace WindowsFormsApp3.Presenters
         /// </summary>
         private FlatSheetConfiguration GetCurrentFlatSheetConfiguration(TemporaryImpositionParameters tempParams = null)
         {
+            tempParams = tempParams?.EffectiveLayout(true);
             if (tempParams != null && tempParams.PaperWidth > 0 && tempParams.PaperHeight > 0)
             {
                 return new FlatSheetConfiguration
                 {
-                    RotationMode = tempParams?.FlatSheetRotationMode,
+                    RotationMode = tempParams?.FlatSheetRotationMode ?? (RollRotationMode)AppSettings.GetValue<int>("Imposition_FlatRotationMode"),
                     PaperWidth = tempParams.PaperWidth,
                     PaperHeight = tempParams.PaperHeight,
                     MarginTop = tempParams.MarginTop,
@@ -4369,7 +4372,9 @@ namespace WindowsFormsApp3.Presenters
                     MarginLeft = tempParams.MarginLeft,
                     MarginRight = tempParams.MarginRight,
                     Rows = tempParams.RequestedRows,
-                    Columns = tempParams.RequestedColumns
+                    Columns = tempParams.RequestedColumns,
+                    LayoutMultiple = tempParams.IsLayoutMultipleEnabled ? tempParams.LayoutMultiple : 1,
+                    LayoutMultipleDirection = tempParams.LayoutConstraintDirection ?? CopyMode.AutoByColumn
                 };
             }
 
@@ -4378,7 +4383,7 @@ namespace WindowsFormsApp3.Presenters
             if (paperWidth <= 0 || paperHeight <= 0) return null;
             return new FlatSheetConfiguration
             {
-                RotationMode = tempParams?.FlatSheetRotationMode,
+                RotationMode = tempParams?.FlatSheetRotationMode ?? (RollRotationMode)AppSettings.GetValue<int>("Imposition_FlatRotationMode"),
                 PaperWidth = paperWidth,
                 PaperHeight = paperHeight,
                 MarginTop = GetFloatSetting("Imposition_MarginTop", 2),
@@ -4395,19 +4400,23 @@ namespace WindowsFormsApp3.Presenters
         /// </summary>
         private RollMaterialConfiguration GetCurrentRollMaterialConfiguration(TemporaryImpositionParameters tempParams = null)
         {
+            tempParams = tempParams?.EffectiveLayout(false);
             if (tempParams != null && tempParams.FixedWidth > 0 && tempParams.MinLength > 0)
             {
                 return new RollMaterialConfiguration
                 {
-                    RotationMode = tempParams?.RollMaterialRotationMode,
+                    RotationMode = tempParams?.RollMaterialRotationMode ?? (RollRotationMode)AppSettings.GetValue<int>("Imposition_RollRotationMode"),
                     FixedWidth = tempParams.FixedWidth,
                     MinLength = tempParams.MinLength,
                     MarginTop = tempParams.RollMarginTop,
                     MarginBottom = tempParams.RollMarginBottom,
                     MarginLeft = tempParams.RollMarginLeft,
                     MarginRight = tempParams.RollMarginRight,
+                    UseExactRows = true,
                     Rows = tempParams.RequestedRows,
-                    Columns = tempParams.RequestedColumns
+                    Columns = tempParams.RequestedColumns,
+                    LayoutMultiple = tempParams.IsLayoutMultipleEnabled ? tempParams.LayoutMultiple : 1,
+                    LayoutMultipleDirection = tempParams.LayoutConstraintDirection ?? CopyMode.AutoByColumn
                 };
             }
 
@@ -4416,9 +4425,10 @@ namespace WindowsFormsApp3.Presenters
             if (fixedWidth <= 0 || minLength <= 0) return null;
             return new RollMaterialConfiguration
             {
-                RotationMode = tempParams?.RollMaterialRotationMode,
+                RotationMode = tempParams?.RollMaterialRotationMode ?? (RollRotationMode)AppSettings.GetValue<int>("Imposition_RollRotationMode"),
                 FixedWidth = fixedWidth,
                 MinLength = minLength,
+                UseExactRows = true,
                 MarginTop = GetFloatSetting("Imposition_RollMarginTop", 2),
                 MarginBottom = GetFloatSetting("Imposition_RollMarginBottom", 2),
                 MarginLeft = GetFloatSetting("Imposition_RollMarginLeft", 2),

@@ -1,0 +1,47 @@
+const {chromium}=require('C:/Users/admin/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const {pathToFileURL}=require('node:url');
+const path=require('node:path'),fs=require('node:fs'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+(async()=>{
+    const original='docs/V5卷装参数与居中布局预览方案.html';
+    assert.equal(crypto.createHash('sha256').update(fs.readFileSync(original)).digest('hex').toUpperCase(),'0A692731245CC7D5DECF451ACC568A2B15254D126D3D7B857D41FEAF9C445542');
+    const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
+    const page=await browser.newPage({viewport:{width:1280,height:800}});
+    const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    try{
+        await page.goto(pathToFileURL(path.resolve('docs/V5自动排版_方案B_简化操作.html')).href);
+        const buttons=await page.locator('.window button:visible').count();assert.equal(buttons,8);
+        await page.locator('#rotationSetting').selectOption('270');
+        assert.equal(await page.locator('#orientation').innerText(),'270°');
+        await page.locator('#specifiedFormat').selectOption('count');await page.locator('#targetCount').fill('6');
+        assert.equal(await page.locator('#layoutValue').innerText(),'6');
+        await page.locator('#layoutChoice').selectOption('3-2-270');
+        await page.locator('#specifiedFormat').selectOption('grid');
+        assert.equal(await page.locator('#rows').inputValue(),'3');assert.equal(await page.locator('#columns').inputValue(),'2');
+        await page.locator('#strategyMultiple').click();await page.locator('#direction').selectOption('row');await page.locator('#multiple').fill('3');
+        assert.equal(await page.locator('#layoutModeBadge').innerText(),'行3 倍数');
+        await page.locator('#strategyFixed').click();assert.equal(await page.locator('#rows').inputValue(),'3');
+        await page.locator('#showMore').click();await page.locator('#previewAlignment').selectOption('start');
+        assert.equal(await page.locator('#leftGap').innerText(),'10');
+        await page.locator('#previewAlignment').selectOption('center');assert.equal(await page.locator('#leftGap').innerText(),'80');
+        await page.locator('#parameterAction').selectOption('auto');await page.locator('#executeParameterAction').click();
+        assert.equal(await page.locator('#strategyAuto').getAttribute('aria-pressed'),'true');
+        assert.equal(await page.locator('#moreDialog').evaluate(e=>e.open),false);
+        await page.locator('#previewView').selectOption('detail');
+        assert.equal(await page.locator('#previewNavigation').isVisible(),true);
+        await page.locator('#previewScale').fill('100');await page.locator('#previewScale').press('Tab');
+        assert.equal(await page.locator('#previewView').inputValue(),'custom');
+        await page.locator('#previewView').selectOption('fit');assert.equal(await page.locator('#previewNavigation').isVisible(),false);
+        await page.locator('[data-material=flat]').click();await page.locator('#showMore').click();await page.locator('#getPdfSize').click();
+        assert.equal(await page.locator('#moreDialog').evaluate(e=>e.open),false);
+        await page.locator('#paperPdfSelect').selectOption('210,297');assert.equal(await page.locator('#width').inputValue(),'210');
+        await page.locator('#showMore').click();await page.locator('#parameterAction').selectOption('width');await page.locator('#executeParameterAction').click();
+        assert.equal(await page.locator('#width').inputValue(),'320');
+        await page.locator('[data-entry=settings]').click();assert.equal(await page.locator('#strategyMultiple').isEnabled(),false);
+        await page.locator('#strategyFixed').click();assert.equal(await page.locator('#countOption').isEnabled(),false);
+        await page.locator('#width').fill('400');await page.locator('#cancel').click();assert.equal(await page.locator('#width').inputValue(),'320');
+        await page.locator('#showMore').click();await page.locator('#showHelp').click();assert.equal(await page.locator('#helpDialog').evaluate(e=>e.open),true);
+        await page.locator('#closeHelp').click();
+        assert.deepEqual(errors,[]);
+        console.log('PASS B: original A unchanged; 8 visible buttons; dropdown direction/format; grid-count roundtrip; three strategies; restore/menu; PDF size import; alignment; zoom; save scopes; help.');
+    }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

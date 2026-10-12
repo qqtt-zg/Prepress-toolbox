@@ -13,6 +13,11 @@ namespace WindowsFormsApp3.Interfaces
     {
         #region 核心布局计算
 
+        /// <summary>获取临时布局预览；数量为 0 时自动计算，否则列出可容纳的行列组合。</summary>
+        Task<System.Collections.Generic.List<ImpositionResult>> GetLayoutChoicesAsync(
+            object config, ImpositionPdfInfo pdfInfo, int layoutQuantity = 0,
+            CancellationToken cancellationToken = default);
+
         /// <summary>
         /// 计算平张模式的布局
         /// </summary>

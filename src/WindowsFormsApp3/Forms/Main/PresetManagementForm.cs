@@ -2669,7 +2669,7 @@ namespace WindowsFormsApp3.Forms.Main
                         var backupData = new
                         {
                             ExportTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                            Version = "2.7.1",
+                            Version = "2.7.3",
                             PresetGroups = _groups,
                             Presets = _presets
                         };
@@ -3099,7 +3099,7 @@ namespace WindowsFormsApp3.Forms.Main
             {
                 if (dlg.ShowDialog(this) == DialogResult.OK)
                 {
-                    _activePreset.TemporaryImpositionParameters = dlg.Parameters;
+                    _activePreset.TemporaryImpositionParameters = dlg.Parameters.CloneWithoutLayoutOverrides();
                     AntdUI.Message.success(this, "临时大版开料纸张与边距参数已成功绑定至该预设！");
                 }
             }
