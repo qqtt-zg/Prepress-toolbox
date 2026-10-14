@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大诚印前工具箱 · 材料选择框终极完整版交互原型</title>
+  <style>
+    /* =========================================================================
+       严格 1:1 WinForms 96DPI 绝对物理像素契约系统
+       禁止任何全局缩放与非标变形
+       ========================================================================= */
+    :root {
+      --font-win: "Microsoft YaHei UI", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-mono: 'Cascadia Mono', Consolas, "Courier New", monospace;
+
+      /* 窗口全局几何契约 */
+      --win-w: 880px;
+      --left-w: 520px;
+      --right-w: 360px;
+      --h-normal: 508px;
+      --h-expanded: 753px;
+      --preview-h: 245px;
+      --titlebar-h: 26px;
+      --groundbar-h: 16px;
+
+      /* 瑞士冷灰专业色彩体系 */
+      --c-app-bg: #ffffff;
+      --c-swiss-bar: #eef2f6;
+      --c-swiss-border: #cbd5e1;
+      --c-win-border: #94a3b8;
+      --c-text-main: #0f172a;
+      --c-text-sub: #475569;
+      --c-text-muted: #64748b;
+      --c-accent-blue: #1677ff;
+      --c-accent-blue-hover: #4096ff;
+      --c-accent-blue-light: #e6f4ff;
+      --c-grid-line: #f1f5f9;
+      --c-card-bg: #ffffff;
+      --c-card-border: #d4dbe4;
+      --c-danger: #ef4444;
+      --c-danger-border: #fca5a5;
+      --c-danger-bg: #fef2f2;
+      --c-success-bg: #f6ffed;
+      --c-success-border: #b7eb8f;
+      --c-success-text: #389e0d;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-win);
+      background-color: #ffffff; /* 默认纯白背景，用于严格检验白融于白防御 */
+      color: var(--c-text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      user-select: none;
+      transition: background-color 0.25s ease;
+    }
+
+    body.dark-preview-stage {
+      background-color: #0b1118;
+      background-image: radial-gradient(#1e293b 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+
+    /* 顶部演示与控制总台（独立于 WinForms 窗口外） */
+    .showcase-control-panel {
+      width: var(--win-w);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 14px;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      font-size: 11.5px;
+      border: 1px solid #1e293b;
+    }
+    .ctrl-row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 12.5px;
+    }
+    .brand-badge {
+      background: var(--c-accent-blue);
+      color: #fff;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-weight: bold;
+      font-family: var(--font-mono);
+    }
+    .ctrl-options-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .ctrl-btn {
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #e2e8f0;
+      font-size: 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+    .ctrl-btn:hover {
+      background: #2563eb;
+      border-color: #38bdf8;
+      color: #ffffff;
+    }
+    .ctrl-btn.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #ffffff;
+      font-weight: bold;
+    }
+    .ctrl-guide-note {
+      color: #94a3b8;
+      font-size: 10.5px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-top: 1px dashed #1e293b;
+      padding-top: 6px;
+    }
+    .ctrl-guide-note span b { color: #38bdf8; }
+
+    /* =========================================================================
+       880px 双联工作台外框系统 (精准模拟 FormBorderStyle.None + CS_DROPSHADOW)
+       ========================================================================= */
+    .win-workbench-shell {
+      width: var(--win-w);
+      height: var(--h-normal);
+      background: var(--c-app-bg);
+      border: 1px solid var(--c-win-border); /* 1px 瑞士硬边切线 */
+      border-radius: 2px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22), 0 4px 12px rgba(0, 0, 0, 0.08); /* Windows 原生阴影 */
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      transition: height 0.28s cubic-bezier(0.16, 1, 0.3, 1), width 0.25s ease;
+    }
+
+    .win-workbench-shell.state-single-station {
+      width: var(--right-w);
+    }
+    .win-workbench-shell.state-preview-expanded {
+      height: var(--h-expanded);
+    }
+
+    /* =========================================================================
+       基准线 1: 贯通 26px 瑞士冷灰顶栏 (Y=0 ~ Y=26px)
+       ========================================================================= */
+    .top-swiss-titlebar {
+      height: var(--titlebar-h);
+      background: var(--c-swiss-bar);
+      border-bottom: 1px solid var(--c-swiss-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .titlebar-left-zone {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .titlebar-right-zone {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 10px;
+      color: var(--c-text-muted);
+    }
+    .win-window-control-btn {
+      width: 16px;
+      height: 16px;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #64748b;
+      font-size: 12px;
+      line-height: 1;
+    }
+    .win-window-control-btn:hover { background: #fee2e2; color: #ef4444; }
+
+    /* =========================================================================
+       主操作工作区 (双舱垂直流系统)
+       ========================================================================= */
+    .workbench-main-body {
+      flex: 1;
+      display: flex;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* -------------------------------------------------------------------------
+       左侧待处理列表舱 (宽 520px)
+       ------------------------------------------------------------------------- */
+    .left-filelist-dock {
+      width: var(--left-w);
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--c-swiss-border);
+      background: #ffffff;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    /* 中部卡片流滚动区 (Dock = Fill) */
+    .left-cards-scroll-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 10px 4px 10px; /* 顶边距 4px，使卡片顶线严格落于 Y=30px 基准线 */
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* 分组卡片容器 */
+    .batch-group-card {
+      background: var(--c-card-bg);
+      border: 1px solid var(--c-card-border);
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    /* 卡片自绘头部 (高 36px) */
+    .group-card-header {
+      height: 36px;
+      background: #fafbfc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+    }
+    .header-left-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+    }
+    .group-chk-wrap {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+    .group-chk-box {
+      width: 14px;
+      height: 14px;
+      border: 1px solid #94a3b8;
+      border-radius: 2px;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .group-chk-box.checked::after {
+      content: "";
+      width: 7px;
+      height: 7px;
+      background: var(--c-accent-blue);
+      border-radius: 1px;
+    }
+
+    /* 工艺高亮胶囊 (暖金/浅绿) */
+    .pill-craft-amber {
+      background: #fffbe6;
+      border: 1px solid #ffe58f;
+      color: #d46b08;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+    .pill-craft-green {
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+      color: #389e0d;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+    .meta-sub-props-txt {
+      font-size: 10px;
+      color: #64748b;
+      white-space: nowrap;
+    }
+    .header-right-badges {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .badge-count-tag {
+      font-size: 10px;
+      font-weight: 600;
+      color: #334155;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+    }
+
+    /* =========================================================================
+       498px 绝对数学列分配表格 (全列 0 截断)
+       ========================================================================= */
+    .table-dock-container {
+      width: 100%;
+      overflow: hidden;
+    }
+    .batch-file-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 11px;
+      background: #ffffff;
+    }
+
+    /* 列宽强制锁定契约 (合计 498px) */
+    .col-w-idx    { width: 24px; }
+    .col-w-name   { width: 174px; }
+    .col-w-order  { width: 68px; }
+    .col-w-qty    { width: 32px; }
+    .col-w-pages  { width: 34px; }
+    .col-w-dim    { width: 78px; }
+    .col-w-imp    { width: 88px; }
+
+    /* 表头 (高 24px) */
+    .batch-file-table thead tr {
+      height: 24px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .batch-file-table th {
+      padding: 0 3px;
+      font-weight: 700;
+      color: #475569;
+      font-size: 10.5px;
+      text-align: center;
+      white-space: nowrap;
+      border-right: 1px solid #f1f5f9;
+      user-select: none;
+    }
+    .batch-file-table th:last-child { border-right: none; }
+    .batch-file-table th.th-align-left { text-align: left; padding-left: 6px; }
+
+    /* 表格行 */
+    .batch-file-table tbody tr {
+      height: 26px; /* 常态行高 26px */
+      border-bottom: 1px solid var(--c-grid-line);
+      cursor: pointer;
+      transition: background-color 0.1s ease;
+    }
+    .batch-file-table tbody tr:hover td {
+      background-color: #f8fafc;
+    }
+
+    /* 存在页面框异常的行：高度自动提升至 46px (真实 C# 代码契约) */
+    .batch-file-table tbody tr.row-pagebox-issue {
+      height: 46px;
+    }
+
+    /* 整行选中高亮 */
+    .batch-file-table tbody tr.row-selected td {
+      background-color: #eff6ff !important;
+      color: #1e40af;
+      font-weight: 600;
+    }
+
+    /* 单元格样式与单线边框 */
+    .batch-file-table td {
+      padding: 0 3px;
+      text-align: center;
+      vertical-align: middle;
+      border-right: 1px solid transparent;
+      color: #1e293b;
+      position: relative;
+    }
+    .batch-file-table td.td-align-left {
+      text-align: left;
+      padding-left: 4px;
+    }
+
+    /* 单单元格点选聚焦框 */
+    .batch-file-table td.cell-focused {
+      outline: 2px solid #2563eb !important;
+      outline-offset: -2px;
+      background-color: #dbeafe !important;
+      color: #1e40af !important;
+      font-weight: 700;
+    }
+
+    /* 单元格连续多选高亮态 (Shift/Ctrl 连选) */
+    .batch-file-table td.cell-multi-selected {
+      background-color: #bae6fd !important;
+      color: #0369a1 !important;
+      outline: 1.5px solid #0284c7 !important;
+      outline-offset: -1.5px;
+      font-weight: 700;
+    }
+    .batch-file-table td.cell-multi-selected .pill-qty {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+    }
+
+    /* 单元格内具体微标签 */
+    .cell-idx-text {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: #64748b;
+    }
+    .cell-filename-box {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .icon-file-pdf {
+      width: 14px;
+      height: 14px;
+      background: #fee2e2;
+      border: 1px solid #fca5a5;
+      color: #dc2626;
+      border-radius: 2px;
+      font-size: 8px;
+      font-weight: bold;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .icon-warn-badge {
+      width: 14px;
+      height: 14px;
+      background: #ffedd5;
+      border: 1px solid #fdba74;
+      color: #ea580c;
+      border-radius: 2px;
+      font-size: 9px;
+      font-weight: bold;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      animation: pulseAlert 1.5s infinite;
+    }
+    @keyframes pulseAlert {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    .cell-filename-txt {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 11px;
+    }
+    .cell-order-txt {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: #475569;
+      white-space: nowrap;
+    }
+    .pill-qty {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: #f0f7ff;
+      border: 1px solid #bae0ff;
+      color: #0958d9;
+      white-space: nowrap;
+    }
+    .pill-pages {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 0 4px;
+      border-radius: 2px;
+      background: #f1f5f9;
+      color: #475569;
+      white-space: nowrap;
+    }
+    .pill-dim-normal {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: #1e293b;
+      white-space: nowrap;
+    }
+    .pill-imposition {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+      color: #237804;
+      white-space: nowrap;
+    }
+
+    /* -------------------------------------------------------------------------
+       真实 BatchPageBoxChoiceCell：页面框不一致双微胶囊单选组件
+       ------------------------------------------------------------------------- */
+    .pagebox-choice-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 1px 0;
+      width: 100%;
+    }
+    .pagebox-choice-item {
+      height: 19px;
+      border-radius: 3px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      padding: 0 3px;
+      gap: 2px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .pagebox-choice-item:hover {
+      border-color: #1677ff;
+      background: #f0f7ff;
+    }
+    .pagebox-choice-item.active-choice {
+      background: #e6f4ff;
+      border-color: #1677ff;
+      color: #0958d9;
+      font-weight: 700;
+    }
+    .radio-dot-circle {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: 1px solid #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .pagebox-choice-item.active-choice .radio-dot-circle {
+      border-color: #1677ff;
+    }
+    .pagebox-choice-item.active-choice .radio-dot-circle::after {
+      content: "";
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #1677ff;
+    }
+    .box-tag-label {
+      font-size: 8.5px;
+      color: #64748b;
+      flex-shrink: 0;
+    }
+    .pagebox-choice-item.active-choice .box-tag-label {
+      color: #0958d9;
+      font-weight: bold;
+    }
+    .box-dim-val {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      color: #1e293b;
+    }
+    .pagebox-choice-item.active-choice .box-dim-val {
+      color: #0958d9;
+      font-weight: 700;
+    }
+
+    /* =========================================================================
+       基准线 3: 底部操作栏彻底杜绝折行系统 (高 34px，底边落于 Y=492px)
+       ========================================================================= */
+    .left-bottom-action-dock {
+      height: 34px;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      flex-shrink: 0;
+      z-index: 120;
+    }
+    .action-group-left {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .action-group-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* 实体按钮定义 (单行文本不折行 + 显式 1px 细边框) */
+    .btn-act-subtle {
+      height: 24px;
+      padding: 0 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      background: #ffffff;
+      color: #334155;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      white-space: nowrap;
+      transition: all 0.12s;
+    }
+    .btn-act-subtle:hover {
+      border-color: #1677ff;
+      color: #1677ff;
+      background: #f0f7ff;
+    }
+
+    /* 紧凑上下移分段手柄 (宽 54px，释放空间) */
+    .btn-seg-move-handle {
+      display: inline-flex;
+      height: 24px;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      background: #ffffff;
+      overflow: hidden;
+    }
+    .seg-move-part {
+      width: 27px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #475569;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+    .seg-move-part:first-child {
+      border-right: 1px solid #e2e8f0;
+    }
+    .seg-move-part:hover {
+      background: #f1f5f9;
+      color: #1677ff;
+    }
+
+    /* 改数量下拉式微按钮 */
+    .btn-qty-dropdown {
+      position: relative;
+    }
+    .btn-qty-trigger {
+      height: 24px;
+      padding: 0 6px;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      background: #ffffff;
+      color: #334155;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      white-space: nowrap;
+    }
+    .btn-qty-trigger:hover {
+      border-color: #1677ff;
+      color: #1677ff;
+      background: #f0f7ff;
+    }
+    .arrow-down-icon {
+      font-size: 8px;
+      color: #94a3b8;
+    }
+
+    /* 弹出式改数量快速面板 */
+    .qty-quick-popup {
+      position: absolute;
+      bottom: 30px;
+      left: 0;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      padding: 6px;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      width: 145px;
+      z-index: 9999;
+    }
+    .qty-quick-popup.open {
+      display: flex;
+    }
+    .qty-pop-item {
+      padding: 4px 6px;
+      font-size: 11px;
+      color: #1e293b;
+      border-radius: 3px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+    }
+    .qty-pop-item:hover {
+      background: #f0f7ff;
+      color: #1677ff;
+    }
+
+    /* 危险操作按钮 (柔和淡红体系) */
+    .btn-act-danger {
+      height: 24px;
+      padding: 0 8px;
+      border: 1px solid var(--c-danger-border);
+      border-radius: 3px;
+      background: var(--c-danger-bg);
+      color: var(--c-danger);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      white-space: nowrap;
+      transition: all 0.12s;
+    }
+    .btn-act-danger:hover {
+      background: #fee2e2;
+      border-color: #ef4444;
+    }
+
+    /* -------------------------------------------------------------------------
+       右侧流水线工位舱 (宽 360px)
+       ------------------------------------------------------------------------- */
+    .right-station-dock {
+      width: var(--right-w);
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .station-v5-stack-scroll {
+      flex: 1;
+      padding: 4px 10px 4px 10px; /* 顶边距 4px，使首卡片与左侧绝对对齐在 Y=30px */
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      overflow-y: auto;
+    }
+
+    /* 工位卡片模块 */
+    .station-card-v5 {
+      background: #ffffff;
+      border: 1px solid #d4dbe4;
+      border-radius: 4px;
+      padding: 5px 6px;
+    }
+    .station-card-title {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* 1. 材料选择 4 网格 */
+    .grid-mat-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+    }
+    .cell-mat-item {
+      height: 23px;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #334155;
+      cursor: pointer;
+    }
+    .cell-mat-item:hover { border-color: #1677ff; color: #1677ff; }
+    .cell-mat-item.active {
+      background: #1677ff;
+      border-color: #1677ff;
+      color: #ffffff;
+      font-weight: bold;
+    }
+
+    /* 2. 流程与工序行 */
+    .process-flow-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .seg-flow-box {
+      flex: 1;
+      height: 22px;
+      background: #f1f5f9;
+      border-radius: 3px;
+      display: flex;
+      padding: 2px;
+      gap: 2px;
+    }
+    .seg-flow-part {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9.5px;
+      color: #475569;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    .seg-flow-part.active {
+      background: #ffffff;
+      color: #0f172a;
+      font-weight: bold;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    /* 3. 2×2 排版输入参数表 */
+    .grid-imposition-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 6px;
+      padding: 4px 6px;
+      background: #fafbfc;
+      border-radius: 3px;
+      border: 1px solid #eef2f6;
+    }
+    .form-item-unit {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      font-size: 10px;
+      color: #475569;
+    }
+    .form-item-unit input {
+      width: 50px;
+      height: 20px;
+      border: 1px solid #cbd5e1;
+      border-radius: 2px;
+      padding: 0 4px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 600;
+      text-align: right;
+    }
+
+    /* 4. 一体化排版核心指标看板 (与左侧双尺寸基准联动) */
+    .imposition-kpi-card {
+      border: 1px solid #91caff;
+      border-radius: 4px;
+      padding: 4px 6px;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .kpi-6-matrix {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 2px;
+      background: #f0f7ff;
+      border-radius: 3px;
+      padding: 4px 2px;
+      text-align: center;
+    }
+    .kpi-lbl {
+      font-size: 8.5px;
+      color: #64748b;
+    }
+    .kpi-val {
+      font-size: 11px;
+      font-weight: bold;
+      font-family: var(--font-mono);
+      color: #0958d9;
+    }
+    .kpi-val.highlight-green {
+      color: #389e0d;
+    }
+
+    /* 右侧主按钮动作栏 (高 34px，与左侧操作栏对齐) */
+    .station-bottom-action-dock {
+      height: 34px;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      flex-shrink: 0;
+      z-index: 5;
+    }
+    .btn-main-apply {
+      width: 105px;
+      height: 24px;
+      background: #1677ff;
+      color: #ffffff;
+      border: none;
+      border-radius: 3px;
+      font-weight: 700;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: background 0.15s;
+    }
+    .btn-main-apply:hover { background: #4096ff; }
+    .btn-main-cancel {
+      width: 50px;
+      height: 24px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      font-size: 11px;
+      color: #334155;
+      cursor: pointer;
+    }
+    .btn-main-cancel:hover { background: #f1f5f9; }
+
+    /* =========================================================================
+       基准线 4: 贯通 16px 冷灰地基 / 折叠展开手柄 (常态 Y=492~508px，展开 Y=737~753px)
+       ========================================================================= */
+    .ground-swiss-footer {
+      height: var(--groundbar-h);
+      background: var(--c-swiss-bar);
+      border-top: 1px solid var(--c-swiss-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 10px;
+      color: #64748b;
+      cursor: pointer;
+      flex-shrink: 0;
+      z-index: 10;
+      transition: background 0.15s;
+    }
+    .ground-swiss-footer:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+    .footer-left-hint {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .footer-right-trigger {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+      color: #1677ff;
+    }
+
+    /* =========================================================================
+       大预览展开区域 (高 245px，折叠时隐藏)
+       ========================================================================= */
+    .preview-expanded-drawer {
+      height: var(--preview-h);
+      background: #ffffff;
+      border-top: 1px solid var(--c-swiss-border);
+      display: none;
+      flex-direction: column;
+      position: relative;
+    }
+    .preview-canvas-box {
+      flex: 1;
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .preview-sheet-mockup {
+      width: 480px;
+      height: 200px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      gap: 3px;
+      padding: 6px;
+    }
+    .mock-piece-cell {
+      background: #e6f4ff;
+      border: 1px dashed #91caff;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: #0958d9;
+      font-family: var(--font-mono);
+    }
+    .preview-info-float {
+      position: absolute;
+      top: 8px;
+      left: 12px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid #cbd5e1;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 10px;
+      color: #334155;
+    }
+
+    /* =========================================================================
+       多选浮动统计胶囊 (当多选 2 项及以上时优雅浮现)
+       ========================================================================= */
+    .float-stat-bubble {
+      position: absolute;
+      bottom: 42px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      color: #ffffff;
+      border: 1px solid #38bdf8;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+      display: none;
+      align-items: center;
+      gap: 10px;
+      z-index: 100;
+      animation: bubblePop 0.15s ease-out;
+    }
+    @keyframes bubblePop {
+      from { transform: translate(-50%, 6px); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
+    }
+    .bubble-stat-txt b { color: #38bdf8; }
+    .bubble-quick-btn {
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      padding: 1px 8px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+    .bubble-quick-btn:hover { background: #0369a1; }
+
+    /* =========================================================================
+       右键上下文菜单体系 (整行 / 数量列 / 成品尺寸列)
+       ========================================================================= */
+    .custom-ctx-menu {
+      position: fixed;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+      padding: 4px;
+      min-width: 175px;
+      display: none;
+      z-index: 99999;
+      animation: menuFadeIn 0.1s ease-out;
+    }
+    @keyframes menuFadeIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .ctx-header-title {
+      font-size: 10px;
+      color: #0284c7;
+      padding: 4px 8px 2px;
+      font-weight: 700;
+      border-bottom: 1px solid #f1f5f9;
+      margin-bottom: 2px;
+    }
+    .ctx-item-row {
+      padding: 5px 10px;
+      border-radius: 3px;
+      font-size: 11px;
+      color: #1e293b;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .ctx-item-row:hover { background: #eff6ff; color: #1677ff; }
+    .ctx-item-row.danger { color: #dc2626; }
+    .ctx-item-row.danger:hover { background: #fef2f2; color: #ef4444; }
+    .ctx-divider-line { height: 1px; background: #e2e8f0; margin: 3px 0; }
+    .ctx-kbd-hint { font-size: 9.5px; color: #94a3b8; font-family: var(--font-mono); }
+
+    /* 全局操作 Toast 反馈浮层 */
+    .action-toast-layer {
+      position: fixed;
+      bottom: 20px;
+      background: #0f172a;
+      border: 1px solid #38bdf8;
+      color: #f0f9ff;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      display: none;
+      z-index: 100000;
+      animation: toastSlideUp 0.15s ease-out;
+    }
+    @keyframes toastSlideUp {
+      from { transform: translateY(12px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body onclick="onGlobalClick(event)">
+
+  <!-- =========================================================================
+       1. 顶部全功能演示总控台 (可即时测试全部设计指标与交互)
+       ========================================================================= -->
+  <aside class="showcase-control-panel">
+    <div class="ctrl-row-top">
+      <div class="brand-title">
+        <span>大诚印前工具箱 · 材料选择框终极完整版原型</span>
+        <span class="brand-badge">Fluent 2 极简平滑流</span>
+      </div>
+
+      <div class="ctrl-options-group">
+        <!-- 视窗状态切换 -->
+        <button class="ctrl-btn active" id="btnModeNormal" onclick="setWindowMode('normal')">
+          <span>880×508 双联折叠</span>
+        </button>
+        <button class="ctrl-btn" id="btnModeExpanded" onclick="setWindowMode('expanded')">
+          <span>880×753 大预览展开</span>
+        </button>
+        <button class="ctrl-btn" id="btnModeSingle" onclick="setWindowMode('single')">
+          <span>360×508 单工位</span>
+        </button>
+
+        <span style="color: #475569; margin: 0 4px;">|</span>
+
+        <!-- 背景防御检验切换 -->
+        <button class="ctrl-btn active" id="btnBgWhite" onclick="setDesktopBg('white')">
+          <span>纯白桌面(防融化测试)</span>
+        </button>
+        <button class="ctrl-btn" id="btnBgDark" onclick="setDesktopBg('dark')">
+          <span>深色工作台背景</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="ctrl-guide-note">
+      <span>💡 <b>交互提示:</b> 支持 <b>单击行/单元格</b> 选中 | <b>Ctrl+点击</b> 离散加选 | <b>Shift+点击</b> 连续区域连选 | <b>右键菜单</b> 独立操作</span>
+      <span>⚡ <b>页面框实操:</b> 第一行点击 <b>媒体/裁剪微胶囊</b> 或按 <b>空格键</b> 即可原地切换并联动右侧排版数！</span>
+    </div>
+  </aside>
+
+  <!-- =========================================================================
+       2. 材料选择框 1:1 实体工作台主窗体 (WinForms 880px × 508px/753px)
+       ========================================================================= -->
+  <main class="win-workbench-shell" id="workbenchShell">
+
+    <!-- 基准线 1: 贯通 26px 瑞士冷灰顶栏 (Y=0 ~ Y=26px) -->
+    <header class="top-swiss-titlebar">
+      <div class="titlebar-left-zone">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <span>材料选择与自动排版工作台 · V5 一体化流水线</span>
+      </div>
+      <div class="titlebar-right-zone">
+        <span>已载入 4 个文件 · 2 项工艺分组</span>
+        <div class="win-window-control-btn" title="关闭窗口" onclick="showToast('点击了关闭窗口')">✕</div>
+      </div>
+    </header>
+
+    <!-- 中部双舱垂直流工作区 -->
+    <div class="workbench-main-body">
+
+      <!-- =====================================================================
+           左侧待处理列表舱 (宽 520px)
+           ===================================================================== -->
+      <section class="left-filelist-dock" id="leftFileListDock">
+
+        <!-- 浮动统计胶囊 (多选数量时自动弹出) -->
+        <div class="float-stat-bubble" id="floatStatBubble">
+          <span class="bubble-stat-txt" id="bubbleStatText">已连选 3 个数量 · 合计 <b>1,100</b> 个</span>
+          <button class="bubble-quick-btn" onclick="bulkSetQtyPrompt()">批量改值</button>
+          <button class="bubble-quick-btn" style="background: #475569;" onclick="clearAllSelections()">清除</button>
+        </div>
+
+        <!-- 卡片流可滚动区 (首卡片顶线严格落于 Y=30px 基准线) -->
+        <div class="left-cards-scroll-container">
+
+          <!-- 分组卡片 1: 铜版纸分组 -->
+          <div class="batch-group-card">
+            <!-- 卡片自绘头部 (36px) -->
+            <div class="group-card-header">
+              <div class="header-left-meta">
+                <div class="group-chk-wrap" onclick="toggleGroupCheck(1)">
+                  <div class="group-chk-box checked" id="groupChk1"></div>
+                </div>
+                <span class="pill-craft-amber">157g 铜版纸</span>
+                <span class="pill-craft-green">亮膜</span>
+                <span class="meta-sub-props-txt">平张 · 连拼 · 彩色 · 直角</span>
+              </div>
+              <div class="header-right-badges">
+                <span class="badge-count-tag">3 个文件</span>
+              </div>
+            </div>
+
+            <!-- 498px 绝对数学分配表格 -->
+            <div class="table-dock-container">
+              <table class="batch-file-table" id="tableGroup1">
+                <colgroup>
+                  <col class="col-w-idx">
+                  <col class="col-w-name">
+                  <col class="col-w-order">
+                  <col class="col-w-qty">
+                  <col class="col-w-pages">
+                  <col class="col-w-dim">
+                  <col class="col-w-imp">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th class="th-align-left">文件名</th>
+                    <th>订单号</th>
+                    <th>数量</th>
+                    <th>页数</th>
+                    <th>成品尺寸</th>
+                    <th>排版数</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- 行 1: 【异常双尺寸展示行】CropBox ≠ MediaBox，自适应高 46px -->
+                  <tr id="row-0" class="row-pagebox-issue row-selected" onclick="handleRowClick(0, event)" oncontextmenu="handleContextMenu(0, 'row', event)">
+                    <td><span class="cell-idx-text">1</span></td>
+                    <td class="td-align-left" oncontextmenu="handleContextMenu(0, 'name', event)">
+                      <div class="cell-filename-box">
+                        <span class="icon-warn-badge" title="警告: 媒体框与裁剪框不一致">!</span>
+                        <span class="cell-filename-txt" title="精装画册封面_A4展会宣传单.pdf">精装画册封面_A4展会宣传单.pdf</span>
+                      </div>
+                    </td>
+                    <td><span class="cell-order-txt">OD-98231</span></td>
+                    <td id="qty-cell-0" onclick="handleQtyCellClick(0, event)" oncontextmenu="handleContextMenu(0, 'qty', event)">
+                      <span class="pill-qty">500</span>
+                    </td>
+                    <td><span class="pill-pages">P2</span></td>
+                    <!-- 真实 BatchPageBoxChoiceCell 微胶囊双选组件 -->
+                    <td oncontextmenu="handleContextMenu(0, 'dim', event)">
+                      <div class="pagebox-choice-wrapper">
+                        <!-- 选项 1: 媒体框 -->
+                        <div class="pagebox-choice-item active-choice" id="choiceMedia0" onclick="switchPageBoxChoice(0, 'media', event)">
+                          <span class="radio-dot-circle"></span>
+                          <span class="box-tag-label">媒体</span>
+                          <span class="box-dim-val">80×45</span>
+                        </div>
+                        <!-- 选项 2: 裁剪框 -->
+                        <div class="pagebox-choice-item" id="choiceCrop0" onclick="switchPageBoxChoice(0, 'crop', event)">
+                          <span class="radio-dot-circle"></span>
+                          <span class="box-tag-label">裁剪</span>
+                          <span class="box-dim-val">77×42 R2</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="pill-imposition" id="impBadge0">28×4 · 112个</span></td>
+                  </tr>
+
+                  <!-- 行 2: 常态行 (高 26px) -->
+                  <tr id="row-1" onclick="handleRowClick(1, event)" oncontextmenu="handleContextMenu(1, 'row', event)">
+                    <td><span class="cell-idx-text">2</span></td>
+                    <td class="td-align-left" oncontextmenu="handleContextMenu(1, 'name', event)">
+                      <div class="cell-filename-box">
+                        <span class="icon-file-pdf">PDF</span>
+                        <span class="cell-filename-txt" title="折页内页_第2季度产品手册_最终版.pdf">折页内页_第2季度手册_终版.pdf</span>
+                      </div>
+                    </td>
+                    <td><span class="cell-order-txt">OD-98232</span></td>
+                    <td id="qty-cell-1" onclick="handleQtyCellClick(1, event)" oncontextmenu="handleContextMenu(1, 'qty', event)">
+                      <span class="pill-qty">300</span>
+                    </td>
+                    <td><span class="pill-pages">P4</span></td>
+                    <td oncontextmenu="handleContextMenu(1, 'dim', event)"><span class="pill-dim-normal">210×285</span></td>
+                    <td><span class="pill-imposition">4×2 · 8个</span></td>
+                  </tr>
+
+                  <!-- 行 3: 常态行 (高 26px) -->
+                  <tr id="row-2" onclick="handleRowClick(2, event)" oncontextmenu="handleContextMenu(2, 'row', event)">
+                    <td><span class="cell-idx-text">3</span></td>
+                    <td class="td-align-left" oncontextmenu="handleContextMenu(2, 'name', event)">
+                      <div class="cell-filename-box">
+                        <span class="icon-file-pdf">PDF</span>
+                        <span class="cell-filename-txt" title="展架易拉宝海报_标准高精喷绘.pdf">展架易拉宝海报_高精喷绘.pdf</span>
+                      </div>
+                    </td>
+                    <td><span class="cell-order-txt">OD-98235</span></td>
+                    <td id="qty-cell-2" onclick="handleQtyCellClick(2, event)" oncontextmenu="handleContextMenu(2, 'qty', event)">
+                      <span class="pill-qty">300</span>
+                    </td>
+                    <td><span class="pill-pages">P1</span></td>
+                    <td oncontextmenu="handleContextMenu(2, 'dim', event)"><span class="pill-dim-normal">800×2000</span></td>
+                    <td><span class="pill-imposition">1×1 · 1个</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 分组卡片 2: 哑粉纸分组 -->
+          <div class="batch-group-card">
+            <div class="group-card-header">
+              <div class="header-left-meta">
+                <div class="group-chk-wrap" onclick="toggleGroupCheck(2)">
+                  <div class="group-chk-box checked" id="groupChk2"></div>
+                </div>
+                <span class="pill-craft-amber">200g 哑粉纸</span>
+                <span class="pill-craft-green">哑膜</span>
+                <span class="meta-sub-props-txt">平张 · 散拼 · 彩色 · 直角</span>
+              </div>
+              <div class="header-right-badges">
+                <span class="badge-count-tag">1 个文件</span>
+              </div>
+            </div>
+
+            <div class="table-dock-container">
+              <table class="batch-file-table" id="tableGroup2">
+                <colgroup>
+                  <col class="col-w-idx">
+                  <col class="col-w-name">
+                  <col class="col-w-order">
+                  <col class="col-w-qty">
+                  <col class="col-w-pages">
+                  <col class="col-w-dim">
+                  <col class="col-w-imp">
+                </colgroup>
+                <tbody>
+                  <!-- 行 4: 常态行 (高 26px) -->
+                  <tr id="row-3" onclick="handleRowClick(3, event)" oncontextmenu="handleContextMenu(3, 'row', event)">
+                    <td><span class="cell-idx-text">4</span></td>
+                    <td class="td-align-left" oncontextmenu="handleContextMenu(3, 'name', event)">
+                      <div class="cell-filename-box">
+                        <span class="icon-file-pdf">PDF</span>
+                        <span class="cell-filename-txt" title="高端企业名片_深蓝烫金版.pdf">企业名片_深蓝烫金版.pdf</span>
+                      </div>
+                    </td>
+                    <td><span class="cell-order-txt">OD-98240</span></td>
+                    <td id="qty-cell-3" onclick="handleQtyCellClick(3, event)" oncontextmenu="handleContextMenu(3, 'qty', event)">
+                      <span class="pill-qty">1000</span>
+                    </td>
+                    <td><span class="pill-pages">P2</span></td>
+                    <td oncontextmenu="handleContextMenu(3, 'dim', event)"><span class="pill-dim-normal">90×54</span></td>
+                    <td><span class="pill-imposition">25×2 · 50个</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 基准线 3: 底部操作栏彻底杜绝折行 (高 34px，底边对齐 Y=492px) -->
+        <footer class="left-bottom-action-dock">
+          <div class="action-group-left">
+            <button class="btn-act-subtle" onclick="selectAllRows()">全选</button>
+            <button class="btn-act-subtle" onclick="invertSelectRows()">反选</button>
+
+            <!-- 紧凑分段上下移手柄 (宽 54px，释放空间) -->
+            <div class="btn-seg-move-handle">
+              <div class="seg-move-part" title="选中项上移" onclick="moveSelectedRow(-1)">▲</div>
+              <div class="seg-move-part" title="选中项下移" onclick="moveSelectedRow(1)">▼</div>
+            </div>
+
+            <!-- 改数量下拉式实体按钮 -->
+            <div class="btn-qty-dropdown">
+              <button class="btn-qty-trigger" onclick="toggleQtyPopup(event)">
+                <span>改数量</span>
+                <span class="arrow-down-icon">▾</span>
+              </button>
+              <div class="qty-quick-popup" id="qtyQuickPopup">
+                <div class="qty-pop-item" onclick="applyQtyToSelected(100)"><span>设为 100</span><span class="ctx-kbd-hint">单件</span></div>
+                <div class="qty-pop-item" onclick="applyQtyToSelected(500)"><span>设为 500</span><span class="ctx-kbd-hint">标准</span></div>
+                <div class="qty-pop-item" onclick="applyQtyToSelected(1000)"><span>设为 1,000</span><span class="ctx-kbd-hint">批量</span></div>
+                <div class="qty-pop-item" onclick="bulkSetQtyPrompt()"><span>自定义输入...</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-group-right">
+            <button class="btn-act-subtle" onclick="clearImpositionData()">清空排版</button>
+            <button class="btn-act-danger" onclick="deleteSelectedRows()">删除行</button>
+          </div>
+        </footer>
+
+      </section>
+
+      <!-- =====================================================================
+           右侧流水线工位舱 (宽 360px，结构分毫未动)
+           ===================================================================== -->
+      <section class="right-station-dock" id="rightStationDock">
+
+        <div class="station-v5-stack-scroll">
+
+          <!-- 1. 材料选择卡片 (首卡片与左侧绝对对齐在 Y=30px 基准线) -->
+          <div class="station-card-v5">
+            <div class="station-card-title">
+              <span>纸张材料选择</span>
+              <span style="font-size: 9.5px; color: #1677ff; cursor: pointer;">管理预设 ›</span>
+            </div>
+            <div class="grid-mat-4">
+              <div class="cell-mat-item active" onclick="selectMat(this, '157g 铜版纸')">157g 铜版</div>
+              <div class="cell-mat-item" onclick="selectMat(this, '200g 哑粉纸')">200g 哑粉</div>
+              <div class="cell-mat-item" onclick="selectMat(this, '250g 白卡纸')">250g 白卡</div>
+              <div class="cell-mat-item" onclick="selectMat(this, '80g 双胶纸')">80g 双胶</div>
+            </div>
+          </div>
+
+          <!-- 2. 工艺与流程卡片 -->
+          <div class="station-card-v5">
+            <div class="station-card-title">
+              <span>后道工序选择</span>
+              <span style="font-size: 9.5px; color: #64748b;">双联流水线</span>
+            </div>
+            <div class="process-flow-row">
+              <div class="seg-flow-box">
+                <div class="seg-flow-part active" onclick="toggleFlowPart(this)">亮膜</div>
+                <div class="seg-flow-part" onclick="toggleFlowPart(this)">哑膜</div>
+                <div class="seg-flow-part" onclick="toggleFlowPart(this)">无覆膜</div>
+              </div>
+              <div class="seg-flow-box">
+                <div class="seg-flow-part active" onclick="toggleFlowPart(this)">直角裁切</div>
+                <div class="seg-flow-part" onclick="toggleFlowPart(this)">圆角冲压</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. 2×2 排版参数表 -->
+          <div class="station-card-v5">
+            <div class="station-card-title">
+              <span>拼版几何约束 (mm)</span>
+              <span style="font-size: 9.5px; color: #64748b;">96DPI 标准</span>
+            </div>
+            <div class="grid-imposition-form">
+              <div class="form-item-unit">
+                <span>出血(单边):</span>
+                <input type="text" value="2.0" id="inBleed">
+              </div>
+              <div class="form-item-unit">
+                <span>咬口留白:</span>
+                <input type="text" value="10.0" id="inBite">
+              </div>
+              <div class="form-item-unit">
+                <span>行间距:</span>
+                <input type="text" value="0.0" id="inRowGap">
+              </div>
+              <div class="form-item-unit">
+                <span>列间距:</span>
+                <input type="text" value="0.0" id="inColGap">
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. 一体化排版核心指标看板 (与左侧双尺寸基准实时联动) -->
+          <div class="imposition-kpi-card">
+            <div class="station-card-title" style="margin-bottom: 2px;">
+              <span style="color: #0958d9;">排版指标看板</span>
+              <span style="font-size: 9.5px; color: #389e0d; font-weight: 700;" id="kpiOptTag">● 最优解已就绪</span>
+            </div>
+            <div class="kpi-6-matrix">
+              <div>
+                <div class="kpi-lbl">大版规格</div>
+                <div class="kpi-val" style="font-size: 10px;">大对开</div>
+              </div>
+              <div>
+                <div class="kpi-lbl">利用率</div>
+                <div class="kpi-val highlight-green" id="kpiUsage">92.4%</div>
+              </div>
+              <div>
+                <div class="kpi-lbl">单版拼数</div>
+                <div class="kpi-val" id="kpiCount">28</div>
+              </div>
+              <div>
+                <div class="kpi-lbl">大版列×行</div>
+                <div class="kpi-val" id="kpiLayout">7×4</div>
+              </div>
+              <div>
+                <div class="kpi-lbl">总印张数</div>
+                <div class="kpi-val" id="kpiSheets">18 张</div>
+              </div>
+              <div>
+                <div class="kpi-lbl">总件数</div>
+                <div class="kpi-val" id="kpiTotalPieces">500 件</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 右侧主按钮栏 (高 34px，与左侧对齐) -->
+        <footer class="station-bottom-action-dock">
+          <button class="btn-main-cancel" onclick="showToast('已取消操作')">取消</button>
+          <button class="btn-main-apply" onclick="runOneClickImposition()">
+            <span>⚡ 一键智能拼版</span>
+          </button>
+        </footer>
+
+      </section>
+
+    </div>
+
+    <!-- =========================================================================
+         大预览展开抽屉 (高 245px，点击底部手柄展开)
+         ========================================================================= -->
+    <section class="preview-expanded-drawer" id="previewDrawer">
+      <div class="preview-canvas-box">
+        <div class="preview-info-float">
+          <span>大版实际尺寸: <b>880 × 590 mm</b> · 拼版方案: <b>7列 × 4行 (28拼)</b></span>
+        </div>
+        <div class="preview-sheet-mockup" id="previewMockupGrid">
+          <!-- 动态生成 28 个拼版单元 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 基准线 4: 贯通 16px 冷灰地基 / 折叠手柄 (常态 Y=492~508px，展开 Y=737~753px) -->
+    <footer class="ground-swiss-footer" onclick="togglePreviewExpand()">
+      <div class="footer-left-hint">
+        <span style="font-weight: 700; color: #475569;">大诚印前 V5</span>
+        <span>|</span>
+        <span id="footerCurrentStatus">当前状态: 880×508 双联折叠常态 (点击展开大预览)</span>
+      </div>
+      <div class="footer-right-trigger">
+        <span id="footerExpandChevron">▲ 展开大版物理预览 (245px)</span>
+      </div>
+    </footer>
+
+  </main>
+
+  <!-- =========================================================================
+       3. 自定义右键菜单体系 (根据点击目标动态切换标题与操作集)
+       ========================================================================= -->
+  <div class="custom-ctx-menu" id="customCtxMenu">
+    <div class="ctx-header-title" id="ctxMenuTitle">行级快捷操作</div>
+    <div id="ctxMenuItemsBox"></div>
+  </div>
+
+  <!-- 全局操作反馈 Toast -->
+  <div class="action-toast-layer" id="actionToastLayer"></div>
+
+  <!-- =========================================================================
+       4. 深度交互核心脚本逻辑 (Shift/Ctrl 连选、页面框切换、右键菜单、折叠动效)
+       ========================================================================= -->
+  <script>
+    // 全局数据状态
+    const fileItems = [
+      { id: 0, name: "精装画册封面_A4展会宣传单.pdf", order: "OD-98231", qty: 500, pages: "P2", dim: "80×45", imp: "28×4 · 112个", hasIssue: true, activeChoice: 'media' },
+      { id: 1, name: "折页内页_第2季度手册_终版.pdf", order: "OD-98232", qty: 300, pages: "P4", dim: "210×285", imp: "4×2 · 8个", hasIssue: false },
+      { id: 2, name: "展架易拉宝海报_高精喷绘.pdf", order: "OD-98235", qty: 300, pages: "P1", dim: "800×2000", imp: "1×1 · 1个", hasIssue: false },
+      { id: 3, name: "企业名片_深蓝烫金版.pdf", order: "OD-98240", qty: 1000, pages: "P2", dim: "90×54", imp: "25×2 · 50个", hasIssue: false }
+    ];
+
+    let selectedRowIndex = 0;
+    let selectedQtyCells = new Set(); // 存放多选的数量单元格索引集合
+    let lastAnchorQtyRow = null;      // Shift 区域连选的基准锚点
+    let isPreviewExpanded = false;
+
+    // 页面初始化
+    window.addEventListener('DOMContentLoaded', () => {
+      buildPreviewMockup(28);
+      // 监听全局按键，支持空格键切换页面框
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && selectedRowIndex === 0) {
+          e.preventDefault();
+          const target = fileItems[0].activeChoice === 'media' ? 'crop' : 'media';
+          switchPageBoxChoice(0, target, null);
+        }
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // 单元格与行选中逻辑 (精准支持 Shift 连续连选 / Ctrl 离散加选)
+    // -------------------------------------------------------------------------
+
+    // 行点击
+    function handleRowClick(index, event) {
+      if (event && event.target.closest('.pagebox-choice-item')) {
+        return; // 若点击在特定可交互微组件上，避免与行点击冲突
+      }
+
+      selectedRowIndex = index;
+      document.querySelectorAll('.batch-file-table tbody tr').forEach((tr, i) => {
+        if (i === index) {
+          tr.classList.add('row-selected');
+        } else {
+          tr.classList.remove('row-selected');
+        }
+      });
+
+      // 同步更新右侧工位展示
+      syncRightStationInfo(index);
+      closeQtyPopup();
+    }
+
+    // 数量列单元格点击 (重点实现 Shift 连续区域多选)
+    function handleQtyCellClick(rowIndex, event) {
+      if (event) {
+        event.stopPropagation();
+      }
+      closeQtyPopup();
+
+      const td = document.getElementById(`qty-cell-${rowIndex}`);
+
+      if (event && event.shiftKey && lastAnchorQtyRow !== null) {
+        // Shift 连续区域连选算法
+        const start = Math.min(lastAnchorQtyRow, rowIndex);
+        const end = Math.max(lastAnchorQtyRow, rowIndex);
+
+        selectedQtyCells.clear();
+        for (let i = start; i <= end; i++) {
+          selectedQtyCells.add(i);
+        }
+        showToast(`Shift 连续连选了第 ${start + 1} 至 ${end + 1} 行数量`);
+      } else if (event && (event.ctrlKey || event.metaKey)) {
+        // Ctrl 离散加选 / 反选
+        if (selectedQtyCells.has(rowIndex)) {
+          selectedQtyCells.delete(rowIndex);
+        } else {
+          selectedQtyCells.add(rowIndex);
+        }
+        lastAnchorQtyRow = rowIndex;
+      } else {
+        // 常规单选：单元格聚焦 + 行选中高亮 + 同步右侧工位
+        selectedQtyCells.clear();
+        selectedQtyCells.add(rowIndex);
+        lastAnchorQtyRow = rowIndex;
+        handleRowClick(rowIndex, null);
+      }
+
+      updateQtySelectionStyles();
+    }
+
+    // 刷新数量多选高亮与浮动统计胶囊
+    function updateQtySelectionStyles() {
+      let sum = 0;
+      let count = selectedQtyCells.size;
+
+      for (let i = 0; i < fileItems.length; i++) {
+        const td = document.getElementById(`qty-cell-${i}`);
+        if (!td) continue;
+
+        td.classList.remove('cell-focused');
+        td.classList.remove('cell-multi-selected');
+
+        if (selectedQtyCells.has(i)) {
+          sum += fileItems[i].qty;
+          if (count === 1) {
+            td.classList.add('cell-focused');
+          } else {
+            td.classList.add('cell-multi-selected');
+          }
+        }
+      }
+
+      const bubble = document.getElementById('floatStatBubble');
+      const statText = document.getElementById('bubbleStatText');
+
+      if (count >= 2) {
+        const avg = (sum / count).toFixed(1);
+        statText.innerHTML = `已连选 <b>${count}</b> 个数量 · 合计 <b>${sum.toLocaleString()}</b> 个 · 均值 <b>${avg}</b>`;
+        bubble.style.display = 'flex';
+      } else {
+        bubble.style.display = 'none';
+      }
+    }
+
+    // 清除全部多选
+    function clearAllSelections() {
+      selectedQtyCells.clear();
+      lastAnchorQtyRow = null;
+      for (let i = 0; i < fileItems.length; i++) {
+        const td = document.getElementById(`qty-cell-${i}`);
+        if (td) {
+          td.classList.remove('cell-focused');
+          td.classList.remove('cell-multi-selected');
+        }
+      }
+      updateQtySelectionStyles();
+      showToast('已清除全部多选');
+    }
+
+    // -------------------------------------------------------------------------
+    // 真实 BatchPageBoxChoiceCell：页面框双尺寸基准切换与右侧联动
+    // -------------------------------------------------------------------------
+    function switchPageBoxChoice(rowIndex, choice, event) {
+      if (event) event.stopPropagation();
+      if (rowIndex !== 0) return;
+
+      fileItems[0].activeChoice = choice;
+      const mediaItem = document.getElementById('choiceMedia0');
+      const cropItem = document.getElementById('choiceCrop0');
+      const impBadge = document.getElementById('impBadge0');
+
+      if (choice === 'media') {
+        mediaItem.classList.add('active-choice');
+        cropItem.classList.remove('active-choice');
+        impBadge.innerText = '28×4 · 112个';
+
+        // 联动右侧指标看板
+        document.getElementById('kpiUsage').innerText = '92.4%';
+        document.getElementById('kpiCount').innerText = '28';
+        document.getElementById('kpiLayout').innerText = '7×4';
+        document.getElementById('kpiSheets').innerText = '18 张';
+        buildPreviewMockup(28);
+        showToast('已切换为【媒体框】(80×45mm)，排版利用率: 92.4%');
+      } else {
+        cropItem.classList.add('active-choice');
+        mediaItem.classList.remove('active-choice');
+        impBadge.innerText = '32×4 · 128个';
+
+        // 联动右侧指标看板
+        document.getElementById('kpiUsage').innerText = '95.1%';
+        document.getElementById('kpiCount').innerText = '32';
+        document.getElementById('kpiLayout').innerText = '8×4';
+        document.getElementById('kpiSheets').innerText = '16 张';
+        buildPreviewMockup(32);
+        showToast('已切换为【裁剪框】(77×42mm R2)，排版利用率提升至 95.1%');
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 底部实体操作栏与改数量面板
+    // -------------------------------------------------------------------------
+    function toggleQtyPopup(event) {
+      event.stopPropagation();
+      const popup = document.getElementById('qtyQuickPopup');
+      popup.classList.toggle('open');
+    }
+
+    function closeQtyPopup() {
+      const popup = document.getElementById('qtyQuickPopup');
+      if (popup) popup.classList.remove('open');
+    }
+
+    function applyQtyToSelected(newQty) {
+      closeQtyPopup();
+      if (selectedQtyCells.size === 0) {
+        selectedQtyCells.add(selectedRowIndex);
+      }
+
+      selectedQtyCells.forEach(idx => {
+        fileItems[idx].qty = newQty;
+        const pill = document.querySelector(`#qty-cell-${idx} .pill-qty`);
+        if (pill) pill.innerText = newQty;
+      });
+
+      updateQtySelectionStyles();
+      showToast(`已批量将 ${selectedQtyCells.size} 项数量更新为 ${newQty}`);
+    }
+
+    function bulkSetQtyPrompt() {
+      closeQtyPopup();
+      const val = prompt("请输入统一设置的印刷数量 (个):", "500");
+      if (val && !isNaN(val) && Number(val) > 0) {
+        applyQtyToSelected(parseInt(val, 10));
+      }
+    }
+
+    function bulkAdjustQtyPrompt() {
+      closeQtyPopup();
+      const val = prompt("请输入数量增减值 (正数增加，负数减少，如 100 或 -50):", "100");
+      if (val && !isNaN(val)) {
+        const delta = parseInt(val, 10);
+        if (selectedQtyCells.size === 0) selectedQtyCells.add(selectedRowIndex);
+        selectedQtyCells.forEach(idx => {
+          fileItems[idx].qty = Math.max(1, fileItems[idx].qty + delta);
+          const pill = document.querySelector(`#qty-cell-${idx} .pill-qty`);
+          if (pill) pill.innerText = fileItems[idx].qty;
+        });
+        updateQtySelectionStyles();
+        showToast(`已对选中的 ${selectedQtyCells.size} 项完成增量调整 (${delta > 0 ? "+" + delta : delta})`);
+      }
+    }
+
+    function extractQtyPrompt() {
+      closeQtyPopup();
+      const unit = prompt("请输入单位字符 (如 '张', '个', 'pcs')，将从文件名提取：", "张");
+      if (unit) {
+        showToast(`已从文件名中提取单位 '${unit}' 前的数字更新数量`);
+      }
+    }
+
+    function selectAllRows() {
+      selectedQtyCells.clear();
+      for (let i = 0; i < fileItems.length; i++) {
+        selectedQtyCells.add(i);
+      }
+      updateQtySelectionStyles();
+      showToast('已全选所有行【数量】单元格');
+    }
+
+    function invertSelectRows() {
+      const newSet = new Set();
+      for (let i = 0; i < fileItems.length; i++) {
+        if (!selectedQtyCells.has(i)) newSet.add(i);
+      }
+      selectedQtyCells = newSet;
+      updateQtySelectionStyles();
+      showToast('已反向连选【数量】单元格');
+    }
+
+    function moveSelectedRow(dir) {
+      showToast(dir < 0 ? '已将选定文件项上移 1 位' : '已将选定文件项下移 1 位');
+    }
+
+    function clearImpositionData() {
+      document.querySelectorAll('.pill-imposition').forEach(p => p.innerText = '未排版');
+      document.getElementById('kpiUsage').innerText = '0.0%';
+      document.getElementById('kpiCount').innerText = '0';
+      showToast('已清空当前全部拼版参数');
+    }
+
+    function deleteSelectedRows() {
+      showToast('已从待处理列表中移除当前选中行');
+    }
+
+    // -------------------------------------------------------------------------
+    // 右键上下文菜单系统
+    // -------------------------------------------------------------------------
+    function handleContextMenu(rowIndex, columnType, event) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeQtyPopup();
+
+      selectedRowIndex = rowIndex;
+      handleRowClick(rowIndex, event);
+
+      const menu = document.getElementById('customCtxMenu');
+      const title = document.getElementById('ctxMenuTitle');
+      const itemsBox = document.getElementById('ctxMenuItemsBox');
+
+      itemsBox.innerHTML = '';
+
+      if (columnType === 'qty') {
+        title.innerText = `数量列快捷设置 (行 #${rowIndex + 1})`;
+        itemsBox.innerHTML = `
+          <div class="ctx-item-row" onclick="bulkSetQtyPrompt()"><span>自定义数量...</span></div>
+          <div class="ctx-item-row" onclick="bulkAdjustQtyPrompt()"><span>按当前数量批量增量...</span></div>
+          <div class="ctx-item-row" onclick="extractQtyPrompt()"><span>从文件名提取数量...</span></div>
+          <div class="ctx-divider-line"></div>
+          <div class="ctx-item-row" onclick="showToast('已从剪贴板粘贴数量列表')"><span>从剪贴板批量粘贴数量</span><span class="ctx-kbd-hint">Ctrl+V</span></div>
+        `;
+      } else if (columnType === 'dim') {
+        title.innerText = `尺寸与页面框设置 (行 #${rowIndex + 1})`;
+        itemsBox.innerHTML = `
+          <div class="ctx-item-row" onclick="switchPageBoxChoice(0, 'media')"><span>优先采用媒体框 (MediaBox)</span></div>
+          <div class="ctx-item-row" onclick="switchPageBoxChoice(0, 'crop')"><span>优先采用裁剪框 (CropBox)</span></div>
+          <div class="ctx-divider-line"></div>
+          <div class="ctx-item-row" onclick="showToast('已自动识别 PDF 内嵌出血 2mm')"><span>自动识别内嵌出血</span></div>
+          <div class="ctx-item-row" onclick="showToast('已按 90° 旋转当前成品尺寸')"><span>顺时针旋转 90°</span></div>
+        `;
+      } else {
+        // 整行通用菜单
+        title.innerText = `文件行操作 (第 ${rowIndex + 1} 行)`;
+        itemsBox.innerHTML = `
+          <div class="ctx-item-row" onclick="runOneClickImposition()"><span>⚡ 快速拼版此项</span><span class="ctx-kbd-hint">Enter</span></div>
+          <div class="ctx-item-row" onclick="showToast('正在打开 PDF 属性查看器...')"><span>查看 PDF 页面框信息</span></div>
+          <div class="ctx-divider-line"></div>
+          <div class="ctx-item-row" onclick="moveSelectedRow(-1)"><span>上移一行</span><span class="ctx-kbd-hint">Alt+↑</span></div>
+          <div class="ctx-item-row" onclick="moveSelectedRow(1)"><span>下移一行</span><span class="ctx-kbd-hint">Alt+↓</span></div>
+          <div class="ctx-divider-line"></div>
+          <div class="ctx-item-row danger" onclick="deleteSelectedRows()"><span>从列表中移除</span><span class="ctx-kbd-hint">Del</span></div>
+        `;
+      }
+
+      // 定位菜单
+      menu.style.display = 'block';
+      let x = event.clientX;
+      let y = event.clientY;
+      if (x + 185 > window.innerWidth) x = window.innerWidth - 190;
+      if (y + 180 > window.innerHeight) y = window.innerHeight - 190;
+
+      menu.style.left = `${x}px`;
+      menu.style.top = `${y}px`;
+    }
+
+    function closeContextMenu() {
+      const menu = document.getElementById('customCtxMenu');
+      if (menu) menu.style.display = 'none';
+    }
+
+    function onGlobalClick(event) {
+      closeContextMenu();
+      if (!event.target.closest('.btn-qty-dropdown')) {
+        closeQtyPopup();
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 视窗形态与大版展开逻辑 (508px ↔ 753px)
+    // -------------------------------------------------------------------------
+    function togglePreviewExpand() {
+      setWindowMode(isPreviewExpanded ? 'normal' : 'expanded');
+    }
+
+    function setWindowMode(mode) {
+      const shell = document.getElementById('workbenchShell');
+      const drawer = document.getElementById('previewDrawer');
+      const statusTxt = document.getElementById('footerCurrentStatus');
+      const chevron = document.getElementById('footerExpandChevron');
+
+      // 更新按钮高亮
+      document.getElementById('btnModeNormal').classList.remove('active');
+      document.getElementById('btnModeExpanded').classList.remove('active');
+      document.getElementById('btnModeSingle').classList.remove('active');
+
+      if (mode === 'expanded') {
+        shell.classList.add('state-preview-expanded');
+        shell.classList.remove('state-single-station');
+        drawer.style.display = 'flex';
+        isPreviewExpanded = true;
+        statusTxt.innerText = '当前状态: 880×753 双联大预览展开态 (点击收起大预览)';
+        chevron.innerText = '▼ 收起大版物理预览 (245px)';
+        document.getElementById('btnModeExpanded').classList.add('active');
+        showToast('已展开大版 1:1 真实物理预览抽屉 (753px 高)');
+      } else if (mode === 'single') {
+        shell.classList.remove('state-preview-expanded');
+        shell.classList.add('state-single-station');
+        drawer.style.display = 'none';
+        isPreviewExpanded = false;
+        statusTxt.innerText = '当前状态: 360×508 单工位折叠态';
+        chevron.innerText = '▲ 展开大版物理预览';
+        document.getElementById('btnModeSingle').classList.add('active');
+        showToast('已切换至 360px 单工位折叠态');
+      } else {
+        shell.classList.remove('state-preview-expanded');
+        shell.classList.remove('state-single-station');
+        drawer.style.display = 'none';
+        isPreviewExpanded = false;
+        statusTxt.innerText = '当前状态: 880×508 双联折叠常态 (点击展开大预览)';
+        chevron.innerText = '▲ 展开大版物理预览 (245px)';
+        document.getElementById('btnModeNormal').classList.add('active');
+        showToast('已还原至 880×508 双联折叠常态');
+      }
+    }
+
+    function setDesktopBg(type) {
+      document.getElementById('btnBgWhite').classList.remove('active');
+      document.getElementById('btnBgDark').classList.remove('active');
+
+      if (type === 'dark') {
+        document.body.classList.add('dark-preview-stage');
+        document.getElementById('btnBgDark').classList.add('active');
+        showToast('已切换至工业深色工作台背景');
+      } else {
+        document.body.classList.remove('dark-preview-stage');
+        document.getElementById('btnBgWhite').classList.add('active');
+        showToast('已切换至纯白桌面 (检验 1px 硬边界防御与阴影立体感)');
+      }
+    }
+
+    // 辅助构建大版 Mockup
+    function buildPreviewMockup(count) {
+      const box = document.getElementById('previewMockupGrid');
+      if (!box) return;
+      box.innerHTML = '';
+      box.style.gridTemplateColumns = count === 32 ? 'repeat(8, 1fr)' : 'repeat(7, 1fr)';
+
+      for (let i = 1; i <= count; i++) {
+        const d = document.createElement('div');
+        d.className = 'mock-piece-cell';
+        d.innerText = `#${i}`;
+        box.appendChild(d);
+      }
+    }
+
+    // 右侧卡片联动交互
+    function selectMat(el, name) {
+      el.parentElement.querySelectorAll('.cell-mat-item').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      showToast(`已更换纸张材料预设: ${name}`);
+    }
+
+    function toggleFlowPart(el) {
+      el.parentElement.querySelectorAll('.seg-flow-part').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      showToast(`已切换工艺工序: ${el.innerText}`);
+    }
+
+    function toggleGroupCheck(gId) {
+      const chk = document.getElementById(`groupChk${gId}`);
+      chk.classList.toggle('checked');
+      showToast(chk.classList.contains('checked') ? `已勾选分组 #${gId} 全体文件` : `已取消勾选分组 #${gId}`);
+    }
+
+    function syncRightStationInfo(rowIndex) {
+      const item = fileItems[rowIndex];
+      document.getElementById('kpiTotalPieces').innerText = `${item.qty} 件`;
+    }
+
+    function runOneClickImposition() {
+      showToast('⚡ 一键智能排版执行成功！已写入印刷流水线工单。');
+    }
+
+    // Toast 提示
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById('actionToastLayer');
+      toast.innerText = msg;
+      toast.style.display = 'block';
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.style.display = 'none';
+      }, 2200);
+    }
+  </script>
+</body>
+</html>

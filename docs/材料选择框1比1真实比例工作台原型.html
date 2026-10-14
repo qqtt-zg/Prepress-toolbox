@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大诚印前工具箱 · 材料选择框 1:1 真实物理比例工作台原型</title>
+  <style>
+    /* 严格按照 Windows 10/11 96DPI 标准 1:1 像素定义，禁止任何全局缩放变形 */
+    :root {
+      --font-win: "Microsoft YaHei UI", -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Cascadia Mono', Consolas, "Courier New", monospace;
+
+      /* WinForms 绝对契约物理像素 */
+      --win-w: 880px;
+      --left-w: 520px;
+      --right-w: 360px;
+      --h-normal: 508px;
+      --h-expanded: 753px;
+      --titlebar-h: 26px;
+      --groundbar-h: 16px;
+      --toolbar-h: 34px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-win);
+      background-color: #e5e7eb;
+      background-image:
+        radial-gradient(#d1d5db 1px, transparent 1px);
+      background-size: 16px 16px;
+      color: #0f172a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      user-select: none;
+    }
+
+    /* 顶部精简微控制器（不抢占屏幕空间） */
+    .top-compact-bar {
+      width: var(--win-w);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 6px 14px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      font-size: 12px;
+    }
+    .top-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+    }
+    .pill-scale-badge {
+      background: #1677ff;
+      color: #fff;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-weight: bold;
+    }
+
+    .variant-switch-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn-switch {
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #cbd5e1;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-switch:hover { background: #334155; color: #fff; }
+    .btn-switch.active {
+      background: #1677ff;
+      border-color: #1677ff;
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(22, 119, 255, 0.4);
+    }
+    .btn-preview-toggle {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #fff;
+    }
+    .btn-preview-toggle.active {
+      background: #0369a1;
+    }
+
+    /* =========================================================================
+       880px × 508px 绝对物理尺寸窗体 (1:1 原画品质)
+       ========================================================================= */
+    .mock-window-frame {
+      width: var(--win-w);
+      height: var(--h-normal);
+      background: #ffffff;
+      border-radius: 4px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+      border: 1px solid #94a3b8; /* 方案 A 工业冷灰硬切线外框 */
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .mock-window-frame.expanded {
+      height: var(--h-expanded) !important;
+    }
+
+    /* 双舱垂直并排区域 */
+    .panes-horizontal-wrap {
+      display: flex;
+      width: var(--win-w);
+      flex: 1;
+      min-height: 0;
+      position: relative;
+    }
+
+    /* 左侧 520px 列表舱 */
+    .pane-left-520 {
+      width: var(--left-w);
+      background: #ffffff;
+      border-right: 1px solid #d4dbe4;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* 右侧 360px 工位舱 */
+    .pane-right-360 {
+      width: var(--right-w);
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* 顶部 26px 瑞士冷灰顶栏 (#eef2f6) */
+    .titlebar-fixed {
+      height: var(--titlebar-h);
+      background: #eef2f6;
+      border-bottom: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #0f172a;
+      flex-shrink: 0;
+    }
+
+    /* 最底部 16px 瑞士冷灰地基条 (#eef2f6) */
+    .groundbar-fixed {
+      height: var(--groundbar-h);
+      background: #eef2f6;
+      border-top: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 10px;
+      color: #64748b;
+      flex-shrink: 0;
+    }
+
+    /* =========================================================================
+       左侧 520px 内容排版
+       ========================================================================= */
+    .left-cards-area {
+      flex: 1;
+      padding: 4px 10px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .group-panel-card {
+      border: 1px solid #d4dbe4;
+      border-radius: 4px;
+      background: #ffffff;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .group-header-row {
+      height: 34px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      font-size: 11.5px;
+      flex-shrink: 0;
+    }
+
+    /* 工艺高亮微胶囊 */
+    .pill-gold {
+      font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 3px;
+      background: #fef3c7; color: #b45309; border: 1px solid #fde68a;
+    }
+    .pill-green {
+      font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 3px;
+      background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0;
+    }
+    .badge-linked-state {
+      margin-left: auto; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+      background: #f0fdf4; border: 1px solid #86efac; color: #16a34a;
+    }
+
+    /* =========================================================================
+       表格区：100% 真实比例尺寸，绝对禁止无谓缩放
+       ========================================================================= */
+    .table-real-scale {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      table-layout: fixed;
+    }
+    .table-real-scale th {
+      height: 26px;
+      background: #f8fafc;
+      color: #475569;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 0 6px;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+      white-space: nowrap;
+    }
+    .table-real-scale td {
+      height: 28px;
+      padding: 0 6px;
+      border-bottom: 1px solid #f1f5f9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #0f172a;
+      cursor: pointer;
+    }
+    .table-real-scale tr:hover td {
+      background: #f8fafc;
+    }
+
+    /* 选中行样式 */
+    .table-real-scale tr.row-active td {
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+
+    /* 变体 3-B 行岛增强 */
+    .mode-3b .table-real-scale tr.row-active td {
+      background: #eff6ff !important;
+    }
+    .mode-3b .table-real-scale tr.row-active td:first-child {
+      border-left: 3px solid #1677ff;
+    }
+
+    /* 单元格单点聚焦微蓝框 */
+    .cell-focus-ring {
+      outline: 2px solid #3b82f6 !important;
+      outline-offset: -2px;
+      background: #dbeafe !important;
+    }
+
+    .qty-chip {
+      display: inline-block;
+      min-width: 22px;
+      text-align: center;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      font-size: 10.5px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: #334155;
+    }
+    .layout-val-bold {
+      font-weight: 700;
+      color: #0284c7;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    /* =========================================================================
+       左侧底部操作栏：严格修复换行！单行舒展排布 (高度34px)
+       ========================================================================= */
+    .left-toolbar-real {
+      height: var(--toolbar-h);
+      background: #ffffff;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      flex-shrink: 0;
+    }
+
+    .btn-real-ant {
+      height: 26px;
+      padding: 0 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap !important; /* 100% 杜绝文字换行！ */
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #334155;
+      transition: all 0.15s;
+      line-height: 1;
+    }
+    .btn-real-ant:hover {
+      border-color: #1677ff;
+      color: #1677ff;
+      background: #f8fafc;
+    }
+    .btn-real-ant.primary-tint {
+      background: #e6f4ff;
+      border-color: #91caff;
+      color: #0958d9;
+      font-weight: 700;
+    }
+    .btn-real-ant.primary-tint:hover {
+      background: #bae0ff;
+      border-color: #1677ff;
+    }
+    .btn-real-ant.danger-tint {
+      background: #fff1f0;
+      border-color: #ffa39e;
+      color: #cf1322;
+      font-weight: 700;
+    }
+    .btn-real-ant.danger-tint:hover {
+      background: #ffccc7;
+      border-color: #ff4d4f;
+    }
+    .btn-real-ant.danger-border {
+      background: #ffffff;
+      border-color: #ffa39e;
+      color: #cf1322;
+    }
+    .btn-real-ant.danger-border:hover {
+      background: #fff1f0;
+    }
+
+    /* 快捷键微徽标（并排等宽微字，绝不挤压文字） */
+    .kbd-tag {
+      font-size: 9px;
+      background: rgba(0,0,0,0.05);
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 3px;
+      padding: 1px 4px;
+      color: #64748b;
+      font-family: var(--font-mono);
+      font-weight: normal;
+    }
+
+    /* =========================================================================
+       右侧 360px 工位区（严格 1:1 还原 C# V5 控件）
+       ========================================================================= */
+    .station-v5-stack {
+      height: 466px;
+      padding: 4px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .v5-box {
+      border: 1px solid #d4dbe4;
+      border-radius: 4px;
+      padding: 4px 6px;
+      background: #fff;
+    }
+    .grid-mat-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+    .cell-mat {
+      height: 24px; border: 1px solid #cbd5e1; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10.5px;
+    }
+    .cell-mat.active { background: #1677ff; border-color: #1677ff; color: #fff; font-weight: bold; }
+    .row-path-v5 { height: 24px; display: flex; align-items: center; justify-content: space-between; font-size: 11px; }
+    .seg-pill-2 { display: flex; gap: 4px; }
+    .seg-box { flex: 1; height: 24px; background: #f1f5f9; border-radius: 3px; display: flex; padding: 2px; gap: 2px; }
+    .seg-item { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+    .seg-item.active { background: #fff; font-weight: bold; border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+    .grid-2x2-form { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; padding: 4px; background: #fafbfc; border-radius: 4px; border: 1px solid #eef2f6; }
+    .grid-2x2-form input { height: 22px; border: 1px solid #cbd5e1; border-radius: 3px; padding: 0 4px; width: 100%; font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+    .imposition-board-v5 { border: 1px solid #91caff; border-radius: 4px; padding: 4px; display: flex; flex-direction: column; gap: 3px; }
+    .metrics-6-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; background: #f0f7ff; border-radius: 3px; padding: 3px 2px; text-align: center; }
+    .metrics-6-grid .lbl { font-size: 8.5px; color: #64748b; }
+    .metrics-6-grid .val { font-size: 11px; font-weight: bold; font-family: var(--font-mono); }
+    .presets-row-v5 { display: flex; gap: 4px; }
+    .preset-pill-v5 { font-size: 9.5px; padding: 2px 6px; border-radius: 10px; background: #f1f5f9; border: 1px solid #cbd5e1; }
+    .actions-foot-v5 { height: 32px; display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
+    .btn-main-submit { width: 105px; height: 24px; background: #1677ff; color: #fff; border: none; border-radius: 3px; font-weight: 700; font-size: 11px; cursor: pointer; }
+    .btn-main-cancel { width: 50px; height: 24px; background: #fff; border: 1px solid #cbd5e1; border-radius: 3px; font-size: 11px; cursor: pointer; }
+
+    /* 折叠手柄条（16px） */
+    .collapse-handle-16 {
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 10px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* 右侧 245px PDF 预览区 (展开时显示，高245px) */
+    .preview-zone-245 {
+      height: 0px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: #f1f5f9;
+      border-top: 1px solid #cbd5e1;
+      transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .mock-window-frame.expanded .preview-zone-245 {
+      height: 245px !important;
+    }
+
+    .preview-canvas-center {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .pdf-real-sheet {
+      width: 280px;
+      height: 155px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border-radius: 2px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .crop-dashed-box {
+      border: 1px dashed #ef4444;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* 预览区 16px 冷灰状态封底栏 (与左侧底栏像素级齐平！) */
+    .preview-footer-16 {
+      height: 16px;
+      background: #eef2f6;
+      border-top: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 9.5px;
+      color: #64748b;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    /* =========================================================================
+       高保真 AntdUI 风格右键菜单 (Context Menu)
+       ========================================================================= */
+    .ctx-menu-box {
+      position: absolute;
+      z-index: 9999;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+      padding: 4px;
+      min-width: 175px;
+      display: none;
+    }
+    .ctx-title {
+      font-size: 10px; color: #94a3b8; padding: 4px 8px 2px; font-weight: 700; border-bottom: 1px solid #f1f5f9;
+    }
+    .ctx-row {
+      padding: 6px 10px; border-radius: 4px; font-size: 11.5px; color: #1e293b; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .ctx-row:hover { background: #f1f5f9; color: #1677ff; }
+    .ctx-row.danger { color: #dc2626; }
+    .ctx-row.danger:hover { background: #fef2f2; color: #ef4444; }
+    .ctx-sep { height: 1px; background: #e2e8f0; margin: 3px 0; }
+    .ctx-code { font-size: 9.5px; color: #94a3b8; font-family: var(--font-mono); }
+  </style>
+</head>
+<body class="mode-3a" id="realBody" onclick="closeContextMenu()">
+
+  <!-- 顶部轻量级比例控制条 -->
+  <header class="top-compact-bar">
+    <div class="top-brand">
+      <span>大诚印前工具箱</span>
+      <span class="pill-scale-badge">100% 真实 1:1 比例</span>
+      <span style="color: #94a3b8; font-weight: normal; font-size: 11px;">880px × 508px (展开753px)</span>
+    </div>
+
+    <div class="variant-switch-row">
+      <button class="btn-switch active" id="btnVar3A" onclick="setMode('3a')">变体 3-A: Fluent 经典精工</button>
+      <button class="btn-switch" id="btnVar3B" onclick="setMode('3b')">变体 3-B: Ant Design Pro 紧凑行岛</button>
+      <button class="btn-switch btn-preview-toggle" id="btnTogglePreview" onclick="toggleExpandPreview()">
+        <span id="txtExpandIco">▼</span> 展开预览 (+245px)
+      </button>
+    </div>
+  </header>
+
+  <!-- 880px 双联实体窗体舞台 -->
+  <main class="mock-window-frame" id="windowFrame">
+
+    <!-- 双舱并排主体 -->
+    <div class="panes-horizontal-wrap">
+
+      <!-- ================= 左侧 520px 批处理列表舱 ================= -->
+      <section class="pane-left-520">
+        <!-- 顶部 26px 瑞士冷灰顶栏 (#eef2f6) -->
+        <div class="titlebar-fixed">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span>待处理批次</span>
+            <span style="font-size: 10.5px; background: #e0f2fe; color: #0284c7; padding: 1px 6px; border-radius: 10px; font-weight: 600;">4 款 · 1 组</span>
+          </div>
+          <span style="font-size: 10px; color: #64748b; font-weight: normal;">右键任意行/数量可弹出菜单</span>
+        </div>
+
+        <!-- 卡片流容器 (flex: 1 自动充满高度) -->
+        <div class="left-cards-area">
+          <div class="group-panel-card">
+            <!-- 组头 34px -->
+            <div class="group-header-row">
+              <span style="font-size: 10px; color: #64748b;">▾</span>
+              <span style="font-weight: 700; color: #0f172a;">【一组】</span>
+              <span style="font-size: 9.5px; background: #e2e8f0; color: #334155; padding: 1px 5px; border-radius: 3px; font-weight: 600;">4款新单</span>
+              <span class="pill-gold">50#yy</span>
+              <span class="pill-green">光膜</span>
+              <span style="font-size: 10px; color: #64748b;">平张 · 连拼 · 黑白 · 圆角R2</span>
+              <div class="badge-linked-state">联动中</div>
+            </div>
+
+            <!-- 数据表格 (100% 真实比例 · 中文列头 · 平滑无竖线) -->
+            <table class="table-real-scale">
+              <thead>
+                <tr>
+                  <th style="width: 28px; text-align: center;">#</th>
+                  <th style="width: 172px;">文件名</th>
+                  <th style="width: 60px;">订单号</th>
+                  <th style="width: 38px; text-align: center;">数量</th>
+                  <th style="width: 44px; text-align: center;">页数</th>
+                  <th style="width: 100px;">成品尺寸</th>
+                  <th style="width: 78px; text-align: center;">排版数</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="row-active" oncontextmenu="showRowMenu(event, 0)" onclick="clickRow(this, 0)">
+                  <td style="text-align: center; color: #94a3b8; font-family: var(--font-mono);">01</td>
+                  <td style="font-family: var(--font-mono); font-size: 10.5px;">铭牌_A款_80×45mm.pdf</td>
+                  <td><span style="font-family: var(--font-mono);">0834-1-4</span></td>
+                  <td style="text-align: center;" oncontextmenu="showQtyMenu(event, 0, event.target)"><span class="qty-chip">1</span></td>
+                  <td style="text-align: center; color: #64748b;">1P</td>
+                  <td style="font-family: var(--font-mono); font-weight: 600;" oncontextmenu="showDimMenu(event, 0, event.target)">77×42 R2</td>
+                  <td style="text-align: center;"><span class="layout-val-bold">5×7 · 35</span></td>
+                </tr>
+
+                <tr oncontextmenu="showRowMenu(event, 1)" onclick="clickRow(this, 1)">
+                  <td style="text-align: center; color: #94a3b8; font-family: var(--font-mono);">02</td>
+                  <td style="font-family: var(--font-mono); font-size: 10.5px;">铭牌_B款_80×45mm.pdf</td>
+                  <td><span style="font-family: var(--font-mono);">0834-1-5</span></td>
+                  <td style="text-align: center;" oncontextmenu="showQtyMenu(event, 1, event.target)"><span class="qty-chip">1</span></td>
+                  <td style="text-align: center; color: #64748b;">1P</td>
+                  <td style="font-family: var(--font-mono); font-weight: 600;" oncontextmenu="showDimMenu(event, 1, event.target)">77×42 R2</td>
+                  <td style="text-align: center;"><span class="layout-val-bold">5×7 · 35</span></td>
+                </tr>
+
+                <tr oncontextmenu="showRowMenu(event, 2)" onclick="clickRow(this, 2)">
+                  <td style="text-align: center; color: #94a3b8; font-family: var(--font-mono);">03</td>
+                  <td style="font-family: var(--font-mono); font-size: 10.5px;">铭牌_C款_80×45mm.pdf</td>
+                  <td><span style="font-family: var(--font-mono);">0834-1-6</span></td>
+                  <td style="text-align: center;" oncontextmenu="showQtyMenu(event, 2, event.target)"><span class="qty-chip">1</span></td>
+                  <td style="text-align: center; color: #64748b;">1P</td>
+                  <td style="font-family: var(--font-mono); font-weight: 600;" oncontextmenu="showDimMenu(event, 2, event.target)">77×42 R2</td>
+                  <td style="text-align: center;"><span class="layout-val-bold">5×7 · 35</span></td>
+                </tr>
+
+                <tr oncontextmenu="showRowMenu(event, 3)" onclick="clickRow(this, 3)">
+                  <td style="text-align: center; color: #94a3b8; font-family: var(--font-mono);">04</td>
+                  <td style="font-family: var(--font-mono); font-size: 10.5px;">德佰仕75x15.pdf</td>
+                  <td><span style="font-family: var(--font-mono);">0834-1-7</span></td>
+                  <td style="text-align: center;" oncontextmenu="showQtyMenu(event, 3, event.target)"><span class="qty-chip">1</span></td>
+                  <td style="text-align: center; color: #64748b;">1P</td>
+                  <td style="font-family: var(--font-mono); font-weight: 600;" oncontextmenu="showDimMenu(event, 3, event.target)">72×12 R2</td>
+                  <td style="text-align: center;"><span class="layout-val-bold">35×4 · 140</span></td>
+                </tr>
+
+                <!-- 在展开预览时展现的高容量数据行 -->
+                <tr class="extra-preview-row" style="display: none; color: #94a3b8;">
+                  <td style="text-align: center;">05</td>
+                  <td style="font-family: var(--font-mono);">德佰仕100x50.pdf</td>
+                  <td>0834-1-8</td>
+                  <td style="text-align: center;"><span class="qty-chip">1</span></td>
+                  <td style="text-align: center;">1P</td>
+                  <td style="font-family: var(--font-mono);">97×47 R2</td>
+                  <td style="text-align: center;">20×3 · 60</td>
+                </tr>
+                <tr class="extra-preview-row" style="display: none; color: #94a3b8;">
+                  <td style="text-align: center;">06</td>
+                  <td style="font-family: var(--font-mono);">PET铭牌_备用款.pdf</td>
+                  <td>0834-1-9</td>
+                  <td style="text-align: center;"><span class="qty-chip">1</span></td>
+                  <td style="text-align: center;">1P</td>
+                  <td style="font-family: var(--font-mono);">80×45</td>
+                  <td style="text-align: center;">5×7 · 35</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 底部 34px 工具栏：单行绝对舒展，绝不折行！ -->
+        <div class="left-toolbar-real">
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button class="btn-real-ant">▲ 上移 <span class="kbd-tag">↑</span></button>
+            <button class="btn-real-ant">▼ 下移 <span class="kbd-tag">↓</span></button>
+            <button class="btn-real-ant primary-tint">➕ 分出新组 <span class="kbd-tag" style="background: rgba(9,88,217,0.1); color: #0958d9;">Ctrl+G</span></button>
+            <button class="btn-real-ant">↻ 重新解析</button>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button class="btn-real-ant danger-tint">🗑️ 删除行 <span class="kbd-tag" style="background: rgba(207,19,34,0.1); color: #cf1322;">Del</span></button>
+            <button class="btn-real-ant danger-border">批量取消</button>
+          </div>
+        </div>
+
+        <!-- 最底 16px 瑞士冷灰地基条 (#eef2f6) -->
+        <div class="groundbar-fixed">
+          <span>💡 提示：按住 Ctrl 可多选分出新组；Delete 移入取消目录</span>
+        </div>
+      </section>
+
+
+      <!-- ================= 右侧 360px 工位舱 ================= -->
+      <section class="pane-right-360">
+        <!-- 顶部 26px 瑞士冷灰顶栏 (#eef2f6) -->
+        <div class="titlebar-fixed">
+          <span id="txtRightDetailTitle">铭牌_A款_80×45 mm</span>
+          <span style="color: #1677ff; cursor: pointer; font-size: 12px;">📌 钉住</span>
+        </div>
+
+        <!-- 466px 工位卡片区 -->
+        <div class="station-v5-stack">
+          <!-- 常用材料 -->
+          <div class="v5-box">
+            <div style="font-size: 9.5px; color: #64748b; font-weight: bold; margin-bottom: 2px;">常用材料</div>
+            <div class="grid-mat-4">
+              <div class="cell-mat">ulyy</div>
+              <div class="cell-mat active">50#yy</div>
+              <div class="cell-mat">100#yy</div>
+              <div class="cell-mat">b</div>
+              <div class="cell-mat">kyb</div>
+              <div class="cell-mat">hc</div>
+              <div class="cell-mat">kyhc</div>
+              <div class="cell-mat">tm</div>
+            </div>
+          </div>
+
+          <!-- 输出路径 -->
+          <div class="v5-box">
+            <div class="row-path-v5">
+              <span>输出: <strong style="color: #08979c;">前台\A3\一刀出血</strong></span>
+              <span style="color: #64748b;">📁 切换目录 ▾</span>
+            </div>
+          </div>
+
+          <!-- 工艺矩阵 -->
+          <div class="v5-box">
+            <div class="seg-pill-2">
+              <div class="seg-box">
+                <div class="seg-item active">光膜</div>
+                <div class="seg-item">哑膜</div>
+                <div class="seg-item">红膜</div>
+                <div class="seg-item">不过膜</div>
+              </div>
+            </div>
+            <div class="seg-pill-2" style="margin-top: 3px;">
+              <div class="seg-box">
+                <div class="seg-item">直角</div>
+                <div class="seg-item">圆形</div>
+                <div class="seg-item">异形</div>
+                <div class="seg-item active">圆角 R2</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 工单 2x2 -->
+          <div class="v5-box">
+            <div class="grid-2x2-form">
+              <input type="text" id="iptOrderDetail" value="订单: 0834-1-4" readonly>
+              <input type="text" value="序号: A08" readonly>
+              <input type="text" value="数量: 1" readonly>
+              <input type="text" value="页序: 未启用" readonly>
+            </div>
+          </div>
+
+          <!-- 6 宫格排版看板 -->
+          <div class="imposition-board-v5">
+            <div style="display: flex; justify-content: space-between; font-size: 10px;">
+              <span style="font-weight: bold; color: #1677ff;">☑ 自动排版</span>
+              <span style="color: #64748b;">[平张] [连拼]</span>
+            </div>
+            <div class="metrics-6-grid">
+              <div class="metrics-6-grid .lbl" style="display: flex; flex-direction: column;"><span style="font-size:8.5px;color:#64748b;">网格</span><span style="font-size:11px;font-weight:bold;color:#0958d9;font-family:var(--font-mono);">5×6</span></div>
+              <div style="display: flex; flex-direction: column;"><span style="font-size:8.5px;color:#64748b;">布局数</span><span style="font-size:11px;font-weight:bold;color:#d46b08;font-family:var(--font-mono);">30</span></div>
+              <div style="display: flex; flex-direction: column;"><span style="font-size:8.5px;color:#64748b;">角度</span><span style="font-size:11px;font-weight:bold;color:#722ed1;font-family:var(--font-mono);">270°</span></div>
+              <div style="display: flex; flex-direction: column;"><span style="font-size:8.5px;color:#64748b;">尺寸</span><span style="font-size:11px;font-weight:bold;color:#08979c;font-family:var(--font-mono);" id="valDetailDim">80×45</span></div>
+              <div style="display: flex; flex-direction: column;"><span style="font-size:8.5px;color:#64748b;">出血</span><span style="font-size:11px;font-weight:bold;color:#eb2f96;font-family:var(--font-mono);">0</span></div>
+              <div style="display: flex; flex-direction: column;"><span style="font-size:8.5px;color:#64748b;">颜色</span><span style="font-size:11px;font-weight:bold;color:#13c2c2;font-family:var(--font-mono);">黑白</span></div>
+            </div>
+          </div>
+
+          <!-- 预设胶囊 -->
+          <div class="presets-row-v5">
+            <span class="preset-pill-v5">前台 · 滚直缝折手</span>
+            <span class="preset-pill-v5">裁断 · 一刀</span>
+            <span class="preset-pill-v5">前连拼</span>
+          </div>
+
+          <!-- 确认操作栏 -->
+          <div class="actions-foot-v5">
+            <span style="font-size: 11px; color: #1677ff; font-weight: 600;">➜ 仅处理当前款</span>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn-main-cancel">取消</button>
+              <button class="btn-main-submit">确认并继续</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 16px 瑞士冷灰折叠手柄 (#eef2f6) -->
+        <div class="collapse-handle-16" onclick="toggleExpandPreview()">
+          <span>页码: —</span>
+          <span id="txtHandleArrow">▼ 点击展开预览 (+245px)</span>
+        </div>
+
+        <!-- 245px PDF 预览区 (展开时显示) -->
+        <div class="preview-zone-245">
+          <div class="preview-canvas-center">
+            <div class="pdf-real-sheet">
+              <div style="font-size: 10px; color: #64748b; font-weight: bold; display: flex; justify-content: space-between;">
+                <span>PDF 页面 1 (80×45 mm)</span>
+                <span style="color: #10b981;">● 正常</span>
+              </div>
+              <div class="crop-dashed-box">
+                [ 铭牌_A款 真实比例排版预览 ]<br>
+                <span style="font-size: 9.5px; color: #cbd5e1;">MediaBox: 80×45 | CropBox: 80×45</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #94a3b8;">
+                <span>出血: 1.5mm (红虚线)</span>
+                <span>适应窗口 (100%)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 16px 冷灰状态封底栏 (高度与底色与左侧底栏像素级绝对对齐！) -->
+          <div class="preview-footer-16">
+            <span>📄 PDFium 高精度矢量排版预览内核</span>
+            <span style="cursor: pointer;" onclick="toggleExpandPreview()">▲ 点击收起预览</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- 右键菜单 1：行级工单菜单 -->
+    <div class="ctx-menu-box" id="ctxRow">
+      <div class="ctx-title">工单批次操作</div>
+      <div class="ctx-row" onclick="alert('执行：分出新组 (自立新工艺组)')">
+        <span>➕ 分出新组</span><span class="ctx-code">Ctrl+G</span>
+      </div>
+      <div class="ctx-row" onclick="alert('执行：重新解析该文件规格')">
+        <span>↻ 重新解析此款</span><span class="ctx-code">F5</span>
+      </div>
+      <div class="ctx-row" onclick="alert('执行：在资源管理器中打开')">
+        <span>📂 打开所在文件夹</span>
+      </div>
+      <div class="ctx-sep"></div>
+      <div class="ctx-row danger" onclick="alert('执行：移入取消文件目录')">
+        <span>🗑️ 移入取消目录</span><span class="ctx-code">Del</span>
+      </div>
+    </div>
+
+    <!-- 右键菜单 2：数量列菜单 -->
+    <div class="ctx-menu-box" id="ctxQty">
+      <div class="ctx-title">数量批量处理 (C#真实对齐)</div>
+      <div class="ctx-row" onclick="alert('弹出：从文件名正则提取数量')">
+        <span>🔍 从文件名提取数量...</span>
+      </div>
+      <div class="ctx-row" onclick="alert('弹出：按当前数量批量增量')">
+        <span>➕ 按当前数量批量增量...</span>
+      </div>
+      <div class="ctx-row" onclick="alert('弹出：批量设置数量对话框')">
+        <span>✏️ 批量设置数量...</span>
+      </div>
+      <div class="ctx-sep"></div>
+      <div class="ctx-row" onclick="alert('执行：从剪贴板粘贴数量列表')">
+        <span>📋 从剪贴板粘贴数量</span><span class="ctx-code">Ctrl+V</span>
+      </div>
+    </div>
+
+    <!-- 右键菜单 3：页面框菜单 -->
+    <div class="ctx-menu-box" id="ctxDim">
+      <div class="ctx-title">页面框选用基准</div>
+      <div class="ctx-row" onclick="alert('选用：MediaBox 媒体框基准')">
+        <span>✔ 选用媒体框 (MediaBox)</span>
+      </div>
+      <div class="ctx-row" onclick="alert('选用：CropBox 裁剪框基准')">
+        <span>选用裁剪框 (CropBox)</span>
+      </div>
+      <div class="ctx-sep"></div>
+      <div class="ctx-row" onclick="alert('执行：自定义微调成品尺寸')">
+        <span>📐 自定义尺寸...</span>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const sampleFiles = [
+      { name: '铭牌_A款_80×45 mm.pdf', order: '0834-1-4', dim: '80×45' },
+      { name: '铭牌_B款_80×45 mm.pdf', order: '0834-1-5', dim: '80×45' },
+      { name: '铭牌_C款_80×45 mm.pdf', order: '0834-1-6', dim: '80×45' },
+      { name: '德佰仕75x15.pdf', order: '0834-1-7', dim: '75×15' }
+    ];
+
+    function setMode(modeKey) {
+      document.body.className = 'mode-' + modeKey;
+      document.getElementById('btnVar3A').classList.toggle('active', modeKey === '3a');
+      document.getElementById('btnVar3B').classList.toggle('active', modeKey === '3b');
+    }
+
+    let isExpanded = false;
+    function toggleExpandPreview() {
+      isExpanded = !isExpanded;
+      const frame = document.getElementById('windowFrame');
+      const extraRows = document.querySelectorAll('.extra-preview-row');
+      const btn = document.getElementById('btnTogglePreview');
+      const txtHandle = document.getElementById('txtHandleArrow');
+
+      if (isExpanded) {
+        frame.classList.add('expanded');
+        btn.classList.add('active');
+        btn.innerHTML = '▲ 收起预览 (508px)';
+        txtHandle.innerText = '▲ 点击折叠预览';
+        extraRows.forEach(r => r.style.display = 'table-row');
+      } else {
+        frame.classList.remove('expanded');
+        btn.classList.remove('active');
+        btn.innerHTML = '<span id="txtExpandIco">▼</span> 展开预览 (+245px)';
+        txtHandle.innerText = '▼ 点击展开预览 (+245px)';
+        extraRows.forEach(r => r.style.display = 'none');
+      }
+    }
+
+    function clickRow(trEl, index) {
+      closeContextMenu();
+      const tbody = trEl.parentElement;
+      Array.from(tbody.children).forEach(r => {
+        r.classList.remove('row-active');
+        Array.from(r.children).forEach(td => td.classList.remove('cell-focus-ring'));
+      });
+      trEl.classList.add('row-active');
+
+      const f = sampleFiles[index];
+      document.getElementById('txtRightDetailTitle').innerText = f.name;
+      document.getElementById('iptOrderDetail').value = '订单: ' + f.order;
+      document.getElementById('valDetailDim').innerText = f.dim;
+    }
+
+    function closeContextMenu() {
+      document.getElementById('ctxRow').style.display = 'none';
+      document.getElementById('ctxQty').style.display = 'none';
+      document.getElementById('ctxDim').style.display = 'none';
+    }
+
+    function showRowMenu(e, index) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeContextMenu();
+
+      clickRow(e.currentTarget, index);
+
+      const m = document.getElementById('ctxRow');
+      const frame = document.getElementById('windowFrame');
+      const r = frame.getBoundingClientRect();
+      m.style.left = (e.clientX - r.left) + 'px';
+      m.style.top = (e.clientY - r.top) + 'px';
+      m.style.display = 'block';
+    }
+
+    function showQtyMenu(e, index, el) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeContextMenu();
+
+      const td = el.closest('td');
+      if (td) td.classList.add('cell-focus-ring');
+
+      const m = document.getElementById('ctxQty');
+      const frame = document.getElementById('windowFrame');
+      const r = frame.getBoundingClientRect();
+      m.style.left = (e.clientX - r.left) + 'px';
+      m.style.top = (e.clientY - r.top) + 'px';
+      m.style.display = 'block';
+    }
+
+    function showDimMenu(e, index, el) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeContextMenu();
+
+      const td = el.closest('td');
+      if (td) td.classList.add('cell-focus-ring');
+
+      const m = document.getElementById('ctxDim');
+      const frame = document.getElementById('windowFrame');
+      const r = frame.getBoundingClientRect();
+      m.style.left = (e.clientX - r.left) + 'px';
+      m.style.top = (e.clientY - r.top) + 'px';
+      m.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

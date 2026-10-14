@@ -127,7 +127,7 @@ namespace WindowsFormsApp3
             {
                 _initialWidth = item.RawPdfWidth;
                 _initialHeight = item.RawPdfHeight;
-                UpdateDimensionsWithBleed();
+                UpdateDimensionsWithBleed(false);
                 RefreshPageBoxLayout();
             }
             UpdateFormTitleWithFileName(System.IO.Path.GetFileNameWithoutExtension(item.FileName));
@@ -167,7 +167,7 @@ namespace WindowsFormsApp3
                 {
                     // Visible 会受整个窗口或左侧面板隐藏影响，卡片高度应仅由该组折叠状态决定。
                     bool collapsed = (grid.Tag as BatchProcessGroup)?.IsCollapsed == true;
-                    card.Height = header.Height + (collapsed ? 0 : grid.Height + 2);
+                    card.Height = header.Height + (collapsed ? 0 : grid.Height);
                     RelayoutCards();
                 }
             }

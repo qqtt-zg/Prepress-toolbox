@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大诚印前工具箱 · 材料选择框整窗审美方案全景比选</title>
+  <style>
+    :root {
+      --bg: #090e15;
+      --panel-bg: #111a24;
+      --card-dark: #192635;
+      --border-dark: #243547;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", sans-serif;
+      --font-mono: 'Cascadia Mono', Consolas, monospace;
+
+      /* 真实窗体物理尺寸 */
+      --station-width: 360px;
+      --batch-width: 520px;
+      --workbench-width: 880px;
+      --collapsed-client-height: 508px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg);
+      color: #e2e8f0;
+      padding: 16px 24px 40px;
+      min-height: 100vh;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* 顶部控制栏 */
+    .top-header {
+      max-width: 1360px;
+      margin: 0 auto 16px;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-tag {
+      background: #1677ff;
+      color: #fff;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+    .brand-title h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    .brand-title span.sub {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    /* 4 套方案 Tab 切换器 */
+    .scheme-tabs {
+      display: flex;
+      gap: 6px;
+      background: #0b1219;
+      padding: 4px;
+      border-radius: 6px;
+      border: 1px solid #1e2c3c;
+    }
+    .tab-btn {
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #94a3b8;
+      border: none;
+      background: transparent;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tab-btn:hover {
+      color: #f1f5f9;
+      background: rgba(255,255,255,0.06);
+    }
+    .tab-btn.active {
+      background: #1677ff;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(22, 119, 255, 0.4);
+    }
+
+    /* 方案核心概述指示卡 */
+    .scheme-info-banner {
+      max-width: 1360px;
+      margin: 0 auto 16px;
+      background: #131f2c;
+      border: 1px solid #23364a;
+      border-left: 4px solid #1677ff;
+      border-radius: 6px;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12.5px;
+    }
+    .scheme-info-banner .title {
+      font-weight: 700;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .scheme-info-banner .desc {
+      color: #94a3b8;
+      margin-left: 12px;
+      font-weight: normal;
+    }
+    .scheme-tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: rgba(22,119,255,0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(22,119,255,0.3);
+    }
+
+    /* 真实窗体舞台 */
+    .stage-wrapper {
+      max-width: 1360px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    /* =========================================================================
+       880px 真实物理双联窗体外壳
+       ========================================================================= */
+    .mock-window {
+      width: var(--workbench-width);
+      height: var(--collapsed-client-height);
+      border-radius: 6px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+      border: 1px solid #475569;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+      user-select: none;
+    }
+
+    /* 左右分舱：左 520px，右 360px */
+    .mock-left-pane {
+      width: var(--batch-width);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100%;
+      position: relative;
+    }
+    .mock-right-pane {
+      width: var(--station-width);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100%;
+      position: relative;
+    }
+
+    /* =========================================================================
+       右侧工位通用部件（100% 还原 C# 当前结构，仅变底色与线框）
+       ========================================================================= */
+    .right-titlebar {
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      font-size: 11.5px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .right-content {
+      flex: 1;
+      padding: 6px 10px 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      overflow: hidden;
+    }
+    .v5-card {
+      border-radius: 4px;
+      padding: 5px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .mat-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+    }
+    .mat-btn {
+      height: 24px;
+      font-size: 10.5px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .path-row {
+      height: 24px;
+      border-radius: 3px;
+      padding: 0 6px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .craft-row { display: flex; gap: 4px; }
+    .seg-pill-box {
+      flex: 1;
+      height: 24px;
+      border-radius: 3px;
+      display: flex;
+      padding: 2px;
+      gap: 2px;
+    }
+    .seg-pill-item {
+      flex: 1;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    .grid-2x2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 8px;
+      padding: 4px;
+      border-radius: 4px;
+    }
+    .cell-input {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+    }
+    .cell-input label { font-size: 10.5px; width: 28px; }
+    .cell-input input {
+      flex: 1;
+      height: 22px;
+      border-radius: 3px;
+      padding: 0 4px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      outline: none;
+    }
+    /* 6 宫格看板 */
+    .board-box {
+      border-radius: 4px;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .board-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10.5px;
+      padding: 0 2px;
+    }
+    .metrics-6 {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 2px;
+      border-radius: 3px;
+      padding: 3px 2px;
+      text-align: center;
+    }
+    .metric-item { display: flex; flex-direction: column; gap: 1px; }
+    .metric-item .lbl { font-size: 8.5px; }
+    .metric-item .val { font-size: 11px; font-weight: 700; font-family: var(--font-mono); }
+    .preset-row { display: flex; gap: 4px; overflow: hidden; }
+    .preset-chip {
+      font-size: 9.5px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      white-space: nowrap;
+    }
+    /* 右侧操作栏 */
+    .right-action-bar {
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-top: auto;
+    }
+    .btn-rt-mode {
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+    }
+    .right-btn-group { display: flex; gap: 6px; }
+    .btn-rt-cancel {
+      width: 50px;
+      height: 24px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-rt-confirm {
+      width: 105px;
+      height: 24px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 右侧折叠底栏 (16px) */
+    .collapse-bar-16 {
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 10px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* =========================================================================
+       左侧列表通用部件（520px）
+       ========================================================================= */
+    .left-header-36 {
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 12.5px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .left-cards-fill {
+      flex: 1;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+    }
+    .grp-card-container {
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .grp-head-34 {
+      height: 34px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 11.5px;
+    }
+    .pill-mat-gold {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 3px;
+      background: #fef3c7;
+      color: #b45309;
+      border: 1px solid #fde68a;
+    }
+    .pill-film-green {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 3px;
+      background: #f0fdf4;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+    }
+    .badge-lock {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    /* 表格 */
+    .data-table-v5 {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      table-layout: fixed;
+    }
+    .data-table-v5 th {
+      height: 26px;
+      padding: 0 6px;
+      font-size: 10px;
+      font-weight: 600;
+      text-align: left;
+    }
+    .data-table-v5 td {
+      height: 28px;
+      padding: 0 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+
+    /* 左侧底部操作栏 (34px) */
+    .left-toolbar-34 {
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      flex-shrink: 0;
+    }
+    .tb-group { display: flex; align-items: center; gap: 6px; }
+    .tb-btn-tool {
+      height: 26px;
+      padding: 0 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    /* 左侧底部状态条 (16px) */
+    .left-status-16 {
+      height: 16px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+
+    /* =========================================================================
+       4 大方案配色专属规则 (THEME DEFINITIONS)
+       ========================================================================= */
+
+    /* ──────── 方案 1: 通体纯白 · 瑞士工业风 (Pure Studio White) ──────── */
+    .scheme-1 .mock-window { background: #ffffff; color: #1e293b; border-color: #cbd5e1; }
+    .scheme-1 .mock-left-pane { background: #ffffff; border-right: 1px solid #d4dbe4; }
+    .scheme-1 .mock-right-pane { background: #ffffff; }
+
+    .scheme-1 .left-header-36 { background: #ffffff; border-bottom: 1px solid #e2e8f0; color: #0f172a; }
+    .scheme-1 .left-cards-fill { background: #ffffff; }
+    .scheme-1 .grp-card-container { background: #ffffff; border: 1px solid #d4dbe4; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+    .scheme-1 .grp-head-34 { background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
+    .scheme-1 .badge-lock { background: #f0fdf4; border: 1px solid #86efac; color: #16a34a; }
+
+    .scheme-1 .data-table-v5 th { background: #f8fafc; color: #475569; border-bottom: 1px solid #e2e8f0; }
+    .scheme-1 .data-table-v5 td { border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+    .scheme-1 .data-table-v5 tr:hover td { background: #f8fafc; }
+    .scheme-1 .data-table-v5 tr.active td { background: #eff6ff; color: #1d4ed8; font-weight: 600; }
+
+    .scheme-1 .left-toolbar-34 { background: #ffffff; border-top: 1px solid #e2e8f0; }
+    .scheme-1 .left-status-16 { background: #f0f2f5; border-top: 1px solid #e2e8f0; color: #8c95a3; }
+    .scheme-1 .collapse-bar-16 { background: #f0f2f5; border-top: 1px solid #e2e8f0; color: #8c95a3; }
+
+    .scheme-1 .right-titlebar { background: #ffffff; border-bottom: 1px solid #e2e8f0; color: #0f172a; }
+    .scheme-1 .v5-card { background: #ffffff; border: 1px solid #d4dbe4; }
+    .scheme-1 .mat-btn { background: #ffffff; border: 1px solid #cbd5e1; color: #334155; }
+    .scheme-1 .mat-btn.active { background: #1677ff; border-color: #1677ff; color: #fff; font-weight: 700; }
+    .scheme-1 .path-row { background: #f8fafc; border: 1px solid #cbd5e1; color: #334155; }
+    .scheme-1 .seg-pill-box { background: #f1f5f9; }
+    .scheme-1 .seg-pill-item.active { background: #ffffff; color: #0f172a; font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+    .scheme-1 .grid-2x2 { background: #fafbfc; border: 1px solid #eef2f6; }
+    .scheme-1 .cell-input input { background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; }
+    .scheme-1 .board-box { background: #ffffff; border: 1px solid #91caff; }
+    .scheme-1 .metrics-6 { background: #f0f7ff; color: #0f172a; }
+    .scheme-1 .preset-chip { background: #f1f5f9; border: 1px solid #cbd5e1; color: #334155; }
+    .scheme-1 .btn-rt-mode { background: #f8fafc; border: 1px solid #cbd5e1; color: #1677ff; }
+    .scheme-1 .btn-rt-cancel { background: #ffffff; border: 1px solid #cbd5e1; color: #475569; }
+    .scheme-1 .btn-rt-confirm { background: #1677ff; border: 1px solid #1677ff; }
+
+
+    /* ──────── 方案 2: 一体化全灰座舱 · 现代立体卡片流 (Dual-Slate Studio) ──────── */
+    .scheme-2 .mock-window { background: #f1f5f9; color: #1e293b; border-color: #94a3b8; }
+    .scheme-2 .mock-left-pane { background: #f1f5f9; border-right: 1px solid #cbd5e1; }
+    .scheme-2 .mock-right-pane { background: #f1f5f9; }
+
+    .scheme-2 .left-header-36 { background: #e2e8f0; border-bottom: 1px solid #cbd5e1; color: #0f172a; }
+    .scheme-2 .left-cards-fill { background: #f1f5f9; }
+    .scheme-2 .grp-card-container { background: #ffffff; border: 1px solid #cbd5e1; box-shadow: 0 2px 5px rgba(15,23,42,0.06); }
+    .scheme-2 .grp-head-34 { background: #ffffff; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
+    .scheme-2 .badge-lock { background: #ecfdf5; border: 1px solid #a7f3d0; color: #059669; }
+
+    .scheme-2 .data-table-v5 th { background: #fafbfc; color: #475569; border-bottom: 1px solid #e2e8f0; }
+    .scheme-2 .data-table-v5 td { border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+    .scheme-2 .data-table-v5 tr:hover td { background: #f8fafc; }
+    .scheme-2 .data-table-v5 tr.active td { background: #e0f2fe; color: #0369a1; font-weight: 600; }
+
+    .scheme-2 .left-toolbar-34 { background: #e2e8f0; border-top: 1px solid #cbd5e1; }
+    .scheme-2 .left-status-16 { background: #cbd5e1; border-top: 1px solid #94a3b8; color: #475569; font-weight: 600; }
+    .scheme-2 .collapse-bar-16 { background: #cbd5e1; border-top: 1px solid #94a3b8; color: #475569; font-weight: 600; }
+
+    .scheme-2 .right-titlebar { background: #e2e8f0; border-bottom: 1px solid #cbd5e1; color: #0f172a; }
+    .scheme-2 .v5-card { background: #ffffff; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .scheme-2 .mat-btn { background: #f8fafc; border: 1px solid #cbd5e1; color: #334155; }
+    .scheme-2 .mat-btn.active { background: #0284c7; border-color: #0284c7; color: #fff; font-weight: 700; }
+    .scheme-2 .path-row { background: #f8fafc; border: 1px solid #cbd5e1; color: #334155; }
+    .scheme-2 .seg-pill-box { background: #e2e8f0; }
+    .scheme-2 .seg-pill-item.active { background: #ffffff; color: #0f172a; font-weight: 700; }
+    .scheme-2 .grid-2x2 { background: #f8fafc; border: 1px solid #e2e8f0; }
+    .scheme-2 .cell-input input { background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; }
+    .scheme-2 .board-box { background: #ffffff; border: 1px solid #38bdf8; }
+    .scheme-2 .metrics-6 { background: #f0f9ff; color: #0f172a; }
+    .scheme-2 .preset-chip { background: #ffffff; border: 1px solid #cbd5e1; color: #334155; }
+    .scheme-2 .btn-rt-mode { background: #ffffff; border: 1px solid #cbd5e1; color: #0284c7; }
+    .scheme-2 .btn-rt-cancel { background: #ffffff; border: 1px solid #cbd5e1; color: #475569; }
+    .scheme-2 .btn-rt-confirm { background: #0284c7; border: 1px solid #0284c7; }
+
+
+    /* ──────── 方案 3: 双色调主从工作舱 (Master-Detail Workspace) ──────── */
+    .scheme-3 .mock-window { background: #ffffff; color: #1e293b; border-color: #cbd5e1; }
+    .scheme-3 .mock-left-pane { background: #f8fafc; border-right: 1px solid #cbd5e1; box-shadow: inset -1px 0 0 #e2e8f0; }
+    .scheme-3 .mock-right-pane { background: #ffffff; box-shadow: -4px 0 16px rgba(15,23,42,0.04); }
+
+    .scheme-3 .left-header-36 { background: #f1f5f9; border-bottom: 1px solid #cbd5e1; color: #0f172a; }
+    .scheme-3 .left-cards-fill { background: #f8fafc; }
+    .scheme-3 .grp-card-container { background: #ffffff; border: 1px solid #cbd5e1; }
+    .scheme-3 .grp-head-34 { background: #ffffff; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
+    .scheme-3 .badge-lock { background: #f0fdf4; border: 1px solid #86efac; color: #16a34a; }
+
+    .scheme-3 .data-table-v5 th { background: #f8fafc; color: #475569; border-bottom: 1px solid #e2e8f0; }
+    .scheme-3 .data-table-v5 td { border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+    .scheme-3 .data-table-v5 tr:hover td { background: #f8fafc; }
+    .scheme-3 .data-table-v5 tr.active td { background: #eff6ff; color: #1d4ed8; font-weight: 600; }
+
+    .scheme-3 .left-toolbar-34 { background: #f1f5f9; border-top: 1px solid #cbd5e1; }
+    .scheme-3 .left-status-16 { background: #e2e8f0; border-top: 1px solid #cbd5e1; color: #64748b; font-weight: 600; }
+    .scheme-3 .collapse-bar-16 { background: #f1f5f9; border-top: 1px solid #cbd5e1; color: #64748b; font-weight: 600; }
+
+    .scheme-3 .right-titlebar { background: #ffffff; border-bottom: 1px solid #e2e8f0; color: #0f172a; }
+    .scheme-3 .v5-card { background: #ffffff; border: 1px solid #d4dbe4; }
+    .scheme-3 .mat-btn { background: #ffffff; border: 1px solid #cbd5e1; color: #334155; }
+    .scheme-3 .mat-btn.active { background: #1677ff; border-color: #1677ff; color: #fff; font-weight: 700; }
+    .scheme-3 .path-row { background: #f8fafc; border: 1px solid #cbd5e1; color: #334155; }
+    .scheme-3 .seg-pill-box { background: #f1f5f9; }
+    .scheme-3 .seg-pill-item.active { background: #ffffff; color: #0f172a; font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+    .scheme-3 .grid-2x2 { background: #fafbfc; border: 1px solid #eef2f6; }
+    .scheme-3 .cell-input input { background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; }
+    .scheme-3 .board-box { background: #ffffff; border: 1px solid #91caff; }
+    .scheme-3 .metrics-6 { background: #f0f7ff; color: #0f172a; }
+    .scheme-3 .preset-chip { background: #f1f5f9; border: 1px solid #cbd5e1; color: #334155; }
+    .scheme-3 .btn-rt-mode { background: #f8fafc; border: 1px solid #cbd5e1; color: #1677ff; }
+    .scheme-3 .btn-rt-cancel { background: #ffffff; border: 1px solid #cbd5e1; color: #475569; }
+    .scheme-3 .btn-rt-confirm { background: #1677ff; border: 1px solid #1677ff; }
+
+
+    /* ──────── 方案 4: 极简无框融合流 (Borderless Fluid) ──────── */
+    .scheme-4 .mock-window { background: #ffffff; color: #1e293b; border-color: #cbd5e1; }
+    .scheme-4 .mock-left-pane { background: #ffffff; border-right: 1px solid #e2e8f0; }
+    .scheme-4 .mock-right-pane { background: #ffffff; }
+
+    .scheme-4 .left-header-36 { background: #ffffff; border-bottom: 1px solid #f1f5f9; color: #0f172a; }
+    .scheme-4 .left-cards-fill { background: #ffffff; padding: 0; }
+    .scheme-4 .grp-card-container { background: #ffffff; border: none; border-bottom: 2px solid #e2e8f0; border-radius: 0; box-shadow: none; }
+    .scheme-4 .grp-head-34 { background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #1e293b; padding: 0 12px; }
+    .scheme-4 .badge-lock { background: #f0fdf4; border: 1px solid #86efac; color: #16a34a; }
+
+    .scheme-4 .data-table-v5 th { background: #ffffff; color: #64748b; border-bottom: 1px solid #e2e8f0; padding-left: 12px; }
+    .scheme-4 .data-table-v5 td { border-bottom: 1px solid #f8fafc; color: #1e293b; padding-left: 12px; }
+    .scheme-4 .data-table-v5 tr:hover td { background: #f8fafc; }
+    .scheme-4 .data-table-v5 tr.active td { background: #eff6ff; color: #1d4ed8; font-weight: 600; }
+
+    .scheme-4 .left-toolbar-34 { background: #ffffff; border-top: 1px solid #f1f5f9; }
+    .scheme-4 .left-status-16 { background: #fafafa; border-top: 1px solid #f0f0f0; color: #94a3b8; }
+    .scheme-4 .collapse-bar-16 { background: #fafafa; border-top: 1px solid #f0f0f0; color: #94a3b8; }
+
+    .scheme-4 .right-titlebar { background: #ffffff; border-bottom: 1px solid #f1f5f9; color: #0f172a; }
+    .scheme-4 .v5-card { background: #ffffff; border: 1px solid #e2e8f0; }
+    .scheme-4 .mat-btn { background: #ffffff; border: 1px solid #e2e8f0; color: #334155; }
+    .scheme-4 .mat-btn.active { background: #1677ff; border-color: #1677ff; color: #fff; font-weight: 700; }
+    .scheme-4 .path-row { background: #f8fafc; border: 1px solid #e2e8f0; color: #334155; }
+    .scheme-4 .seg-pill-box { background: #f1f5f9; }
+    .scheme-4 .seg-pill-item.active { background: #ffffff; color: #0f172a; font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+    .scheme-4 .grid-2x2 { background: #fafbfc; border: 1px solid #f1f5f9; }
+    .scheme-4 .cell-input input { background: #ffffff; border: 1px solid #e2e8f0; color: #0f172a; }
+    .scheme-4 .board-box { background: #ffffff; border: 1px solid #bae0ff; }
+    .scheme-4 .metrics-6 { background: #f0f7ff; color: #0f172a; }
+    .scheme-4 .preset-chip { background: #f8fafc; border: 1px solid #e2e8f0; color: #334155; }
+    .scheme-4 .btn-rt-mode { background: #ffffff; border: 1px solid #e2e8f0; color: #1677ff; }
+    .scheme-4 .btn-rt-cancel { background: #ffffff; border: 1px solid #e2e8f0; color: #475569; }
+    .scheme-4 .btn-rt-confirm { background: #1677ff; border: 1px solid #1677ff; }
+
+    /* 按钮通用高质感配置 */
+    .btn-tool-outline {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+    }
+    .btn-tool-outline:hover {
+      border-color: #1677ff;
+      color: #1677ff;
+    }
+    .btn-group-primary {
+      background: #e6f4ff;
+      border: 1px solid #91caff;
+      color: #0958d9;
+      font-weight: 700;
+    }
+    .btn-group-primary:hover {
+      background: #bae0ff;
+    }
+    .btn-danger-outline {
+      background: #ffffff;
+      border: 1px solid #ffa39e;
+      color: #cf1322;
+      font-weight: 600;
+    }
+    .btn-danger-outline:hover {
+      background: #fff1f0;
+      border-color: #ff4d4f;
+    }
+
+    /* 底部评析卡片 */
+    .review-grid {
+      max-width: 1360px;
+      margin: 20px auto 0;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .review-card {
+      background: #111a24;
+      border: 1px solid #243547;
+      border-radius: 6px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .review-card.chosen {
+      border-color: #1677ff;
+      background: #132233;
+    }
+    .review-card h3 {
+      font-size: 13.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .review-card p {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+    .review-card strong { color: #f1f5f9; }
+  </style>
+</head>
+<body class="scheme-1" id="bodyRoot">
+
+  <!-- 顶部控制条 -->
+  <header class="top-header">
+    <div class="brand-title">
+      <span class="brand-tag">V5 WORKBENCH</span>
+      <h1>材料选择框 · 整窗 4 大美学与配色方案全景比选</h1>
+      <span class="sub">880px 左右双联一体化工作台</span>
+    </div>
+
+    <!-- 4 个方案选择器 -->
+    <div class="scheme-tabs">
+      <button class="tab-btn active" id="tab1" onclick="switchScheme(1)">
+        <span>⚪</span> 方案 1: 通体纯白 · 瑞士工业风 ★强烈推荐
+      </button>
+      <button class="tab-btn" id="tab2" onclick="switchScheme(2)">
+        <span>🔘</span> 方案 2: 一体化全灰座舱 · 现代立体卡片流
+      </button>
+      <button class="tab-btn" id="tab3" onclick="switchScheme(3)">
+        <span>🌗</span> 方案 3: 双色调主从工作舱 (Master-Detail)
+      </button>
+      <button class="tab-btn" id="tab4" onclick="switchScheme(4)">
+        <span>⬜</span> 方案 4: 极简无界融合流 (Fluid Borderless)
+      </button>
+    </div>
+  </header>
+
+  <!-- 当前方案解读横幅 -->
+  <div class="scheme-info-banner">
+    <div class="title" id="bannerTitle">
+      <span>⚪ 方案 1：通体极简纯白 · 瑞士工业风 (Pure Studio White)</span>
+      <span class="desc" id="bannerDesc">整窗 880px 彻底统一为纯白底色（#FFFFFF），消灭所有灰色割裂，靠 1px 细线划分左右双舱与卡片秩序。</span>
+    </div>
+    <div class="scheme-tag" id="bannerTag">视觉统一性评分: ★★★★★</div>
+  </div>
+
+  <!-- 模拟真实桌面舞台 -->
+  <main class="stage-wrapper">
+
+    <!-- 880px 双联真实工作台 -->
+    <div class="mock-window">
+
+      <!-- ================= 左侧 520px 批处理列表 ================= -->
+      <section class="mock-left-pane">
+        <!-- 1. 顶部 36px 标题栏 -->
+        <div class="left-header-36">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span>待处理批次</span>
+            <span style="font-size: 11px; background: #e0f2fe; color: #0284c7; padding: 1px 6px; border-radius: 10px; font-weight: 600;">4 款 · 1 组</span>
+          </div>
+          <span style="font-size: 11px; color: #94a3b8; font-weight: normal;">Shift/Ctrl 多选</span>
+        </div>
+
+        <!-- 2. 中间卡片流容器 -->
+        <div class="left-cards-fill">
+          <!-- 分组卡片 -->
+          <div class="grp-card-container">
+            <!-- 组头 34px -->
+            <div class="grp-head-34">
+              <span style="font-size: 10px; color: #64748b;">▾</span>
+              <span style="font-weight: 700; color: #0f172a;">【一组】</span>
+              <span style="font-size: 9.5px; background: #e2e8f0; color: #334155; padding: 1px 5px; border-radius: 3px; font-weight: 600;">4款新单</span>
+
+              <!-- 核心工艺高亮胶囊（主属性） -->
+              <span class="pill-mat-gold">b (PET)</span>
+              <span class="pill-film-green">光膜</span>
+
+              <!-- 次级属性文本 -->
+              <span style="font-size: 10px; color: #64748b; margin-left: 2px;">平张 · 连拼 · 黑白 · 直角</span>
+
+              <!-- 右侧联动徽章 -->
+              <div class="badge-lock">联动中</div>
+            </div>
+
+            <!-- 数据表格 -->
+            <table class="data-table-v5">
+              <thead>
+                <tr>
+                  <th style="width: 28px; text-align: center;">#</th>
+                  <th style="width: 170px;">文件名</th>
+                  <th style="width: 58px;">订单</th>
+                  <th style="width: 36px;">数量</th>
+                  <th style="width: 44px; text-align: center;">页数</th>
+                  <th style="width: 104px;">尺寸 / 选用基准</th>
+                  <th style="width: 80px; text-align: center;">排版数</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="active" onclick="selectRow(this, '铭牌_A款_80×45 mm.pdf', '0802-7', '80×45', '5×6 · 30版')">
+                  <td style="text-align: center; color: #94a3b8;">1</td>
+                  <td style="font-family: var(--font-mono); font-size: 10.5px;">铭牌_A款_80×45mm.pdf</td>
+                  <td>0802-7</td>
+                  <td>1</td>
+                  <td style="text-align: center; color: #64748b;">1P</td>
+                  <td style="font-family: var(--font-mono); font-weight: 600;">80×45</td>
+                  <td style="text-align: center; font-weight: 700;">5×6 · 30版</td>
+                </tr>
+                <tr onclick="selectRow(this, '铭牌_B款_80×45 mm.pdf', '0802-8', '80×45', '5×6 · 30版')">
+                  <td style="text-align: center; color: #94a3b8;">2</td>
+                  <td style="font-family: var(--font-mono); font-size: 10.5px;">铭牌_B款_80×45mm.pdf</td>
+                  <td>0802-8</td>
+                  <td>1</td>
+                  <td style="text-align: center; color: #64748b;">1P</td>
+                  <td style="font-family: var(--font-mono); font-weight: 600;">80×45</td>
+                  <td style="text-align: center; font-weight: 700;">5×6 · 30版</td>
+                </tr>
+                <tr onclick="selectRow(this, '铭牌_C款_80×45 mm.pdf', '0802-9', '80×45', '5×6 · 30版')">
+                  <td style="text-align: center; color: #94a3b8;">3</td>
+                  <td style="font-family: var(--font-mono); font-size: 10.5px;">铭牌_C款_80×45mm.pdf</td>
+                  <td>0802-9</td>
+                  <td>1</td>
+                  <td style="text-align: center; color: #64748b;">1P</td>
+                  <td style="font-family: var(--font-mono); font-weight: 600;">80×45</td>
+                  <td style="text-align: center; font-weight: 700;">5×6 · 30版</td>
+                </tr>
+                <tr onclick="selectRow(this, '德佰仕75x15.pdf', '0802-10', '75×15', '28×4 · 112版')">
+                  <td style="text-align: center; color: #94a3b8;">4</td>
+                  <td style="font-family: var(--font-mono); font-size: 10.5px;">德佰仕75x15.pdf</td>
+                  <td>0802-10</td>
+                  <td>1</td>
+                  <td style="text-align: center; color: #64748b;">1P</td>
+                  <td style="font-family: var(--font-mono); font-weight: 600;">75×15</td>
+                  <td style="text-align: center; font-weight: 700;">28×4 · 112版</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 3. 底部操作栏 34px -->
+        <div class="left-toolbar-34">
+          <div class="tb-group">
+            <button class="tb-btn-tool btn-tool-outline">▲ 上移</button>
+            <button class="tb-btn-tool btn-tool-outline">▼ 下移</button>
+            <button class="tb-btn-tool btn-group-primary">➕ 分出新组</button>
+            <button class="tb-btn-tool btn-tool-outline">↻ 重新解析</button>
+          </div>
+          <div class="tb-group">
+            <button class="tb-btn-tool btn-danger-outline">🗑️ 删除行</button>
+            <button class="tb-btn-tool btn-danger-outline">批量取消</button>
+          </div>
+        </div>
+
+        <!-- 4. 最底部状态条 16px (全宽贯通地基) -->
+        <div class="left-status-16">
+          <span>💡 点击序号整行选中 · Ctrl 多选分出新组 · Delete 快速移除</span>
+        </div>
+      </section>
+
+
+      <!-- ================= 右侧 360px 流水线工位 ================= -->
+      <section class="mock-right-pane">
+        <!-- 1. 标题栏 26px -->
+        <div class="right-titlebar">
+          <span id="txtRightTitle">铭牌_A款_80×45 mm</span>
+          <span style="color: #1677ff; cursor: pointer; font-size: 12px;">📌 钉住</span>
+        </div>
+
+        <!-- 2. 工位卡片流内容区 -->
+        <div class="right-content">
+          <!-- 卡片 1: 常用材料 -->
+          <div class="v5-card">
+            <div style="font-size: 10px; color: #64748b; font-weight: bold;">常用材料</div>
+            <div class="mat-grid-4">
+              <div class="mat-btn">ulyy</div>
+              <div class="mat-btn">50#yy</div>
+              <div class="mat-btn">100#yy</div>
+              <div class="mat-btn active">b</div>
+              <div class="mat-btn">kyb</div>
+              <div class="mat-btn">hc</div>
+              <div class="mat-btn">kyhc</div>
+              <div class="mat-btn">tm</div>
+              <div class="mat-btn">kytm</div>
+              <div class="mat-btn">gy</div>
+              <div class="mat-btn">ls</div>
+              <div class="mat-btn">ltb</div>
+              <div class="mat-btn">alb</div>
+              <div class="mat-btn">ltyy</div>
+              <div class="mat-btn">zdb</div>
+              <div class="mat-btn" style="color:#1677ff;">更多材料</div>
+            </div>
+          </div>
+
+          <!-- 卡片 2: 输出路径 -->
+          <div class="v5-card">
+            <div class="path-row">
+              <span>输出: <strong style="color: #08979c;">前台\A3\裁断</strong></span>
+              <span style="color: #64748b;">📁 切换目录 ▾</span>
+            </div>
+          </div>
+
+          <!-- 卡片 3: 工艺矩阵 -->
+          <div class="v5-card">
+            <div class="craft-row">
+              <div class="seg-pill-box">
+                <div class="seg-pill-item active">光膜</div>
+                <div class="seg-pill-item">哑膜</div>
+                <div class="seg-pill-item">红膜</div>
+                <div class="seg-pill-item">不过膜</div>
+              </div>
+            </div>
+            <div class="craft-row">
+              <div class="seg-pill-box">
+                <div class="seg-pill-item active">直角</div>
+                <div class="seg-pill-item">圆形</div>
+                <div class="seg-pill-item">异形</div>
+                <div class="seg-pill-item">圆角</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片 4: 工单 2x2 舱 -->
+          <div class="v5-card">
+            <div class="grid-2x2">
+              <div class="cell-input"><label>订单</label><input type="text" id="iptOrder" value="0802-7" readonly></div>
+              <div class="cell-input"><label>序号</label><input type="text" value="A08" readonly></div>
+              <div class="cell-input"><label>数量</label><input type="text" value="1" readonly></div>
+              <div class="cell-input"><label>页序</label><input type="text" value="未启用" readonly></div>
+            </div>
+          </div>
+
+          <!-- 卡片 5: 6 宫格自动排版看板 -->
+          <div class="board-box">
+            <div class="board-top">
+              <span style="font-weight: bold; color: #1677ff;">☑ 自动排版</span>
+              <span style="color: #64748b;">[平张] [连拼]</span>
+            </div>
+            <div class="metrics-6">
+              <div class="metric-item"><span class="lbl">网格</span><span class="val" style="color:#0958d9;">5×6</span></div>
+              <div class="metric-item"><span class="lbl">布局数</span><span class="val" style="color:#d46b08;">30</span></div>
+              <div class="metric-item"><span class="lbl">角度</span><span class="val" style="color:#722ed1;">270°</span></div>
+              <div class="metric-item"><span class="lbl">尺寸</span><span class="val" style="color:#08979c;" id="valDim">80×45</span></div>
+              <div class="metric-item"><span class="lbl">出血</span><span class="val" style="color:#eb2f96;">0</span></div>
+              <div class="metric-item"><span class="lbl">颜色</span><span class="val" style="color:#13c2c2;">黑白</span></div>
+            </div>
+          </div>
+
+          <!-- 卡片 6: 预设胶囊 -->
+          <div class="preset-row">
+            <span class="preset-chip">前台 · 滚直缝折手</span>
+            <span class="preset-chip">裁断 · 一刀</span>
+            <span class="preset-chip">前连拼</span>
+          </div>
+
+          <!-- 卡片 7: 确认操作栏 (高度32px，与左侧Toolbar在492px完全齐平) -->
+          <div class="right-action-bar">
+            <div class="btn-rt-mode">➜ 仅处理当前款</div>
+            <div class="right-btn-group">
+              <button class="btn-rt-cancel">取消</button>
+              <button class="btn-rt-confirm">确认并继续</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. 折叠底栏 16px (全宽贯通地基右半部) -->
+        <div class="collapse-bar-16">
+          <span>页码: —</span>
+          <span>▼ 点击展开预览</span>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- 底部方案深度审美评析 -->
+  <footer class="review-grid">
+    <div class="review-card chosen" id="card1">
+      <h3 style="color: #60a5fa;">方案 1: 通体纯白 · 瑞士工业风</h3>
+      <p><strong>核心逻辑：</strong>整窗 880px 彻底统一为纯白底板。去除灰白拼凑，只用 1px 细浅灰线划分区域。</p>
+      <p><strong>美学优势：</strong>彻底消灭“左侧大灰坑”与割裂感，左右两舱白底通透连贯；呼吸感最佳，现代感最强，符合主流现代化专业软件标准。</p>
+    </div>
+
+    <div class="review-card" id="card2">
+      <h3 style="color: #cbd5e1;">方案 2: 一体化全灰座舱 · 现代立体卡片流</h3>
+      <p><strong>核心逻辑：</strong>若想保留灰色背景，则左右同时置于统一的浅灰底板（#f1f5f9）上，左右卡片全为白底微浮雕。</p>
+      <p><strong>美学优势：</strong>左右同底同材质，立体卡片感强；避免了“左灰右白”的严重不对称，呈现严谨的控制台质感。</p>
+    </div>
+
+    <div class="review-card" id="card3">
+      <h3 style="color: #cbd5e1;">方案 3: 双色调主从工作舱 (Master-Detail)</h3>
+      <p><strong>核心逻辑：</strong>左侧作为队列导航侧保留极浅冷灰（#f8fafc），右侧工位纯白浮起（带微阴影），强化主从秩序。</p>
+      <p><strong>美学优势：</strong>用现代设计规范重塑主从层级，适合喜欢左侧具备明确导航边栏属性的用户。</p>
+    </div>
+
+    <div class="review-card" id="card4">
+      <h3 style="color: #cbd5e1;">方案 4: 极简无界融合流 (Fluid Borderless)</h3>
+      <p><strong>核心逻辑：</strong>拿掉左侧卡片外框与内边距，表格直接铺满左侧，无框通透，极大减少线条视觉噪音。</p>
+      <p><strong>美学优势：</strong>极致轻量，空间利用率最高，适合极度追求极简与扁平化的作业场景。</p>
+    </div>
+  </footer>
+
+  <script>
+    const schemesData = {
+      1: {
+        title: "⚪ 方案 1：通体极简纯白 · 瑞士工业风 (Pure Studio White) ★强烈推荐",
+        desc: "整窗 880px 彻底统一为纯白底色（#FFFFFF），消灭所有灰色割裂，靠 1px 细线划分左右双舱与卡片秩序。",
+        tag: "视觉统一性评分: ★★★★★"
+      },
+      2: {
+        title: "🔘 方案 2：一体化全灰座舱 · 现代立体卡片流 (Dual-Slate Studio)",
+        desc: "左右同时置于统一的浅灰底板（#f1f5f9）上，左右两边的卡片全部为纯白圆角浮雕，质感高度对称。",
+        tag: "立体质感评分: ★★★★☆"
+      },
+      3: {
+        title: "🌗 方案 3：双色调主从工作舱 (Master-Detail Workspace)",
+        desc: "左侧浅冷灰（#f8fafc）队列导航舱 + 右侧纯白（#FFFFFF）聚焦操作台，用微阴影与台阶确立现代主从秩序。",
+        tag: "主从层级评分: ★★★★☆"
+      },
+      4: {
+        title: "⬜ 方案 4：极简无界融合流 (Fluid Borderless Workspace)",
+        desc: "彻底拿掉左侧卡片的外层边框与多余内边距，表格通体融合，线条噪音降低 90%，通透流畅。",
+        tag: "极简扁平评分: ★★★★☆"
+      }
+    };
+
+    function switchScheme(id) {
+      document.getElementById('bodyRoot').className = 'scheme-' + id;
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById('tab' + i).classList.remove('active');
+        document.getElementById('card' + i).classList.remove('chosen');
+      }
+      document.getElementById('tab' + id).classList.add('active');
+      document.getElementById('card' + id).classList.add('chosen');
+
+      document.getElementById('bannerTitle').innerHTML = `<span>${schemesData[id].title}</span><span class="desc">${schemesData[id].desc}</span>`;
+      document.getElementById('bannerTag').innerText = schemesData[id].tag;
+    }
+
+    function selectRow(tr, fileName, order, dim, layout) {
+      const tbody = tr.parentElement;
+      Array.from(tbody.children).forEach(r => r.classList.remove('active'));
+      tr.classList.add('active');
+
+      document.getElementById('txtRightTitle').innerText = fileName;
+      document.getElementById('iptOrder').value = order;
+      document.getElementById('valDim').innerText = dim;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大诚印前工具箱 · 左侧列表现代感美学进化方案全景比选</title>
+  <style>
+    :root {
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", sans-serif;
+      --font-mono: 'Cascadia Mono', Consolas, monospace;
+
+      /* 真实尺寸契约：ClientSize */
+      --station-width: 360px;
+      --batch-width: 520px;
+      --workbench-width: 880px;
+      --collapsed-height: 508px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-family);
+      background-color: #0b1118;
+      color: #e2e8f0;
+      min-height: 100vh;
+      font-size: 13px;
+      line-height: 1.5;
+      padding: 16px 20px 40px;
+    }
+
+    /* 顶部控制面板 */
+    .top-header {
+      max-width: 1360px;
+      margin: 0 auto 16px;
+      background: #111a24;
+      border: 1px solid #243547;
+      border-radius: 8px;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-tag {
+      background: #1677ff;
+      color: #fff;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+    .brand-title h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    .brand-title span.sub {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    /* 3 大现代进化方案切换器 */
+    .scheme-tabs {
+      display: flex;
+      gap: 6px;
+      background: #090e15;
+      padding: 4px;
+      border-radius: 6px;
+      border: 1px solid #1c2b3d;
+    }
+    .tab-btn {
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #94a3b8;
+      border: none;
+      background: transparent;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tab-btn:hover { color: #f1f5f9; background: rgba(255,255,255,0.06); }
+    .tab-btn.active {
+      background: #1677ff;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(22, 119, 255, 0.4);
+    }
+
+    /* 方案核心概述横幅 */
+    .banner-desc {
+      max-width: 1360px;
+      margin: 0 auto 16px;
+      background: #131f2c;
+      border: 1px solid #23364a;
+      border-left: 4px solid #1677ff;
+      border-radius: 6px;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12.5px;
+    }
+    .banner-desc .title {
+      font-weight: 700;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .banner-desc .desc {
+      color: #94a3b8;
+      margin-left: 10px;
+      font-weight: normal;
+    }
+
+    /* 窗体舞台 */
+    .stage-wrapper {
+      max-width: 1360px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* =========================================================================
+       880px 真实物理双联窗体外壳 (遵循方案 A 瑞士冷灰顶底 + 1px 硬切线)
+       ========================================================================= */
+    .mock-window {
+      width: var(--workbench-width);
+      height: var(--collapsed-height);
+      background: #ffffff;
+      border-radius: 6px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+      border: 1px solid #94a3b8; /* 方案 A 工业冷灰外框 */
+      display: flex;
+      overflow: hidden;
+      position: relative;
+      user-select: none;
+      color: #0f172a;
+    }
+
+    /* 左 520px，右 360px */
+    .mock-left-pane {
+      width: var(--batch-width);
+      background: #ffffff;
+      border-right: 1px solid #d4dbe4;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100%;
+    }
+    .mock-right-pane {
+      width: var(--station-width);
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100%;
+    }
+
+    /* 顶部 26px 瑞士冷灰顶栏 (#eef2f6) */
+    .titlebar-26 {
+      height: 26px;
+      background: #eef2f6;
+      border-bottom: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #0f172a;
+      flex-shrink: 0;
+    }
+
+    /* 最底部 16px 冷灰地基条 (#eef2f6) */
+    .groundbar-16 {
+      height: 16px;
+      background: #eef2f6;
+      border-top: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 10px;
+      color: #64748b;
+      flex-shrink: 0;
+    }
+
+    /* =========================================================================
+       右侧 360px 工位（严格保持当前 V5 真实代码结构，分毫未动）
+       ========================================================================= */
+    .right-content-stack {
+      flex: 1;
+      padding: 4px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      overflow: hidden;
+    }
+    .card-v5 {
+      border: 1px solid #d4dbe4;
+      border-radius: 4px;
+      padding: 4px 6px;
+      background: #fff;
+    }
+    .mat-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+    .mat-btn-cell {
+      height: 24px; border: 1px solid #cbd5e1; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10.5px;
+    }
+    .mat-btn-cell.active { background: #1677ff; border-color: #1677ff; color: #fff; font-weight: bold; }
+    .path-row-v5 {
+      height: 24px; display: flex; align-items: center; justify-content: space-between; font-size: 11px;
+    }
+    .seg-pill-2 {
+      display: flex; gap: 4px;
+    }
+    .seg-pill-box {
+      flex: 1; height: 24px; background: #f1f5f9; border-radius: 3px; display: flex; padding: 2px; gap: 2px;
+    }
+    .seg-pill-opt {
+      flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10px;
+    }
+    .seg-pill-opt.active {
+      background: #fff; font-weight: bold; border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+    .grid-2x2-box {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; padding: 4px; background: #fafbfc; border-radius: 4px; border: 1px solid #eef2f6;
+    }
+    .grid-2x2-box input {
+      height: 22px; border: 1px solid #cbd5e1; border-radius: 3px; padding: 0 4px; width: 100%; font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    }
+    .board-box-v5 {
+      border: 1px solid #91caff; border-radius: 4px; padding: 4px; display: flex; flex-direction: column; gap: 3px;
+    }
+    .metrics-6-box {
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; background: #f0f7ff; border-radius: 3px; padding: 3px 2px; text-align: center;
+    }
+    .metric-c .lbl { font-size: 8.5px; color: #64748b; }
+    .metric-c .val { font-size: 11px; font-weight: bold; font-family: var(--font-mono); }
+    .presets-pill-row { display: flex; gap: 4px; }
+    .preset-pill-item {
+      font-size: 9.5px; padding: 2px 6px; border-radius: 10px; background: #f1f5f9; border: 1px solid #cbd5e1;
+    }
+    .right-bottom-actions {
+      height: 32px; display: flex; align-items: center; justify-content: space-between; margin-top: auto;
+    }
+    .btn-submit-v5 {
+      width: 105px; height: 24px; background: #1677ff; color: #fff; border: none; border-radius: 3px; font-weight: 700; font-size: 11px; cursor: pointer;
+    }
+    .btn-cancel-v5 {
+      width: 50px; height: 24px; background: #fff; border: 1px solid #cbd5e1; border-radius: 3px; font-size: 11px; cursor: pointer;
+    }
+
+    /* =========================================================================
+       左侧列表区域（520px）：3 大现代美学方案核心样式
+       ========================================================================= */
+
+    .left-flow-container {
+      flex: 1;
+      padding: 4px 10px;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      gap: 8px;
+    }
+
+    /* 底部操作工具栏（34px） */
+    .left-bottom-toolbar {
+      height: 34px;
+      background: #ffffff;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      flex-shrink: 0;
+    }
+    .kbd-chip {
+      font-size: 9px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      padding: 0 3px;
+      margin-left: 2px;
+      color: #64748b;
+      font-family: var(--font-mono);
+    }
+
+
+    /* ─────────────── 方案 1: 现代精工行岛 (Island Row Cards · Linear 风格) ─────────────── */
+    .scheme-1-island .group-wrapper {
+      border: 1px solid #d4dbe4;
+      border-radius: 6px;
+      background: #fafbfc;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .scheme-1-island .group-head-modern {
+      height: 34px;
+      background: #ffffff;
+      border-bottom: 1px solid #e8ecf1;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 6px;
+      font-size: 11.5px;
+    }
+    .scheme-1-island .row-island-list {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 5px;
+      background: #fafbfc;
+    }
+    .scheme-1-island .row-island-item {
+      height: 32px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 8px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+    .scheme-1-island .row-island-item:hover {
+      border-color: #93c5fd;
+      background: #f8fafc;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 5px rgba(15,23,42,0.04);
+    }
+    .scheme-1-island .row-island-item.active {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      box-shadow: 0 1px 3px rgba(59,130,246,0.12);
+    }
+    /* 选中行左侧 3px 鲜亮蓝色指示彩条 (Accent Bar) */
+    .scheme-1-island .row-island-item.active::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 4px;
+      bottom: 4px;
+      width: 3px;
+      background: #1677ff;
+      border-radius: 0 2px 2px 0;
+    }
+    .scheme-1-island .badge-seq {
+      font-size: 10px;
+      color: #94a3b8;
+      width: 16px;
+      text-align: center;
+      font-family: var(--font-mono);
+    }
+    .scheme-1-island .file-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #0f172a;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .scheme-1-island .file-dot-status {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      flex-shrink: 0;
+    }
+    .scheme-1-island .pill-meta-tag {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+      white-space: nowrap;
+      font-family: var(--font-mono);
+    }
+    .scheme-1-island .pill-imposition-result {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 10px;
+      background: #e0f2fe;
+      color: #0284c7;
+      border: 1px solid #bae6fd;
+      white-space: nowrap;
+      font-family: var(--font-mono);
+    }
+
+
+    /* ─────────────── 方案 2: 双行高密度流水线 (Two-Line Pipeline · Vercel 风格) ─────────────── */
+    .scheme-2-pipeline .group-wrapper {
+      border: 1px solid #d4dbe4;
+      border-radius: 6px;
+      background: #ffffff;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .scheme-2-pipeline .group-head-modern {
+      height: 34px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 6px;
+      font-size: 11.5px;
+    }
+    .scheme-2-pipeline .pipeline-row {
+      padding: 6px 10px;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      position: relative;
+    }
+    .scheme-2-pipeline .pipeline-row:hover { background: #f8fafc; }
+    .scheme-2-pipeline .pipeline-row.active {
+      background: #eff6ff;
+    }
+    .scheme-2-pipeline .pipeline-row.active::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: #1677ff;
+    }
+    .scheme-2-pipeline .p-line-1 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .scheme-2-pipeline .p-file-name {
+      font-size: 11.5px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: #0f172a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .scheme-2-pipeline .p-imposition-pill {
+      font-size: 10px;
+      font-weight: 700;
+      color: #0369a1;
+      background: #e0f2fe;
+      border: 1px solid #bae6fd;
+      padding: 1px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+    .scheme-2-pipeline .p-line-2 {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      color: #64748b;
+    }
+    .scheme-2-pipeline .p-sub-chip {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      padding: 0 4px;
+      border-radius: 2px;
+      color: #334155;
+      font-family: var(--font-mono);
+    }
+
+
+    /* ─────────────── 方案 3: Fluent 2 极简平滑流 (Refined Fluent Minimal) ─────────────── */
+    .scheme-3-fluent .group-wrapper {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #ffffff;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 1px 3px rgba(15,23,42,0.05);
+    }
+    .scheme-3-fluent .group-head-modern {
+      height: 34px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 6px;
+      font-size: 11.5px;
+    }
+    .scheme-3-fluent .fluent-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    .scheme-3-fluent .fluent-table th {
+      background: #ffffff;
+      color: #64748b;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 6px 8px;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+    }
+    .scheme-3-fluent .fluent-table td {
+      padding: 7px 8px;
+      border-bottom: 1px solid #f1f5f9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+    .scheme-3-fluent .fluent-table tr:hover td { background: #f8fafc; }
+    .scheme-3-fluent .fluent-table tr.active td {
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+    .scheme-3-fluent .qty-bubble {
+      display: inline-block;
+      min-width: 20px;
+      text-align: center;
+      padding: 1px 5px;
+      border-radius: 10px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      font-weight: bold;
+    }
+
+    /* 方案深度评析卡 */
+    .eval-cards-grid {
+      max-width: 1360px;
+      margin: 24px auto 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .eval-card {
+      background: #111a24;
+      border: 1px solid #243547;
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .eval-card.chosen {
+      border-color: #1677ff;
+      background: #132233;
+    }
+    .eval-card h3 {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .eval-card p {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body class="scheme-1-island" id="bodyContext">
+
+  <!-- 顶部控制台 -->
+  <header class="top-header">
+    <div class="brand-title">
+      <span class="brand-tag">MODERN UI EVOLUTION</span>
+      <h1>材料选择框 · 左侧列表现代化审美方案全景比选</h1>
+      <span class="sub">打破传统老式表格感 · 注入现代工业精工软件基因</span>
+    </div>
+
+    <!-- 3 大现代方案切换 -->
+    <div class="scheme-tabs">
+      <button class="tab-btn active" id="tabM1" onclick="selectScheme(1)">
+        <span>✨</span> 方案 1: 现代精工行岛 (Linear 风格 · 强烈推荐)
+      </button>
+      <button class="tab-btn" id="tabM2" onclick="selectScheme(2)">
+        <span>📑</span> 方案 2: 双行高密度流水线 (Vercel / PR 风格)
+      </button>
+      <button class="tab-btn" id="tabM3" onclick="selectScheme(3)">
+        <span>💎</span> 方案 3: Fluent 2 极简平滑流 (现代化表格进阶)
+      </button>
+    </div>
+  </header>
+
+  <!-- 当前方案解读 -->
+  <div class="banner-desc">
+    <div class="title" id="bannerTitle">
+      <span>✨ 方案 1：现代精工行岛 (Island Row Cards · Linear/Apple 风格) ★ 强烈推荐</span>
+      <span class="desc" id="bannerDesc">将传统的生硬表格网格剥离，转为每行带有 3px 微间隙的“浮动行卡片”。选中时带有左侧 3px 鲜蓝指示彩条，彻底消灭 Excel 填表感！</span>
+    </div>
+  </div>
+
+  <!-- 880px 真实窗体舞台 -->
+  <main class="stage-wrapper">
+    <div class="mock-window">
+
+      <!-- ================= 左侧 520px 列表现代化展示 ================= -->
+      <section class="mock-left-pane">
+        <!-- 顶部 26px 瑞士冷灰顶栏 (方案 A 规范) -->
+        <div class="titlebar-26">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span>待处理批次</span>
+            <span style="font-size: 10.5px; background: #e0f2fe; color: #0284c7; padding: 1px 6px; border-radius: 10px; font-weight: 600;">4 款 · 1 组</span>
+          </div>
+          <span style="font-size: 10px; color: #64748b;">Shift/Ctrl 多选</span>
+        </div>
+
+        <!-- 卡片流容器 -->
+        <div class="left-flow-container">
+          <div class="group-wrapper">
+
+            <!-- 现代化组头 (34px) -->
+            <div class="group-head-modern">
+              <span style="font-size: 10px; color: #64748b;">▾</span>
+              <span style="font-weight: 700; color: #0f172a;">【一组】</span>
+              <span style="font-size: 9.5px; background: #e2e8f0; color: #334155; padding: 1px 5px; border-radius: 3px; font-weight: 600;">4款新单</span>
+
+              <!-- 核心主工艺胶囊 -->
+              <span style="font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 3px; background: #fef3c7; color: #b45309; border: 1px solid #fde68a;">50#yy</span>
+              <span style="font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 3px; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0;">光膜</span>
+
+              <span style="font-size: 10px; color: #64748b;">平张 · 连拼 · 黑白 · 圆角R2</span>
+              <div style="margin-left: auto; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; background: #f0fdf4; border: 1px solid #86efac; color: #16a34a;">联动中</div>
+            </div>
+
+            <!-- 动态渲染容器：根据选中的方案切换内部呈现 -->
+            <div id="dynamicListArea">
+              <!-- 默认方案 1 静态占位，JS 切换时动态更换 -->
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 现代化底部操作栏 (34px) -->
+        <div class="left-bottom-toolbar">
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button style="height: 26px; padding: 0 7px; border-radius: 4px; font-size: 11px; cursor: pointer; border: 1px solid #cbd5e1; background: #fff; color: #334155; display: flex; align-items: center;">
+              ▲ 上移 <span class="kbd-chip">↑</span>
+            </button>
+            <button style="height: 26px; padding: 0 7px; border-radius: 4px; font-size: 11px; cursor: pointer; border: 1px solid #cbd5e1; background: #fff; color: #334155; display: flex; align-items: center;">
+              ▼ 下移 <span class="kbd-chip">↓</span>
+            </button>
+            <button style="height: 26px; padding: 0 9px; border-radius: 4px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid #91caff; background: #e6f4ff; color: #0958d9; display: flex; align-items: center; gap: 3px;">
+              ➕ 分出新组 <span class="kbd-chip" style="background: rgba(22,119,255,0.1); border-color: #91caff; color: #0958d9;">Ctrl+G</span>
+            </button>
+            <button style="height: 26px; padding: 0 7px; border-radius: 4px; font-size: 11px; cursor: pointer; border: 1px solid #cbd5e1; background: #fff; color: #334155;">
+              ↻ 重新解析
+            </button>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button style="height: 26px; padding: 0 7px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid #ffa39e; background: #fff; color: #cf1322; display: flex; align-items: center;">
+              🗑️ 删除行 <span class="kbd-chip" style="border-color: #ffa39e; color: #cf1322;">Del</span>
+            </button>
+            <button style="height: 26px; padding: 0 7px; border-radius: 4px; font-size: 11px; cursor: pointer; border: 1px solid #ffa39e; background: #fff; color: #cf1322;">
+              批量取消
+            </button>
+          </div>
+        </div>
+
+        <!-- 底部 16px 冷灰地基条 -->
+        <div class="groundbar-16">
+          <span>💡 支持拖拽排序 · 双击快速聚焦 · 空格键切换裁切选用基准</span>
+        </div>
+      </section>
+
+
+      <!-- ================= 右侧 360px 工位（真实V5标准代码结构） ================= -->
+      <section class="mock-right-pane">
+        <!-- 顶部 26px 瑞士冷灰顶栏 (方案 A 规范) -->
+        <div class="titlebar-26">
+          <span style="font-weight: 700;" id="txtDetailTitle">铭牌_A款_80×45 mm</span>
+          <span style="color: #1677ff; cursor: pointer; font-size: 12px;">📌 钉住</span>
+        </div>
+
+        <div class="right-content-stack">
+          <!-- 常用材料 -->
+          <div class="card-v5">
+            <div style="font-size: 9.5px; color: #64748b; font-weight: bold; margin-bottom: 2px;">常用材料</div>
+            <div class="mat-grid-4">
+              <div class="mat-btn-cell">ulyy</div>
+              <div class="mat-btn-cell active">50#yy</div>
+              <div class="mat-btn-cell">100#yy</div>
+              <div class="mat-btn-cell">b</div>
+              <div class="mat-btn-cell">kyb</div>
+              <div class="mat-btn-cell">hc</div>
+              <div class="mat-btn-cell">kyhc</div>
+              <div class="mat-btn-cell">tm</div>
+            </div>
+          </div>
+
+          <!-- 输出路径 -->
+          <div class="card-v5">
+            <div class="path-row-v5">
+              <span>输出: <strong style="color: #08979c;">前台\A3\一刀出血</strong></span>
+              <span style="color: #64748b;">📁 切换目录 ▾</span>
+            </div>
+          </div>
+
+          <!-- 工艺矩阵 -->
+          <div class="card-v5">
+            <div class="seg-pill-2">
+              <div class="seg-pill-box">
+                <div class="seg-pill-opt active">光膜</div>
+                <div class="seg-pill-opt">哑膜</div>
+                <div class="seg-pill-opt">红膜</div>
+                <div class="seg-pill-opt">不过膜</div>
+              </div>
+            </div>
+            <div class="seg-pill-2" style="margin-top: 3px;">
+              <div class="seg-pill-box">
+                <div class="seg-pill-opt">直角</div>
+                <div class="seg-pill-opt">圆形</div>
+                <div class="seg-pill-opt">异形</div>
+                <div class="seg-pill-opt active">圆角 R2</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 工单 2x2 -->
+          <div class="card-v5">
+            <div class="grid-2x2-box">
+              <input type="text" id="iptOrderDetail" value="订单: 0834-1-4" readonly>
+              <input type="text" value="序号: A08" readonly>
+              <input type="text" value="数量: 1" readonly>
+              <input type="text" value="页序: 未启用" readonly>
+            </div>
+          </div>
+
+          <!-- 6 宫格看板 -->
+          <div class="board-box-v5">
+            <div style="display: flex; justify-content: space-between; font-size: 10px;">
+              <span style="font-weight: bold; color: #1677ff;">☑ 自动排版</span>
+              <span style="color: #64748b;">[平张] [连拼]</span>
+            </div>
+            <div class="metrics-6-box">
+              <div class="metric-c"><span class="lbl">网格</span><span class="val" style="color:#0958d9;">5×6</span></div>
+              <div class="metric-c"><span class="lbl">布局数</span><span class="val" style="color:#d46b08;">30</span></div>
+              <div class="metric-c"><span class="lbl">角度</span><span class="val" style="color:#722ed1;">270°</span></div>
+              <div class="metric-c"><span class="lbl">尺寸</span><span class="val" style="color:#08979c;" id="valDetailDim">80×45</span></div>
+              <div class="metric-c"><span class="lbl">出血</span><span class="val" style="color:#eb2f96;">0</span></div>
+              <div class="metric-c"><span class="lbl">颜色</span><span class="val" style="color:#13c2c2;">黑白</span></div>
+            </div>
+          </div>
+
+          <!-- 预设胶囊 -->
+          <div class="presets-pill-row">
+            <span class="preset-pill-item">前台 · 滚直缝折手</span>
+            <span class="preset-pill-item">裁断 · 一刀</span>
+            <span class="preset-pill-item">前连拼</span>
+          </div>
+
+          <!-- 确认操作栏 -->
+          <div class="right-bottom-actions">
+            <span style="font-size: 11px; color: #1677ff; font-weight: 600;">➜ 仅处理当前款</span>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn-cancel-v5">取消</button>
+              <button class="btn-submit-v5">确认并继续</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部 16px 冷灰折叠手柄 (方案 A 规范) -->
+        <div class="groundbar-16">
+          <span>页码: —</span>
+          <span>▲ 点击折叠预览</span>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- 3 大现代方案深度对比评析 -->
+  <footer class="eval-cards-grid">
+    <div class="eval-card chosen" id="cardM1">
+      <h3 style="color: #60a5fa;">方案 1: 现代精工行岛 (Island Row Cards) ★ 强烈推荐</h3>
+      <p><strong>现代感核心：</strong>打破冰冷刺眼的传统 DataGridView 网格，转为类似 <strong>Linear / Raycast / macOS 偏好设置</strong> 的独立圆角行岛（Row Island）。</p>
+      <p><strong>精修亮点：</strong>每行悬浮微投影；选中行在左侧亮起 <strong>3px 鲜蓝指示彩条（Accent Indicator）</strong>；排版结果呈现为微型药丸胶囊（<code>5×6·30版</code>），整体质感直接跨越到 2026 年现代顶级桌面软件水平！</p>
+    </div>
+
+    <div class="eval-card" id="cardM2">
+      <h3 style="color: #cbd5e1;">方案 2: 双行高密度流水线 (Two-Line Pipeline)</h3>
+      <p><strong>现代感核心：</strong>类似 <strong>Vercel / GitHub PR 列表</strong> 的高密度双行架构。解决印前工程中最痛的“长文件名被腰斩”问题。</p>
+      <p><strong>精修亮点：</strong>主行 100% 满宽展示完整文件名；第二行点缀工单、数量、尺寸、排版指标等小字元数据；层次极其清晰，极具工程极客质感。</p>
+    </div>
+
+    <div class="eval-card" id="cardM3">
+      <h3 style="color: #cbd5e1;">方案 3: Fluent 2 极简平滑流 (Refined Minimal)</h3>
+      <p><strong>现代感核心：</strong>保留单行表格骨架，但全面剥离传统旧式控件的沉重感。</p>
+      <p><strong>精修亮点：</strong>全表无竖线分割；表头改用大写微字号优雅次级灰；数量使用圆形微气泡；行高舒展至 30px；底部操作栏带有现代键盘快捷键角标（如 <code>↑</code> <code>↓</code> <code>Ctrl+G</code> <code>Del</code>），快捷专业。</p>
+    </div>
+  </footer>
+
+  <script>
+    // 3 套现代布局 HTML 片段模板
+    const templates = {
+      1: `
+        <div class="row-island-list">
+          <div class="row-island-item active" onclick="syncRow(this, '铭牌_A款_80×45mm.pdf', '0834-1-4', '80×45')">
+            <span class="badge-seq">01</span>
+            <span class="file-title">
+              <span class="file-dot-status" title="裁切框一致"></span>
+              铭牌_A款_80×45mm.pdf
+            </span>
+            <span class="pill-meta-tag">0834-1-4</span>
+            <span class="pill-meta-tag">1pcs</span>
+            <span class="pill-meta-tag">80×45</span>
+            <span class="pill-imposition-result">5×6 · 30版</span>
+          </div>
+
+          <div class="row-island-item" onclick="syncRow(this, '铭牌_B款_80×45mm.pdf', '0834-1-5', '80×45')">
+            <span class="badge-seq">02</span>
+            <span class="file-title">
+              <span class="file-dot-status" title="裁切框一致"></span>
+              铭牌_B款_80×45mm.pdf
+            </span>
+            <span class="pill-meta-tag">0834-1-5</span>
+            <span class="pill-meta-tag">1pcs</span>
+            <span class="pill-meta-tag">80×45</span>
+            <span class="pill-imposition-result">5×6 · 30版</span>
+          </div>
+
+          <div class="row-island-item" onclick="syncRow(this, '铭牌_C款_80×45mm.pdf', '0834-1-6', '80×45')">
+            <span class="badge-seq">03</span>
+            <span class="file-title">
+              <span class="file-dot-status" title="裁切框一致"></span>
+              铭牌_C款_80×45mm.pdf
+            </span>
+            <span class="pill-meta-tag">0834-1-6</span>
+            <span class="pill-meta-tag">1pcs</span>
+            <span class="pill-meta-tag">80×45</span>
+            <span class="pill-imposition-result">5×6 · 30版</span>
+          </div>
+
+          <div class="row-island-item" onclick="syncRow(this, '德佰仕75x15.pdf', '0834-1-7', '75×15')">
+            <span class="badge-seq">04</span>
+            <span class="file-title">
+              <span class="file-dot-status" title="裁切框一致"></span>
+              德佰仕75x15.pdf
+            </span>
+            <span class="pill-meta-tag">0834-1-7</span>
+            <span class="pill-meta-tag">1pcs</span>
+            <span class="pill-meta-tag">75×15</span>
+            <span class="pill-imposition-result">28×4 · 112版</span>
+          </div>
+        </div>
+      `,
+
+      2: `
+        <div>
+          <div class="pipeline-row active" onclick="syncRow(this, '铭牌_A款_80×45mm.pdf', '0834-1-4', '80×45')">
+            <div class="p-line-1">
+              <span class="p-file-name">📄 铭牌_A款_80×45mm.pdf</span>
+              <span class="p-imposition-pill">5×6 · 30版 (已排)</span>
+            </div>
+            <div class="p-line-2">
+              <span class="p-sub-chip">订单: 0834-1-4</span>
+              <span>·</span>
+              <span class="p-sub-chip">数量: 1</span>
+              <span>·</span>
+              <span class="p-sub-chip">尺寸: 80×45 mm</span>
+              <span>·</span>
+              <span style="color: #10b981;">● 正常1P</span>
+            </div>
+          </div>
+
+          <div class="pipeline-row" onclick="syncRow(this, '铭牌_B款_80×45mm.pdf', '0834-1-5', '80×45')">
+            <div class="p-line-1">
+              <span class="p-file-name">📄 铭牌_B款_80×45mm.pdf</span>
+              <span class="p-imposition-pill">5×6 · 30版 (已排)</span>
+            </div>
+            <div class="p-line-2">
+              <span class="p-sub-chip">订单: 0834-1-5</span>
+              <span>·</span>
+              <span class="p-sub-chip">数量: 1</span>
+              <span>·</span>
+              <span class="p-sub-chip">尺寸: 80×45 mm</span>
+              <span>·</span>
+              <span style="color: #10b981;">● 正常1P</span>
+            </div>
+          </div>
+
+          <div class="pipeline-row" onclick="syncRow(this, '铭牌_C款_80×45mm.pdf', '0834-1-6', '80×45')">
+            <div class="p-line-1">
+              <span class="p-file-name">📄 铭牌_C款_80×45mm.pdf</span>
+              <span class="p-imposition-pill">5×6 · 30版 (已排)</span>
+            </div>
+            <div class="p-line-2">
+              <span class="p-sub-chip">订单: 0834-1-6</span>
+              <span>·</span>
+              <span class="p-sub-chip">数量: 1</span>
+              <span>·</span>
+              <span class="p-sub-chip">尺寸: 80×45 mm</span>
+              <span>·</span>
+              <span style="color: #10b981;">● 正常1P</span>
+            </div>
+          </div>
+
+          <div class="pipeline-row" onclick="syncRow(this, '德佰仕75x15.pdf', '0834-1-7', '75×15')">
+            <div class="p-line-1">
+              <span class="p-file-name">📄 德佰仕75x15.pdf</span>
+              <span class="p-imposition-pill">28×4 · 112版 (已排)</span>
+            </div>
+            <div class="p-line-2">
+              <span class="p-sub-chip">订单: 0834-1-7</span>
+              <span>·</span>
+              <span class="p-sub-chip">数量: 1</span>
+              <span>·</span>
+              <span class="p-sub-chip">尺寸: 75×15 mm</span>
+              <span>·</span>
+              <span style="color: #10b981;">● 正常1P</span>
+            </div>
+          </div>
+        </div>
+      `,
+
+      3: `
+        <table class="fluent-table">
+          <thead>
+            <tr>
+              <th style="width: 32px; text-align: center;">SEQ</th>
+              <th style="width: 175px;">FILE NAME</th>
+              <th style="width: 65px;">ORDER</th>
+              <th style="width: 44px; text-align: center;">QTY</th>
+              <th style="width: 40px; text-align: center;">PAGE</th>
+              <th style="width: 95px;">FINISHED SIZE</th>
+              <th style="width: 80px; text-align: center;">LAYOUT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="active" onclick="syncRow(this, '铭牌_A款_80×45mm.pdf', '0834-1-4', '80×45')">
+              <td style="text-align: center; color: #94a3b8; font-family: var(--font-mono);">01</td>
+              <td style="font-family: var(--font-mono); font-weight: 600;">铭牌_A款_80×45mm.pdf</td>
+              <td><span style="font-family: var(--font-mono);">0834-1-4</span></td>
+              <td style="text-align: center;"><span class="qty-bubble">1</span></td>
+              <td style="text-align: center; color: #64748b;">1P</td>
+              <td style="font-family: var(--font-mono); font-weight: 600;">80×45</td>
+              <td style="text-align: center; font-weight: bold; color: #0284c7; font-family: var(--font-mono);">5×6 · 30</td>
+            </tr>
+            <tr onclick="syncRow(this, '铭牌_B款_80×45mm.pdf', '0834-1-5', '80×45')">
+              <td style="text-align: center; color: #94a3b8; font-family: var(--font-mono);">02</td>
+              <td style="font-family: var(--font-mono); font-weight: 600;">铭牌_B款_80×45mm.pdf</td>
+              <td><span style="font-family: var(--font-mono);">0834-1-5</span></td>
+              <td style="text-align: center;"><span class="qty-bubble">1</span></td>
+              <td style="text-align: center; color: #64748b;">1P</td>
+              <td style="font-family: var(--font-mono); font-weight: 600;">80×45</td>
+              <td style="text-align: center; font-weight: bold; color: #0284c7; font-family: var(--font-mono);">5×6 · 30</td>
+            </tr>
+            <tr onclick="syncRow(this, '铭牌_C款_80×45mm.pdf', '0834-1-6', '80×45')">
+              <td style="text-align: center; color: #94a3b8; font-family: var(--font-mono);">03</td>
+              <td style="font-family: var(--font-mono); font-weight: 600;">铭牌_C款_80×45mm.pdf</td>
+              <td><span style="font-family: var(--font-mono);">0834-1-6</span></td>
+              <td style="text-align: center;"><span class="qty-bubble">1</span></td>
+              <td style="text-align: center; color: #64748b;">1P</td>
+              <td style="font-family: var(--font-mono); font-weight: 600;">80×45</td>
+              <td style="text-align: center; font-weight: bold; color: #0284c7; font-family: var(--font-mono);">5×6 · 30</td>
+            </tr>
+            <tr onclick="syncRow(this, '德佰仕75x15.pdf', '0834-1-7', '75×15')">
+              <td style="text-align: center; color: #94a3b8; font-family: var(--font-mono);">04</td>
+              <td style="font-family: var(--font-mono); font-weight: 600;">德佰仕75x15.pdf</td>
+              <td><span style="font-family: var(--font-mono);">0834-1-7</span></td>
+              <td style="text-align: center;"><span class="qty-bubble">1</span></td>
+              <td style="text-align: center; color: #64748b;">1P</td>
+              <td style="font-family: var(--font-mono); font-weight: 600;">75×15</td>
+              <td style="text-align: center; font-weight: bold; color: #0284c7; font-family: var(--font-mono);">28×4 · 112</td>
+            </tr>
+          </tbody>
+        </table>
+      `
+    };
+
+    const schemeInfo = {
+      1: {
+        cls: 'scheme-1-island',
+        title: "✨ 方案 1：现代精工行岛 (Island Row Cards · Linear/Apple 风格) ★ 强烈推荐",
+        desc: "剥离冰冷的传统网格，转为每行 3px 间隙的浮动圆角行岛。左侧 3px 鲜蓝指示彩条，排版数药丸徽章，彻底消灭 Excel 填表感！"
+      },
+      2: {
+        cls: 'scheme-2-pipeline',
+        title: "📑 方案 2：双行高密度流水线 (Two-Line Pipeline · Vercel/GitHub PR 风格)",
+        desc: "主行 100% 满宽展示完整长文件名，第二行紧凑点缀工单、尺寸、数量等元数据，极具工程极客质感，彻底消除文件名截断！"
+      },
+      3: {
+        cls: 'scheme-3-fluent',
+        title: "💎 方案 3：Fluent 2 极简平滑流 (Refined Minimal Fluent Table)",
+        desc: "全表无竖线分割，大写微字号表头，数量圆形气泡徽章，底部操作栏集成快捷键提示角标（↑ ↓ Ctrl+G Del），快捷高级。"
+      }
+    };
+
+    function selectScheme(id) {
+      document.body.className = schemeInfo[id].cls;
+      for (let i = 1; i <= 3; i++) {
+        document.getElementById('tabM' + i).classList.remove('active');
+        document.getElementById('cardM' + i).classList.remove('chosen');
+      }
+      document.getElementById('tabM' + id).classList.add('active');
+      document.getElementById('cardM' + id).classList.add('chosen');
+
+      document.getElementById('bannerTitle').innerHTML = `<span>${schemeInfo[id].title}</span><span class="desc">${schemeInfo[id].desc}</span>`;
+      document.getElementById('dynamicListArea').innerHTML = templates[id];
+    }
+
+    function syncRow(el, fileName, order, dim) {
+      const container = el.parentElement;
+      Array.from(container.children).forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+
+      document.getElementById('txtDetailTitle').innerText = fileName;
+      document.getElementById('iptOrderDetail').value = '订单: ' + order;
+      document.getElementById('valDetailDim').innerText = dim;
+    }
+
+    // 初始化默认加载方案 1
+    selectScheme(1);
+  </script>
+</body>
+</html>

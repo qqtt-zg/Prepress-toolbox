@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大诚印前工具箱 · 行与单元格交互深度模拟 (右键菜单 vs 实体按钮比选)</title>
+  <style>
+    :root {
+      --font-win: "Microsoft YaHei UI", -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Cascadia Mono', Consolas, "Courier New", monospace;
+      --win-w: 880px;
+      --left-w: 520px;
+      --right-w: 360px;
+      --h-normal: 508px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-win);
+      background-color: #0b1118;
+      color: #0f172a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      user-select: none;
+    }
+
+    /* 顶部控制台 */
+    .top-ctrl-bar {
+      width: var(--win-w);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      background: #111a24;
+      color: #f8fafc;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 1px solid #243547;
+      font-size: 12px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    }
+    .top-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+    }
+    .badge-interactive {
+      background: #1677ff;
+      color: #fff;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+
+    /* 交互模式三态切换 */
+    .interact-tabs {
+      display: flex;
+      gap: 6px;
+    }
+    .btn-tab {
+      padding: 5px 12px;
+      border-radius: 4px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #cbd5e1;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-tab:hover { background: #334155; color: #fff; }
+    .btn-tab.active {
+      background: #1677ff;
+      border-color: #1677ff;
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(22, 119, 255, 0.4);
+    }
+
+    /* 交互指导横幅 */
+    .guide-banner {
+      width: var(--win-w);
+      margin-bottom: 12px;
+      background: #1e293b;
+      border: 1px solid #3b82f6;
+      border-left: 4px solid #3b82f6;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 12px;
+      color: #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .guide-banner strong { color: #60a5fa; }
+    .hotkey-tip {
+      font-size: 11px;
+      color: #94a3b8;
+      font-family: var(--font-mono);
+    }
+
+    /* 880px × 508px 真实窗体外壳 */
+    .mock-window-frame {
+      width: var(--win-w);
+      height: var(--h-normal);
+      background: #ffffff;
+      border-radius: 4px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.65);
+      border: 1px solid #94a3b8;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* 左 520px 列表舱 */
+    .pane-left {
+      width: var(--left-w);
+      background: #ffffff;
+      border-right: 1px solid #d4dbe4;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100%;
+    }
+
+    /* 右 360px 工位舱 */
+    .pane-right {
+      width: var(--right-w);
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100%;
+    }
+
+    /* 顶部 26px 瑞士冷灰顶栏 (#eef2f6) */
+    .titlebar-26 {
+      height: 26px;
+      background: #eef2f6;
+      border-bottom: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #0f172a;
+      flex-shrink: 0;
+    }
+
+    /* 最底部 16px 瑞士冷灰地基条 (#eef2f6) */
+    .groundbar-16 {
+      height: 16px;
+      background: #eef2f6;
+      border-top: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 10px;
+      color: #64748b;
+      flex-shrink: 0;
+    }
+
+    /* 左侧卡片流 */
+    .left-cards-area {
+      flex: 1;
+      padding: 4px 10px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .group-panel-card {
+      border: 1px solid #d4dbe4;
+      border-radius: 4px;
+      background: #ffffff;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .group-header-row {
+      height: 34px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      font-size: 11.5px;
+      flex-shrink: 0;
+    }
+
+    /* 胶囊 */
+    .pill-gold {
+      font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 3px;
+      background: #fef3c7; color: #b45309; border: 1px solid #fde68a;
+    }
+    .pill-green {
+      font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 3px;
+      background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0;
+    }
+    .badge-linked-state {
+      margin-left: auto; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+      background: #f0fdf4; border: 1px solid #86efac; color: #16a34a;
+    }
+
+    /* =========================================================================
+       表格深度交互核心样式
+       - 支持整行选中 row-selected
+       - 支持单元格精准单选聚焦 cell-focused
+       - 支持多单元格选中 cell-selected
+       ========================================================================= */
+    .table-interactive {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      table-layout: fixed;
+    }
+    .table-interactive th {
+      height: 26px;
+      background: #f8fafc;
+      color: #475569;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 0 4px;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+      white-space: nowrap;
+    }
+    .table-interactive td {
+      height: 28px;
+      padding: 0 4px;
+      border-bottom: 1px solid #f1f5f9;
+      white-space: nowrap;
+      overflow: hidden;
+      color: #0f172a;
+      cursor: pointer;
+      position: relative;
+    }
+    .table-interactive tr:hover td {
+      background: #f8fafc;
+    }
+
+    /* 整行选中：柔和浅蓝高亮 */
+    .table-interactive tr.row-selected td {
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+
+    /* 单元格单点精准聚焦：鲜明的外边框微圈 (Focus Ring)，C# DataGridView 真实质感 */
+    .table-interactive td.cell-focused {
+      outline: 2px solid #2563eb !important;
+      outline-offset: -2px;
+      background: #dbeafe !important;
+      color: #1e40af !important;
+      font-weight: 700;
+    }
+
+    /* 单元格多选状态 (比如同时选中4个数量单元格) */
+    .table-interactive td.cell-multi-selected {
+      background: #e0f2fe !important;
+      color: #0369a1 !important;
+      outline: 1px solid #7dd3fc;
+    }
+
+    /* 数量胶囊气泡 */
+    .qty-bubble-pill {
+      display: inline-block;
+      min-width: 22px;
+      text-align: center;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      font-size: 10.5px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: #334155;
+    }
+    td.cell-focused .qty-bubble-pill {
+      background: #2563eb;
+      color: #fff;
+      border-color: #2563eb;
+    }
+
+    /* 尺寸胶囊 */
+    .dim-text-bold {
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+    .dim-choice-pill {
+      font-size: 9px;
+      background: #e2e8f0;
+      color: #475569;
+      padding: 0 3px;
+      border-radius: 2px;
+      margin-left: 2px;
+    }
+
+    /* 排版数徽章 */
+    .layout-badge {
+      font-weight: 700;
+      color: #0284c7;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    /* =========================================================================
+       模式 2 专属：行内 Hover 悬浮实体按钮栏 (Row Action Bar)
+       ========================================================================= */
+    .row-hover-actions {
+      position: absolute;
+      right: 4px;
+      top: 2px;
+      bottom: 2px;
+      display: none;
+      align-items: center;
+      gap: 3px;
+      background: #ffffff;
+      padding: 0 4px;
+      border-radius: 3px;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      z-index: 10;
+    }
+    .mode-hover-bar tr:hover .row-hover-actions {
+      display: flex;
+    }
+    .btn-row-action {
+      height: 20px;
+      padding: 0 5px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      border-radius: 2px;
+      font-size: 9.5px;
+      font-weight: 600;
+      color: #334155;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      white-space: nowrap;
+    }
+    .btn-row-action:hover {
+      background: #1677ff;
+      border-color: #1677ff;
+      color: #fff;
+    }
+    .btn-row-action.danger:hover {
+      background: #ef4444;
+      border-color: #ef4444;
+      color: #fff;
+    }
+
+    /* =========================================================================
+       模式 3 专属：工具栏实体快捷批处理按钮 (Toolbar Dropdown Action)
+       ========================================================================= */
+    .mode-toolbar-actions .btn-tool-dropdown {
+      background: #f8fafc;
+      border: 1px solid #91caff;
+      color: #0958d9;
+      font-weight: 700;
+    }
+
+    /* 底部操作栏（34px，方案 A 结构） */
+    .left-bottom-toolbar {
+      height: 34px;
+      background: #ffffff;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      flex-shrink: 0;
+    }
+    .seg-move-group {
+      display: flex;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      overflow: hidden;
+      background: #fff;
+      height: 26px;
+    }
+    .btn-seg-move {
+      width: 28px;
+      height: 100%;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #334155;
+      transition: all 0.15s;
+    }
+    .btn-seg-move:hover { background: #f1f5f9; color: #1677ff; }
+    .seg-divider { width: 1px; height: 16px; background: #e2e8f0; margin: auto 0; }
+
+    .btn-action-pill {
+      height: 26px;
+      padding: 0 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap !important;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #334155;
+      line-height: 1;
+      transition: all 0.15s;
+    }
+    .btn-action-pill:hover { border-color: #1677ff; color: #1677ff; }
+    .btn-action-pill.primary {
+      background: #e6f4ff; border-color: #91caff; color: #0958d9; font-weight: 700;
+    }
+    .btn-action-pill.primary:hover { background: #bae0ff; }
+    .btn-action-pill.danger {
+      background: #fff1f0; border-color: #ffa39e; color: #cf1322; font-weight: 700;
+    }
+    .btn-action-pill.danger:hover { background: #ffccc7; }
+    .btn-action-pill.ghost-danger {
+      background: #fff; border-color: #ffa39e; color: #cf1322;
+    }
+    .btn-action-pill.ghost-danger:hover { background: #fff1f0; }
+
+    /* =========================================================================
+       高保真 AntdUI 风格右键菜单 (Context Menu)
+       ========================================================================= */
+    .ctx-menu-box {
+      position: absolute;
+      z-index: 9999;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+      padding: 4px;
+      min-width: 180px;
+      display: none;
+      animation: popIn 0.1s ease-out;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .ctx-title {
+      font-size: 10px;
+      color: #94a3b8;
+      padding: 4px 8px 2px;
+      font-weight: 700;
+      border-bottom: 1px solid #f1f5f9;
+      margin-bottom: 2px;
+    }
+    .ctx-row {
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      color: #1e293b;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .ctx-row:hover { background: #eff6ff; color: #1677ff; }
+    .ctx-row.danger { color: #dc2626; }
+    .ctx-row.danger:hover { background: #fef2f2; color: #ef4444; }
+    .ctx-sep { height: 1px; background: #e2e8f0; margin: 3px 0; }
+    .ctx-kbd { font-size: 9.5px; color: #94a3b8; font-family: var(--font-mono); }
+
+    /* 右侧工位舱 (360px 真实结构) */
+    .station-v5-stack { height: 466px; padding: 4px 10px; display: flex; flex-direction: column; gap: 5px; overflow: hidden; flex-shrink: 0; }
+    .v5-box { border: 1px solid #d4dbe4; border-radius: 4px; padding: 4px 6px; background: #fff; }
+    .grid-mat-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+    .cell-mat { height: 24px; border: 1px solid #cbd5e1; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10.5px; }
+    .cell-mat.active { background: #1677ff; border-color: #1677ff; color: #fff; font-weight: bold; }
+    .row-path-v5 { height: 24px; display: flex; align-items: center; justify-content: space-between; font-size: 11px; }
+    .seg-pill-2 { display: flex; gap: 4px; }
+    .seg-box { flex: 1; height: 24px; background: #f1f5f9; border-radius: 3px; display: flex; padding: 2px; gap: 2px; }
+    .seg-item { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+    .seg-item.active { background: #fff; font-weight: bold; border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+    .grid-2x2-form { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; padding: 4px; background: #fafbfc; border-radius: 4px; border: 1px solid #eef2f6; }
+    .grid-2x2-form input { height: 22px; border: 1px solid #cbd5e1; border-radius: 3px; padding: 0 4px; width: 100%; font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+    .imposition-board-v5 { border: 1px solid #91caff; border-radius: 4px; padding: 4px; display: flex; flex-direction: column; gap: 3px; }
+    .metrics-6-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; background: #f0f7ff; border-radius: 3px; padding: 3px 2px; text-align: center; }
+    .metrics-6-grid .lbl { font-size: 8.5px; color: #64748b; }
+    .metrics-6-grid .val { font-size: 11px; font-weight: bold; font-family: var(--font-mono); }
+    .presets-row-v5 { display: flex; gap: 4px; }
+    .preset-pill-v5 { font-size: 9.5px; padding: 2px 6px; border-radius: 10px; background: #f1f5f9; border: 1px solid #cbd5e1; }
+    .actions-foot-v5 { height: 32px; display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
+    .btn-main-submit { width: 105px; height: 24px; background: #1677ff; color: #fff; border: none; border-radius: 3px; font-weight: 700; font-size: 11px; cursor: pointer; }
+    .btn-main-cancel { width: 50px; height: 24px; background: #fff; border: 1px solid #cbd5e1; border-radius: 3px; font-size: 11px; cursor: pointer; }
+    .collapse-handle-16 { height: 16px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; font-size: 10px; cursor: pointer; flex-shrink: 0; }
+
+    /* 交互反馈浮层 (Toast) */
+    .action-toast {
+      position: fixed;
+      bottom: 24px;
+      background: #0f172a;
+      border: 1px solid #38bdf8;
+      color: #f0f9ff;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      display: none;
+      z-index: 10000;
+      animation: toastIn 0.15s ease-out;
+    }
+    @keyframes toastIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* 底部方案深度评析卡 */
+    .compare-cards-grid {
+      width: var(--win-w);
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .comp-card {
+      background: #111a24;
+      border: 1px solid #243547;
+      border-radius: 6px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: #cbd5e1;
+      font-size: 12px;
+    }
+    .comp-card.active-card {
+      border-color: #1677ff;
+      background: #132233;
+    }
+    .comp-card h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body onclick="closeContextMenu()">
+
+  <!-- 顶部控制台 -->
+  <header class="top-ctrl-bar">
+    <div class="top-brand">
+      <span>材料选择框 · 交互深度模拟与比选</span>
+      <span class="badge-interactive">100% 真实交互</span>
+    </div>
+
+    <div class="interact-tabs">
+      <button class="btn-tab active" id="tabMode1" onclick="switchMode(1)">方式 1: 右键菜单流 (Context Menu) ★重度用户最爱</button>
+      <button class="btn-tab" id="tabMode2" onclick="switchMode(2)">方式 2: 行内悬浮快捷按钮 (Hover Action Bar)</button>
+      <button class="btn-tab" id="tabMode3" onclick="switchMode(3)">方式 3: 工具栏实体操作按钮 (Toolbar Quick Buttons)</button>
+    </div>
+  </header>
+
+  <!-- 交互指南横幅 -->
+  <div class="guide-banner" id="bannerGuide">
+    <div>
+      <span id="txtModeTitle"><strong>方式 1【右键菜单流】运行中：</strong></span>
+      <span id="txtModeDesc">支持整行点选；支持在【数量】/【尺寸】单元格上单击精准聚焦；在表格任意位置<strong>【点击鼠标右键】</strong>呼出菜单！</span>
+    </div>
+    <div class="hotkey-tip">快捷键: 点击序号整选 · 单击单元格精准聚焦</div>
+  </div>
+
+  <!-- 880px × 508px 真实窗体舞台 -->
+  <main class="mock-window-frame" id="windowFrame">
+
+    <!-- ================= 左侧 520px 列表舱 ================= -->
+    <section class="pane-left">
+      <!-- 顶部 26px 瑞士冷灰顶栏 (#eef2f6) -->
+      <div class="titlebar-26">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>待处理批次</span>
+          <span style="font-size: 10.5px; background: #e0f2fe; color: #0284c7; padding: 1px 6px; border-radius: 10px; font-weight: 600;">4 款 · 1 组</span>
+        </div>
+        <span style="font-size: 10px; color: #64748b;" id="lblTopTip">支持多选 · 右键呼出菜单</span>
+      </div>
+
+      <!-- 卡片流容器 -->
+      <div class="left-cards-area">
+        <div class="group-panel-card">
+          <!-- 组头 34px -->
+          <div class="group-header-row">
+            <span style="font-size: 10px; color: #64748b;">▾</span>
+            <span style="font-weight: 700; color: #0f172a;">【一组】</span>
+            <span style="font-size: 9.5px; background: #e2e8f0; color: #334155; padding: 1px 5px; border-radius: 3px; font-weight: 600;">4款新单</span>
+            <span class="pill-gold">50#yy</span>
+            <span class="pill-green">光膜</span>
+            <span style="font-size: 10px; color: #64748b;">平张 · 连拼 · 黑白 · 圆角R2</span>
+            <div class="badge-linked-state">联动中</div>
+          </div>
+
+          <!-- 100% 拒绝截断的精确实体表格 (498px 绝对数学分配) -->
+          <table class="table-interactive" id="mainTable">
+            <thead>
+              <tr>
+                <th style="width: 24px; text-align: center;">#</th>
+                <th style="width: 178px;">文件名</th>
+                <th style="width: 68px;">订单号</th>
+                <th style="width: 32px; text-align: center;">数量</th>
+                <th style="width: 34px; text-align: center;">页数</th>
+                <th style="width: 74px;">成品尺寸</th>
+                <th style="width: 88px; text-align: center;">排版数</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- 第 1 行 (默认选中) -->
+              <tr class="row-selected" onclick="handleRowClick(this, 0)" oncontextmenu="handleRowContextMenu(event, 0)">
+                <td style="text-align: center; color: #94a3b8; font-family: var(--font-mono);" onclick="handleIndexCellClick(event, 0)">01</td>
+                <td style="font-family: var(--font-mono); font-size: 10.5px;" title="铭牌_A款_80×45mm.pdf">铭牌_A款_80×45mm.pdf</td>
+                <td><span style="font-family: var(--font-mono);">0834-1-4</span></td>
+                <td style="text-align: center;" onclick="handleQtyCellClick(event, this, 0)" oncontextmenu="handleQtyContextMenu(event, 0, this)">
+                  <span class="qty-bubble-pill">1</span>
+                </td>
+                <td style="text-align: center; color: #64748b;">1P</td>
+                <td style="font-family: var(--font-mono); font-weight: 600;" onclick="handleDimCellClick(event, this, 0)" oncontextmenu="handleDimContextMenu(event, 0, this)">
+                  77×42 R2
+                </td>
+                <td style="text-align: center;"><span class="layout-badge">5×7 · 35版</span></td>
+
+                <!-- 方式 2 专属：行内 Hover 悬浮快捷按钮条 -->
+                <div class="row-hover-actions">
+                  <button class="btn-row-action" onclick="quickExtractQty(event, 0)" title="从文件名提取数量">⚡ 提取量</button>
+                  <button class="btn-row-action" onclick="quickEditQty(event, 0)" title="修改数量">✏️ 改量</button>
+                  <button class="btn-row-action" onclick="quickChoiceBox(event, 0)" title="切换页面框">📐 页面框</button>
+                  <button class="btn-row-action danger" onclick="quickDeleteRow(event, 0)" title="移入取消目录">🗑️</button>
+                </div>
+              </tr>
+
+              <!-- 第 2 行 -->
+              <tr onclick="handleRowClick(this, 1)" oncontextmenu="handleRowContextMenu(event, 1)">
+                <td style="text-align: center; color: #94a3b8; font-family: var(--font-mono);" onclick="handleIndexCellClick(event, 1)">02</td>
+                <td style="font-family: var(--font-mono); font-size: 10.5px;" title="铭牌_B款_80×45mm.pdf">铭牌_B款_80×45mm.pdf</td>
+                <td><span style="font-family: var(--font-mono);">0834-1-5</span></td>
+                <td style="text-align: center;" onclick="handleQtyCellClick(event, this, 1)" oncontextmenu="handleQtyContextMenu(event, 1, this)">
+                  <span class="qty-bubble-pill">1</span>
+                </td>
+                <td style="text-align: center; color: #64748b;">1P</td>
+                <td style="font-family: var(--font-mono); font-weight: 600;" onclick="handleDimCellClick(event, this, 1)" oncontextmenu="handleDimContextMenu(event, 1, this)">
+                  77×42 R2
+                </td>
+                <td style="text-align: center;"><span class="layout-badge">5×7 · 35版</span></td>
+
+                <div class="row-hover-actions">
+                  <button class="btn-row-action" onclick="quickExtractQty(event, 1)">⚡ 提取量</button>
+                  <button class="btn-row-action" onclick="quickEditQty(event, 1)">✏️ 改量</button>
+                  <button class="btn-row-action" onclick="quickChoiceBox(event, 1)">📐 页面框</button>
+                  <button class="btn-row-action danger" onclick="quickDeleteRow(event, 1)">🗑️</button>
+                </div>
+              </tr>
+
+              <!-- 第 3 行 -->
+              <tr onclick="handleRowClick(this, 2)" oncontextmenu="handleRowContextMenu(event, 2)">
+                <td style="text-align: center; color: #94a3b8; font-family: var(--font-mono);" onclick="handleIndexCellClick(event, 2)">03</td>
+                <td style="font-family: var(--font-mono); font-size: 10.5px;" title="铭牌_C款_80×45mm.pdf">铭牌_C款_80×45mm.pdf</td>
+                <td><span style="font-family: var(--font-mono);">0834-1-6</span></td>
+                <td style="text-align: center;" onclick="handleQtyCellClick(event, this, 2)" oncontextmenu="handleQtyContextMenu(event, 2, this)">
+                  <span class="qty-bubble-pill">1</span>
+                </td>
+                <td style="text-align: center; color: #64748b;">1P</td>
+                <td style="font-family: var(--font-mono); font-weight: 600;" onclick="handleDimCellClick(event, this, 2)" oncontextmenu="handleDimContextMenu(event, 2, this)">
+                  77×42 R2
+                </td>
+                <td style="text-align: center;"><span class="layout-badge">5×7 · 35版</span></td>
+
+                <div class="row-hover-actions">
+                  <button class="btn-row-action" onclick="quickExtractQty(event, 2)">⚡ 提取量</button>
+                  <button class="btn-row-action" onclick="quickEditQty(event, 2)">✏️ 改量</button>
+                  <button class="btn-row-action" onclick="quickChoiceBox(event, 2)">📐 页面框</button>
+                  <button class="btn-row-action danger" onclick="quickDeleteRow(event, 2)">🗑️</button>
+                </div>
+              </tr>
+
+              <!-- 第 4 行 -->
+              <tr onclick="handleRowClick(this, 3)" oncontextmenu="handleRowContextMenu(event, 3)">
+                <td style="text-align: center; color: #94a3b8; font-family: var(--font-mono);" onclick="handleIndexCellClick(event, 3)">04</td>
+                <td style="font-family: var(--font-mono); font-size: 10.5px;" title="德佰仕75x15.pdf">德佰仕75x15.pdf</td>
+                <td><span style="font-family: var(--font-mono);">0834-1-7</span></td>
+                <td style="text-align: center;" onclick="handleQtyCellClick(event, this, 3)" oncontextmenu="handleQtyContextMenu(event, 3, this)">
+                  <span class="qty-bubble-pill">1</span>
+                </td>
+                <td style="text-align: center; color: #64748b;">1P</td>
+                <td style="font-family: var(--font-mono); font-weight: 600;" onclick="handleDimCellClick(event, this, 3)" oncontextmenu="handleDimContextMenu(event, 3, this)">
+                  72×12 R2
+                </td>
+                <td style="text-align: center;"><span class="layout-badge" style="color:#d97706;">35×4 · 140版</span></td>
+
+                <div class="row-hover-actions">
+                  <button class="btn-row-action" onclick="quickExtractQty(event, 3)">⚡ 提取量</button>
+                  <button class="btn-row-action" onclick="quickEditQty(event, 3)">✏️ 改量</button>
+                  <button class="btn-row-action" onclick="quickChoiceBox(event, 3)">📐 页面框</button>
+                  <button class="btn-row-action danger" onclick="quickDeleteRow(event, 3)">🗑️</button>
+                </div>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 底部 34px 工具栏：单行绝对舒展，绝不折行！ -->
+      <div class="left-bottom-toolbar">
+        <div style="display: flex; gap: 6px; align-items: center;" id="leftToolbarActions">
+          <!-- 上下移分段组 (仅占58px，省出70px空间！) -->
+          <div class="seg-move-group" title="调整行顺序">
+            <button class="btn-seg-move" onclick="triggerToast('上移选中文件 (Shift+Up)')" title="上移">▲</button>
+            <div class="seg-divider"></div>
+            <button class="btn-seg-move" onclick="triggerToast('下移选中文件 (Shift+Down)')" title="下移">▼</button>
+          </div>
+
+          <!-- 分出新组 (102px，极其从容舒展) -->
+          <button class="btn-action-pill primary" onclick="triggerToast('将选中文件分出创建为新工艺组')">
+            <span>➕ 分出新组</span>
+          </button>
+
+          <!-- 模式 3 专属：将数量操作直接提拔为实体下拉按钮！ -->
+          <button class="btn-action-pill btn-tool-dropdown" id="btnQtyToolbarDropdown" style="display: none;" onclick="openQtyToolbarMenu(event)">
+            <span>数量批处理 ▾</span>
+          </button>
+
+          <!-- 重新解析 (92px) -->
+          <button class="btn-action-pill" onclick="triggerToast('重新解析文件页数与成品尺寸')">
+            <span>↻ 重新解析</span>
+          </button>
+        </div>
+
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <button class="btn-action-pill danger" onclick="triggerToast('删除选中的行并移入“取消文件”')">
+            <span>🗑️ 删除行</span>
+          </button>
+          <button class="btn-action-pill ghost-danger" onclick="triggerToast('取消列表中全部文件')">
+            <span>批量取消</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 最底 16px 瑞士冷灰地基条 -->
+      <div class="groundbar-16">
+        <span id="txtGroundTip">💡 提示：点击序号整选 · 单击单元格精准聚焦 · 右键呼出批处理菜单</span>
+      </div>
+    </section>
+
+    <!-- ================= 右侧 360px 工位舱 (联动展示) ================= -->
+    <section class="pane-right">
+      <div class="titlebar-26">
+        <span id="txtRightDetailTitle">铭牌_A款_80×45 mm.pdf</span>
+        <span style="color: #1677ff; cursor: pointer; font-size: 12px;">📌 钉住</span>
+      </div>
+
+      <div class="station-v5-stack">
+        <div class="v5-box">
+          <div style="font-size: 9.5px; color: #64748b; font-weight: bold; margin-bottom: 2px;">常用材料</div>
+          <div class="grid-mat-4">
+            <div class="cell-mat">ulyy</div>
+            <div class="cell-mat active">50#yy</div>
+            <div class="cell-mat">100#yy</div>
+            <div class="cell-mat">b</div>
+            <div class="cell-mat">kyb</div>
+            <div class="cell-mat">hc</div>
+            <div class="cell-mat">kyhc</div>
+            <div class="cell-mat">tm</div>
+          </div>
+        </div>
+
+        <div class="v5-box">
+          <div class="row-path-v5">
+            <span>输出: <strong style="color: #08979c;">前台\A3\一刀出血</strong></span>
+            <span style="color: #64748b;">📁 切换目录 ▾</span>
+          </div>
+        </div>
+
+        <div class="v5-box">
+          <div class="seg-pill-2">
+            <div class="seg-box">
+              <div class="seg-item active">光膜</div>
+              <div class="seg-item">哑膜</div>
+              <div class="seg-item">红膜</div>
+              <div class="seg-item">不过膜</div>
+            </div>
+          </div>
+          <div class="seg-pill-2" style="margin-top: 3px;">
+            <div class="seg-box">
+              <div class="seg-item">直角</div>
+              <div class="seg-item">圆形</div>
+              <div class="seg-item">异形</div>
+              <div class="seg-item active">圆角 R2</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="v5-box">
+          <div class="grid-2x2-form">
+            <input type="text" id="iptOrderDetail" value="订单: 0834-1-4" readonly>
+            <input type="text" value="序号: A08" readonly>
+            <input type="text" id="iptQtyDetail" value="数量: 1" readonly>
+            <input type="text" value="页序: 未启用" readonly>
+          </div>
+        </div>
+
+        <div class="imposition-board-v5">
+          <div style="display: flex; justify-content: space-between; font-size: 10px;">
+            <span style="font-weight: bold; color: #1677ff;">☑ 自动排版</span>
+            <span style="color: #64748b;">[平张] [连拼]</span>
+          </div>
+          <div class="metrics-6-grid">
+            <div style="display: flex; flex-direction: column;"><span class="lbl">网格</span><span class="val" style="color:#0958d9;">5×7</span></div>
+            <div style="display: flex; flex-direction: column;"><span class="lbl">布局数</span><span class="val" style="color:#d46b08;">35</span></div>
+            <div style="display: flex; flex-direction: column;"><span class="lbl">角度</span><span class="val" style="color:#722ed1;">270°</span></div>
+            <div style="display: flex; flex-direction: column;"><span class="lbl">尺寸</span><span class="val" style="color:#08979c;" id="valDetailDim">77×42</span></div>
+            <div style="display: flex; flex-direction: column;"><span class="lbl">出血</span><span class="val" style="color:#eb2f96;">1.5</span></div>
+            <div style="display: flex; flex-direction: column;"><span class="lbl">颜色</span><span class="val" style="color:#13c2c2;">黑白</span></div>
+          </div>
+        </div>
+
+        <div class="presets-row-v5">
+          <span class="preset-pill-v5">前台 · 滚直缝折手</span>
+          <span class="preset-pill-v5">裁断 · 一刀</span>
+          <span class="preset-pill-v5">前连拼</span>
+        </div>
+
+        <div class="actions-foot-v5">
+          <span style="font-size: 11px; color: #1677ff; font-weight: 600;">➜ 仅处理当前款</span>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn-main-cancel">取消</button>
+            <button class="btn-main-submit">确认并继续</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="collapse-handle-16">
+        <span>页码: —</span>
+        <span>▼ 点击展开预览 (+245px)</span>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= 右键菜单 1：行级工单右键菜单 ================= -->
+  <div class="ctx-menu-box" id="ctxRowMenu">
+    <div class="ctx-title" id="ctxRowMenuTitle">工单行批处理</div>
+    <div class="ctx-row" onclick="triggerToast('执行：分出新组 (创建新工艺批次)')">
+      <span>➕ 分出新组</span><span class="ctx-kbd">Ctrl+G</span>
+    </div>
+    <div class="ctx-row" onclick="triggerToast('执行：重新解析该文件规格尺寸')">
+      <span>↻ 重新解析此款</span><span class="ctx-kbd">F5</span>
+    </div>
+    <div class="ctx-row" onclick="triggerToast('执行：在资源管理器中定位文件')">
+      <span>📂 打开所在文件夹</span>
+    </div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-row danger" onclick="triggerToast('执行：移入取消文件目录')">
+      <span>🗑️ 移入取消目录</span><span class="ctx-kbd">Del</span>
+    </div>
+  </div>
+
+  <!-- ================= 右键菜单 2：数量列专用右键菜单 (C# 真实对齐) ================= -->
+  <div class="ctx-menu-box" id="ctxQtyMenu">
+    <div class="ctx-title">数量批量处理 (C#真实对齐)</div>
+    <div class="ctx-row" onclick="triggerToast('弹出：从文件名正则提取数量对话框')">
+      <span>🔍 从文件名提取数量...</span>
+    </div>
+    <div class="ctx-row" onclick="triggerToast('弹出：按当前数量批量增量对话框')">
+      <span>➕ 按当前数量批量增量...</span>
+    </div>
+    <div class="ctx-row" onclick="triggerToast('弹出：批量设置数量对话框')">
+      <span>✏️ 批量设置数量...</span>
+    </div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-row" onclick="triggerToast('执行：从剪贴板粘贴数量列表')">
+      <span>📋 从剪贴板粘贴数量</span><span class="ctx-kbd">Ctrl+V</span>
+    </div>
+  </div>
+
+  <!-- ================= 右键菜单 3：页面框/尺寸基准菜单 ================= -->
+  <div class="ctx-menu-box" id="ctxDimMenu">
+    <div class="ctx-title">页面框选用基准</div>
+    <div class="ctx-row" onclick="triggerToast('已切换为选用：媒体框 (MediaBox)')">
+      <span>✔ 选用媒体框 (MediaBox)</span>
+    </div>
+    <div class="ctx-row" onclick="triggerToast('已切换为选用：裁剪框 (CropBox)')">
+      <span>选用裁剪框 (CropBox)</span>
+    </div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-row" onclick="triggerToast('弹出：自定义微调成品尺寸对话框')">
+      <span>📐 自定义尺寸...</span>
+    </div>
+  </div>
+
+  <!-- 浮层 Toast -->
+  <div class="action-toast" id="actionToast">操作反馈</div>
+
+  <!-- 3 大交互方式评析对比 -->
+  <footer class="compare-cards-grid">
+    <div class="comp-card active-card" id="cardComp1">
+      <h3 style="color: #60a5fa;">方式 1: 鼠标右键菜单流 ★【老印前工人最推崇】</h3>
+      <p><strong>优点：</strong>界面极简清爽，毫无任何视觉多余按键干扰；完美兼容既有习惯（在数量上右键改量、在行上右键分组）。</p>
+      <p><strong>体验：</strong>对熟练工极度顺手，手指无需大范围移动鼠标找按钮。</p>
+    </div>
+
+    <div class="comp-card" id="cardComp2">
+      <h3 style="color: #cbd5e1;">方式 2: 行内悬浮快捷按钮 (Hover Bar)</h3>
+      <p><strong>优点：</strong>鼠标划过哪一行，该行尾自动浮现 <code>[⚡提取量] [✏️改量] [📐页面框]</code> 按钮，所见即所得，零学习成本。</p>
+      <p><strong>缺点：</strong>可能遮挡尾部“排版数”文字（约需 140px 空间），在行较密时略有视觉晃动。</p>
+    </div>
+
+    <div class="comp-card" id="cardComp3">
+      <h3 style="color: #cbd5e1;">方式 3: 工具栏实体快捷按钮</h3>
+      <p><strong>优点：</strong>把右键菜单的核心功能做成底部常驻按钮 <code>[数量批处理 ▾]</code>，点击直接弹出菜单，新手绝不遗漏。</p>
+      <p><strong>体验：</strong>配合单选/多选行使用，最稳健扎实，兼顾老手与新手。</p>
+    </div>
+  </footer>
+
+  <script>
+    const sampleFiles = [
+      { name: '铭牌_A款_80×45mm.pdf', order: '0834-1-4', dim: '77×42 R2', qty: '1', layout: '5×7 · 35版' },
+      { name: '铭牌_B款_80×45mm.pdf', order: '0834-1-5', dim: '77×42 R2', qty: '1', layout: '5×7 · 35版' },
+      { name: '铭牌_C款_80×45mm.pdf', order: '0834-1-6', dim: '77×42 R2', qty: '1', layout: '5×7 · 35版' },
+      { name: '德佰仕75x15.pdf', order: '0834-1-7', dim: '72×12 R2', qty: '1', layout: '35×4 · 140版' }
+    ];
+
+    let currentMode = 1;
+
+    function switchMode(m) {
+      currentMode = m;
+      document.getElementById('tabMode1').classList.toggle('active', m === 1);
+      document.getElementById('tabMode2').classList.toggle('active', m === 2);
+      document.getElementById('tabMode3').classList.toggle('active', m === 3);
+
+      document.getElementById('cardComp1').classList.toggle('active-card', m === 1);
+      document.getElementById('cardComp2').classList.toggle('active-card', m === 2);
+      document.getElementById('cardComp3').classList.toggle('active-card', m === 3);
+
+      const table = document.getElementById('mainTable');
+      table.classList.toggle('mode-hover-bar', m === 2);
+
+      const btnQtyDrop = document.getElementById('btnQtyToolbarDropdown');
+      btnQtyDrop.style.display = (m === 3) ? 'inline-flex' : 'none';
+
+      const descMap = {
+        1: { title: '方式 1【右键菜单流】运行中：', desc: '支持整行点选；支持在【数量】/【尺寸】单元格上单击精准聚焦；在表格任意位置【点击鼠标右键】呼出菜单！' },
+        2: { title: '方式 2【行内悬浮快捷按钮】运行中：', desc: '请将鼠标悬停在任意行上方，注意看该行尾部自动滑出的快捷操作按钮（提取量、改量、页面框、删除）！' },
+        3: { title: '方式 3【工具栏实体按钮】运行中：', desc: '注意看底部操作栏中新增的实体【数量批处理 ▾】按钮，点击可直接呼出数量处理能力，免除盲猜右键！' }
+      };
+
+      document.getElementById('txtModeTitle').innerHTML = `<strong>${descMap[m].title}</strong>`;
+      document.getElementById('txtModeDesc').innerText = descMap[m].desc;
+      triggerToast('已切换为：' + descMap[m].title.replace('运行中：', ''));
+    }
+
+    // 交互行为
+    function handleRowClick(trEl, index) {
+      closeContextMenu();
+      const tbody = trEl.parentElement;
+      Array.from(tbody.children).forEach(r => {
+        r.classList.remove('row-selected');
+        Array.from(r.children).forEach(td => td.classList.remove('cell-focused'));
+      });
+      trEl.classList.add('row-selected');
+
+      syncRightStation(index);
+    }
+
+    function handleIndexCellClick(e, index) {
+      e.stopPropagation();
+      const tr = e.target.closest('tr');
+      handleRowClick(tr, index);
+      triggerToast(`已选中整行: [${sampleFiles[index].name}]`);
+    }
+
+    function handleQtyCellClick(e, tdEl, index) {
+      e.stopPropagation();
+      clearAllFocusRings();
+      tdEl.classList.add('cell-focused');
+      const tr = tdEl.closest('tr');
+      handleRowClick(tr, index);
+      triggerToast(`精准聚焦【数量】单元格 (当前值: ${sampleFiles[index].qty}) · 可右键进行批处理`);
+    }
+
+    function handleDimCellClick(e, tdEl, index) {
+      e.stopPropagation();
+      clearAllFocusRings();
+      tdEl.classList.add('cell-focused');
+      const tr = tdEl.closest('tr');
+      handleRowClick(tr, index);
+      triggerToast(`精准聚焦【成品尺寸】单元格 (当前值: ${sampleFiles[index].dim}) · 可右键切换选用基准`);
+    }
+
+    function clearAllFocusRings() {
+      document.querySelectorAll('.cell-focused').forEach(c => c.classList.remove('cell-focused'));
+    }
+
+    function syncRightStation(index) {
+      const f = sampleFiles[index];
+      document.getElementById('txtRightDetailTitle').innerText = f.name;
+      document.getElementById('iptOrderDetail').value = '订单: ' + f.order;
+      document.getElementById('iptQtyDetail').value = '数量: ' + f.qty;
+      document.getElementById('valDetailDim').innerText = f.dim;
+    }
+
+    // 右键菜单交互
+    function handleRowContextMenu(e, index) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeContextMenu();
+      handleRowClick(e.currentTarget, index);
+
+      const m = document.getElementById('ctxRowMenu');
+      document.getElementById('ctxRowMenuTitle').innerText = `工单批次 [${sampleFiles[index].name}]`;
+      positionMenu(m, e.clientX, e.clientY);
+    }
+
+    function handleQtyContextMenu(e, index, tdEl) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeContextMenu();
+      clearAllFocusRings();
+      tdEl.classList.add('cell-focused');
+
+      const m = document.getElementById('ctxQtyMenu');
+      positionMenu(m, e.clientX, e.clientY);
+    }
+
+    function handleDimContextMenu(e, index, tdEl) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeContextMenu();
+      clearAllFocusRings();
+      tdEl.classList.add('cell-focused');
+
+      const m = document.getElementById('ctxDimMenu');
+      positionMenu(m, e.clientX, e.clientY);
+    }
+
+    function openQtyToolbarMenu(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeContextMenu();
+
+      const btn = e.currentTarget;
+      const rect = btn.getBoundingClientRect();
+      const m = document.getElementById('ctxQtyMenu');
+      positionMenu(m, rect.left, rect.top - 120);
+    }
+
+    function positionMenu(menuEl, clientX, clientY) {
+      const frame = document.getElementById('windowFrame');
+      const r = frame.getBoundingClientRect();
+      menuEl.style.left = (clientX - r.left) + 'px';
+      menuEl.style.top = (clientY - r.top) + 'px';
+      menuEl.style.display = 'block';
+    }
+
+    function closeContextMenu() {
+      document.getElementById('ctxRowMenu').style.display = 'none';
+      document.getElementById('ctxQtyMenu').style.display = 'none';
+      document.getElementById('ctxDimMenu').style.display = 'none';
+    }
+
+    // 方式 2 快捷按钮行为
+    function quickExtractQty(e, index) {
+      e.stopPropagation();
+      triggerToast(`【快捷按钮】已从文件名提取 [${sampleFiles[index].name}] 的数量`);
+    }
+    function quickEditQty(e, index) {
+      e.stopPropagation();
+      triggerToast(`【快捷按钮】弹出修改第 ${index + 1} 行数量对话框`);
+    }
+    function quickChoiceBox(e, index) {
+      e.stopPropagation();
+      triggerToast(`【快捷按钮】切换第 ${index + 1} 行的页面框选用 (CropBox / MediaBox)`);
+    }
+    function quickDeleteRow(e, index) {
+      e.stopPropagation();
+      triggerToast(`【快捷按钮】已将第 ${index + 1} 行移入取消目录`);
+    }
+
+    // Toast 反馈
+    let toastTimer = null;
+    function triggerToast(msg) {
+      const t = document.getElementById('actionToast');
+      t.innerText = msg;
+      t.style.display = 'block';
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { t.style.display = 'none'; }, 2200);
+    }
+  </script>
+</body>
+</html>

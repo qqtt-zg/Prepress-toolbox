@@ -284,6 +284,7 @@ catch (Exception ex)
                         serialNumber: "A08"
                     );
                     form.SetPendingFiles(mockItems);
+                    form.ToggleBatchFileListPanel(true);
                     Application.Run(form);
                 }
                 else

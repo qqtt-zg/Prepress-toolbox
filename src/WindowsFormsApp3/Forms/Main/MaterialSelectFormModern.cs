@@ -288,6 +288,8 @@ namespace WindowsFormsApp3
         private int _rowIndexFromMouseDown = -1;
         private AntdUI.Button btnMoveUp;
         private AntdUI.Button btnMoveDown;
+        private AntdUI.Button btnSelectAll;
+        private AntdUI.Button btnInvertSelect;
         private AntdUI.Button btnNewGroupDirect;
         private AntdUI.Button btnDeleteBatchRows;
         private AntdUI.Button btnCancelAllBatchRows;
@@ -297,6 +299,9 @@ namespace WindowsFormsApp3
         private AntdUI.Spin _spinBatchLoading;
         private BindingList<BatchFileItem> _batchItems = new BindingList<BatchFileItem>();
         private string _batchMonitorDirectory;
+        private System.Windows.Forms.Panel pnlPreviewFooter;
+        private System.Windows.Forms.Label lblPreviewFooterTip;
+        private System.Windows.Forms.Label lblPreviewFooterCollapse;
         private bool _isCancellingBatchItems;
         private bool _isBatchPanelExpanded = false;
         private int? _singleStationWindowLeft;
@@ -420,6 +425,27 @@ namespace WindowsFormsApp3
                         }
                     }));
                 });
+            }
+        }
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                var cp = base.CreateParams;
+                // 为无边框窗体注入 Windows 桌面原生系统阴影 (CS_DROPSHADOW)，在纯白环境下形成立体悬浮感
+                cp.ClassStyle |= 0x20000;
+                return cp;
+            }
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            // 窗体最外沿 1px 工业级冷灰硬切线（#94a3b8），在 100% 纯白背景上切出清晰锐利的物理边缘
+            using (var pen = new Pen(Color.FromArgb(148, 163, 184), 1F))
+            {
+                e.Graphics.DrawRectangle(pen, 0, 0, this.ClientSize.Width - 1, this.ClientSize.Height - 1);
             }
         }
 
@@ -562,6 +588,7 @@ namespace WindowsFormsApp3
                 int previewTop = TITLE_BAR_HEIGHT + contentHeight + COLLAPSE_BAR_HEIGHT;
                 if (_isPreviewExpanded)
                 {
+                    EnsurePreviewFooterBar();
                     pdfPreviewPanel.Visible = true;
                     SetControlBoundsSafe(pdfPreviewPanel, previewX, previewTop, STATION_WIDTH, MAX_PREVIEW_HEIGHT);
                 }
@@ -570,6 +597,68 @@ namespace WindowsFormsApp3
                     pdfPreviewPanel.Visible = false;
                     SetControlBoundsSafe(pdfPreviewPanel, previewX, previewTop, STATION_WIDTH, 0);
                 }
+            }
+
+            // 触发窗体四周 1px 外围切线重绘，确保尺寸切换时边框完整闭合
+            this.Invalidate();
+        }
+
+        /// <summary>
+        /// 方案 A：在展开大预览时，为预览面板底部注入 16px 浅灰状态封底栏，底色与高度像素级对齐左侧地基栏（#eef2f6，高度16px）
+        /// </summary>
+        private void EnsurePreviewFooterBar()
+        {
+            if (pdfPreviewPanel == null || pnlPreviewFooter != null) return;
+            try
+            {
+                pnlPreviewFooter = new System.Windows.Forms.Panel
+                {
+                    Name = "pnlPreviewFooter",
+                    Dock = DockStyle.Bottom,
+                    Height = COLLAPSE_BAR_HEIGHT, // 严格16px，与左侧 bottomHelpPanel 及折叠条像素级齐平
+                    BackColor = Color.FromArgb(238, 242, 246)
+                };
+                pnlPreviewFooter.Paint += (s, e) =>
+                {
+                    using (var pen = new Pen(Color.FromArgb(203, 213, 225), 1F))
+                    {
+                        e.Graphics.DrawLine(pen, 0, 0, pnlPreviewFooter.Width, 0);
+                    }
+                };
+
+                lblPreviewFooterTip = new System.Windows.Forms.Label
+                {
+                    Text = "📄 PDF 矢量排版预览",
+                    Font = new Font("Microsoft YaHei UI", 8F),
+                    ForeColor = Color.FromArgb(100, 116, 139),
+                    Dock = DockStyle.Left,
+                    Width = 180,
+                    Padding = new Padding(10, 0, 0, 0),
+                    TextAlign = ContentAlignment.MiddleLeft,
+                    BackColor = Color.Transparent
+                };
+
+                lblPreviewFooterCollapse = new System.Windows.Forms.Label
+                {
+                    Text = "▲ 收起预览",
+                    Font = new Font("Microsoft YaHei UI", 8F),
+                    ForeColor = Color.FromArgb(100, 116, 139),
+                    Dock = DockStyle.Right,
+                    Width = 90,
+                    Padding = new Padding(0, 0, 10, 0),
+                    TextAlign = ContentAlignment.MiddleRight,
+                    Cursor = Cursors.Hand,
+                    BackColor = Color.Transparent
+                };
+                lblPreviewFooterCollapse.Click += (s, e) => TogglePreviewState();
+
+                pnlPreviewFooter.Controls.Add(lblPreviewFooterCollapse);
+                pnlPreviewFooter.Controls.Add(lblPreviewFooterTip);
+                pdfPreviewPanel.Controls.Add(pnlPreviewFooter);
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Warn($"[EnsurePreviewFooterBar] 注入预览封底栏失败: {ex.Message}");
             }
         }
 
@@ -3700,116 +3789,189 @@ namespace WindowsFormsApp3
                     Location = new Point(0, 0),
                     Size = new Size(BATCH_PANEL_WIDTH, this.ClientSize.Height),
                     Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left,
-                    BackColor = Color.FromArgb(248, 249, 250),
+                    BackColor = Color.White,
                     Visible = false
                 };
+                pnlFileList.Paint += (s, e) =>
+                {
+                    using (var pen = new Pen(Color.FromArgb(212, 219, 228), 1F))
+                    {
+                        e.Graphics.DrawLine(pen, pnlFileList.Width - 1, 0, pnlFileList.Width - 1, pnlFileList.Height);
+                    }
+                };
 
-                // 1. 顶部状态标题栏
+                // 1. 顶部状态标题栏（方案 A：26px 瑞士冷灰顶冠 #eef2f6，底部分割线 #cbd5e1 贯穿，在白底背景下轮廓分明）
                 pnlTopBatchHeader = new System.Windows.Forms.Panel
                 {
                     Dock = DockStyle.Top,
-                    Height = 36,
-                    BackColor = Color.FromArgb(240, 242, 245),
-                    Padding = new Padding(8, 6, 8, 6)
+                    Height = TITLE_BAR_HEIGHT, // 26px，与右侧标题栏高度像素级齐平
+                    BackColor = Color.FromArgb(238, 242, 246),
+                    Padding = new Padding(10, 0, 10, 0)
+                };
+                pnlTopBatchHeader.Paint += (s, e) =>
+                {
+                    using (var pen = new Pen(Color.FromArgb(203, 213, 225), 1F))
+                    {
+                        e.Graphics.DrawLine(pen, 0, pnlTopBatchHeader.Height - 1, pnlTopBatchHeader.Width, pnlTopBatchHeader.Height - 1);
+                    }
                 };
                 lblBatchTitle = new AntdUI.Label
                 {
-                    Text = "待处理 (0款 · 0组)",
-                    Font = new Font("Microsoft YaHei UI", 9.5F, FontStyle.Bold),
-                    ForeColor = Color.FromArgb(38, 38, 38),
+                    Text = "待处理批次 (0款 · 0组)",
+                    Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(15, 23, 42),
                     Dock = DockStyle.Fill
                 };
                 pnlTopBatchHeader.Controls.Add(lblBatchTitle);
 
-                // 2. 底部操作工具栏（排序改由点击列头完成）
+                // 2. 底部操作工具栏（实体白底按钮，高度34px与右侧操作栏水平对齐，纯白平滑过渡）
                 pnlBottomToolbar = new System.Windows.Forms.Panel
                 {
                     Dock = DockStyle.Bottom,
-                    Height = 38,
-                    BackColor = Color.FromArgb(245, 247, 250),
-                    Padding = new Padding(6, 4, 6, 4)
+                    Height = 34,
+                    BackColor = Color.White,
+                    Padding = new Padding(10, 4, 10, 4)
                 };
                 btnMoveUp = new AntdUI.Button
                 {
-                    IconSvg = "UpOutlined",
-                    Text = " 上移",
-                    Location = new Point(8, 5),
-                    Size = new Size(68, 28),
-                    Radius = 4,
-                    Font = new Font("Microsoft YaHei UI", 8.5F),
+                    Text = "▲",
+                    Location = new Point(10, 4),
+                    Size = new Size(30, 26),
+                    Radius = 3,
+                    BorderWidth = 1F,
+                    Font = new Font("Microsoft YaHei UI", 8F),
                     Type = AntdUI.TTypeMini.Default,
-                    Ghost = true,
+                    Ghost = false,
+                    DefaultBack = Color.White,
+                    DefaultBorderColor = Color.FromArgb(203, 213, 225),
+                    ForeColor = Color.FromArgb(51, 65, 85),
                     WaveSize = 0
                 };
                 btnMoveUp.Click += BtnMoveUp_Click;
+                folderTreeViewToolTip?.SetToolTip(btnMoveUp, "上移选中文件 (Shift+Up)");
 
                 btnMoveDown = new AntdUI.Button
                 {
-                    IconSvg = "DownOutlined",
-                    Text = " 下移",
-                    Location = new Point(80, 5),
-                    Size = new Size(68, 28),
-                    Radius = 4,
-                    Font = new Font("Microsoft YaHei UI", 8.5F),
+                    Text = "▼",
+                    Location = new Point(42, 4),
+                    Size = new Size(30, 26),
+                    Radius = 3,
+                    BorderWidth = 1F,
+                    Font = new Font("Microsoft YaHei UI", 8F),
                     Type = AntdUI.TTypeMini.Default,
-                    Ghost = true,
+                    Ghost = false,
+                    DefaultBack = Color.White,
+                    DefaultBorderColor = Color.FromArgb(203, 213, 225),
+                    ForeColor = Color.FromArgb(51, 65, 85),
                     WaveSize = 0
                 };
                 btnMoveDown.Click += BtnMoveDown_Click;
+                folderTreeViewToolTip?.SetToolTip(btnMoveDown, "下移选中文件 (Shift+Down)");
+
+                btnSelectAll = new AntdUI.Button
+                {
+                    Text = "全选",
+                    Location = new Point(74, 4),
+                    Size = new Size(42, 26),
+                    Radius = 3,
+                    BorderWidth = 1F,
+                    Font = new Font("Microsoft YaHei UI", 8F),
+                    Type = AntdUI.TTypeMini.Default,
+                    Ghost = false,
+                    DefaultBack = Color.White,
+                    DefaultBorderColor = Color.FromArgb(203, 213, 225),
+                    ForeColor = Color.FromArgb(51, 65, 85),
+                    WaveSize = 0
+                };
+                btnSelectAll.Click += (s, e) => SelectAllBatchItems(true);
+                folderTreeViewToolTip?.SetToolTip(btnSelectAll, "全选左侧所有文件项");
+
+                btnInvertSelect = new AntdUI.Button
+                {
+                    Text = "反选",
+                    Location = new Point(118, 4),
+                    Size = new Size(42, 26),
+                    Radius = 3,
+                    BorderWidth = 1F,
+                    Font = new Font("Microsoft YaHei UI", 8F),
+                    Type = AntdUI.TTypeMini.Default,
+                    Ghost = false,
+                    DefaultBack = Color.White,
+                    DefaultBorderColor = Color.FromArgb(203, 213, 225),
+                    ForeColor = Color.FromArgb(51, 65, 85),
+                    WaveSize = 0
+                };
+                btnInvertSelect.Click += (s, e) => InvertSelectBatchItems();
+                folderTreeViewToolTip?.SetToolTip(btnInvertSelect, "反向选择文件项");
 
                 btnNewGroupDirect = new AntdUI.Button
                 {
-                    IconSvg = "PlusOutlined",
-                    Text = " 分出新组",
-                    Location = new Point(152, 5),
-                    Size = new Size(96, 28),
-                    Radius = 4,
-                    Font = new Font("Microsoft YaHei UI", 8.5F),
+                    Text = "分出新组",
+                    Location = new Point(162, 4),
+                    Size = new Size(74, 26),
+                    Radius = 3,
+                    BorderWidth = 1F,
+                    Font = new Font("Microsoft YaHei UI", 8F, FontStyle.Bold),
                     Type = AntdUI.TTypeMini.Primary,
                     Ghost = true,
+                    DefaultBack = Color.FromArgb(230, 244, 255),
+                    DefaultBorderColor = Color.FromArgb(145, 202, 255),
+                    ForeColor = Color.FromArgb(14, 114, 236),
                     WaveSize = 0
                 };
                 btnNewGroupDirect.Click += (s, e) => CreateGroupFromSelectedFiles();
-
-                btnDeleteBatchRows = new AntdUI.Button
-                {
-                    IconSvg = "DeleteOutlined",
-                    Text = " 删除行",
-                    Location = new Point(252, 5),
-                    Size = new Size(86, 28),
-                    Radius = 4,
-                    Font = new Font("Microsoft YaHei UI", 8.5F),
-                    Type = AntdUI.TTypeMini.Error,
-                    Ghost = true,
-                    WaveSize = 0
-                };
-                btnDeleteBatchRows.Click += async (s, e) => await CancelSelectedBatchItemsAsync();
+                folderTreeViewToolTip?.SetToolTip(btnNewGroupDirect, "将选中的多款文件切分创建为新工艺组");
 
                 btnRefreshBatch = new AntdUI.Button
                 {
-                    IconSvg = "ReloadOutlined",
-                    Text = " 刷新数据",
-                    Location = new Point(342, 5),
-                    Size = new Size(96, 28),
-                    Radius = 4,
-                    Font = new Font("Microsoft YaHei UI", 8.5F),
+                    Text = "重新解析",
+                    Location = new Point(238, 4),
+                    Size = new Size(74, 26),
+                    Radius = 3,
+                    BorderWidth = 1F,
+                    Font = new Font("Microsoft YaHei UI", 8F),
                     Type = AntdUI.TTypeMini.Default,
-                    Ghost = true,
+                    Ghost = false,
+                    DefaultBack = Color.White,
+                    DefaultBorderColor = Color.FromArgb(203, 213, 225),
+                    ForeColor = Color.FromArgb(51, 65, 85),
                     WaveSize = 0
                 };
                 btnRefreshBatch.Click += async (s, e) => await RefreshBatchDataAsync();
                 folderTreeViewToolTip?.SetToolTip(btnRefreshBatch, "重新解析所有文件页数与成品尺寸，并重新计算排版布局数");
 
+                btnDeleteBatchRows = new AntdUI.Button
+                {
+                    Text = "删除行",
+                    Location = new Point(348, 4),
+                    Size = new Size(72, 26),
+                    Radius = 3,
+                    BorderWidth = 1F,
+                    Font = new Font("Microsoft YaHei UI", 8F, FontStyle.Bold),
+                    Type = AntdUI.TTypeMini.Error,
+                    Ghost = true,
+                    DefaultBack = Color.FromArgb(255, 241, 240),
+                    DefaultBorderColor = Color.FromArgb(255, 163, 158),
+                    ForeColor = Color.FromArgb(207, 19, 34),
+                    WaveSize = 0
+                };
+                btnDeleteBatchRows.Click += async (s, e) => await CancelSelectedBatchItemsAsync();
+                folderTreeViewToolTip?.SetToolTip(btnDeleteBatchRows, "将选中的文件行从列表移除并移入“取消文件”");
+
                 btnCancelAllBatchRows = new AntdUI.Button
                 {
                     Name = "btnCancelAllBatchRows",
                     Text = "批量取消",
-                    Location = new Point(442, 5),
-                    Size = new Size(72, 28),
-                    Radius = 4,
-                    Font = new Font("Microsoft YaHei UI", 8.5F),
+                    Location = new Point(422, 4),
+                    Size = new Size(74, 26),
+                    Radius = 3,
+                    BorderWidth = 1F,
+                    Font = new Font("Microsoft YaHei UI", 8F),
                     Type = AntdUI.TTypeMini.Error,
                     Ghost = true,
+                    DefaultBack = Color.FromArgb(255, 241, 240),
+                    DefaultBorderColor = Color.FromArgb(255, 163, 158),
+                    ForeColor = Color.FromArgb(207, 19, 34),
                     WaveSize = 0
                 };
                 btnCancelAllBatchRows.Click += async (s, e) => await CancelSelectedBatchItemsAsync(true);
@@ -3817,37 +3979,47 @@ namespace WindowsFormsApp3
 
                 pnlBottomToolbar.Controls.Add(btnMoveUp);
                 pnlBottomToolbar.Controls.Add(btnMoveDown);
+                pnlBottomToolbar.Controls.Add(btnSelectAll);
+                pnlBottomToolbar.Controls.Add(btnInvertSelect);
                 pnlBottomToolbar.Controls.Add(btnNewGroupDirect);
-                pnlBottomToolbar.Controls.Add(btnDeleteBatchRows);
                 pnlBottomToolbar.Controls.Add(btnRefreshBatch);
+                pnlBottomToolbar.Controls.Add(btnDeleteBatchRows);
                 pnlBottomToolbar.Controls.Add(btnCancelAllBatchRows);
 
-                // 3. 最底部帮助提示栏
+                // 3. 最底部一体化状态地基栏（方案 A：高度16px与右侧折叠条像素级贯通，同款冷灰底色 #eef2f6，顶线 #cbd5e1 封底）
                 var bottomHelpPanel = new System.Windows.Forms.Panel
                 {
                     Dock = DockStyle.Bottom,
-                    Height = 28,
-                    BackColor = Color.FromArgb(240, 242, 245)
+                    Height = COLLAPSE_BAR_HEIGHT, // 16px，与右侧折叠栏严格同高
+                    BackColor = Color.FromArgb(238, 242, 246),
+                    Padding = new Padding(10, 0, 0, 0)
+                };
+                bottomHelpPanel.Paint += (s, e) =>
+                {
+                    using (var pen = new Pen(Color.FromArgb(203, 213, 225), 1F))
+                    {
+                        e.Graphics.DrawLine(pen, 0, 0, bottomHelpPanel.Width, 0);
+                    }
                 };
                 lblBatchHelp = new System.Windows.Forms.Label
                 {
-                    Text = "点击序号列选中整行；Delete 删除并移入“取消文件”；批量取消处理全部文件",
+                    Text = "💡 点击序号整行选中 · Ctrl/Shift 多选 · 右键快捷操作 · 空格切换页面框",
                     Font = new Font("Microsoft YaHei UI", 8F),
-                    ForeColor = Color.DimGray,
+                    ForeColor = Color.FromArgb(100, 116, 139), // 优雅次级灰，与右侧折叠条文字完全一致
                     Dock = DockStyle.Fill,
                     TextAlign = ContentAlignment.MiddleLeft,
-                    Padding = new Padding(8, 0, 0, 0)
+                    BackColor = Color.Transparent
                 };
                 bottomHelpPanel.Controls.Add(lblBatchHelp);
 
-                // 4. 流式卡片组容器
+                // 4. 流式卡片组容器（纯白背景，与右侧 V5 工作台一体化无缝融合）
                 pnlCardsContainer = new System.Windows.Forms.Panel
                 {
                     Name = "pnlCardsContainer",
                     Dock = DockStyle.Fill,
                     AutoScroll = true,
-                    BackColor = Color.FromArgb(245, 247, 250),
-                    Padding = new Padding(6, 6, 6, 6)
+                    BackColor = Color.White,
+                    Padding = new Padding(0)
                 };
 
                 // 表格 DataGridView
@@ -3872,8 +4044,8 @@ namespace WindowsFormsApp3
                 var colIndex = new DataGridViewTextBoxColumn
                 {
                     DataPropertyName = nameof(BatchFileItem.SerialNumber),
-                    HeaderText = "序号",
-                    Width = 45,
+                    HeaderText = "#",
+                    Width = 28,
                     ReadOnly = true,
                     DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
                 };
@@ -3881,25 +4053,25 @@ namespace WindowsFormsApp3
                 {
                     DataPropertyName = "FileName",
                     HeaderText = "文件名",
-                    Width = 160,
+                    Width = 200,
                     ReadOnly = true,
                     AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
                 };
                 var colOrder = new DataGridViewTextBoxColumn
                 {
                     DataPropertyName = "OrderNumber",
-                    HeaderText = "预览订单号",
-                    Width = 95,
+                    HeaderText = "订单",
+                    Width = 46,
                     ReadOnly = true
                 };
                 var colQty = new DataGridViewTextBoxColumn
                 {
                     DataPropertyName = "Quantity",
                     HeaderText = "数量",
-                    Width = 65,
+                    Width = 46,
                     ReadOnly = false
                 };
-                var colPageCount = CreatePageCountColumn(55);
+                var colPageCount = CreatePageCountColumn(36);
 
                 dgvBatchFiles.Columns.Add(colIndex);
                 dgvBatchFiles.Columns.Add(colFileName);
@@ -4924,28 +5096,86 @@ namespace WindowsFormsApp3
             using (var inputForm = new Form())
             {
                 inputForm.Text = "从文件名提取数量";
-                inputForm.Width = 340;
-                inputForm.Height = 180;
+                inputForm.ClientSize = new Size(340, 155);
                 inputForm.StartPosition = FormStartPosition.CenterParent;
                 inputForm.FormBorderStyle = FormBorderStyle.FixedDialog;
                 inputForm.MaximizeBox = false;
                 inputForm.MinimizeBox = false;
+                inputForm.BackColor = Color.White;
+                inputForm.Font = new Font("Microsoft YaHei UI", 9F);
+                inputForm.KeyPreview = true;
 
-                var label = new System.Windows.Forms.Label { Text = "请输入单位字符 (如 '张', '个', 'pcs'):\n将从文件名中提取该单位前的一组数字。", Left = 15, Top = 15, Width = 295, Height = 40 };
-                var textBox = new System.Windows.Forms.TextBox { Left = 15, Top = 60, Width = 295, Text = "张" };
-                var okButton = new System.Windows.Forms.Button { Text = "确定", Left = 60, Top = 95, Width = 90, DialogResult = DialogResult.OK };
-                var cancelButton = new System.Windows.Forms.Button { Text = "取消", Left = 170, Top = 95, Width = 90, DialogResult = DialogResult.Cancel };
+                var label = new System.Windows.Forms.Label
+                {
+                    Text = "请输入单位字符 (如 '张', '个', 'pcs')：\n系统将从文件名中提取紧邻该单位前的一组数字。",
+                    Location = new Point(20, 14),
+                    Size = new Size(300, 34),
+                    Font = new Font("Microsoft YaHei UI", 9F),
+                    ForeColor = Color.FromArgb(51, 65, 85)
+                };
 
-                inputForm.Controls.AddRange(new Control[] { label, textBox, okButton, cancelButton });
-                inputForm.AcceptButton = okButton;
-                inputForm.CancelButton = cancelButton;
+                var txtInput = new AntdUI.Input
+                {
+                    Location = new Point(20, 52),
+                    Size = new Size(300, 32),
+                    Radius = 4,
+                    Text = "张",
+                    PlaceholderText = "输入单位字符 (如: 张、个、pcs)",
+                    Font = new Font("Microsoft YaHei UI", 9.5F)
+                };
+
+                var btnOk = new AntdUI.Button
+                {
+                    Text = "确定",
+                    Type = AntdUI.TTypeMini.Primary,
+                    Location = new Point(148, 100),
+                    Size = new Size(82, 32),
+                    Radius = 4,
+                    Font = new Font("Microsoft YaHei UI", 9F)
+                };
+                btnOk.Click += (s, e) =>
+                {
+                    inputForm.DialogResult = DialogResult.OK;
+                    inputForm.Close();
+                };
+
+                var btnCancel = new AntdUI.Button
+                {
+                    Text = "取消",
+                    Type = AntdUI.TTypeMini.Default,
+                    Location = new Point(238, 100),
+                    Size = new Size(82, 32),
+                    Radius = 4,
+                    Font = new Font("Microsoft YaHei UI", 9F)
+                };
+                btnCancel.Click += (s, e) =>
+                {
+                    inputForm.DialogResult = DialogResult.Cancel;
+                    inputForm.Close();
+                };
+
+                inputForm.KeyDown += (s, e) =>
+                {
+                    if (e.KeyCode == Keys.Enter)
+                    {
+                        inputForm.DialogResult = DialogResult.OK;
+                        inputForm.Close();
+                    }
+                    else if (e.KeyCode == Keys.Escape)
+                    {
+                        inputForm.DialogResult = DialogResult.Cancel;
+                        inputForm.Close();
+                    }
+                };
+
+                inputForm.Controls.AddRange(new Control[] { label, txtInput, btnOk, btnCancel });
 
                 if (inputForm.ShowDialog(this) == DialogResult.OK)
                 {
-                    string unit = textBox.Text.Trim();
+                    string unit = txtInput.Text?.Trim();
                     if (string.IsNullOrEmpty(unit))
                     {
-                        MessageBox.Show("单位字符不能为空", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        AntdUI.Message.warn(this, "单位字符不能为空", autoClose: 3);
                         return;
                     }
 
@@ -4975,6 +5205,7 @@ namespace WindowsFormsApp3
                     dgvBatchFiles?.Refresh();
                     RefreshAllCardsData();
                     LogHelper.Info($"[MaterialSelectFormModern] 自定义单位 '{unit}' 从文件名提取完成，更新了 {successCount} 款文件的数量");
+                    AntdUI.Message.success(this, $"成功更新了 {successCount} 款文件的印刷数量", autoClose: 2);
                 }
             }
         }
@@ -4989,24 +5220,87 @@ namespace WindowsFormsApp3
             using (var inputForm = new Form())
             {
                 inputForm.Text = "按当前数量批量增量";
-                inputForm.Width = 320;
-                inputForm.Height = 170;
+                inputForm.ClientSize = new Size(340, 155);
                 inputForm.StartPosition = FormStartPosition.CenterParent;
                 inputForm.FormBorderStyle = FormBorderStyle.FixedDialog;
                 inputForm.MaximizeBox = false;
                 inputForm.MinimizeBox = false;
+                inputForm.BackColor = Color.White;
+                inputForm.Font = new Font("Microsoft YaHei UI", 9F);
+                inputForm.KeyPreview = true;
 
-                var label = new System.Windows.Forms.Label { Text = "请输入增量值 (正数增加，负数减少，如 10 或 -5):", Left = 15, Top = 15, Width = 280, Height = 35 };
-                var textBox = new System.Windows.Forms.TextBox { Left = 15, Top = 55, Width = 275, Text = "1" };
-                var okButton = new System.Windows.Forms.Button { Text = "确定", Left = 50, Top = 90, Width = 90, DialogResult = DialogResult.OK };
-                var cancelButton = new System.Windows.Forms.Button { Text = "取消", Left = 160, Top = 90, Width = 90, DialogResult = DialogResult.Cancel };
-
-                inputForm.Controls.AddRange(new Control[] { label, textBox, okButton, cancelButton });
-                inputForm.AcceptButton = okButton;
-                inputForm.CancelButton = cancelButton;
-
-                if (inputForm.ShowDialog(this) == DialogResult.OK && int.TryParse(textBox.Text, out int delta))
+                var label = new System.Windows.Forms.Label
                 {
+                    Text = "请输入数量增减值 (正数增加，负数减少，如 100 或 -50):",
+                    Location = new Point(20, 14),
+                    Size = new Size(300, 32),
+                    Font = new Font("Microsoft YaHei UI", 9F),
+                    ForeColor = Color.FromArgb(51, 65, 85)
+                };
+
+                var numInput = new AntdUI.InputNumber
+                {
+                    Location = new Point(20, 50),
+                    Size = new Size(300, 32),
+                    Radius = 4,
+                    Value = 100M,
+                    Minimum = -1000000M,
+                    Maximum = 1000000M,
+                    DecimalPlaces = 0,
+                    Font = new Font("Microsoft YaHei UI", 9.5F)
+                };
+
+                var btnOk = new AntdUI.Button
+                {
+                    Text = "确定",
+                    Type = AntdUI.TTypeMini.Primary,
+                    Location = new Point(148, 100),
+                    Size = new Size(82, 32),
+                    Radius = 4,
+                    Font = new Font("Microsoft YaHei UI", 9F)
+                };
+                btnOk.Click += (s, e) =>
+                {
+                    inputForm.DialogResult = DialogResult.OK;
+                    inputForm.Close();
+                };
+
+                var btnCancel = new AntdUI.Button
+                {
+                    Text = "取消",
+                    Type = AntdUI.TTypeMini.Default,
+                    Location = new Point(238, 100),
+                    Size = new Size(82, 32),
+                    Radius = 4,
+                    Font = new Font("Microsoft YaHei UI", 9F)
+                };
+                btnCancel.Click += (s, e) =>
+                {
+                    inputForm.DialogResult = DialogResult.Cancel;
+                    inputForm.Close();
+                };
+
+                inputForm.KeyDown += (s, e) =>
+                {
+                    if (e.KeyCode == Keys.Enter)
+                    {
+                        inputForm.DialogResult = DialogResult.OK;
+                        inputForm.Close();
+                    }
+                    else if (e.KeyCode == Keys.Escape)
+                    {
+                        inputForm.DialogResult = DialogResult.Cancel;
+                        inputForm.Close();
+                    }
+                };
+
+                inputForm.Controls.AddRange(new Control[] { label, numInput, btnOk, btnCancel });
+
+                if (inputForm.ShowDialog(this) == DialogResult.OK)
+                {
+                    int delta = (int)numInput.Value;
+                    if (delta == 0) return;
+
                     var targetRows = GetSelectedBatchRows();
                     if (targetRows.Count == 0)
                     {
@@ -5029,6 +5323,7 @@ namespace WindowsFormsApp3
                     dgvBatchFiles?.Refresh();
                     RefreshAllCardsData();
                     LogHelper.Info($"[MaterialSelectFormModern] 批量增量 {delta} 完成，更新了 {updated} 款文件");
+                    AntdUI.Message.success(this, $"已对选中的 {updated} 项完成增量调整 ({(delta > 0 ? "+" + delta : delta.ToString())})", autoClose: 2);
                 }
             }
         }
@@ -5040,31 +5335,100 @@ namespace WindowsFormsApp3
         {
             if (_batchItems.Count == 0) return;
 
+            var targetRows = GetSelectedBatchRows();
+            decimal initialQty = 500M;
+            if (targetRows.Count > 0 && targetRows[0] >= 0 && targetRows[0] < _batchItems.Count)
+            {
+                if (decimal.TryParse(_batchItems[targetRows[0]].Quantity, out decimal parsed) && parsed > 0)
+                {
+                    initialQty = parsed;
+                }
+            }
+
             using (var inputForm = new Form())
             {
                 inputForm.Text = "批量设置数量";
-                inputForm.Width = 300;
-                inputForm.Height = 160;
+                inputForm.ClientSize = new Size(340, 155);
                 inputForm.StartPosition = FormStartPosition.CenterParent;
                 inputForm.FormBorderStyle = FormBorderStyle.FixedDialog;
                 inputForm.MaximizeBox = false;
                 inputForm.MinimizeBox = false;
+                inputForm.BackColor = Color.White;
+                inputForm.Font = new Font("Microsoft YaHei UI", 9F);
+                inputForm.KeyPreview = true;
 
-                var label = new System.Windows.Forms.Label { Text = "请输入统一设置的数量:", Left = 15, Top = 15, Width = 250, Height = 25 };
-                var textBox = new System.Windows.Forms.TextBox { Left = 15, Top = 45, Width = 250, Text = "1" };
-                var okButton = new System.Windows.Forms.Button { Text = "确定", Left = 40, Top = 80, Width = 90, DialogResult = DialogResult.OK };
-                var cancelButton = new System.Windows.Forms.Button { Text = "取消", Left = 150, Top = 80, Width = 90, DialogResult = DialogResult.Cancel };
+                var label = new System.Windows.Forms.Label
+                {
+                    Text = "请输入统一设置的印刷数量 (个):",
+                    Location = new Point(20, 16),
+                    Size = new Size(300, 24),
+                    Font = new Font("Microsoft YaHei UI", 9F),
+                    ForeColor = Color.FromArgb(51, 65, 85)
+                };
 
-                inputForm.Controls.AddRange(new Control[] { label, textBox, okButton, cancelButton });
-                inputForm.AcceptButton = okButton;
-                inputForm.CancelButton = cancelButton;
+                var numInput = new AntdUI.InputNumber
+                {
+                    Location = new Point(20, 46),
+                    Size = new Size(300, 32),
+                    Radius = 4,
+                    Value = initialQty,
+                    Minimum = 1M,
+                    Maximum = 1000000M,
+                    DecimalPlaces = 0,
+                    Font = new Font("Microsoft YaHei UI", 9.5F)
+                };
+
+                var btnOk = new AntdUI.Button
+                {
+                    Text = "确定",
+                    Type = AntdUI.TTypeMini.Primary,
+                    Location = new Point(148, 100),
+                    Size = new Size(82, 32),
+                    Radius = 4,
+                    Font = new Font("Microsoft YaHei UI", 9F)
+                };
+                btnOk.Click += (s, e) =>
+                {
+                    inputForm.DialogResult = DialogResult.OK;
+                    inputForm.Close();
+                };
+
+                var btnCancel = new AntdUI.Button
+                {
+                    Text = "取消",
+                    Type = AntdUI.TTypeMini.Default,
+                    Location = new Point(238, 100),
+                    Size = new Size(82, 32),
+                    Radius = 4,
+                    Font = new Font("Microsoft YaHei UI", 9F)
+                };
+                btnCancel.Click += (s, e) =>
+                {
+                    inputForm.DialogResult = DialogResult.Cancel;
+                    inputForm.Close();
+                };
+
+                inputForm.KeyDown += (s, e) =>
+                {
+                    if (e.KeyCode == Keys.Enter)
+                    {
+                        inputForm.DialogResult = DialogResult.OK;
+                        inputForm.Close();
+                    }
+                    else if (e.KeyCode == Keys.Escape)
+                    {
+                        inputForm.DialogResult = DialogResult.Cancel;
+                        inputForm.Close();
+                    }
+                };
+
+                inputForm.Controls.AddRange(new Control[] { label, numInput, btnOk, btnCancel });
 
                 if (inputForm.ShowDialog(this) == DialogResult.OK)
                 {
-                    string val = textBox.Text.Trim();
-                    if (int.TryParse(val, out int num) && num > 0)
+                    int num = (int)numInput.Value;
+                    if (num > 0)
                     {
-                        var targetRows = GetSelectedBatchRows();
                         if (targetRows.Count == 0)
                         {
                             targetRows = Enumerable.Range(0, _batchItems.Count).ToList();
@@ -5080,6 +5444,7 @@ namespace WindowsFormsApp3
 
                         dgvBatchFiles?.Refresh();
                         RefreshAllCardsData();
+                        AntdUI.Message.success(this, $"已将选中的 {targetRows.Count} 项数量设置为 {num}", autoClose: 2);
                     }
                 }
             }
@@ -6253,7 +6618,7 @@ namespace WindowsFormsApp3
         /// <summary>
         /// 根据出血位更新尺寸显示
         /// </summary>
-        private void UpdateDimensionsWithBleed()
+        private void UpdateDimensionsWithBleed(bool syncBatchItems = true)
         {
             double bleed = SelectedTetBleed;
             // 使用处理后的原始尺寸计算（已确保大数在前）
@@ -6277,7 +6642,7 @@ namespace WindowsFormsApp3
             AdjustedDimensions = finalDimensions;
             UpdateV5ImpositionDashboard();
 
-            if (_batchItems != null && _batchItems.Count > 0)
+            if (syncBatchItems && _batchItems != null && _batchItems.Count > 0)
             {
                 UpdateAllFileDimensionsWithBleed();
             }

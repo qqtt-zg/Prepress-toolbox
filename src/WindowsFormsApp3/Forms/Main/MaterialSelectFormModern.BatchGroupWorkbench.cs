@@ -1,4 +1,5 @@
 using WindowsFormsApp3.Services;
+using WindowsFormsApp3.UI;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -381,7 +382,7 @@ namespace WindowsFormsApp3
                 }
 
                 UpdateBatchLayoutColumns();
-                RenderGroupCards();
+                RefreshAllCardsData();
                 dgvBatchFiles?.Refresh();
             }
             catch (Exception ex)
@@ -841,15 +842,17 @@ namespace WindowsFormsApp3
                     return;
                 }
 
-                int currentTop = 6;
-                int cardWidth = Math.Max(480, pnlCardsContainer.ClientSize.Width - 18);
+                // 严格对齐右侧工位卡片顶部线（TITLE_BAR_HEIGHT 26px + 4px = 30px，与右侧首个卡片绝对齐平）
+                int currentTop = 4;
+                int leftMargin = 10;
+                int cardWidth = Math.Max(460, pnlCardsContainer.ClientSize.Width - (leftMargin * 2));
                 ThemeDefinition theme = _activeTheme;
 
                 foreach (var grp in _processGroups)
                 {
                     var cardPanel = new System.Windows.Forms.Panel
                     {
-                        Location = new Point(6, currentTop),
+                        Location = new Point(leftMargin, currentTop),
                         Width = cardWidth,
                         Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                         BackColor = theme?.Surface ?? Color.White,
@@ -876,7 +879,7 @@ namespace WindowsFormsApp3
                         grp.IsCollapsed = !grp.IsCollapsed;
                         dgvGroup.Visible = !grp.IsCollapsed;
                         headerCard.Invalidate();
-                        cardPanel.Height = grp.IsCollapsed ? headerCard.Height : (headerCard.Height + dgvGroup.Height + 2);
+                        cardPanel.Height = grp.IsCollapsed ? headerCard.Height : (headerCard.Height + dgvGroup.Height);
                         RelayoutCards();
                     }
 
@@ -885,14 +888,14 @@ namespace WindowsFormsApp3
 
                     cardPanel.Controls.Add(dgvGroup);
                     cardPanel.Controls.Add(headerCard);
-                    cardPanel.Height = grp.IsCollapsed ? headerCard.Height : (headerCard.Height + dgvGroup.Height + 2);
+                    cardPanel.Height = grp.IsCollapsed ? headerCard.Height : (headerCard.Height + dgvGroup.Height);
 
                     cardPanel.Paint += (s, e) =>
                     {
                         ThemeDefinition activeTheme = _activeTheme;
                         Color bc = activeTheme == null
-                            ? (grp.IsPreserveGroup ? Color.FromArgb(211, 173, 247) : Color.FromArgb(203, 213, 225))
-                            : (grp.IsPreserveGroup ? activeTheme.AccentColor4 : (grp.IsLocked ? activeTheme.Border : activeTheme.Primary));
+                            ? (grp.IsPreserveGroup ? Color.FromArgb(216, 180, 254) : Color.FromArgb(212, 219, 228))
+                            : (grp.IsPreserveGroup ? activeTheme.AccentColor4 : (grp.IsLocked ? activeTheme.Border : Color.FromArgb(212, 219, 228)));
                         ControlPaint.DrawBorder(e.Graphics, cardPanel.ClientRectangle, bc, ButtonBorderStyle.Solid);
                     };
 
@@ -923,7 +926,7 @@ namespace WindowsFormsApp3
         {
             if (pnlCardsContainer == null) return;
             pnlCardsContainer.SuspendLayout();
-            int currentTop = 6;
+            int currentTop = 4;
             foreach (Control c in pnlCardsContainer.Controls)
             {
                 if (c is System.Windows.Forms.Panel card)
@@ -942,6 +945,8 @@ namespace WindowsFormsApp3
                 Tag = grp,
                 BackgroundColor = Color.White,
                 BorderStyle = BorderStyle.None,
+                CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
+                GridColor = Color.FromArgb(241, 245, 249),
                 RowHeadersVisible = false,
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
@@ -950,8 +955,9 @@ namespace WindowsFormsApp3
                 AllowDrop = true,
                 SelectionMode = DataGridViewSelectionMode.CellSelect,
                 MultiSelect = true,
+                EditMode = DataGridViewEditMode.EditOnKeystrokeOrF2,
                 Font = new Font("Microsoft YaHei UI", 8.5F),
-                RowTemplate = { Height = 26 },
+                RowTemplate = { Height = 28 },
                 ColumnHeadersHeight = 26,
                 ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing,
                 ScrollBars = ScrollBars.None
@@ -967,8 +973,8 @@ namespace WindowsFormsApp3
             var colIndex = new DataGridViewTextBoxColumn
             {
                 DataPropertyName = nameof(BatchFileItem.SerialNumber),
-                HeaderText = "序号",
-                Width = 32,
+                HeaderText = "#",
+                Width = 28,
                 ReadOnly = true,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
             };
@@ -977,7 +983,7 @@ namespace WindowsFormsApp3
                 CellTemplate = new BatchPageBoxFileNameCell(),
                 DataPropertyName = "FileName",
                 HeaderText = "文件名",
-                Width = 150,
+                Width = 160,
                 ReadOnly = true,
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
             };
@@ -985,17 +991,17 @@ namespace WindowsFormsApp3
             {
                 DataPropertyName = "OrderNumber",
                 HeaderText = "订单",
-                Width = 50,
+                Width = 62,
                 ReadOnly = false
             };
             var colQty = new DataGridViewTextBoxColumn
             {
                 DataPropertyName = "Quantity",
                 HeaderText = "数量",
-                Width = 55,
+                Width = 38,
                 ReadOnly = false
             };
-            var colPageCount = CreatePageCountColumn(45);
+            var colPageCount = CreatePageCountColumn(44);
             var colDim = new DataGridViewTextBoxColumn
             {
                 CellTemplate = new BatchPageBoxChoiceCell
@@ -1011,8 +1017,8 @@ namespace WindowsFormsApp3
             var colLayout = new DataGridViewTextBoxColumn
             {
                 DataPropertyName = "LayoutInfo",
-                HeaderText = "排版/版数",
-                Width = 85,
+                HeaderText = "排版数",
+                Width = 78,
                 ReadOnly = true,
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
             };
@@ -1038,45 +1044,133 @@ namespace WindowsFormsApp3
                 }
             };
 
+            dgv.Cursor = Cursors.Default;
+            dgv.CellMouseEnter += (s, e) =>
+            {
+                if (!dgv.IsCurrentCellInEditMode)
+                {
+                    dgv.Cursor = Cursors.Default;
+                }
+            };
+
+            int anchorRowIndex = 0;
             Rectangle dragBox = Rectangle.Empty;
             dgv.MouseDown += (s, e) =>
             {
                 dragBox = Rectangle.Empty;
+                if (e.Button == MouseButtons.Right)
+                {
+                    var hitRight = dgv.HitTest(e.X, e.Y);
+                    if (hitRight.RowIndex >= 0 && hitRight.RowIndex < bindingList.Count &&
+                        hitRight.ColumnIndex >= 0 && hitRight.ColumnIndex < dgv.Columns.Count)
+                    {
+                        DataGridViewCell cell = dgv.Rows[hitRight.RowIndex].Cells[hitRight.ColumnIndex];
+                        if (!cell.Selected)
+                        {
+                            dgv.ClearSelection();
+                            cell.Selected = true;
+                            dgv.CurrentCell = cell;
+                            SyncBatchGridSelectionState(dgv, bindingList);
+                        }
+                        ShowBatchGridContextMenu(dgv, grp, bindingList, hitRight.RowIndex, hitRight.ColumnIndex, dgv.PointToScreen(new Point(e.X, e.Y)));
+                    }
+                    return;
+                }
                 if (e.Button != MouseButtons.Left) return;
 
                 var hit = dgv.HitTest(e.X, e.Y);
                 if (hit.RowIndex < 0 || hit.RowIndex >= bindingList.Count ||
                     hit.ColumnIndex < 0 || hit.ColumnIndex >= dgv.Columns.Count) return;
 
-                bool keepMultiSelection = (ModifierKeys & Keys.Control) == Keys.Control ||
-                                           (ModifierKeys & Keys.Shift) == Keys.Shift;
+                bool isShift = (ModifierKeys & Keys.Shift) == Keys.Shift;
+                bool isCtrl = (ModifierKeys & Keys.Control) == Keys.Control;
+                bool keepMultiSelection = isShift || isCtrl;
+
                 if (!keepMultiSelection)
                 {
                     ClearSelectionsOutsideGrid(dgv);
                 }
 
                 DataGridViewCell clickedCell = dgv.Rows[hit.RowIndex].Cells[hit.ColumnIndex];
-                if (!keepMultiSelection && !clickedCell.Selected)
+                string colProp = dgv.Columns[hit.ColumnIndex].DataPropertyName;
+
+                if (colProp == nameof(BatchFileItem.SerialNumber))
                 {
-                    dgv.ClearSelection();
-                    dgv.CurrentCell = clickedCell;
-                    clickedCell.Selected = true;
+                    // 序号列：整行单选、Shift 连续区域连选、Ctrl 离散增减选
+                    if (isShift)
+                    {
+                        SelectBatchGridRows(dgv, anchorRowIndex, hit.RowIndex);
+                        SyncBatchGridSelectionState(dgv, bindingList);
+                    }
+                    else if (isCtrl)
+                    {
+                        anchorRowIndex = hit.RowIndex;
+                        bool rowAlreadySelected = dgv.Rows[hit.RowIndex].Cells.Cast<DataGridViewCell>().All(c => c.Selected);
+                        foreach (DataGridViewCell c in dgv.Rows[hit.RowIndex].Cells)
+                        {
+                            c.Selected = !rowAlreadySelected;
+                        }
+                        SyncBatchGridSelectionState(dgv, bindingList);
+                    }
+                    else
+                    {
+                        anchorRowIndex = hit.RowIndex;
+                        SelectBatchGridRow(dgv, hit.RowIndex, false);
+                        SyncBatchGridSelectionState(dgv, bindingList);
+                    }
+
+                    // 核心修复：按住 Shift 或 Control 进行多选时，绝对禁止启动拖拽，杜绝 OLE 拖拽光标与阴影异常
+                    if (keepMultiSelection || grp.IsLocked)
+                    {
+                        dragBox = Rectangle.Empty;
+                        return;
+                    }
+
+                    Size dragSize = SystemInformation.DragSize;
+                    dragBox = new Rectangle(
+                        e.X - dragSize.Width / 2,
+                        e.Y - dragSize.Height / 2,
+                        dragSize.Width,
+                        dragSize.Height);
+                    return;
                 }
+                else
+                {
+                    anchorRowIndex = hit.RowIndex;
+                    if (!keepMultiSelection && !clickedCell.Selected)
+                    {
+                        dgv.ClearSelection();
+                        dgv.CurrentCell = clickedCell;
+                        clickedCell.Selected = true;
+                    }
+                }
+            };
 
-                // 普通列只负责选择/编辑，只有序号列允许启动拖拽。
-                if (grp.IsLocked ||
-                    dgv.Columns[hit.ColumnIndex].DataPropertyName != nameof(BatchFileItem.SerialNumber)) return;
-
-                Size dragSize = SystemInformation.DragSize;
-                dragBox = new Rectangle(
-                    e.X - dragSize.Width / 2,
-                    e.Y - dragSize.Height / 2,
-                    dragSize.Width,
-                    dragSize.Height);
+            dgv.MouseUp += (s, e) =>
+            {
+                dragBox = Rectangle.Empty;
             };
 
             dgv.MouseMove += (s, e) =>
             {
+                // 如果按住了 Shift 或 Control，绝对禁止启动拖拽，并提供 Shift 划选支持
+                if ((ModifierKeys & Keys.Shift) == Keys.Shift || (ModifierKeys & Keys.Control) == Keys.Control)
+                {
+                    dragBox = Rectangle.Empty;
+                    if ((ModifierKeys & Keys.Shift) == Keys.Shift && (e.Button & MouseButtons.Left) == MouseButtons.Left)
+                    {
+                        var hitMove = dgv.HitTest(e.X, e.Y);
+                        if (hitMove.RowIndex >= 0 && hitMove.RowIndex < bindingList.Count &&
+                            hitMove.ColumnIndex >= 0 && hitMove.ColumnIndex < dgv.Columns.Count &&
+                            dgv.Columns[hitMove.ColumnIndex].DataPropertyName == nameof(BatchFileItem.SerialNumber))
+                        {
+                            SelectBatchGridRows(dgv, anchorRowIndex, hitMove.RowIndex);
+                            SyncBatchGridSelectionState(dgv, bindingList);
+                        }
+                    }
+                    return;
+                }
+
                 if ((e.Button & MouseButtons.Left) != MouseButtons.Left ||
                     dragBox == Rectangle.Empty || dragBox.Contains(e.Location) || grp.IsLocked)
                 {
@@ -1142,6 +1236,17 @@ namespace WindowsFormsApp3
                 }
             };
 
+            dgv.CellDoubleClick += (s, e) =>
+            {
+                if (e.RowIndex >= 0 && e.RowIndex < bindingList.Count &&
+                    e.ColumnIndex >= 0 && e.ColumnIndex < dgv.Columns.Count &&
+                    !dgv.Columns[e.ColumnIndex].ReadOnly)
+                {
+                    dgv.CurrentCell = dgv.Rows[e.RowIndex].Cells[e.ColumnIndex];
+                    dgv.BeginEdit(true);
+                }
+            };
+
             dgv.CellClick += (s, e) =>
             {
                 if (e.RowIndex >= 0 && e.RowIndex < bindingList.Count && e.ColumnIndex >= 0 &&
@@ -1152,16 +1257,49 @@ namespace WindowsFormsApp3
                     QueueBatchFilePreview(bindingList[e.RowIndex]?.FilePath);
                 }
 
-                if (e.RowIndex >= 0 && e.ColumnIndex >= 0 &&
-                    dgv.Columns[e.ColumnIndex].DataPropertyName == nameof(BatchFileItem.SerialNumber))
+                if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
                 {
-                    bool keepMultiSelection = (ModifierKeys & Keys.Control) == Keys.Control ||
-                                               (ModifierKeys & Keys.Shift) == Keys.Shift;
-                    if (!keepMultiSelection)
+                    bool isShift = (ModifierKeys & Keys.Shift) == Keys.Shift;
+                    bool isCtrl = (ModifierKeys & Keys.Control) == Keys.Control;
+                    bool keepMultiSelection = isShift || isCtrl;
+                    string colProp = dgv.Columns[e.ColumnIndex].DataPropertyName;
+
+                    if (colProp == nameof(BatchFileItem.SerialNumber))
                     {
-                        ClearSelectionsOutsideGrid(dgv);
+                        if (isShift)
+                        {
+                            SelectBatchGridRows(dgv, anchorRowIndex, e.RowIndex);
+                            SyncBatchGridSelectionState(dgv, bindingList);
+                        }
+                        else if (isCtrl)
+                        {
+                            anchorRowIndex = e.RowIndex;
+                            bool rowAlreadySelected = dgv.Rows[e.RowIndex].Cells.Cast<DataGridViewCell>().All(c => c.Selected);
+                            foreach (DataGridViewCell c in dgv.Rows[e.RowIndex].Cells)
+                            {
+                                c.Selected = !rowAlreadySelected;
+                            }
+                            SyncBatchGridSelectionState(dgv, bindingList);
+                        }
+                        else
+                        {
+                            ClearSelectionsOutsideGrid(dgv);
+                            anchorRowIndex = e.RowIndex;
+                            SelectBatchGridRow(dgv, e.RowIndex, false);
+                            SyncBatchGridSelectionState(dgv, bindingList);
+                        }
                     }
-                    SelectBatchGridRow(dgv, e.RowIndex, keepMultiSelection);
+                    else if (colProp == "Quantity")
+                    {
+                        if (!keepMultiSelection)
+                        {
+                            ClearSelectionsOutsideGrid(dgv);
+                            dgv.ClearSelection();
+                            dgv.Rows[e.RowIndex].Cells[e.ColumnIndex].Selected = true;
+                            dgv.CurrentCell = dgv.Rows[e.RowIndex].Cells[e.ColumnIndex];
+                            SyncBatchGridSelectionState(dgv, bindingList);
+                        }
+                    }
                 }
             };
 
@@ -1178,26 +1316,6 @@ namespace WindowsFormsApp3
                     PasteQuantitiesFromClipboard();
                     e.Handled = true;
                     e.SuppressKeyPress = true;
-                }
-            };
-
-            dgv.CellMouseDown += (s, e) =>
-            {
-                if (e.Button == MouseButtons.Right && e.RowIndex >= 0 && e.ColumnIndex >= 0 &&
-                    dgv.Columns[e.ColumnIndex].DataPropertyName == "Quantity")
-                {
-                    var clickedCell = dgv.Rows[e.RowIndex].Cells[e.ColumnIndex];
-
-                    // 若右键点击的单元格尚不在选中集合内，则替换为唯一点选；
-                    // 若已在多选集合中，则保留现有数量列多选状态，支持批量右键操作。
-                    if (!clickedCell.Selected)
-                    {
-                        dgv.ClearSelection();
-                        clickedCell.Selected = true;
-                        dgv.CurrentCell = clickedCell;
-                    }
-
-                    ShowBatchContextMenu(dgv, new Point(e.X, e.Y));
                 }
             };
 
@@ -1287,18 +1405,41 @@ namespace WindowsFormsApp3
             return rowIndices.OrderBy(index => index).Select(index => items[index]).ToList();
         }
 
+        internal static void SelectBatchGridRows(DataGridView dgv, int startRowIndex, int endRowIndex)
+        {
+            if (dgv == null || dgv.Rows.Count == 0) return;
+            int start = Math.Max(0, Math.Min(startRowIndex, endRowIndex));
+            int end = Math.Min(dgv.Rows.Count - 1, Math.Max(startRowIndex, endRowIndex));
+
+            dgv.ClearSelection();
+
+            // 关键：在修改单元格 Selected 状态前先预置 CurrentCell，之后循环赋 c.Selected = true 时绝不再改动 CurrentCell
+            if (endRowIndex >= 0 && endRowIndex < dgv.Rows.Count && dgv.Rows[endRowIndex].Cells.Count > 0)
+            {
+                dgv.CurrentCell = dgv.Rows[endRowIndex].Cells[0];
+            }
+
+            for (int r = start; r <= end; r++)
+            {
+                foreach (DataGridViewCell c in dgv.Rows[r].Cells)
+                {
+                    c.Selected = true;
+                }
+            }
+        }
+
         internal static void SelectBatchGridRow(DataGridView dgv, int rowIndex, bool keepExistingSelection)
         {
             if (dgv == null || rowIndex < 0 || rowIndex >= dgv.Rows.Count) return;
             if (!keepExistingSelection)
             {
                 dgv.ClearSelection();
+                if (dgv.Rows[rowIndex].Cells.Count > 0)
+                {
+                    dgv.CurrentCell = dgv.Rows[rowIndex].Cells[0];
+                }
             }
 
-            if (dgv.Rows[rowIndex].Cells.Count > 0)
-            {
-                dgv.CurrentCell = dgv.Rows[rowIndex].Cells[0];
-            }
             foreach (DataGridViewCell cell in dgv.Rows[rowIndex].Cells)
             {
                 cell.Selected = true;
@@ -1768,6 +1909,171 @@ namespace WindowsFormsApp3
             e.CellStyle.ForeColor = GetReadableThemeTextColor(background, theme?.Error ?? Color.FromArgb(198, 40, 40));
             e.CellStyle.SelectionForeColor = e.CellStyle.ForeColor;
             dgv.Rows[e.RowIndex].HeaderCell.ToolTipText = "未匹配到 Excel 数据";
+        }
+
+        private void ShowBatchGridContextMenu(
+            DataGridView dgv,
+            BatchProcessGroup grp,
+            BindingList<BatchFileItem> items,
+            int rowIndex,
+            int columnIndex,
+            Point screenPt)
+        {
+            if (rowIndex < 0 || rowIndex >= items.Count) return;
+            var item = items[rowIndex];
+            string colProp = dgv.Columns[columnIndex].DataPropertyName;
+            var menuItems = new List<ContextMenuItemSpec>();
+
+            if (colProp == "Quantity")
+            {
+                menuItems.Add(new ContextMenuItemSpec("batch-set-custom", "自定义数量..."));
+                menuItems.Add(new ContextMenuItemSpec("batch-adjust-quantity", "按当前数量批量增量..."));
+                menuItems.Add(new ContextMenuItemSpec("batch-extract-quantity", "从文件名提取数量..."));
+                menuItems.Add(ContextMenuItemSpec.Divider());
+                menuItems.Add(new ContextMenuItemSpec("batch-paste-quantity", "从剪贴板批量粘贴数量") { ShortcutText = "Ctrl+V" });
+            }
+            else if (colProp == "Dimensions")
+            {
+                menuItems.Add(new ContextMenuItemSpec("dim-media", "优先采用媒体框 (MediaBox)") { Checked = item.PageBoxSource == PdfPageBoxSource.MediaBox });
+                menuItems.Add(new ContextMenuItemSpec("dim-crop", "优先采用裁剪框 (CropBox)") { Checked = item.PageBoxSource == PdfPageBoxSource.CropBox });
+                menuItems.Add(ContextMenuItemSpec.Divider());
+                menuItems.Add(new ContextMenuItemSpec("dim-refresh", "重新解析内嵌出血与尺寸"));
+            }
+            else
+            {
+                menuItems.Add(new ContextMenuItemSpec("row-new-group", "分出新工艺组"));
+                menuItems.Add(ContextMenuItemSpec.Divider());
+                menuItems.Add(new ContextMenuItemSpec("row-move-up", "上移一行") { ShortcutText = "Shift+Up" });
+                menuItems.Add(new ContextMenuItemSpec("row-move-down", "下移一行") { ShortcutText = "Shift+Down" });
+                menuItems.Add(ContextMenuItemSpec.Divider());
+                menuItems.Add(new ContextMenuItemSpec("row-delete", "从列表移除") { IsDangerous = true, ShortcutText = "Delete" });
+            }
+
+            AntdUiContextMenuRenderer.Show(new ContextMenuRequest(dgv, menuItems)
+            {
+                UseMousePosition = true
+            }, spec =>
+            {
+                switch (spec.Id)
+                {
+                    case "batch-set-custom":
+                        ShowBatchSetQuantityDialog();
+                        break;
+                    case "batch-adjust-quantity":
+                        ShowBatchAdjustQuantityDialog();
+                        break;
+                    case "batch-extract-quantity":
+                        ShowBatchExtractQuantityDialog();
+                        break;
+                    case "batch-paste-quantity":
+                        PasteQuantitiesFromClipboard();
+                        break;
+                    case "dim-media":
+                        SelectBatchPageBoxSource(item, PdfPageBoxSource.MediaBox);
+                        break;
+                    case "dim-crop":
+                        SelectBatchPageBoxSource(item, PdfPageBoxSource.CropBox);
+                        break;
+                    case "dim-refresh":
+                        _ = RefreshBatchDataAsync();
+                        break;
+                    case "row-new-group":
+                        CreateGroupFromSelectedFiles();
+                        break;
+                    case "row-move-up":
+                        MoveSelectedBatchItems(-1);
+                        break;
+                    case "row-move-down":
+                        MoveSelectedBatchItems(1);
+                        break;
+                    case "row-delete":
+                        _ = CancelSelectedBatchItemsAsync();
+                        break;
+                }
+            });
+        }
+
+        private void BatchSetSelectedQuantity(DataGridView dgv, BindingList<BatchFileItem> items, int quantity)
+        {
+            var selectedItems = GetSelectedItemsFromGroupGrid(dgv, items);
+            if (selectedItems.Count == 0) return;
+            foreach (var item in selectedItems)
+            {
+                item.Quantity = quantity.ToString();
+            }
+            dgv.Invalidate();
+            RefreshAllCardsData();
+        }
+
+        private void PromptCustomQuantity(DataGridView dgv, BindingList<BatchFileItem> items)
+        {
+            using (var form = new Form
+            {
+                Text = "批量修改数量",
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false,
+                MinimizeBox = false,
+                StartPosition = FormStartPosition.CenterParent,
+                ClientSize = new Size(260, 110)
+            })
+            {
+                var lbl = new Label { Text = "请输入新的印刷数量 (个):", Location = new Point(16, 14), AutoSize = true };
+                var num = new NumericUpDown { Location = new Point(16, 36), Width = 228, Minimum = 1, Maximum = 1000000, Value = 500 };
+                var btnOk = new Button { Text = "确定", DialogResult = DialogResult.OK, Location = new Point(88, 70), Width = 74 };
+                var btnCancel = new Button { Text = "取消", DialogResult = DialogResult.Cancel, Location = new Point(170, 70), Width = 74 };
+                form.Controls.AddRange(new Control[] { lbl, num, btnOk, btnCancel });
+                form.AcceptButton = btnOk;
+                form.CancelButton = btnCancel;
+                if (form.ShowDialog(this) == DialogResult.OK)
+                {
+                    BatchSetSelectedQuantity(dgv, items, (int)num.Value);
+                }
+            }
+        }
+
+        private void SelectAllBatchItems(bool selectAll)
+        {
+            if (pnlCardsContainer == null) return;
+            foreach (var grid in pnlCardsContainer.Controls
+                .OfType<Panel>()
+                .SelectMany(panel => panel.Controls.OfType<DataGridView>()))
+            {
+                if (selectAll)
+                {
+                    grid.SelectAll();
+                }
+                else
+                {
+                    grid.ClearSelection();
+                }
+                if (grid.DataSource is BindingList<BatchFileItem> list)
+                {
+                    SyncBatchGridSelectionState(grid, list);
+                }
+            }
+        }
+
+        private void InvertSelectBatchItems()
+        {
+            if (pnlCardsContainer == null) return;
+            foreach (var grid in pnlCardsContainer.Controls
+                .OfType<Panel>()
+                .SelectMany(panel => panel.Controls.OfType<DataGridView>()))
+            {
+                for (int i = 0; i < grid.Rows.Count; i++)
+                {
+                    var row = grid.Rows[i];
+                    bool anySelected = row.Cells.Cast<DataGridViewCell>().Any(c => c.Selected);
+                    foreach (DataGridViewCell cell in row.Cells)
+                    {
+                        cell.Selected = !anySelected;
+                    }
+                }
+                if (grid.DataSource is BindingList<BatchFileItem> list)
+                {
+                    SyncBatchGridSelectionState(grid, list);
+                }
+            }
         }
     }
 }

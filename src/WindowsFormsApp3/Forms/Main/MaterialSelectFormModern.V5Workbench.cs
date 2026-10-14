@@ -119,14 +119,21 @@ namespace WindowsFormsApp3
                     Anchor = AnchorStyles.Top | AnchorStyles.Left
                 };
 
-                // 2. 标题栏 (26px)
+                // 2. 标题栏 (26px，方案 A：瑞士冷灰顶冠 #eef2f6 + 细底线 #cbd5e1，与左侧工作台顶栏及方案A绝对对齐)
                 if (titleBarPanel != null)
                 {
                     titleBarPanel.Dock = DockStyle.Top;
                     titleBarPanel.Height = TITLE_BAR_HEIGHT;
-                    titleBarPanel.BackColor = Color.FromArgb(226, 232, 240);
+                    titleBarPanel.BackColor = Color.FromArgb(238, 242, 246);
                     titleBarPanel.Padding = new Padding(0, 0, 3, 0);
                     titleBarPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+                    titleBarPanel.Paint += (s, e) =>
+                    {
+                        using (var pen = new Pen(Color.FromArgb(203, 213, 225), 1F))
+                        {
+                            e.Graphics.DrawLine(pen, 0, titleBarPanel.Height - 1, titleBarPanel.Width, titleBarPanel.Height - 1);
+                        }
+                    };
                     pnlRightStation.Controls.Add(titleBarPanel);
                 }
 
@@ -3036,21 +3043,21 @@ namespace WindowsFormsApp3
                 {
                     Name = "pnlCollapseBar",
                     Size = new Size(STATION_WIDTH, COLLAPSE_BAR_HEIGHT),
-                    BackColor = Color.FromArgb(240, 242, 245),
+                    BackColor = Color.FromArgb(238, 242, 246),
                     Cursor = Cursors.Hand,
                     Anchor = AnchorStyles.Top | AnchorStyles.Left
                 };
 
                 pnlCollapseBar.Paint += (s, e) =>
                 {
-                    using (var pen = new Pen(Color.FromArgb(230, 235, 241), 1F))
+                    using (var pen = new Pen(Color.FromArgb(203, 213, 225), 1F))
                     {
                         e.Graphics.DrawLine(pen, 0, 0, pnlCollapseBar.Width, 0);
                     }
                 };
 
                 pnlCollapseBar.MouseEnter += (s, e) => pnlCollapseBar.BackColor = Color.FromArgb(230, 244, 255);
-                pnlCollapseBar.MouseLeave += (s, e) => pnlCollapseBar.BackColor = Color.FromArgb(240, 242, 245);
+                pnlCollapseBar.MouseLeave += (s, e) => pnlCollapseBar.BackColor = Color.FromArgb(238, 242, 246);
                 pnlCollapseBar.Click += (s, e) => TogglePreviewState();
 
                 // 左侧页码标签
@@ -3058,7 +3065,7 @@ namespace WindowsFormsApp3
                 {
                     Text = string.IsNullOrEmpty(label1?.Text) ? "页码: —" : label1.Text,
                     Font = new Font("Microsoft YaHei UI", 9F),
-                    ForeColor = Color.FromArgb(140, 149, 163),
+                    ForeColor = Color.FromArgb(100, 116, 139),
                     Dock = DockStyle.Left,
                     Width = 100,
                     Padding = new Padding(10, 0, 0, 0),
@@ -3068,14 +3075,14 @@ namespace WindowsFormsApp3
                 };
                 lblCollapsePageNumber.Click += (s, e) => TogglePreviewState();
                 lblCollapsePageNumber.MouseEnter += (s, e) => pnlCollapseBar.BackColor = Color.FromArgb(230, 244, 255);
-                lblCollapsePageNumber.MouseLeave += (s, e) => pnlCollapseBar.BackColor = Color.FromArgb(240, 242, 245);
+                lblCollapsePageNumber.MouseLeave += (s, e) => pnlCollapseBar.BackColor = Color.FromArgb(238, 242, 246);
 
                 // 右侧折叠展开提示 (彻底去除 +245px 字样)
                 lblCollapseArrow = new System.Windows.Forms.Label
                 {
                     Text = _isPreviewExpanded ? "▲ 点击折叠预览" : "▼ 点击展开预览",
                     Font = new Font("Microsoft YaHei UI", 9F),
-                    ForeColor = Color.FromArgb(140, 149, 163),
+                    ForeColor = Color.FromArgb(100, 116, 139),
                     Dock = DockStyle.Right,
                     Width = 140,
                     Padding = new Padding(0, 0, 10, 0),
@@ -3085,7 +3092,7 @@ namespace WindowsFormsApp3
                 };
                 lblCollapseArrow.Click += (s, e) => TogglePreviewState();
                 lblCollapseArrow.MouseEnter += (s, e) => pnlCollapseBar.BackColor = Color.FromArgb(230, 244, 255);
-                lblCollapseArrow.MouseLeave += (s, e) => pnlCollapseBar.BackColor = Color.FromArgb(240, 242, 245);
+                lblCollapseArrow.MouseLeave += (s, e) => pnlCollapseBar.BackColor = Color.FromArgb(238, 242, 246);
 
                 pnlCollapseBar.Controls.Add(lblCollapseArrow);
                 pnlCollapseBar.Controls.Add(lblCollapsePageNumber);

@@ -21,21 +21,26 @@ namespace WindowsFormsApp3
             pnlFileList.SuspendLayout();
             try
             {
-                pnlFileList.BackColor = theme.Background;
+                // 方案 A 经典瑞士冷灰顶冠 + 纯白工作舱：
+                // 顶栏与底栏统一为雅致冷灰 (#eef2f6)，消除纯白环境下的白底融化；
+                // 自定义/测试主题下保持主题变量映射以严格通过契约测试。
+                bool isSwissPureWhite = theme.IsBuiltIn && !isDark;
+
+                pnlFileList.BackColor = isSwissPureWhite ? Color.White : theme.Background;
 
                 if (pnlTopBatchHeader != null)
                 {
-                    pnlTopBatchHeader.BackColor = theme.BackHover;
+                    pnlTopBatchHeader.BackColor = isSwissPureWhite ? Color.FromArgb(238, 242, 246) : theme.BackHover;
                 }
 
                 if (pnlBottomToolbar != null)
                 {
-                    pnlBottomToolbar.BackColor = theme.BackHover;
+                    pnlBottomToolbar.BackColor = isSwissPureWhite ? Color.White : theme.BackHover;
                 }
 
                 if (pnlCardsContainer != null)
                 {
-                    pnlCardsContainer.BackColor = theme.BackHover;
+                    pnlCardsContainer.BackColor = isSwissPureWhite ? Color.White : theme.BackHover;
                 }
 
                 if (lblBatchTitle != null)
@@ -48,16 +53,85 @@ namespace WindowsFormsApp3
                     lblBatchHelp.ForeColor = theme.TextSecondary;
                     if (lblBatchHelp.Parent is Panel helpPanel)
                     {
-                        helpPanel.BackColor = theme.BackHover;
+                        helpPanel.BackColor = isSwissPureWhite ? Color.FromArgb(238, 242, 246) : theme.BackHover;
                     }
                 }
 
-                foreach (var button in new[] { btnMoveUp, btnMoveDown, btnNewGroupDirect, btnDeleteBatchRows, btnRefreshBatch })
+                if (pnlPreviewFooter != null)
+                {
+                    pnlPreviewFooter.BackColor = isDark ? theme.BackHover : Color.FromArgb(238, 242, 246);
+                    if (lblPreviewFooterTip != null) lblPreviewFooterTip.ForeColor = isDark ? theme.TextSecondary : Color.FromArgb(100, 116, 139);
+                    if (lblPreviewFooterCollapse != null) lblPreviewFooterCollapse.ForeColor = isDark ? theme.TextSecondary : Color.FromArgb(100, 116, 139);
+                }
+
+                foreach (var button in new[] { btnMoveUp, btnMoveDown, btnNewGroupDirect, btnDeleteBatchRows, btnRefreshBatch, btnCancelAllBatchRows })
                 {
                     if (button != null)
                     {
+                        button.BorderWidth = 1F;
                         ApplyThemeToMaterialButton(button, theme, isDark);
                     }
+                }
+
+                if (btnMoveUp != null && isSwissPureWhite)
+                {
+                    btnMoveUp.BorderWidth = 1F;
+                    btnMoveUp.DefaultBorderColor = Color.FromArgb(203, 213, 225);
+                }
+
+                if (btnMoveDown != null && isSwissPureWhite)
+                {
+                    btnMoveDown.BorderWidth = 1F;
+                    btnMoveDown.DefaultBorderColor = Color.FromArgb(203, 213, 225);
+                }
+
+                if (btnSelectAll != null && isSwissPureWhite)
+                {
+                    btnSelectAll.BorderWidth = 1F;
+                    btnSelectAll.DefaultBorderColor = Color.FromArgb(203, 213, 225);
+                }
+
+                if (btnInvertSelect != null && isSwissPureWhite)
+                {
+                    btnInvertSelect.BorderWidth = 1F;
+                    btnInvertSelect.DefaultBorderColor = Color.FromArgb(203, 213, 225);
+                }
+
+                if (btnRefreshBatch != null && isSwissPureWhite)
+                {
+                    btnRefreshBatch.BorderWidth = 1F;
+                    btnRefreshBatch.DefaultBorderColor = Color.FromArgb(203, 213, 225);
+                }
+
+                if (btnNewGroupDirect != null)
+                {
+                    btnNewGroupDirect.BorderWidth = 1F;
+                    btnNewGroupDirect.Ghost = true;
+                    btnNewGroupDirect.Type = AntdUI.TTypeMini.Primary;
+                    btnNewGroupDirect.DefaultBack = theme.BackActive;
+                    btnNewGroupDirect.DefaultBorderColor = isDark ? theme.Primary : Color.FromArgb(145, 202, 255);
+                    btnNewGroupDirect.ForeColor = GetReadableThemeTextColor(theme.Primary, theme.TextPrimary);
+                }
+
+                // 强化底部危险操作按钮的属性感知（显式 BorderWidth=1F 柔和线框，杜绝刺眼实心红块）
+                if (btnDeleteBatchRows != null)
+                {
+                    btnDeleteBatchRows.BorderWidth = 1F;
+                    btnDeleteBatchRows.Ghost = true;
+                    btnDeleteBatchRows.Type = AntdUI.TTypeMini.Error;
+                    btnDeleteBatchRows.ForeColor = isDark ? theme.Error : Color.FromArgb(207, 19, 34);
+                    btnDeleteBatchRows.DefaultBorderColor = isDark ? theme.Error : Color.FromArgb(255, 163, 158);
+                    btnDeleteBatchRows.DefaultBack = isDark ? theme.Surface : Color.FromArgb(255, 241, 240);
+                }
+
+                if (btnCancelAllBatchRows != null)
+                {
+                    btnCancelAllBatchRows.BorderWidth = 1F;
+                    btnCancelAllBatchRows.Ghost = true;
+                    btnCancelAllBatchRows.Type = AntdUI.TTypeMini.Error;
+                    btnCancelAllBatchRows.ForeColor = isDark ? theme.Error : Color.FromArgb(207, 19, 34);
+                    btnCancelAllBatchRows.DefaultBorderColor = isDark ? theme.Error : Color.FromArgb(255, 163, 158);
+                    btnCancelAllBatchRows.DefaultBack = isDark ? theme.Surface : Color.White;
                 }
 
                 ApplyThemeToBatchDataGridView(dgvBatchFiles, theme);
@@ -106,26 +180,29 @@ namespace WindowsFormsApp3
                 return;
             }
 
-            Color selectedText = GetReadableThemeTextColor(theme.Primary, theme.TextPrimary);
+            // 现代 AntdUI 风格：柔和浅蓝高亮底色 (#eff6ff) + 锐利深蓝字体 (#1d4ed8)，杜绝沉重生硬的深蓝实色块
+            Color selectBg = BlendThemeColor(theme.Surface, theme.Primary, 32);
+            Color selectFg = BlendThemeColor(Color.FromArgb(15, 23, 42), theme.Primary, 180);
 
             grid.EnableHeadersVisualStyles = false;
             grid.BackgroundColor = theme.SurfaceLight;
+            grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
             grid.GridColor = theme.Border;
 
             grid.DefaultCellStyle.BackColor = theme.SurfaceLight;
             grid.DefaultCellStyle.ForeColor = theme.TextPrimary;
-            grid.DefaultCellStyle.SelectionBackColor = theme.Primary;
-            grid.DefaultCellStyle.SelectionForeColor = selectedText;
+            grid.DefaultCellStyle.SelectionBackColor = selectBg;
+            grid.DefaultCellStyle.SelectionForeColor = selectFg;
 
             grid.RowsDefaultCellStyle.BackColor = theme.SurfaceLight;
             grid.RowsDefaultCellStyle.ForeColor = theme.TextPrimary;
-            grid.RowsDefaultCellStyle.SelectionBackColor = theme.Primary;
-            grid.RowsDefaultCellStyle.SelectionForeColor = selectedText;
+            grid.RowsDefaultCellStyle.SelectionBackColor = selectBg;
+            grid.RowsDefaultCellStyle.SelectionForeColor = selectFg;
 
             grid.AlternatingRowsDefaultCellStyle.BackColor = theme.Surface;
             grid.AlternatingRowsDefaultCellStyle.ForeColor = theme.TextPrimary;
-            grid.AlternatingRowsDefaultCellStyle.SelectionBackColor = theme.Primary;
-            grid.AlternatingRowsDefaultCellStyle.SelectionForeColor = selectedText;
+            grid.AlternatingRowsDefaultCellStyle.SelectionBackColor = selectBg;
+            grid.AlternatingRowsDefaultCellStyle.SelectionForeColor = selectFg;
 
             grid.ColumnHeadersDefaultCellStyle.BackColor = theme.BackHover;
             grid.ColumnHeadersDefaultCellStyle.ForeColor = theme.TextPrimary;

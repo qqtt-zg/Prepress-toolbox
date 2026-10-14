@@ -80,7 +80,7 @@ namespace WindowsFormsApp3.Forms.Controls
 
             if (_group.IsPreserveGroup)
             {
-                this.BackColor = Color.FromArgb(249, 240, 255); // 返单淡紫色
+                this.BackColor = Color.FromArgb(250, 245, 255); // 返单淡紫色
             }
             else if (_group.IsLocked)
             {
@@ -100,48 +100,46 @@ namespace WindowsFormsApp3.Forms.Controls
             g.SmoothingMode = SmoothingMode.AntiAlias;
             var theme = _theme;
 
-            // 边框
-            Color borderColor = theme == null
-                ? (_group.IsPreserveGroup
-                    ? Color.FromArgb(211, 173, 247)
-                    : (_group.IsLocked ? Color.FromArgb(217, 217, 217) : Color.FromArgb(145, 202, 255)))
-                : (_group.IsPreserveGroup ? theme.AccentColor4 : (_group.IsLocked ? theme.Border : theme.Primary));
-            using (var pen = new Pen(borderColor, 1F))
+            // 仅绘制底部分割细线（杜绝与外层 cardPanel 形成双层生硬线框）
+            Color dividerColor = theme == null
+                ? (_group.IsPreserveGroup ? Color.FromArgb(233, 213, 255) : Color.FromArgb(226, 232, 240))
+                : theme.Border;
+            using (var pen = new Pen(dividerColor, 1F))
             {
-                g.DrawRectangle(pen, 0, 0, this.Width - 1, this.Height - 1);
+                g.DrawLine(pen, 0, this.Height - 1, this.Width, this.Height - 1);
             }
 
             int centerY = this.Height / 2;
 
-            // 1. 先计算并绘制右侧状态指示标签（去除了无法渲染的 Emoji，纯净文字避免乱码方块）
+            // 1. 先计算并绘制右侧状态指示标签（纯净微圆角胶囊）
             string statusText = (_group.IsPreserveGroup || _group.IsLocked) ? "已锁定" : "联动";
             Color statusBg = theme == null
-                ? ((_group.IsPreserveGroup || _group.IsLocked) ? Color.FromArgb(249, 240, 255) : Color.FromArgb(246, 255, 237))
-                : Blend(theme.Surface, (_group.IsPreserveGroup || _group.IsLocked) ? theme.AccentColor4 : theme.Success, 44);
+                ? ((_group.IsPreserveGroup || _group.IsLocked) ? Color.FromArgb(243, 232, 255) : Color.FromArgb(240, 253, 244))
+                : Blend(theme.Surface, (_group.IsPreserveGroup || _group.IsLocked) ? theme.AccentColor4 : theme.Success, 36);
             Color statusFg = theme == null
-                ? ((_group.IsPreserveGroup || _group.IsLocked) ? Color.FromArgb(114, 46, 209) : Color.FromArgb(82, 196, 26))
+                ? ((_group.IsPreserveGroup || _group.IsLocked) ? Color.FromArgb(109, 40, 217) : Color.FromArgb(21, 128, 61))
                 : GetReadableTextColor(statusBg, theme.TextPrimary);
             Color statusBorder = theme == null
-                ? ((_group.IsPreserveGroup || _group.IsLocked) ? Color.FromArgb(211, 173, 247) : Color.FromArgb(183, 235, 143))
+                ? ((_group.IsPreserveGroup || _group.IsLocked) ? Color.FromArgb(216, 180, 254) : Color.FromArgb(187, 247, 208))
                 : ((_group.IsPreserveGroup || _group.IsLocked) ? theme.AccentColor4 : theme.Success);
 
             int sW = 54;
             using (var statFont = new Font("Microsoft YaHei UI", 8F, FontStyle.Bold))
             {
                 var sSize = g.MeasureString(statusText, statFont);
-                sW = (int)Math.Ceiling(sSize.Width) + 12;
+                sW = (int)Math.Ceiling(sSize.Width) + 14;
                 int sH = 20;
-                int sX = this.Width - sW - 6;
+                int sX = this.Width - sW - 8;
                 int sY = centerY - (sH / 2);
 
                 _lockBadgeRect = new Rectangle(sX, sY, sW, sH);
                 using (var sbBrush = new SolidBrush(statusBg))
                 {
-                    g.FillRectangle(sbBrush, sX, sY, sW, sH);
+                    FillRoundRect(g, sbBrush, _lockBadgeRect, 3);
                 }
                 using (var pen = new Pen(statusBorder, 1F))
                 {
-                    g.DrawRectangle(pen, sX, sY, sW, sH);
+                    DrawRoundRect(g, pen, _lockBadgeRect, 3);
                 }
                 using (var textBrush = new SolidBrush(statusFg))
                 {
@@ -156,23 +154,23 @@ namespace WindowsFormsApp3.Forms.Controls
             }
 
             // 左侧绘制区域边界限制
-            int rightBoundary = this.Width - sW - 10;
-            int curX = 6;
+            int rightBoundary = this.Width - sW - 14;
+            int curX = 8;
 
             // 2. 折叠箭头
             string arrow = _group.IsCollapsed ? "▸" : "▾";
             using (var arrowFont = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold))
-            using (var brush = new SolidBrush(theme?.TextSecondary ?? Color.FromArgb(80, 80, 80)))
+            using (var brush = new SolidBrush(theme?.TextSecondary ?? Color.FromArgb(100, 116, 139)))
             {
                 g.DrawString(arrow, arrowFont, brush, curX, centerY - 7);
                 curX += 13;
             }
 
-            // 3. 组标题（如【一组】、【二组】，简短紧凑）
+            // 3. 组标题（如【一组】、【二组】）
             Color titleColor = theme == null
                 ? (_group.IsPreserveGroup
                     ? Color.FromArgb(114, 46, 209)
-                    : (_group.IsLocked ? Color.FromArgb(38, 38, 38) : Color.FromArgb(9, 88, 217)))
+                    : (_group.IsLocked ? Color.FromArgb(38, 38, 38) : Color.FromArgb(15, 23, 42)))
                 : GetReadableTextColor(BackColor, theme.TextPrimary);
             using (var titleFont = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold))
             using (var brush = new SolidBrush(titleColor))
@@ -180,60 +178,77 @@ namespace WindowsFormsApp3.Forms.Controls
                 string title = _group.GroupName ?? "【一组】";
                 g.DrawString(title, titleFont, brush, curX, centerY - 7);
                 var size = g.MeasureString(title, titleFont);
-                curX += (int)Math.Ceiling(size.Width) + 4;
+                curX += (int)Math.Ceiling(size.Width) + 5;
             }
 
-            // 4. 款数徽章
+            // 4. 款数徽章（精致圆角胶囊）
             int count = _group.Items?.Count ?? 0;
             string countText = _group.IsPreserveGroup ? $"{count}款返单" : $"{count}款新单";
-            using (var countFont = new Font("Microsoft YaHei UI", 7.5F))
+            using (var countFont = new Font("Microsoft YaHei UI", 7.5F, FontStyle.Bold))
             {
                 var cSize = g.MeasureString(countText, countFont);
-                int badgeW = (int)Math.Ceiling(cSize.Width) + 6;
-                int badgeH = 17;
+                int badgeW = (int)Math.Ceiling(cSize.Width) + 8;
+                int badgeH = 18;
                 int badgeY = centerY - (badgeH / 2);
                 Color badgeBg = theme == null
-                    ? (_group.IsPreserveGroup ? Color.FromArgb(114, 46, 209) : Color.FromArgb(22, 119, 255))
+                    ? (_group.IsPreserveGroup ? Color.FromArgb(243, 232, 255) : Color.FromArgb(224, 231, 255))
+                    : Blend(theme.Surface, _group.IsPreserveGroup ? theme.AccentColor4 : theme.Primary, 30);
+                Color badgeFg = theme == null
+                    ? (_group.IsPreserveGroup ? Color.FromArgb(114, 46, 209) : Color.FromArgb(29, 78, 216))
+                    : GetReadableTextColor(badgeBg, theme.TextPrimary);
+                Color badgeBorder = theme == null
+                    ? (_group.IsPreserveGroup ? Color.FromArgb(216, 180, 254) : Color.FromArgb(191, 219, 254))
                     : (_group.IsPreserveGroup ? theme.AccentColor4 : theme.Primary);
+
+                var badgeRect = new Rectangle(curX, badgeY, badgeW, badgeH);
                 using (var bgBrush = new SolidBrush(badgeBg))
                 {
-                    g.FillRectangle(bgBrush, curX, badgeY, badgeW, badgeH);
+                    FillRoundRect(g, bgBrush, badgeRect, 3);
                 }
-                using (var textBrush = new SolidBrush(theme == null ? Color.White : GetReadableTextColor(badgeBg, theme.TextPrimary)))
+                using (var borderPen = new Pen(badgeBorder, 1F))
                 {
-                    g.DrawString(countText, countFont, textBrush, curX + 3, badgeY + 1);
+                    DrawRoundRect(g, borderPen, badgeRect, 3);
                 }
-                curX += badgeW + 5;
+                using (var textBrush = new SolidBrush(badgeFg))
+                {
+                    var sf = new StringFormat
+                    {
+                        Alignment = StringAlignment.Center,
+                        LineAlignment = StringAlignment.Center,
+                        FormatFlags = StringFormatFlags.NoWrap
+                    };
+                    g.DrawString(countText, countFont, textBrush, new RectangleF(curX, badgeY, badgeW, badgeH), sf);
+                }
+                curX += badgeW + 6;
             }
 
-            // 5. 公共工艺参数胶囊列表（全部解耦为独立胶囊，无颜文字乱码）
+            // 5. 方案 B：主副信息分离 —— 仅保留 1~2 个核心工艺高亮胶囊，次级信息转为精炼单行灰色文字
             if (_group.IsPreserveGroup)
             {
-                DrawPill(g, ref curX, centerY, rightBoundary, "返单前缀", 
+                DrawPill(g, ref curX, centerY, rightBoundary, "返单前缀",
                     theme == null ? Color.FromArgb(249, 240, 255) : Blend(theme.Surface, theme.AccentColor4, 36),
                     theme == null ? Color.FromArgb(114, 46, 209) : GetReadableTextColor(Blend(theme.Surface, theme.AccentColor4, 36), theme.TextPrimary),
                     theme == null ? Color.FromArgb(211, 173, 247) : theme.AccentColor4);
             }
 
-            // 独立胶囊：材料
+            // 核心高亮胶囊 1：材料（暖金琥珀色，视觉主焦点）
             string matText = string.IsNullOrEmpty(_group.Material) ? "未指材料" : _group.Material;
-            DrawPill(g, ref curX, centerY, rightBoundary, matText, 
+            DrawPill(g, ref curX, centerY, rightBoundary, matText,
                 theme == null
-                    ? (_group.IsPreserveGroup ? Color.FromArgb(249, 240, 255) : Color.FromArgb(255, 247, 230))
+                    ? (_group.IsPreserveGroup ? Color.FromArgb(249, 240, 255) : Color.FromArgb(254, 243, 199))
                     : Blend(theme.Surface, _group.IsPreserveGroup ? theme.AccentColor4 : theme.Warning, 34),
                 theme == null
-                    ? (_group.IsPreserveGroup ? Color.FromArgb(114, 46, 209) : Color.FromArgb(212, 107, 8))
+                    ? (_group.IsPreserveGroup ? Color.FromArgb(114, 46, 209) : Color.FromArgb(180, 83, 9))
                     : GetReadableTextColor(Blend(theme.Surface, _group.IsPreserveGroup ? theme.AccentColor4 : theme.Warning, 34), theme.TextPrimary),
                 theme == null
-                    ? (_group.IsPreserveGroup ? Color.FromArgb(211, 173, 247) : Color.FromArgb(255, 213, 145))
+                    ? (_group.IsPreserveGroup ? Color.FromArgb(211, 173, 247) : Color.FromArgb(253, 230, 138))
                     : (_group.IsPreserveGroup ? theme.AccentColor4 : theme.Warning));
 
-            // 独立胶囊：颜色模式（黑白 / 彩色）
+            // 解析工艺膜与颜色模式
             string colorMode = _group.ColorMode;
             string filmType = _group.FilmType;
             if (string.IsNullOrEmpty(colorMode) && string.IsNullOrEmpty(filmType) && !string.IsNullOrEmpty(_group.Process))
             {
-                // 兼容老数据从 Process 解析
                 if (_group.Process.Contains("黑白"))
                 {
                     colorMode = "黑白";
@@ -250,36 +265,19 @@ namespace WindowsFormsApp3.Forms.Controls
                 }
             }
             if (string.IsNullOrEmpty(colorMode)) colorMode = "黑白";
-            DrawPill(g, ref curX, centerY, rightBoundary, colorMode, 
-                theme == null ? Color.FromArgb(245, 245, 245) : theme.BackHover,
-                theme == null ? Color.FromArgb(89, 89, 89) : GetReadableTextColor(theme.BackHover, theme.TextSecondary),
-                theme == null ? Color.FromArgb(217, 217, 217) : theme.Border);
 
-            // 独立胶囊：膜类型（光膜 / 哑膜 / 红膜 / 不过膜）
-            if (!string.IsNullOrEmpty(filmType))
+            // 核心高亮胶囊 2：覆膜（仅当有覆膜且不为“不过膜”时显示清新浅绿胶囊）
+            if (!string.IsNullOrEmpty(filmType) && filmType != "不过膜")
             {
-                DrawPill(g, ref curX, centerY, rightBoundary, filmType, 
-                    theme == null ? Color.FromArgb(246, 255, 237) : Blend(theme.Surface, theme.Success, 34),
-                    theme == null ? Color.FromArgb(56, 158, 13) : GetReadableTextColor(Blend(theme.Surface, theme.Success, 34), theme.TextPrimary),
-                    theme == null ? Color.FromArgb(183, 235, 143) : theme.Success);
+                DrawPill(g, ref curX, centerY, rightBoundary, filmType,
+                    theme == null ? Color.FromArgb(240, 253, 244) : Blend(theme.Surface, theme.Success, 34),
+                    theme == null ? Color.FromArgb(21, 128, 61) : GetReadableTextColor(Blend(theme.Surface, theme.Success, 34), theme.TextPrimary),
+                    theme == null ? Color.FromArgb(187, 247, 208) : theme.Success);
             }
 
-            // 独立胶囊：切刀形状（直角 / 圆角R5 / 异形）
-            string shapeName = "直角";
-            if (_group.Shape == "Round" || _group.Shape == "圆角" || _group.Shape == "RoundRect")
-            {
-                shapeName = (!string.IsNullOrEmpty(_group.RoundRadius) && _group.RoundRadius != "0") ? $"圆角R{_group.RoundRadius}" : "圆角";
-            }
-            else if (_group.Shape == "Special" || _group.Shape == "异形")
-            {
-                shapeName = "异形";
-            }
-            DrawPill(g, ref curX, centerY, rightBoundary, shapeName, 
-                theme == null ? Color.FromArgb(246, 255, 237) : Blend(theme.Surface, theme.Success, 34),
-                theme == null ? Color.FromArgb(56, 158, 13) : GetReadableTextColor(Blend(theme.Surface, theme.Success, 34), theme.TextPrimary),
-                theme == null ? Color.FromArgb(183, 235, 143) : theme.Success);
+            // 次级工艺特征文本列表（平张/卷装 · 连拼/折手 · 彩色/黑白 · 切刀形状）
+            var subTraits = new List<string>();
 
-            // 独立胶囊：材料类型（卷装 / 平张）
             string matType = !string.IsNullOrEmpty(_group.MaterialType) ? _group.MaterialType : "";
             string layPattern = !string.IsNullOrEmpty(_group.LayoutPattern) ? _group.LayoutPattern : "";
             if (string.IsNullOrEmpty(matType) && string.IsNullOrEmpty(layPattern) && !string.IsNullOrEmpty(_group.ImpositionMode))
@@ -290,35 +288,48 @@ namespace WindowsFormsApp3.Forms.Controls
             }
             if (string.IsNullOrEmpty(matType)) matType = "平张";
             if (string.IsNullOrEmpty(layPattern)) layPattern = "连拼";
+            subTraits.Add(matType);
+            subTraits.Add(layPattern);
+            subTraits.Add(colorMode);
 
-            DrawPill(g, ref curX, centerY, rightBoundary, matType, 
-                theme == null ? Color.FromArgb(230, 255, 251) : Blend(theme.Surface, theme.AccentColor2, 34),
-                theme == null ? Color.FromArgb(8, 151, 156) : GetReadableTextColor(Blend(theme.Surface, theme.AccentColor2, 34), theme.TextPrimary),
-                theme == null ? Color.FromArgb(135, 232, 222) : theme.AccentColor2);
-
-            // 独立胶囊：排版模式（折手 / 连拼）
-            DrawPill(g, ref curX, centerY, rightBoundary, layPattern, 
-                theme == null ? Color.FromArgb(230, 255, 251) : Blend(theme.Surface, theme.AccentColor2, 34),
-                theme == null ? Color.FromArgb(8, 151, 156) : GetReadableTextColor(Blend(theme.Surface, theme.AccentColor2, 34), theme.TextPrimary),
-                theme == null ? Color.FromArgb(135, 232, 222) : theme.AccentColor2);
-
-            // 独立胶囊：目标路径（去除无法显示的 Emoji，最多显示三级层级）
-            string pathText = "根目录";
-            if (!string.IsNullOrEmpty(_group.ExportPath))
+            string shapeName = "直角";
+            if (_group.Shape == "Round" || _group.Shape == "圆角" || _group.Shape == "RoundRect")
             {
-                try
+                shapeName = (!string.IsNullOrEmpty(_group.RoundRadius) && _group.RoundRadius != "0") ? $"圆角R{_group.RoundRadius}" : "圆角";
+                subTraits.Add(shapeName);
+            }
+            else if (_group.Shape == "Special" || _group.Shape == "异形")
+            {
+                subTraits.Add("异形");
+            }
+            else
+            {
+                subTraits.Add("直角");
+            }
+
+            if (filmType == "不过膜")
+            {
+                subTraits.Add("不过膜");
+            }
+
+            // 绘制优雅的次级文本单行（以中圆点 · 连接，杜绝彩虹碎片化）
+            string subTraitsText = string.Join(" · ", subTraits);
+            int availSubW = rightBoundary - curX;
+            if (availSubW > 24)
+            {
+                using (var subFont = new Font("Microsoft YaHei UI", 8F))
+                using (var subBrush = new SolidBrush(theme?.TextSecondary ?? Color.FromArgb(100, 116, 139)))
                 {
-                    pathText = FormatExportPathSummary(_group.ExportPath);
-                }
-                catch
-                {
-                    pathText = _group.ExportPath;
+                    var sf = new StringFormat
+                    {
+                        Alignment = StringAlignment.Near,
+                        LineAlignment = StringAlignment.Center,
+                        Trimming = StringTrimming.EllipsisCharacter,
+                        FormatFlags = StringFormatFlags.NoWrap
+                    };
+                    g.DrawString(subTraitsText, subFont, subBrush, new RectangleF(curX, 0, availSubW, this.Height), sf);
                 }
             }
-            DrawPill(g, ref curX, centerY, rightBoundary, pathText, 
-                theme == null ? Color.FromArgb(240, 245, 255) : Blend(theme.Surface, theme.AccentColor1, 34),
-                theme == null ? Color.FromArgb(47, 84, 235) : GetReadableTextColor(Blend(theme.Surface, theme.AccentColor1, 34), theme.TextPrimary),
-                theme == null ? Color.FromArgb(179, 199, 255) : theme.AccentColor1);
         }
 
         private static Color Blend(Color background, Color foreground, int foregroundAlpha)
@@ -369,27 +380,28 @@ namespace WindowsFormsApp3.Forms.Controls
         private void DrawPill(Graphics g, ref int curX, int centerY, int rightBoundary, string text, Color bg, Color fg, Color border)
         {
             if (string.IsNullOrEmpty(text)) return;
-            using (var font = new Font("Microsoft YaHei UI", 7.5F, FontStyle.Bold))
+            using (var font = new Font("Microsoft YaHei UI", 8F, FontStyle.Bold))
             {
                 var size = g.MeasureString(text, font);
-                int pillW = (int)Math.Ceiling(size.Width) + 6;
-                int pillH = 18;
+                int pillW = Math.Max(34, (int)Math.Ceiling(size.Width) + 12);
+                int pillH = 20;
                 int pillY = centerY - (pillH / 2);
 
                 if (curX + pillW > rightBoundary)
                 {
                     int availW = rightBoundary - curX;
-                    if (availW < 18) return;
+                    if (availW < 20) return;
                     pillW = availW;
                 }
 
+                var pillRect = new Rectangle(curX, pillY, pillW, pillH);
                 using (var brush = new SolidBrush(bg))
                 {
-                    g.FillRectangle(brush, curX, pillY, pillW, pillH);
+                    FillRoundRect(g, brush, pillRect, 3);
                 }
                 using (var pen = new Pen(border, 1F))
                 {
-                    g.DrawRectangle(pen, curX, pillY, pillW, pillH);
+                    DrawRoundRect(g, pen, pillRect, 3);
                 }
                 using (var textBrush = new SolidBrush(fg))
                 {
@@ -402,8 +414,44 @@ namespace WindowsFormsApp3.Forms.Controls
                     };
                     g.DrawString(text, font, textBrush, new RectangleF(curX, pillY, pillW, pillH), sf);
                 }
-                curX += pillW + 4;
+                curX += pillW + 6;
             }
+        }
+
+        private static void FillRoundRect(Graphics g, Brush brush, Rectangle rect, int radius)
+        {
+            using (var path = CreateRoundRectPath(rect, radius))
+            {
+                g.FillPath(brush, path);
+            }
+        }
+
+        private static void DrawRoundRect(Graphics g, Pen pen, Rectangle rect, int radius)
+        {
+            using (var path = CreateRoundRectPath(rect, radius))
+            {
+                g.DrawPath(pen, path);
+            }
+        }
+
+        private static GraphicsPath CreateRoundRectPath(Rectangle r, int radius)
+        {
+            var path = new GraphicsPath();
+            int d = radius * 2;
+            if (d > r.Width) d = r.Width;
+            if (d > r.Height) d = r.Height;
+            if (d <= 0)
+            {
+                path.AddRectangle(r);
+                return path;
+            }
+
+            path.AddArc(r.X, r.Y, d, d, 180, 90);
+            path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+            path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+            path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+            path.CloseFigure();
+            return path;
         }
 
         /// <summary>

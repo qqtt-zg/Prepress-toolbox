@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大诚印前工具箱 · 全状态窗口边界与顶底清晰度优化方案 (真实C#双舱垂直流架构)</title>
+  <style>
+    :root {
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", sans-serif;
+      --font-mono: 'Cascadia Mono', Consolas, monospace;
+
+      /* 真实尺寸契约：ClientSize */
+      --station-width: 360px;
+      --batch-width: 520px;
+      --workbench-width: 880px;
+      --collapsed-height: 508px;
+      --expanded-height: 753px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* 模拟真实的 100% 纯白宿主桌面环境（白色 Office / 白色网页 / 白色 PDF 背景） */
+    body {
+      font-family: var(--font-family);
+      background-color: #ffffff;
+      color: #1e293b;
+      min-height: 100vh;
+      font-size: 13px;
+      line-height: 1.5;
+      position: relative;
+      overflow-x: hidden;
+      padding-bottom: 80px;
+    }
+
+    /* 顶部悬浮中央控制台 */
+    .sticky-hub {
+      position: sticky;
+      top: 10px;
+      z-index: 1000;
+      max-width: 1220px;
+      margin: 0 auto 20px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 10px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      color: #f8fafc;
+    }
+
+    .hub-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .hub-tag {
+      background: #1677ff;
+      color: #fff;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+    .hub-brand h1 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    /* 方案切换 */
+    .hub-tabs {
+      display: flex;
+      gap: 5px;
+      background: #1e293b;
+      padding: 3px;
+      border-radius: 6px;
+    }
+    .hub-tab-btn {
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #94a3b8;
+      border: none;
+      background: transparent;
+      transition: all 0.2s;
+    }
+    .hub-tab-btn:hover { color: #fff; background: rgba(255,255,255,0.06); }
+    .hub-tab-btn.active {
+      background: #1677ff;
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(22, 119, 255, 0.4);
+    }
+
+    /* 4 种窗体标准运行形态快捷切换 */
+    .state-switch-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .state-label {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-right: 2px;
+    }
+    .btn-state-pill {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #475569;
+      background: #1e293b;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .btn-state-pill:hover {
+      background: #334155;
+      color: #fff;
+    }
+    .btn-state-pill.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #fff;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+    }
+    .btn-state-pill.highlight {
+      border-color: #f59e0b;
+      color: #fbbf24;
+    }
+    .btn-state-pill.highlight.active {
+      background: #d97706;
+      border-color: #f59e0b;
+      color: #fff;
+    }
+
+    /* 背景模拟：白色 Office 文档 / 白色网页 */
+    .bg-mock-doc {
+      position: absolute;
+      top: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1080px;
+      height: 960px;
+      background: #ffffff;
+      border: 1px dashed #e2e8f0;
+      pointer-events: none;
+      z-index: 1;
+      padding: 30px;
+      color: #cbd5e1;
+    }
+    .bg-mock-doc-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #94a3b8;
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 8px;
+      margin-bottom: 14px;
+    }
+
+    /* 方案解说指示条 */
+    .banner-desc {
+      max-width: 880px;
+      margin: 0 auto 16px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-left: 4px solid #1677ff;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #334155;
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 窗体居中舞台 */
+    .window-stage {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      margin: 0 auto;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* =========================================================================
+       880px / 360px 自适应物理窗体结构 (100% 对应 C# WinForms)
+       ========================================================================= */
+    .mock-window-base {
+      width: var(--workbench-width);
+      height: var(--collapsed-height);
+      background: #ffffff;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+      transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+    /* 单款工位模式 (左侧列表折叠，窗体总宽收缩为 360px) */
+    .mock-window-base.single-station {
+      width: var(--station-width) !important;
+    }
+    /* 预览展开模式 (窗体总高拉长为 753px) */
+    .mock-window-base.preview-expanded {
+      height: var(--expanded-height) !important;
+    }
+
+    /* =========================================================================
+       左舱与右舱：两个并排的垂直 Flex 布局（高度 100% 随窗体拉伸）
+       ========================================================================= */
+
+    /* 左侧 520px 批处理列表 (pnlFileList) */
+    .pane-left {
+      width: var(--batch-width);
+      background: #ffffff;
+      border-right: 1px solid #d4dbe4;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100%;
+      overflow: hidden;
+      transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+    }
+    .mock-window-base.single-station .pane-left {
+      width: 0 !important;
+      border-right: none;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* 右侧 360px 工位 (pnlRightStation) */
+    .pane-right {
+      width: var(--station-width);
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+    .mock-window-base.single-station .pane-right {
+      width: 100%;
+    }
+
+    /* 顶部 26px 标题栏 */
+    .title-bar-row {
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* 左侧卡片流与表格容器 (Dock = Fill，自动拉伸填满所有垂直剩余空间！) */
+    .cards-flow-left {
+      flex: 1;
+      padding: 4px 10px;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .group-card-box {
+      border: 1px solid #d4dbe4;
+      border-radius: 4px;
+      background: #fff;
+      overflow: hidden;
+    }
+    .group-header-card {
+      height: 34px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 6px;
+      font-size: 11.5px;
+    }
+    .pill-mat {
+      font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 3px;
+      background: #fef3c7; color: #b45309; border: 1px solid #fde68a;
+    }
+    .pill-film {
+      font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 3px;
+      background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0;
+    }
+    .badge-linked {
+      margin-left: auto; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+      background: #f0fdf4; border: 1px solid #86efac; color: #16a34a;
+    }
+
+    .batch-table {
+      width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed;
+    }
+    .batch-table th {
+      height: 24px; background: #f8fafc; color: #475569; border-bottom: 1px solid #e2e8f0; padding: 0 3px; font-size: 10.5px; text-align: center;
+      white-space: nowrap; border-right: 1px solid #f1f5f9; user-select: none;
+    }
+    .batch-table th.th-align-left { text-align: left; padding-left: 6px; }
+    .batch-table th:last-child { border-right: none; }
+    .batch-table td {
+      height: 26px; padding: 0 3px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      text-align: center; vertical-align: middle; position: relative; color: #1e293b;
+    }
+    .batch-table td.td-align-left { text-align: left; padding-left: 4px; }
+    .batch-table tbody tr {
+      cursor: pointer; transition: background-color 0.1s ease;
+    }
+    .batch-table tbody tr:hover td {
+      background: #f8fafc;
+    }
+    .batch-table tr.active td,
+    .batch-table tr.row-selected td {
+      background: #eff6ff !important; color: #1d4ed8; font-weight: 600;
+    }
+
+    /* 页面框异常行：高 46px (真实 C# BatchPageBoxChoiceCell 契约) */
+    .batch-table tr.row-pagebox-issue td {
+      height: 46px !important;
+    }
+
+    /* 单元格单点聚焦 */
+    .batch-table td.cell-focused {
+      outline: 2px solid #2563eb !important; outline-offset: -2px;
+      background: #dbeafe !important; color: #1e40af !important; font-weight: 700;
+    }
+
+    /* 单元格连续多选高亮态 (Shift/Ctrl 连选) */
+    .batch-table td.cell-multi-selected {
+      background: #bae6fd !important; color: #0369a1 !important;
+      outline: 1.5px solid #0284c7 !important; outline-offset: -1.5px; font-weight: 700;
+    }
+    .batch-table td.cell-multi-selected .pill-qty {
+      background: #0284c7; color: #ffffff; border-color: #0284c7;
+    }
+
+    /* 单元格微标签 */
+    .cell-filename-box {
+      display: flex; align-items: center; gap: 4px; overflow: hidden; white-space: nowrap;
+    }
+    .icon-file-pdf {
+      width: 14px; height: 14px; background: #fee2e2; border: 1px solid #fca5a5;
+      color: #dc2626; border-radius: 2px; font-size: 8px; font-weight: bold;
+      display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .icon-warn-badge {
+      width: 14px; height: 14px; background: #ffedd5; border: 1px solid #fdba74;
+      color: #ea580c; border-radius: 2px; font-size: 9px; font-weight: bold;
+      display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+      animation: pulseAlert 1.5s infinite;
+    }
+    @keyframes pulseAlert { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    .pill-qty {
+      display: inline-block; font-family: var(--font-mono); font-size: 10.5px; font-weight: 700;
+      padding: 1px 4px; border-radius: 3px; background: #f0f7ff; border: 1px solid #bae0ff; color: #0958d9; white-space: nowrap;
+    }
+    .pill-pages {
+      display: inline-block; font-family: var(--font-mono); font-size: 10px; padding: 0 4px;
+      border-radius: 2px; background: #f1f5f9; color: #475569; white-space: nowrap;
+    }
+    .pill-dim-normal {
+      font-family: var(--font-mono); font-size: 10px; color: #1e293b; white-space: nowrap;
+    }
+    .pill-imposition {
+      display: inline-block; font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+      padding: 1px 5px; border-radius: 3px; background: #f6ffed; border: 1px solid #b7eb8f; color: #237804; white-space: nowrap;
+    }
+
+    /* 真实 BatchPageBoxChoiceCell：页面框不一致双微胶囊单选组件 */
+    .pagebox-choice-wrapper {
+      display: flex; flex-direction: column; gap: 2px; padding: 1px 0; width: 100%;
+    }
+    .pagebox-choice-item {
+      height: 19px; border-radius: 3px; border: 1px solid #cbd5e1; background: #ffffff;
+      display: flex; align-items: center; padding: 0 3px; gap: 2px; cursor: pointer;
+      transition: all 0.12s ease; white-space: nowrap; overflow: hidden;
+    }
+    .pagebox-choice-item:hover { border-color: #1677ff; background: #f0f7ff; }
+    .pagebox-choice-item.active-choice {
+      background: #e6f4ff; border-color: #1677ff; color: #0958d9; font-weight: 700;
+    }
+    .radio-dot-circle {
+      width: 8px; height: 8px; border-radius: 50%; border: 1px solid #94a3b8;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .pagebox-choice-item.active-choice .radio-dot-circle { border-color: #1677ff; }
+    .pagebox-choice-item.active-choice .radio-dot-circle::after {
+      content: ""; width: 4px; height: 4px; border-radius: 50%; background: #1677ff;
+    }
+    .box-tag-label { font-size: 8.5px; color: #64748b; flex-shrink: 0; }
+    .pagebox-choice-item.active-choice .box-tag-label { color: #0958d9; font-weight: bold; }
+    .box-dim-val { font-family: var(--font-mono); font-size: 9.5px; color: #1e293b; }
+    .pagebox-choice-item.active-choice .box-dim-val { color: #0958d9; font-weight: 700; }
+
+    /* 浮动统计胶囊 (多选数量时弹出) */
+    .float-stat-bubble {
+      position: absolute; bottom: 44px; left: 260px; transform: translateX(-50%);
+      background: #0f172a; color: #ffffff; border: 1px solid #38bdf8; border-radius: 20px;
+      padding: 4px 12px; font-size: 11px; box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+      display: none; align-items: center; gap: 10px; z-index: 100; animation: bubblePop 0.15s ease-out;
+    }
+    @keyframes bubblePop {
+      from { transform: translate(-50%, 6px); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
+    }
+    .bubble-stat-txt b { color: #38bdf8; }
+    .bubble-quick-btn {
+      background: #0284c7; color: #ffffff; border: none; border-radius: 10px;
+      padding: 1px 8px; font-size: 10px; cursor: pointer;
+    }
+    .bubble-quick-btn:hover { background: #0369a1; }
+
+    /* 左侧底部工具栏（34px，Dock = Bottom，永远紧贴最底边，杜绝折行） */
+    .left-bottom-toolbar {
+      height: 34px;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      flex-shrink: 0;
+      z-index: 120;
+    }
+    .btn-act {
+      height: 24px; padding: 0 8px; border-radius: 3px; font-size: 11px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 3px; border: 1px solid #cbd5e1; background: #fff; color: #334155;
+      white-space: nowrap; transition: all 0.12s;
+    }
+    .btn-act:hover { border-color: #1677ff; color: #1677ff; background: #f0f7ff; }
+    .btn-act.primary {
+      background: #e6f4ff; border-color: #91caff; color: #0958d9; font-weight: 700;
+    }
+    .btn-act.danger {
+      background: #fef2f2; border-color: #fca5a5; color: #ef4444; font-weight: 600;
+    }
+    .btn-act.danger:hover { background: #fee2e2; border-color: #ef4444; }
+
+    /* 紧凑分段上下移手柄 */
+    .btn-seg-move-handle {
+      display: inline-flex; height: 24px; border: 1px solid #cbd5e1; border-radius: 3px; background: #ffffff; overflow: hidden;
+    }
+    .seg-move-part {
+      width: 27px; display: flex; align-items: center; justify-content: center; color: #475569; font-size: 11px; cursor: pointer; transition: all 0.1s;
+    }
+    .seg-move-part:first-child { border-right: 1px solid #e2e8f0; }
+    .seg-move-part:hover { background: #f1f5f9; color: #1677ff; }
+
+    /* 改数量下拉式微按钮 */
+    .btn-qty-dropdown { position: relative; }
+    .btn-qty-trigger {
+      height: 24px; padding: 0 6px; border: 1px solid #cbd5e1; border-radius: 3px; background: #ffffff;
+      color: #334155; font-size: 11px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; white-space: nowrap;
+    }
+    .btn-qty-trigger:hover { border-color: #1677ff; color: #1677ff; background: #f0f7ff; }
+    .arrow-down-icon { font-size: 8px; color: #94a3b8; }
+    .qty-quick-popup {
+      position: absolute; bottom: 30px; left: 0; background: #ffffff; border: 1px solid #cbd5e1;
+      border-radius: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); padding: 6px; display: none; flex-direction: column; gap: 4px; width: 145px; z-index: 9999;
+    }
+    .qty-quick-popup.open { display: flex; }
+    .qty-pop-item {
+      padding: 4px 6px; font-size: 11px; color: #1e293b; border-radius: 3px; cursor: pointer; display: flex; justify-content: space-between;
+    }
+    .qty-pop-item:hover { background: #f0f7ff; color: #1677ff; }
+
+    /* 自定义右键菜单体系 */
+    .custom-ctx-menu {
+      position: fixed; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 5px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16); padding: 4px; min-width: 175px; display: none; z-index: 99999; animation: menuFadeIn 0.1s ease-out;
+    }
+    @keyframes menuFadeIn { from { opacity: 0; transform: scale(0.96); } to { transform: scale(1); } }
+    .ctx-header-title {
+      font-size: 10px; color: #0284c7; padding: 4px 8px 2px; font-weight: 700; border-bottom: 1px solid #f1f5f9; margin-bottom: 2px;
+    }
+    .ctx-item-row {
+      padding: 5px 10px; border-radius: 3px; font-size: 11px; color: #1e293b; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .ctx-item-row:hover { background: #eff6ff; color: #1677ff; }
+    .ctx-item-row.danger { color: #dc2626; }
+    .ctx-item-row.danger:hover { background: #fef2f2; color: #ef4444; }
+    .ctx-divider-line { height: 1px; background: #e2e8f0; margin: 3px 0; }
+    .ctx-kbd-hint { font-size: 9.5px; color: #94a3b8; font-family: var(--font-mono); }
+
+    /* 操作 Toast 反馈浮层 */
+    .action-toast-layer {
+      position: fixed; bottom: 20px; background: #0f172a; border: 1px solid #38bdf8; color: #f0f9ff;
+      padding: 8px 16px; border-radius: 6px; font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); display: none; z-index: 100000; animation: toastSlideUp 0.15s ease-out;
+    }
+    @keyframes toastSlideUp { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* 左侧底部 16px 状态地基栏 (Dock = Bottom，永远紧贴最底边！) */
+    .left-base-ground {
+      height: 16px; display: flex; align-items: center; padding: 0 10px; font-size: 10px; flex-shrink: 0;
+    }
+
+    /* 右侧工位 7 张卡片内容区（高度 466px 固定） */
+    .station-cards-stack {
+      height: 466px;
+      padding: 4px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .st-card {
+      border: 1px solid #d4dbe4; border-radius: 4px; padding: 4px 6px; background: #fff;
+    }
+    .mat-grid-mock {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px;
+    }
+    .mat-chip {
+      height: 24px; border: 1px solid #cbd5e1; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10.5px;
+    }
+    .mat-chip.active {
+      background: #1677ff; border-color: #1677ff; color: #fff; font-weight: bold;
+    }
+    .path-row-mock {
+      height: 24px; display: flex; align-items: center; justify-content: space-between; font-size: 11px;
+    }
+    .craft-row-mock { display: flex; gap: 4px; }
+    .pill-seg {
+      flex: 1; height: 24px; background: #f1f5f9; border-radius: 3px; display: flex; padding: 2px; gap: 2px;
+    }
+    .pill-seg-item {
+      flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10px;
+    }
+    .pill-seg-item.active {
+      background: #fff; font-weight: bold; border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+    .grid-2x2-mock {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; padding: 4px; background: #fafbfc; border-radius: 4px; border: 1px solid #eef2f6;
+    }
+    .grid-2x2-mock input {
+      height: 22px; border: 1px solid #cbd5e1; border-radius: 3px; padding: 0 4px; width: 100%; font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    }
+    .board-mock {
+      border: 1px solid #91caff; border-radius: 4px; padding: 4px; display: flex; flex-direction: column; gap: 3px;
+    }
+    .metrics-6-mock {
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; background: #f0f7ff; border-radius: 3px; padding: 3px 2px; text-align: center;
+    }
+    .metric-cell .lbl { font-size: 8.5px; color: #64748b; }
+    .metric-cell .val { font-size: 11px; font-weight: bold; font-family: var(--font-mono); }
+    .presets-row-mock { display: flex; gap: 4px; }
+    .preset-chip-mock {
+      font-size: 9.5px; padding: 2px 6px; border-radius: 10px; background: #f1f5f9; border: 1px solid #cbd5e1;
+    }
+    .right-foot-actions {
+      height: 32px; display: flex; align-items: center; justify-content: space-between; margin-top: auto;
+    }
+    .btn-toggle-batch-scope {
+      font-size: 11px; color: #1677ff; font-weight: 600; cursor: pointer; padding: 2px 6px; border-radius: 4px;
+    }
+    .btn-toggle-batch-scope:hover { background: #eff6ff; }
+    .btn-submit-primary {
+      width: 105px; height: 24px; background: #1677ff; color: #fff; border: none; border-radius: 3px; font-weight: 700; font-size: 11px; cursor: pointer;
+    }
+    .btn-cancel-default {
+      width: 50px; height: 24px; background: #fff; border: 1px solid #cbd5e1; border-radius: 3px; font-size: 11px; cursor: pointer;
+    }
+
+    /* 右侧折叠手柄条（16px） */
+    .collapse-bar-handle {
+      height: 16px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; font-size: 10px; cursor: pointer; flex-shrink: 0;
+    }
+
+    /* 右侧 PDF 预览区 (pdfPreviewPanel · 展开时高 245px，折叠时高 0px) */
+    .preview-panel-zone {
+      height: 0px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex-shrink: 0;
+      transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .mock-window-base.preview-expanded .preview-panel-zone {
+      height: 245px;
+    }
+
+    .preview-canvas-mock {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .mock-pdf-sheet {
+      width: 280px;
+      height: 155px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border-radius: 2px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .sheet-crop-line {
+      border: 1px dashed #ef4444;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* =========================================================================
+       4 大方案专属表现 (SCHEME STYLES)
+       ========================================================================= */
+
+    /* ──────── 方案 A: 经典瑞士冷灰顶冠 + 全局 1px 硬切线 + 底部状态封条 (强烈推荐) ──────── */
+    .opt-a .mock-window-base {
+      border: 1px solid #94a3b8;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+    }
+    .opt-a .title-bar-row {
+      background: #eef2f6;
+      border-bottom: 1px solid #cbd5e1;
+      color: #0f172a;
+    }
+    .opt-a .left-base-ground,
+    .opt-a .collapse-bar-handle {
+      background: #eef2f6;
+      border-top: 1px solid #cbd5e1;
+      color: #64748b;
+    }
+    .opt-a .preview-panel-zone {
+      background: #f1f5f9;
+      border-top: 1px solid #cbd5e1;
+    }
+    .opt-a .preview-footer-cap {
+      height: 20px;
+      background: #e2e8f0;
+      border-top: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 9.5px;
+      color: #475569;
+      font-weight: 600;
+    }
+
+
+    /* ──────── 方案 B: 2.5px 品牌蓝能量顶线 + 底部细蓝灰封条 ──────── */
+    .opt-b .mock-window-base {
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 14px 36px rgba(15, 23, 42, 0.14);
+      border-top: 2.5px solid #1677ff;
+    }
+    .opt-b .title-bar-row {
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      color: #0f172a;
+    }
+    .opt-b .left-base-ground,
+    .opt-b .collapse-bar-handle {
+      background: #f1f5f9;
+      border-top: 1px solid #e2e8f0;
+      color: #64748b;
+    }
+    .opt-b .preview-panel-zone {
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+    }
+    .opt-b .preview-footer-cap {
+      height: 20px;
+      background: #f1f5f9;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 9.5px;
+      color: #64748b;
+    }
+
+
+    /* ──────── 方案 C: 专业印前曜石黑顶冠 (Dark Command) + 高对比地基 ──────── */
+    .opt-c .mock-window-base {
+      border: 1px solid #64748b;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.24);
+    }
+    .opt-c .title-bar-row {
+      background: #1e293b;
+      border-bottom: 1px solid #0f172a;
+      color: #ffffff;
+    }
+    .opt-c .title-bar-row span { color: #f8fafc !important; }
+    .opt-c .left-base-ground,
+    .opt-c .collapse-bar-handle {
+      background: #f1f5f9;
+      border-top: 1px solid #cbd5e1;
+      color: #475569;
+      font-weight: 600;
+    }
+    .opt-c .preview-panel-zone {
+      background: #334155;
+      border-top: 1px solid #1e293b;
+    }
+    .opt-c .preview-footer-cap {
+      height: 22px;
+      background: #1e293b;
+      border-top: 1px solid #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 10px;
+      color: #94a3b8;
+    }
+
+
+    /* ──────── 方案 D: 现状白底通融缺陷对比 ──────── */
+    .opt-d .mock-window-base {
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+    .opt-d .title-bar-row {
+      background: #ffffff;
+      border-bottom: 1px solid #f1f5f9;
+      color: #0f172a;
+    }
+    .opt-d .left-base-ground,
+    .opt-d .collapse-bar-handle {
+      background: #ffffff;
+      border-top: 1px solid #f1f5f9;
+      color: #cbd5e1;
+    }
+    .opt-d .preview-panel-zone {
+      background: #ffffff;
+      border-top: 1px solid #f1f5f9;
+    }
+    .opt-d .preview-footer-cap {
+      height: 18px;
+      background: #ffffff;
+      border-top: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 9.5px;
+      color: #cbd5e1;
+    }
+  </style>
+</head>
+<body class="opt-a" id="bodyRoot" onclick="onGlobalClick(event)">
+
+  <!-- 模拟纯白背景环境 -->
+  <div class="bg-mock-doc">
+    <div class="bg-mock-doc-title">
+      【白底环境对比测试区】：当前正下方为 100% 极纯白文档（#FFFFFF），可直观检验 360px 与 880px 各状态下的顶底物理边界！
+    </div>
+    <p>当操作工在白色 PDF 查看器、Word 或白色生产 ERP 系统上方弹出材料选择框时，如果窗体上下边缘没有清晰色阶或硬边界，窗体就会“隐形溶入”背景。</p>
+  </div>
+
+  <!-- 顶部控制台 -->
+  <header class="sticky-hub">
+    <div class="hub-brand">
+      <span class="hub-tag">BOUNDARY QA</span>
+      <h1>材料选择框 · 全状态顶底边界清晰度比选</h1>
+    </div>
+
+    <!-- 方案切换 -->
+    <div class="hub-tabs">
+      <button class="hub-tab-btn active" id="tabA" onclick="setScheme('opt-a')">方案 A: 冷灰顶冠 + 细硬切线 (推荐)</button>
+      <button class="hub-tab-btn" id="tabB" onclick="setScheme('opt-b')">方案 B: 2.5px 品牌蓝能量顶线</button>
+      <button class="hub-tab-btn" id="tabC" onclick="setScheme('opt-c')">方案 C: 专业曜石黑顶冠</button>
+      <button class="hub-tab-btn" id="tabD" onclick="setScheme('opt-d')">现状 D: 纯白顶底 (融于白底)</button>
+    </div>
+
+    <!-- 4 种窗体标准运行形态快速切换 -->
+    <div class="state-switch-group">
+      <span class="state-label">运行状态:</span>
+      <button class="btn-state-pill" id="btnSt1" onclick="setWindowShape(false, false)">① 单款常规 (360×508)</button>
+      <button class="btn-state-pill highlight" id="btnSt2" onclick="setWindowShape(false, true)">② 单款大预览 (360×753)</button>
+      <button class="btn-state-pill" id="btnSt3" onclick="setWindowShape(true, false)">③ 批量常规 (880×508)</button>
+      <button class="btn-state-pill active" id="btnSt4" onclick="setWindowShape(true, true)">④ 批量大预览 (880×753) ★真实结构</button>
+    </div>
+  </header>
+
+  <!-- 方案说明条 -->
+  <div class="banner-desc" id="bannerDesc">
+    <div>
+      <strong id="descTitle">方案 A：经典瑞士冷灰顶冠 + 全局 1px 硬切线 + 底部状态封条（强烈推荐）</strong>
+      <div id="descBody" style="margin-top: 4px; color: #64748b;">
+        顶部 26px 采用低饱和度精致冷灰（#eef2f6），窗体外围环绕 1px 工业级冷灰硬切线（#94a3b8）。展开预览时无论 360px 还是 880px，底部均有 20px 浅灰状态封底条，彻底消除“白融于白”！
+      </div>
+    </div>
+    <div style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: #0284c7;" id="lblCurrentShape">
+      当前状态: 双联大预览 880px × 753px (左展开 · 预览展开)
+    </div>
+  </div>
+
+  <!-- 窗体舞台 -->
+  <main class="window-stage">
+    <!-- 默认展示状态 ④：双联大预览 (880px × 753px)，左右底边 100% 齐平 -->
+    <div class="mock-window-base preview-expanded" id="mockWindow">
+
+      <!-- ================= 左侧 520px 批处理列表 (垂直贯通 753px) ================= -->
+      <section class="pane-left" style="position: relative;">
+        <!-- 浮动统计胶囊 (多选数量时自动浮现) -->
+        <div class="float-stat-bubble" id="floatStatBubble">
+          <span class="bubble-stat-txt" id="bubbleStatText">已连选 3 个数量 · 合计 <b>1,100</b> 个</span>
+          <button class="bubble-quick-btn" onclick="bulkSetQtyPrompt()">批量改值</button>
+          <button class="bubble-quick-btn" style="background: #475569;" onclick="clearAllSelections()">清除</button>
+        </div>
+
+        <!-- 顶部标题栏 26px -->
+        <div class="title-bar-row">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span>待处理批次</span>
+            <span style="font-size: 10.5px; background: #e0f2fe; color: #0284c7; padding: 1px 6px; border-radius: 10px; font-weight: 600;">4 款 · 1 组</span>
+          </div>
+          <span style="font-size: 10px; color: #64748b;">支持 Shift 连续多选 / Ctrl 增选</span>
+        </div>
+
+        <!-- 卡片流容器 (flex: 1 自动延伸！在 753px 展开预览时可以展示更多行文件！) -->
+        <div class="cards-flow-left">
+          <div class="group-card-box">
+            <div class="group-header-card">
+              <span style="font-size: 10px; color: #64748b;">▾</span>
+              <span style="font-weight: 700; color: #0f172a;">【一组】</span>
+              <span style="font-size: 9.5px; background: #e2e8f0; color: #334155; padding: 1px 5px; border-radius: 3px; font-weight: 600;">4款新单</span>
+              <span class="pill-mat">50#yy</span>
+              <span class="pill-film">光膜</span>
+              <span style="font-size: 10px; color: #64748b;">平张 · 连拼 · 黑白 · 圆角R2</span>
+              <div class="badge-linked">联动</div>
+            </div>
+
+            <table class="batch-table" id="batchFilesTable">
+              <colgroup>
+                <col style="width: 24px;">
+                <col style="width: 174px;">
+                <col style="width: 68px;">
+                <col style="width: 32px;">
+                <col style="width: 34px;">
+                <col style="width: 78px;">
+                <col style="width: 88px;">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th class="th-align-left">文件名</th>
+                  <th>订单号</th>
+                  <th>数量</th>
+                  <th>页数</th>
+                  <th>成品尺寸</th>
+                  <th>排版数</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- 行 1: 【异常双尺寸行】CropBox ≠ MediaBox，自适应高 46px -->
+                <tr id="row-0" class="row-pagebox-issue active" onclick="handleRowClick(0, event)" oncontextmenu="handleContextMenu(0, 'row', event)">
+                  <td><span class="cell-idx-text" style="color: #64748b; font-family: var(--font-mono); font-size: 10px;">1</span></td>
+                  <td class="td-align-left" oncontextmenu="handleContextMenu(0, 'name', event)">
+                    <div class="cell-filename-box">
+                      <span class="icon-warn-badge" title="警告: 媒体框与裁剪框不一致">!</span>
+                      <span class="cell-filename-txt" title="铭牌_A款_80×45mm.pdf" style="font-size: 11px;">铭牌_A款_80×45mm.pdf</span>
+                    </div>
+                  </td>
+                  <td><span style="font-family: var(--font-mono); font-size: 10px; color: #475569;">0832-4</span></td>
+                  <td id="qty-cell-0" onclick="handleQtyCellClick(0, event)" oncontextmenu="handleContextMenu(0, 'qty', event)">
+                    <span class="pill-qty">500</span>
+                  </td>
+                  <td><span class="pill-pages">1P</span></td>
+                  <!-- 真实 BatchPageBoxChoiceCell 微胶囊双选组件 -->
+                  <td oncontextmenu="handleContextMenu(0, 'dim', event)">
+                    <div class="pagebox-choice-wrapper">
+                      <div class="pagebox-choice-item active-choice" id="choiceMedia0" onclick="switchPageBoxChoice(0, 'media', event)">
+                        <span class="radio-dot-circle"></span>
+                        <span class="box-tag-label">媒体</span>
+                        <span class="box-dim-val">80×45</span>
+                      </div>
+                      <div class="pagebox-choice-item" id="choiceCrop0" onclick="switchPageBoxChoice(0, 'crop', event)">
+                        <span class="radio-dot-circle"></span>
+                        <span class="box-tag-label">裁剪</span>
+                        <span class="box-dim-val">77×42 R2</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="pill-imposition" id="impBadge0">28×4 · 112个</span></td>
+                </tr>
+
+                <!-- 行 2: 常态行 (高 26px) -->
+                <tr id="row-1" onclick="handleRowClick(1, event)" oncontextmenu="handleContextMenu(1, 'row', event)">
+                  <td><span style="color: #64748b; font-family: var(--font-mono); font-size: 10px;">2</span></td>
+                  <td class="td-align-left" oncontextmenu="handleContextMenu(1, 'name', event)">
+                    <div class="cell-filename-box">
+                      <span class="icon-file-pdf">PDF</span>
+                      <span class="cell-filename-txt" title="铭牌_B款_80×45mm.pdf" style="font-size: 11px;">铭牌_B款_80×45mm.pdf</span>
+                    </div>
+                  </td>
+                  <td><span style="font-family: var(--font-mono); font-size: 10px; color: #475569;">0832-5</span></td>
+                  <td id="qty-cell-1" onclick="handleQtyCellClick(1, event)" oncontextmenu="handleContextMenu(1, 'qty', event)">
+                    <span class="pill-qty">300</span>
+                  </td>
+                  <td><span class="pill-pages">1P</span></td>
+                  <td oncontextmenu="handleContextMenu(1, 'dim', event)"><span class="pill-dim-normal">77×42 R2</span></td>
+                  <td><span class="pill-imposition">5×7 · 35版</span></td>
+                </tr>
+
+                <!-- 行 3: 常态行 (高 26px) -->
+                <tr id="row-2" onclick="handleRowClick(2, event)" oncontextmenu="handleContextMenu(2, 'row', event)">
+                  <td><span style="color: #64748b; font-family: var(--font-mono); font-size: 10px;">3</span></td>
+                  <td class="td-align-left" oncontextmenu="handleContextMenu(2, 'name', event)">
+                    <div class="cell-filename-box">
+                      <span class="icon-file-pdf">PDF</span>
+                      <span class="cell-filename-txt" title="铭牌_C款_80×45mm.pdf" style="font-size: 11px;">铭牌_C款_80×45mm.pdf</span>
+                    </div>
+                  </td>
+                  <td><span style="font-family: var(--font-mono); font-size: 10px; color: #475569;">0832-6</span></td>
+                  <td id="qty-cell-2" onclick="handleQtyCellClick(2, event)" oncontextmenu="handleContextMenu(2, 'qty', event)">
+                    <span class="pill-qty">300</span>
+                  </td>
+                  <td><span class="pill-pages">1P</span></td>
+                  <td oncontextmenu="handleContextMenu(2, 'dim', event)"><span class="pill-dim-normal">77×42 R2</span></td>
+                  <td><span class="pill-imposition">5×7 · 35版</span></td>
+                </tr>
+
+                <!-- 行 4: 常态行 (高 26px) -->
+                <tr id="row-3" onclick="handleRowClick(3, event)" oncontextmenu="handleContextMenu(3, 'row', event)">
+                  <td><span style="color: #64748b; font-family: var(--font-mono); font-size: 10px;">4</span></td>
+                  <td class="td-align-left" oncontextmenu="handleContextMenu(3, 'name', event)">
+                    <div class="cell-filename-box">
+                      <span class="icon-file-pdf">PDF</span>
+                      <span class="cell-filename-txt" title="德佰仕75x15.pdf" style="font-size: 11px;">德佰仕75x15.pdf</span>
+                    </div>
+                  </td>
+                  <td><span style="font-family: var(--font-mono); font-size: 10px; color: #475569;">0832-7</span></td>
+                  <td id="qty-cell-3" onclick="handleQtyCellClick(3, event)" oncontextmenu="handleContextMenu(3, 'qty', event)">
+                    <span class="pill-qty">1000</span>
+                  </td>
+                  <td><span class="pill-pages">1P</span></td>
+                  <td oncontextmenu="handleContextMenu(3, 'dim', event)"><span class="pill-dim-normal">72×12 R2</span></td>
+                  <td><span class="pill-imposition">35×4 · 140版</span></td>
+                </tr>
+
+                <!-- 在 753px 高度下展示后续文件行 -->
+                <tr id="row-4" onclick="handleRowClick(4, event)" oncontextmenu="handleContextMenu(4, 'row', event)">
+                  <td><span style="color: #64748b; font-family: var(--font-mono); font-size: 10px;">5</span></td>
+                  <td class="td-align-left" oncontextmenu="handleContextMenu(4, 'name', event)">
+                    <div class="cell-filename-box">
+                      <span class="icon-file-pdf">PDF</span>
+                      <span class="cell-filename-txt" title="德佰仕100x50.pdf" style="font-size: 11px;">德佰仕100x50.pdf</span>
+                    </div>
+                  </td>
+                  <td><span style="font-family: var(--font-mono); font-size: 10px; color: #475569;">0832-8</span></td>
+                  <td id="qty-cell-4" onclick="handleQtyCellClick(4, event)" oncontextmenu="handleContextMenu(4, 'qty', event)">
+                    <span class="pill-qty">200</span>
+                  </td>
+                  <td><span class="pill-pages">1P</span></td>
+                  <td oncontextmenu="handleContextMenu(4, 'dim', event)"><span class="pill-dim-normal">97×47 R2</span></td>
+                  <td><span class="pill-imposition">20×3 · 60版</span></td>
+                </tr>
+
+                <tr id="row-5" onclick="handleRowClick(5, event)" oncontextmenu="handleContextMenu(5, 'row', event)">
+                  <td><span style="color: #64748b; font-family: var(--font-mono); font-size: 10px;">6</span></td>
+                  <td class="td-align-left" oncontextmenu="handleContextMenu(5, 'name', event)">
+                    <div class="cell-filename-box">
+                      <span class="icon-file-pdf">PDF</span>
+                      <span class="cell-filename-txt" title="PET铭牌_备用款.pdf" style="font-size: 11px;">PET铭牌_备用款.pdf</span>
+                    </div>
+                  </td>
+                  <td><span style="font-family: var(--font-mono); font-size: 10px; color: #475569;">0832-9</span></td>
+                  <td id="qty-cell-5" onclick="handleQtyCellClick(5, event)" oncontextmenu="handleContextMenu(5, 'qty', event)">
+                    <span class="pill-qty">500</span>
+                  </td>
+                  <td><span class="pill-pages">1P</span></td>
+                  <td oncontextmenu="handleContextMenu(5, 'dim', event)"><span class="pill-dim-normal">80×45</span></td>
+                  <td><span class="pill-imposition">5×7 · 35版</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 底部工具栏（34px，在 753px 高度下直接沉在最底边，彻底杜绝折行） -->
+        <div class="left-bottom-toolbar">
+          <div style="display: flex; gap: 4px; align-items: center;">
+            <button class="btn-act" onclick="selectAllRows()">全选</button>
+            <button class="btn-act" onclick="invertSelectRows()">反选</button>
+            <!-- 紧凑分段上下移手柄 -->
+            <div class="btn-seg-move-handle">
+              <div class="seg-move-part" title="选中项上移" onclick="moveSelectedRow(-1)">▲</div>
+              <div class="seg-move-part" title="选中项下移" onclick="moveSelectedRow(1)">▼</div>
+            </div>
+            <!-- 改数量下拉式微按钮 -->
+            <div class="btn-qty-dropdown">
+              <button class="btn-qty-trigger" onclick="toggleQtyPopup(event)">
+                <span>改数量</span>
+                <span class="arrow-down-icon">▾</span>
+              </button>
+              <div class="qty-quick-popup" id="qtyQuickPopup">
+                <div class="qty-pop-item" onclick="applyQtyToSelected(100)"><span>设为 100</span><span class="ctx-kbd-hint">单件</span></div>
+                <div class="qty-pop-item" onclick="applyQtyToSelected(500)"><span>设为 500</span><span class="ctx-kbd-hint">标准</span></div>
+                <div class="qty-pop-item" onclick="applyQtyToSelected(1000)"><span>设为 1,000</span><span class="ctx-kbd-hint">批量</span></div>
+                <div class="qty-pop-item" onclick="bulkSetQtyPrompt()"><span>自定义输入...</span></div>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 4px; align-items: center;">
+            <button class="btn-act" onclick="clearImpositionData()">清空排版</button>
+            <button class="btn-act danger" onclick="deleteSelectedRows()">删除行</button>
+          </div>
+        </div>
+
+        <!-- 底部 16px 状态地基栏 (直接沉在 753px 最底边，与右侧底边严丝合缝齐平！) -->
+        <div class="left-base-ground">
+          <span>💡 支持 Shift 连续多选 / Ctrl 增选 · 右键快捷操作 · 空格切换页面框</span>
+        </div>
+      </section>
+
+
+      <!-- ================= 右侧 360px 工位 (垂直贯通 753px) ================= -->
+      <section class="pane-right">
+        <!-- 顶部标题栏 26px -->
+        <div class="title-bar-row">
+          <span style="font-weight: 700;">铭牌_A款_80×45 mm</span>
+          <span style="color: #1677ff; cursor: pointer; font-size: 12px;">📌 钉住</span>
+        </div>
+
+        <!-- 工位 7 张紧凑卡片 (466px 固定高度) -->
+        <div class="station-cards-stack">
+          <!-- 常用材料 -->
+          <div class="st-card">
+            <div style="font-size: 9.5px; color: #64748b; font-weight: bold; margin-bottom: 2px;">常用材料</div>
+            <div class="mat-grid-mock">
+              <div class="mat-chip">ulyy</div>
+              <div class="mat-chip active">50#yy</div>
+              <div class="mat-chip">100#yy</div>
+              <div class="mat-chip">b</div>
+              <div class="mat-chip">kyb</div>
+              <div class="mat-chip">hc</div>
+              <div class="mat-chip">kyhc</div>
+              <div class="mat-chip">tm</div>
+            </div>
+          </div>
+
+          <!-- 输出路径 -->
+          <div class="st-card">
+            <div class="path-row-mock">
+              <span>输出: <strong style="color: #08979c;">前台\A3\连拼</strong></span>
+              <span style="color: #64748b;">📁 切换目录 ▾</span>
+            </div>
+          </div>
+
+          <!-- 工艺矩阵 -->
+          <div class="st-card">
+            <div class="craft-row-mock">
+              <div class="pill-seg">
+                <div class="pill-seg-item active">光膜</div>
+                <div class="pill-seg-item">哑膜</div>
+                <div class="pill-seg-item">红膜</div>
+                <div class="pill-seg-item">不过膜</div>
+              </div>
+            </div>
+            <div class="craft-row-mock" style="margin-top: 3px;">
+              <div class="pill-seg">
+                <div class="pill-seg-item">直角</div>
+                <div class="pill-seg-item">圆形</div>
+                <div class="pill-seg-item">异形</div>
+                <div class="pill-seg-item active">圆角 R2</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 工单 2x2 -->
+          <div class="st-card">
+            <div class="grid-2x2-mock">
+              <input type="text" value="订单: 0832-4" readonly>
+              <input type="text" value="序号: A08" readonly>
+              <input type="text" value="数量: 1" readonly>
+              <input type="text" value="页序: 未启用" readonly>
+            </div>
+          </div>
+
+          <!-- 6 宫格看板 -->
+          <div class="board-mock">
+            <div style="display: flex; justify-content: space-between; font-size: 10px;">
+              <span style="font-weight: bold; color: #1677ff;">☑ 自动排版</span>
+              <span style="color: #64748b;">[平张] [连拼]</span>
+            </div>
+            <div class="metrics-6-mock">
+              <div class="metric-cell"><span class="lbl">网格</span><span class="val" id="kpiGridVal" style="color:#0958d9;">7×4</span></div>
+              <div class="metric-cell"><span class="lbl">布局数</span><span class="val" id="kpiLayoutVal" style="color:#d46b08;">28</span></div>
+              <div class="metric-cell"><span class="lbl">角度</span><span class="val" style="color:#722ed1;">270°</span></div>
+              <div class="metric-cell"><span class="lbl">尺寸</span><span class="val" id="kpiDimVal" style="color:#08979c;">80×45</span></div>
+              <div class="metric-cell"><span class="lbl">出血</span><span class="val" style="color:#eb2f96;">1.5</span></div>
+              <div class="metric-cell"><span class="lbl">颜色</span><span class="val" style="color:#13c2c2;">黑白</span></div>
+            </div>
+          </div>
+
+          <!-- 预设胶囊 -->
+          <div class="presets-row-mock">
+            <span class="preset-chip-mock">前台 · 滚直缝折手</span>
+            <span class="preset-chip-mock">裁断 · 一刀</span>
+            <span class="preset-chip-mock">前连拼</span>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="right-foot-actions">
+            <span class="btn-toggle-batch-scope" onclick="toggleBatchPane()">
+              <span id="txtBatchActionText">➜ 收起批量列表</span>
+            </span>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn-cancel-default">取消</button>
+              <button class="btn-submit-primary">确认并继续</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 折叠手柄条（16px） -->
+        <div class="collapse-bar-handle" onclick="togglePreviewOnly()">
+          <span>页码: 1/1</span>
+          <span id="txtHandleArrow">▲ 点击折叠预览</span>
+        </div>
+
+        <!-- 右侧 PDF 预览区 (pdfPreviewPanel · 展开时高 245px，直接垫在右侧工位最底部) -->
+        <div class="preview-panel-zone">
+          <div class="preview-canvas-mock">
+            <div class="mock-pdf-sheet">
+              <div style="font-size: 10px; color: #64748b; font-weight: bold; display: flex; justify-content: space-between;">
+                <span>PDF 页面 1 (80×45 mm)</span>
+                <span style="color: #10b981;">● 正常</span>
+              </div>
+              <div class="sheet-crop-line">
+                [ 铭牌_A款 真实比例排版预览 ]<br>
+                <span style="font-size: 9.5px; color: #cbd5e1;">MediaBox: 80×45 | CropBox: 80×45</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #94a3b8;">
+                <span>出血: 1.5mm (红虚线)</span>
+                <span>适应窗口 (100%)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 预览区底部封底条（在 753px 处与左侧地基条绝对齐平！） -->
+          <div class="preview-footer-cap">
+            <span>📄 PDFium 高精度矢量排版预览内核</span>
+            <span style="cursor: pointer;" onclick="togglePreviewOnly()">▲ 点击收起预览</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- 自定义右键菜单体系 (行级 / 数量列 / 成品尺寸列) -->
+  <div class="custom-ctx-menu" id="customCtxMenu">
+    <div class="ctx-header-title" id="ctxMenuTitle">快捷操作</div>
+    <div id="ctxMenuItemsBox"></div>
+  </div>
+
+  <!-- 全局操作反馈 Toast -->
+  <div class="action-toast-layer" id="actionToastLayer"></div>
+
+  <script>
+    const schemes = {
+      'opt-a': {
+        title: "方案 A：经典瑞士冷灰顶冠 + 全局 1px 硬切线 + 底部状态封条（强烈推荐）",
+        desc: "顶部 26px 采用低饱和度精致冷灰（#eef2f6），窗体外围环绕 1px 工业级冷灰硬切线（#94a3b8）。展开预览时无论 360px 还是 880px，底部均有 20px 浅灰状态封底条，彻底消除“白融于白”！已集成单元格 Shift 连续连选、双尺寸微胶囊与右键交互！"
+      },
+      'opt-b': {
+        title: "方案 B：顶部 2.5px 品牌蓝能量顶线 (Top Accent Edge) + 底部坚固封条",
+        desc: "标题栏保持明亮白调，但在窗体最顶端镶嵌一条 2.5px 极细品牌蓝线（#1677ff），无论背后是多么白的网页，顶边如刀刻般分明；展开预览时底部自带浅灰封底。"
+      },
+      'opt-c': {
+        title: "方案 C：专业曜石黑顶冠 (Dark Command) + 经典对比",
+        desc: "顶部 26px 采用专业深海黑蓝（#1e293b），与白色工作舱形成极强明暗对比；展开预览时底层为石墨黑底板，极具 Adobe / JetBrains 工业级高级感！"
+      },
+      'opt-d': {
+        title: "现状对比：纯白顶底（在纯白背景下融为一体）",
+        desc: "顶部与底部均为纯白，且外框阴影过淡，您可以在本白色模拟背景下清楚看到：窗口的上边界和下边界已经完全与背景融在一起，无法分辨！"
+      }
+    };
+
+    function setScheme(optClass) {
+      document.getElementById('bodyRoot').className = optClass;
+      document.querySelectorAll('.hub-tab-btn').forEach(b => b.classList.remove('active'));
+      if (optClass === 'opt-a') document.getElementById('tabA').classList.add('active');
+      if (optClass === 'opt-b') document.getElementById('tabB').classList.add('active');
+      if (optClass === 'opt-c') document.getElementById('tabC').classList.add('active');
+      if (optClass === 'opt-d') document.getElementById('tabD').classList.add('active');
+
+      document.getElementById('descTitle').innerText = schemes[optClass].title;
+      document.getElementById('descBody').innerText = schemes[optClass].desc;
+    }
+
+    // 核心形态切换：isBatchExpanded (880/360), isPreviewExpanded (753/508)
+    let isBatch = true;       // 默认批量列表展开 (880px)
+    let isPreview = true;     // 默认大预览展开 (753px，展示左右底边对齐)
+
+    function updateWindowClasses() {
+      const win = document.getElementById('mockWindow');
+      if (isBatch) {
+        win.classList.remove('single-station');
+        document.getElementById('txtBatchActionText').innerText = '➜ 收起批量列表';
+      } else {
+        win.classList.add('single-station');
+        document.getElementById('txtBatchActionText').innerText = '➜ 展开批量列表';
+      }
+
+      if (isPreview) {
+        win.classList.add('preview-expanded');
+        document.getElementById('txtHandleArrow').innerText = '▲ 点击折叠预览';
+      } else {
+        win.classList.remove('preview-expanded');
+        document.getElementById('txtHandleArrow').innerText = '▼ 点击展开预览 (+245px)';
+      }
+
+      // 更新按钮高亮
+      document.querySelectorAll('.btn-state-pill').forEach(b => b.classList.remove('active'));
+      let stateName = "";
+      if (!isBatch && !isPreview) {
+        document.getElementById('btnSt1').classList.add('active');
+        stateName = "① 单款常规: 360px × 508px (左折叠 · 预览折叠)";
+      } else if (!isBatch && isPreview) {
+        document.getElementById('btnSt2').classList.add('active');
+        stateName = "② 单款大预览: 360px × 753px (左折叠 · 预览展开) ★单工位竖长形态";
+      } else if (isBatch && !isPreview) {
+        document.getElementById('btnSt3').classList.add('active');
+        stateName = "③ 批量常规: 880px × 508px (左展开 · 预览折叠)";
+      } else {
+        document.getElementById('btnSt4').classList.add('active');
+        stateName = "④ 批量大预览: 880px × 753px (左展开 · 预览展开) ★左右底边齐平";
+      }
+      document.getElementById('lblCurrentShape').innerText = stateName;
+    }
+
+    function setWindowShape(batch, preview) {
+      isBatch = batch;
+      isPreview = preview;
+      updateWindowClasses();
+    }
+
+    function toggleBatchPane() {
+      isBatch = !isBatch;
+      updateWindowClasses();
+    }
+
+    function togglePreviewOnly() {
+      isPreview = !isPreview;
+      updateWindowClasses();
+    }
+
+    // =========================================================================
+    // 深度交互核心系统 (从 单元格多选与深度交互模拟.html 完整移植)
+    // =========================================================================
+    const fileItems = [
+      { id: 0, name: "铭牌_A款_80×45mm.pdf", order: "0832-4", qty: 500, pages: "1P", dim: "80×45", imp: "28×4 · 112个", hasIssue: true, activeChoice: 'media' },
+      { id: 1, name: "铭牌_B款_80×45mm.pdf", order: "0832-5", qty: 300, pages: "1P", dim: "77×42 R2", imp: "5×7 · 35版", hasIssue: false },
+      { id: 2, name: "铭牌_C款_80×45mm.pdf", order: "0832-6", qty: 300, pages: "1P", dim: "77×42 R2", imp: "5×7 · 35版", hasIssue: false },
+      { id: 3, name: "德佰仕75x15.pdf", order: "0832-7", qty: 1000, pages: "1P", dim: "72×12 R2", imp: "35×4 · 140版", hasIssue: false },
+      { id: 4, name: "德佰仕100x50.pdf", order: "0832-8", qty: 200, pages: "1P", dim: "97×47 R2", imp: "20×3 · 60版", hasIssue: false },
+      { id: 5, name: "PET铭牌_备用款.pdf", order: "0832-9", qty: 500, pages: "1P", dim: "80×45", imp: "5×7 · 35版", hasIssue: false }
+    ];
+
+    let selectedRowIndex = 0;
+    let selectedQtyCells = new Set(); // 存放多选的数量单元格索引集合
+    let lastAnchorQtyRow = null;      // Shift 区域连选的基准锚点
+
+    // 行点击选择
+    function handleRowClick(index, event) {
+      if (event && event.target.closest('.pagebox-choice-item')) {
+        return;
+      }
+      selectedRowIndex = index;
+      document.querySelectorAll('#batchFilesTable tbody tr').forEach((tr, i) => {
+        if (i === index) {
+          tr.classList.add('active');
+        } else {
+          tr.classList.remove('active');
+        }
+      });
+
+      // 同步右侧工单信息
+      if (fileItems[index]) {
+        const item = fileItems[index];
+        const ordInput = document.querySelector('.grid-2x2-mock input[value^="订单:"]');
+        if (ordInput) ordInput.value = `订单: ${item.order}`;
+        const qtyInput = document.querySelector('.grid-2x2-mock input[value^="数量:"]');
+        if (qtyInput) qtyInput.value = `数量: ${item.qty}`;
+        const titleRow = document.querySelector('.pane-right .title-bar-row span');
+        if (titleRow) titleRow.innerText = item.name.replace('.pdf', '');
+      }
+
+      closeQtyPopup();
+    }
+
+    // 数量列单元格点击 (核心实现 Shift 连续区域多选与 Ctrl 离散增选)
+    function handleQtyCellClick(rowIndex, event) {
+      if (event) {
+        event.stopPropagation();
+      }
+      closeQtyPopup();
+
+      if (event && event.shiftKey && lastAnchorQtyRow !== null) {
+        // Shift 连续区域连选
+        const start = Math.min(lastAnchorQtyRow, rowIndex);
+        const end = Math.max(lastAnchorQtyRow, rowIndex);
+        selectedQtyCells.clear();
+        for (let i = start; i <= end; i++) {
+          selectedQtyCells.add(i);
+        }
+        showToast(`Shift 连续连选了第 ${start + 1} 至 ${end + 1} 行数量`);
+      } else if (event && (event.ctrlKey || event.metaKey)) {
+        // Ctrl 离散增选 / 反选
+        if (selectedQtyCells.has(rowIndex)) {
+          selectedQtyCells.delete(rowIndex);
+        } else {
+          selectedQtyCells.add(rowIndex);
+        }
+        lastAnchorQtyRow = rowIndex;
+      } else {
+        // 单击：单元格聚焦 + 选中该行 + 同步右侧工位！
+        selectedQtyCells.clear();
+        selectedQtyCells.add(rowIndex);
+        lastAnchorQtyRow = rowIndex;
+        handleRowClick(rowIndex, null);
+      }
+
+      updateQtySelectionStyles();
+    }
+
+    // 刷新数量多选样式与浮动统计胶囊
+    function updateQtySelectionStyles() {
+      let sum = 0;
+      let count = selectedQtyCells.size;
+
+      for (let i = 0; i < fileItems.length; i++) {
+        const td = document.getElementById(`qty-cell-${i}`);
+        if (!td) continue;
+
+        td.classList.remove('cell-focused');
+        td.classList.remove('cell-multi-selected');
+
+        if (selectedQtyCells.has(i)) {
+          sum += fileItems[i].qty;
+          if (count === 1) {
+            // 单个数量单元格：强烈聚焦高亮态！
+            td.classList.add('cell-focused');
+          } else {
+            // 多个数量单元格：连续多选态！
+            td.classList.add('cell-multi-selected');
+          }
+        }
+      }
+
+      const bubble = document.getElementById('floatStatBubble');
+      const statText = document.getElementById('bubbleStatText');
+
+      if (count >= 2) {
+        const avg = (sum / count).toFixed(1);
+        statText.innerHTML = `已连选 <b>${count}</b> 个数量 · 合计 <b>${sum.toLocaleString()}</b> 个 · 均值 <b>${avg}</b>`;
+        bubble.style.display = 'flex';
+      } else {
+        bubble.style.display = 'none';
+      }
+    }
+
+    function clearAllSelections() {
+      selectedQtyCells.clear();
+      lastAnchorQtyRow = null;
+      for (let i = 0; i < fileItems.length; i++) {
+        const td = document.getElementById(`qty-cell-${i}`);
+        if (td) {
+          td.classList.remove('cell-focused');
+          td.classList.remove('cell-multi-selected');
+        }
+      }
+      updateQtySelectionStyles();
+      showToast('已清除多选');
+    }
+
+    // 真实 BatchPageBoxChoiceCell：页面框双尺寸基准切换与右侧联动
+    function switchPageBoxChoice(rowIndex, choice, event) {
+      if (event) event.stopPropagation();
+      if (rowIndex !== 0) return;
+
+      fileItems[0].activeChoice = choice;
+      const mediaItem = document.getElementById('choiceMedia0');
+      const cropItem = document.getElementById('choiceCrop0');
+      const impBadge = document.getElementById('impBadge0');
+
+      if (choice === 'media') {
+        mediaItem.classList.add('active-choice');
+        cropItem.classList.remove('active-choice');
+        impBadge.innerText = '28×4 · 112个';
+        const g = document.getElementById('kpiGridVal'); if (g) g.innerText = '7×4';
+        const l = document.getElementById('kpiLayoutVal'); if (l) l.innerText = '28';
+        const d = document.getElementById('kpiDimVal'); if (d) d.innerText = '80×45';
+        showToast('已切换为【媒体框】(80×45mm)，网格 7×4 · 28版');
+      } else {
+        cropItem.classList.add('active-choice');
+        mediaItem.classList.remove('active-choice');
+        impBadge.innerText = '32×4 · 128个';
+        const g = document.getElementById('kpiGridVal'); if (g) g.innerText = '8×4';
+        const l = document.getElementById('kpiLayoutVal'); if (l) l.innerText = '32';
+        const d = document.getElementById('kpiDimVal'); if (d) d.innerText = '77×42';
+        showToast('已切换为【裁剪框】(77×42mm R2)，网格 8×4 · 32版');
+      }
+    }
+
+    // 底部实体操作栏与改数量面板
+    function toggleQtyPopup(event) {
+      event.stopPropagation();
+      const popup = document.getElementById('qtyQuickPopup');
+      popup.classList.toggle('open');
+    }
+
+    function closeQtyPopup() {
+      const popup = document.getElementById('qtyQuickPopup');
+      if (popup) popup.classList.remove('open');
+    }
+
+    function applyQtyToSelected(newQty) {
+      closeQtyPopup();
+      if (selectedQtyCells.size === 0) {
+        selectedQtyCells.add(selectedRowIndex);
+      }
+      selectedQtyCells.forEach(idx => {
+        fileItems[idx].qty = newQty;
+        const pill = document.querySelector(`#qty-cell-${idx} .pill-qty`);
+        if (pill) pill.innerText = newQty;
+      });
+      updateQtySelectionStyles();
+      showToast(`已批量将 ${selectedQtyCells.size} 项数量更新为 ${newQty}`);
+    }
+
+    function bulkSetQtyPrompt() {
+      closeQtyPopup();
+      const val = prompt("请输入统一设置的印刷数量 (个):", "500");
+      if (val && !isNaN(val) && Number(val) > 0) {
+        applyQtyToSelected(parseInt(val, 10));
+      }
+    }
+
+    function bulkAdjustQtyPrompt() {
+      closeQtyPopup();
+      const val = prompt("请输入数量增减值 (正数增加，负数减少，如 100 或 -50):", "100");
+      if (val && !isNaN(val)) {
+        const delta = parseInt(val, 10);
+        if (selectedQtyCells.size === 0) selectedQtyCells.add(selectedRowIndex);
+        selectedQtyCells.forEach(idx => {
+          fileItems[idx].qty = Math.max(1, fileItems[idx].qty + delta);
+          const pill = document.querySelector(`#qty-cell-${idx} .pill-qty`);
+          if (pill) pill.innerText = fileItems[idx].qty;
+        });
+        updateQtySelectionStyles();
+        showToast(`已对选中的 ${selectedQtyCells.size} 项完成增量调整 (${delta > 0 ? "+" + delta : delta})`);
+      }
+    }
+
+    function extractQtyPrompt() {
+      closeQtyPopup();
+      const unit = prompt("请输入单位字符 (如 '张', '个', 'pcs')，将从文件名提取：", "张");
+      if (unit) {
+        showToast(`已从文件名中提取单位 '${unit}' 前的数字更新数量`);
+      }
+    }
+
+    function selectAllRows() {
+      selectedQtyCells.clear();
+      for (let i = 0; i < fileItems.length; i++) {
+        selectedQtyCells.add(i);
+      }
+      updateQtySelectionStyles();
+      showToast('已全选所有行【数量】单元格');
+    }
+
+    function invertSelectRows() {
+      const newSet = new Set();
+      for (let i = 0; i < fileItems.length; i++) {
+        if (!selectedQtyCells.has(i)) newSet.add(i);
+      }
+      selectedQtyCells = newSet;
+      updateQtySelectionStyles();
+      showToast('已反向连选【数量】单元格');
+    }
+
+    function moveSelectedRow(dir) {
+      showToast(dir < 0 ? '已将选定文件项上移 1 位' : '已将选定文件项下移 1 位');
+    }
+
+    function clearImpositionData() {
+      document.querySelectorAll('.pill-imposition').forEach(p => p.innerText = '未排版');
+      showToast('已清空当前全部排版参数');
+    }
+
+    function deleteSelectedRows() {
+      showToast('已从待处理列表中移除当前选中行');
+    }
+
+    // 右键上下文菜单
+    function handleContextMenu(rowIndex, columnType, event) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeQtyPopup();
+
+      selectedRowIndex = rowIndex;
+      handleRowClick(rowIndex, event);
+
+      const menu = document.getElementById('customCtxMenu');
+      const title = document.getElementById('ctxMenuTitle');
+      const itemsBox = document.getElementById('ctxMenuItemsBox');
+
+      itemsBox.innerHTML = '';
+
+      if (columnType === 'qty') {
+        title.innerText = `数量列快捷设置 (行 #${rowIndex + 1})`;
+        itemsBox.innerHTML = `
+          <div class="ctx-item-row" onclick="bulkSetQtyPrompt()"><span>自定义数量...</span></div>
+          <div class="ctx-item-row" onclick="bulkAdjustQtyPrompt()"><span>按当前数量批量增量...</span></div>
+          <div class="ctx-item-row" onclick="extractQtyPrompt()"><span>从文件名提取数量...</span></div>
+          <div class="ctx-divider-line"></div>
+          <div class="ctx-item-row" onclick="showToast('已从剪贴板粘贴数量列表')"><span>从剪贴板批量粘贴数量</span><span class="ctx-kbd-hint">Ctrl+V</span></div>
+        `;
+      } else if (columnType === 'dim') {
+        title.innerText = `尺寸与页面框设置 (行 #${rowIndex + 1})`;
+        itemsBox.innerHTML = `
+          <div class="ctx-item-row" onclick="switchPageBoxChoice(0, 'media')"><span>优先采用媒体框 (MediaBox)</span></div>
+          <div class="ctx-item-row" onclick="switchPageBoxChoice(0, 'crop')"><span>优先采用裁剪框 (CropBox)</span></div>
+          <div class="ctx-divider-line"></div>
+          <div class="ctx-item-row" onclick="showToast('已自动识别 PDF 内嵌出血 1.5mm')"><span>自动识别内嵌出血</span></div>
+          <div class="ctx-item-row" onclick="showToast('已顺时针旋转 90°')"><span>顺时针旋转 90°</span></div>
+        `;
+      } else {
+        title.innerText = `文件行操作 (第 ${rowIndex + 1} 行)`;
+        itemsBox.innerHTML = `
+          <div class="ctx-item-row" onclick="showToast('正在对选定文件快速排版...')"><span>⚡ 快速排版此项</span><span class="ctx-kbd-hint">Enter</span></div>
+          <div class="ctx-item-row" onclick="showToast('正在打开 PDF 页面框属性...')"><span>查看 PDF 页面框信息</span></div>
+          <div class="ctx-divider-line"></div>
+          <div class="ctx-item-row" onclick="moveSelectedRow(-1)"><span>上移一行</span><span class="ctx-kbd-hint">Alt+↑</span></div>
+          <div class="ctx-item-row" onclick="moveSelectedRow(1)"><span>下移一行</span><span class="ctx-kbd-hint">Alt+↓</span></div>
+          <div class="ctx-divider-line"></div>
+          <div class="ctx-item-row danger" onclick="deleteSelectedRows()"><span>从列表中移除</span><span class="ctx-kbd-hint">Del</span></div>
+        `;
+      }
+
+      menu.style.display = 'block';
+      let x = event.clientX;
+      let y = event.clientY;
+      if (x + 185 > window.innerWidth) x = window.innerWidth - 190;
+      if (y + 180 > window.innerHeight) y = window.innerHeight - 190;
+
+      menu.style.left = `${x}px`;
+      menu.style.top = `${y}px`;
+    }
+
+    function closeContextMenu() {
+      const menu = document.getElementById('customCtxMenu');
+      if (menu) menu.style.display = 'none';
+    }
+
+    function onGlobalClick(event) {
+      closeContextMenu();
+      if (!event.target.closest('.btn-qty-dropdown')) {
+        closeQtyPopup();
+      }
+    }
+
+    // 全局空格键监听
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && selectedRowIndex === 0) {
+        e.preventDefault();
+        const target = fileItems[0].activeChoice === 'media' ? 'crop' : 'media';
+        switchPageBoxChoice(0, target, null);
+      }
+    });
+
+    // Toast 反馈
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById('actionToastLayer');
+      toast.innerText = msg;
+      toast.style.display = 'block';
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.style.display = 'none';
+      }, 2200);
+    }
+
+    // 初始化运行
+    updateWindowClasses();
+  </script>
+</body>
+</html>
