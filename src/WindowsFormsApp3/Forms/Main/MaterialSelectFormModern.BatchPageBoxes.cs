@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using WindowsFormsApp3.Models;
@@ -11,9 +12,43 @@ namespace WindowsFormsApp3
 {
     public partial class MaterialSelectFormModern
     {
-        private readonly Dictionary<string, Task<PdfInspectorInfo>> _batchPageBoxInspections =
-            new Dictionary<string, Task<PdfInspectorInfo>>(StringComparer.OrdinalIgnoreCase);
+        private sealed class BatchPdfMetadata
+        {
+            public PdfInspectorInfo Inspection;
+            public double Width;
+            public double Height;
+        }
+
+        private readonly SemaphoreSlim _batchInspectionSlots = new SemaphoreSlim(2);
+        private readonly Dictionary<string, Task<BatchPdfMetadata>> _batchPageBoxInspections =
+            new Dictionary<string, Task<BatchPdfMetadata>>(StringComparer.OrdinalIgnoreCase);
         private BatchFileItem _activeBatchPageBoxItem;
+        // 仅由独立预览入口设置，正式监控默认不增加任何延迟。
+        internal int PreviewMetadataDelayMilliseconds { get; set; }
+
+        private async Task<BatchPdfMetadata> ReadBatchPdfMetadataAsync(string path)
+        {
+            await _batchInspectionSlots.WaitAsync();
+            try
+            {
+                if (IsDisposed || Disposing || _batchPageCountRetriesStopped) return null;
+                if (PreviewMetadataDelayMilliseconds > 0)
+                {
+                    await Task.Delay(PreviewMetadataDelayMilliseconds);
+                    if (IsDisposed || Disposing || _batchPageCountRetriesStopped) return null;
+                }
+                return await Task.Run(() =>
+                {
+                    var metadata = new BatchPdfMetadata { Inspection = new PdfInspectorService().InspectPdf(path) };
+                    IText7PdfTools.GetFirstPageSize(path, out metadata.Width, out metadata.Height);
+                    return metadata;
+                });
+            }
+            finally
+            {
+                _batchInspectionSlots.Release();
+            }
+        }
 
         /// <summary>在后台逐文件检查页面框，同一路径复用读取任务，避免阻塞列表交互。</summary>
         internal async Task LoadBatchPageBoxChoicesAsync(IEnumerable<BatchFileItem> items, bool refresh = false)
@@ -24,8 +59,10 @@ namespace WindowsFormsApp3
                     (refresh || !item.PageBoxSource.HasValue))
                 .GroupBy(item => item.FilePath, StringComparer.OrdinalIgnoreCase).ToList();
             if (groups.Count == 0) return;
+            BeginBatchMetadataProgress(groups.Select(group => group.Key));
             try
             {
+                int completed = 0;
                 foreach (var group in groups)
                 {
                     string path = group.Key;
@@ -37,14 +74,48 @@ namespace WindowsFormsApp3
                     if (refresh) _batchPageBoxInspections.Remove(path);
                     if (!_batchPageBoxInspections.TryGetValue(path, out var task))
                     {
-                        task = Task.Run(() => new PdfInspectorService().InspectPdf(path));
+                        task = ReadBatchPdfMetadataAsync(path);
                         _batchPageBoxInspections[path] = task;
                     }
-                    var inspection = await task;
-                    if (IsDisposed || Disposing) return;
+                    BatchPdfMetadata metadata;
+                    try
+                    {
+                        metadata = await task;
+                    }
+                    catch (Exception ex)
+                    {
+                        if (_batchPageBoxInspections.TryGetValue(path, out var failedTask) && ReferenceEquals(task, failedTask))
+                        {
+                            _batchPageBoxInspections.Remove(path);
+                            CompleteBatchMetadataProgress(path, false);
+                        }
+                        LogHelper.Error($"读取批量文件信息失败: {path}", ex);
+                        continue;
+                    }
+                    if (IsDisposed || Disposing || _batchPageCountRetriesStopped) return;
                     if (!_batchPageBoxInspections.TryGetValue(path, out var latest) || !ReferenceEquals(task, latest)) continue;
+                    if (metadata?.Inspection == null || metadata.Inspection.TotalPages <= 0)
+                    {
+                        _batchPageBoxInspections.Remove(path);
+                        CompleteBatchMetadataProgress(path, false);
+                        continue;
+                    }
+                    var inspection = metadata.Inspection;
                     foreach (var item in group.Where(item => _batchItems.Contains(item)))
                     {
+                        if (metadata.Width > 0 && metadata.Height > 0 && !item.IsPreserveJob)
+                        {
+                            item.RawPdfWidth = metadata.Width;
+                            item.RawPdfHeight = metadata.Height;
+                            if (AppSettings.SwapWidthHeightForDisplay && item.RawPdfWidth < item.RawPdfHeight)
+                            {
+                                item.RawPdfWidth = metadata.Height;
+                                item.RawPdfHeight = metadata.Width;
+                            }
+                            item.Dimensions = ServiceLocator.Instance.GetDimensionCalculationService().CalculateFinalDimensions(
+                                item.RawPdfWidth, item.RawPdfHeight, SelectedTetBleed, GetCompatibleCornerRadius(), GetIsShapeSelected());
+                        }
+                        CompleteMissingBatchPageCounts(item.FilePath, inspection.TotalPages);
                         BatchPageBoxSelectionService.ApplyInspection(item, inspection);
                         if (item.PageBoxChoicePage != null) UpdateBatchPageBoxDimensions(item);
                     }
@@ -54,6 +125,9 @@ namespace WindowsFormsApp3
                     {
                         ActivateBatchPageBoxItem(active);
                     }
+                    // 逐个显示已完成结果，但不更换正在编辑的表格。
+                    if (++completed == 1 || completed % 16 == 0) RenderGroupCards();
+                    if (group.Any(item => _batchItems.Contains(item))) CompleteBatchMetadataProgress(path, true);
                 }
                 if (IsDisposed || Disposing) return;
                 RenderGroupCards();
@@ -62,6 +136,11 @@ namespace WindowsFormsApp3
             catch (Exception ex)
             {
                 LogHelper.Error("批量列表页面框检查失败", ex);
+                foreach (var group in groups)
+                {
+                    if (_batchMetadataProgress.TryGetValue(group.Key, out var state) && !state.HasValue)
+                        CompleteBatchMetadataProgress(group.Key, false);
+                }
             }
         }
 
@@ -109,8 +188,14 @@ namespace WindowsFormsApp3
 
         private void ActivateBatchPageBoxItem(BatchFileItem item)
         {
-            if (item == null || !item.PageBoxSource.HasValue) return;
+            if (item == null) return;
             _activeBatchPageBoxItem = item;
+            if (!item.PageBoxSource.HasValue)
+            {
+                // 用户选中的未解析文件使用另一读取槽位优先加载，无需等待整批完成。
+                _ = LoadBatchPageBoxChoicesAsync(new[] { item });
+                return;
+            }
             var inspection = new PdfInspectorInfo();
             if (item.PageBoxChoicePage != null)
             {
@@ -122,7 +207,8 @@ namespace WindowsFormsApp3
                     BoxType = "CropBox"
                 });
             }
-            UpdatePageBoxChoiceFromInspection(inspection);
+            // 仅同步当前行到右侧，避免批量尺寸重算重建表格，打断数量编辑和单元格选区。
+            UpdatePageBoxChoiceFromInspection(inspection, syncBatchItems: false);
             if (item.PageBoxChoicePage == null && item.RawPdfWidth > 0 && item.RawPdfHeight > 0)
             {
                 _initialWidth = item.RawPdfWidth;

@@ -18,6 +18,9 @@ namespace WindowsFormsApp3.Tests.Forms
 {
     public class MaterialSelectPageBoxChoiceTests : IDisposable
     {
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
+        private static extern bool SetDllDirectory(string pathName);
+
         private readonly string _testRoot;
 
         public MaterialSelectPageBoxChoiceTests()
@@ -137,6 +140,431 @@ namespace WindowsFormsApp3.Tests.Forms
                 Assert.Equal(PdfPageBoxSource.MediaBox, form.SelectedPageBoxSource);
                 Assert.Equal(inspection.AllPageBoxes[0].MediaBox.Width * 25.4 / 72, (double)widthField.GetValue(form));
                 Assert.Equal(inspection.AllPageBoxes[0].MediaBox.Height * 25.4 / 72, (double)heightField.GetValue(form));
+            }
+        }
+
+        [WinFormsFact]
+        public async Task ScrolledBatchRefresh_ShouldPreserveLogicalCardOriginAndScrollExtent()
+        {
+            using (var form = new MaterialSelectFormModern(new List<string> { "PET" },
+                "", "滚动布局", 1, "80", "45", null, -1, -1, -1, -1, "1"))
+            {
+                form.SetPendingFiles(Enumerable.Range(1, 24).Select(index => Path.Combine(_testRoot, $"滚动{index}.pdf")));
+                form.Location = new Point(-4000, -4000);
+                form.Show();
+                form.ToggleBatchFileListPanel(true);
+                await form.LoadBatchPageBoxChoicesAsync(form.BatchFileItems);
+                Application.DoEvents();
+                var viewport = (Panel)form.Controls.Find("pnlCardsContainer", true).Single();
+                var card = viewport.Controls.OfType<Panel>().Single();
+                Assert.True(viewport.VerticalScroll.Visible);
+                int originalExtent = viewport.DisplayRectangle.Height;
+
+                for (int i = 0; i < 3; i++)
+                {
+                    viewport.AutoScrollPosition = new Point(0, 100);
+                    int scrollY = viewport.AutoScrollPosition.Y;
+                    Assert.True(scrollY < 0);
+                    if (i == 1) form.RebuildProcessGroups();
+                    else form.RenderGroupCards();
+                    Application.DoEvents();
+                    if (i == 1) card = viewport.Controls.OfType<Panel>().Single();
+                    else Assert.Same(card, viewport.Controls.OfType<Panel>().Single());
+                    Assert.Equal(scrollY, viewport.AutoScrollPosition.Y);
+                    // 子控件屏幕坐标必须扣除滚动偏移；逻辑原点始终只有 4px 顶部留白。
+                    Assert.Equal(4, card.Top - viewport.AutoScrollPosition.Y);
+                    Assert.Equal(originalExtent, viewport.DisplayRectangle.Height);
+
+                    viewport.AutoScrollPosition = Point.Empty;
+                    Assert.Equal(4, card.Top);
+                }
+            }
+        }
+
+        [WinFormsFact]
+        public async Task ScrolledBatchGroups_ShouldKeepSpacingWhenRowsAreAddedAndGroupsCollapse()
+        {
+            using (var form = new MaterialSelectFormModern(new List<string> { "PET" },
+                "", "分组滚动", 1, "80", "45", null, -1, -1, -1, -1, "1"))
+            {
+                form.SetPendingFiles(Enumerable.Range(1, 24).Select(index => Path.Combine(_testRoot, $"分组{index}.pdf")));
+                var first = form.ProcessGroups.Single();
+                var second = new BatchProcessGroup { GroupName = "第二组", Items = first.Items.Skip(16).ToList() };
+                first.Items.RemoveRange(16, 8);
+                form.ProcessGroups.Add(second);
+                form.RenderGroupCards();
+                form.Location = new Point(-4000, -4000);
+                form.Show();
+                form.ToggleBatchFileListPanel(true);
+                await form.LoadBatchPageBoxChoicesAsync(form.BatchFileItems);
+                Application.DoEvents();
+                var viewport = (Panel)form.Controls.Find("pnlCardsContainer", true).Single();
+                viewport.AutoScrollPosition = new Point(0, 100);
+                form.RenderGroupCards();
+                var cards = viewport.Controls.OfType<Panel>().ToList();
+                Assert.Equal(4, cards[0].Top - viewport.AutoScrollPosition.Y);
+                Assert.Equal(10, cards[1].Top - cards[0].Bottom);
+
+                int previousExtent = viewport.DisplayRectangle.Height;
+                form.AppendPendingFile(Path.Combine(_testRoot, "新增行.pdf"));
+                await form.LoadBatchPageBoxChoicesAsync(form.BatchFileItems);
+                Application.DoEvents();
+                Assert.Equal(previousExtent + 26, viewport.DisplayRectangle.Height);
+                Assert.Equal(4, cards[0].Top - viewport.AutoScrollPosition.Y);
+                Assert.Equal(10, cards[1].Top - cards[0].Bottom);
+
+                first.IsCollapsed = true;
+                form.RenderGroupCards();
+                Application.DoEvents();
+                Assert.False(viewport.VerticalScroll.Visible);
+                Assert.Equal(Point.Empty, viewport.AutoScrollPosition);
+                Assert.Equal(4, cards[0].Top);
+                Assert.Equal(10, cards[1].Top - cards[0].Bottom);
+
+                first.IsCollapsed = false;
+                form.RenderGroupCards();
+                Application.DoEvents();
+                Assert.True(viewport.VerticalScroll.Visible);
+                Assert.Equal(4, cards[0].Top - viewport.AutoScrollPosition.Y);
+                Assert.Equal(10, cards[1].Top - cards[0].Bottom);
+            }
+        }
+
+        [WinFormsFact]
+        public async Task PreviewData_ShouldSimulateProgressUsingRealTemporaryPdfsAndCleanUp()
+        {
+            string directory;
+            using (var data = new MaterialSelectionPreviewData())
+            using (var form = new MaterialSelectFormModern(new List<string> { "PET" },
+                data.FilePaths[0], "加载演示", 1, "80", "45", null, -1, -1, -1, -1, "1"))
+            {
+                directory = Path.GetDirectoryName(data.FilePaths[0]);
+                Assert.All(data.FilePaths, path => Assert.True(File.Exists(path)));
+                Assert.Equal(0, form.PreviewMetadataDelayMilliseconds);
+                form.PreviewMetadataDelayMilliseconds = 200;
+                form.SetPendingFiles(data.FilePaths);
+                var progress = (AntdUI.Progress)form.Controls.Find("batchMetadataProgressBar", true).Single();
+                var label = (AntdUI.Label)form.Controls.Find("batchMetadataProgressLabel", true).Single();
+                var loading = form.LoadBatchPageBoxChoicesAsync(form.BatchFileItems);
+                Assert.Equal(0F, progress.Value);
+                while (progress.Value == 0 && !loading.IsCompleted) await Task.Delay(20);
+                Assert.InRange(progress.Value, 0.25F, 0.75F);
+                await loading;
+                Assert.Equal(1F, progress.Value);
+                Assert.Equal("解析结束：完成 4，失败 0", label.Text);
+                Assert.Equal(new int?[] { 1, 2, 3, 4 }, form.BatchFileItems.Select(item => item.PageCount));
+                Assert.NotNull(form.BatchFileItems[1].PageBoxChoicePage);
+            }
+            Assert.False(Directory.Exists(directory));
+        }
+
+        [WinFormsFact]
+        public async Task Startup_WhenCurrentFileIsMissing_ShouldFinishBatchAndRevealList()
+        {
+            string missing = Path.Combine(_testRoot, "不存在的当前文件.pdf");
+            string valid = CreateBatchPdf("仍可读取的批次文件.pdf", false);
+            using (var form = new MaterialSelectFormModern(new List<string> { "PET" },
+                missing, "启动", 1, "80", "45", null, -1, -1, -1, -1, "1"))
+            {
+                form.SetPendingFiles(new[] { missing, valid, Path.Combine(_testRoot, "缺失B.pdf"), Path.Combine(_testRoot, "缺失C.pdf") });
+                form.Show();
+                form.ToggleBatchFileListPanel(true);
+                var progress = form.Controls.Find("batchMetadataProgressPanel", true).Single();
+                var label = (AntdUI.Label)form.Controls.Find("batchMetadataProgressLabel", true).Single();
+                for (int i = 0; i < 40 && label.Text != "解析结束：完成 1，失败 3"; i++) await Task.Delay(100);
+                Assert.Equal("解析结束：完成 1，失败 3", label.Text);
+                Assert.False(progress.Visible);
+                Assert.Equal(PdfPageBoxSource.Automatic, form.BatchFileItems.Single(item => item.FilePath == valid).PageBoxSource);
+                Assert.Equal(4, GetGroupGrid(form).Rows.Count);
+            }
+        }
+
+        [WinFormsFact]
+        public async Task BatchProgress_ShouldReplaceSpinnerAndHideImmediatelyWhenLoadingEnds()
+        {
+            string valid = CreateBatchPdf("进度 有效.pdf", false);
+            string missing = Path.Combine(_testRoot, "进度 未写完.pdf");
+            using (var form = new MaterialSelectFormModern(new List<string> { "PET" },
+                "", "进度", 1, "30", "20", null, -1, -1, -1, -1, "1"))
+            {
+                var handle = form.Handle;
+                form.SetPendingFiles(new[] { valid, valid.ToUpperInvariant(), missing });
+                var label = (AntdUI.Label)form.Controls.Find("batchMetadataProgressLabel", true).Single();
+                var progress = (AntdUI.Progress)form.Controls.Find("batchMetadataProgressBar", true).Single();
+                var panel = form.Controls.Find("batchMetadataProgressPanel", true).Single();
+                var header = (Control)typeof(MaterialSelectFormModern)
+                    .GetField("pnlTopBatchHeader", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(form);
+                Assert.Equal("正在解析 0 / 2 个文件", label.Text);
+                Assert.Equal(0F, progress.Value);
+                Assert.Equal(26, header.Height);
+                Assert.Equal(DockStyle.Fill, panel.Dock);
+                Assert.Equal("pnlFileList", panel.Parent.Name);
+                Assert.Empty(form.Controls.Find("_spinBatchLoading", true));
+
+                await form.LoadBatchPageBoxChoicesAsync(form.BatchFileItems);
+                Assert.Equal("解析结束：完成 1，失败 1", label.Text);
+                Assert.Equal(1F, progress.Value);
+                form.Show();
+                form.ToggleBatchFileListPanel(true);
+                await form.LoadBatchPageBoxChoicesAsync(form.BatchFileItems);
+                Assert.False(panel.Visible);
+                Assert.Equal(26, header.Height);
+                form.ShowBatchLoading("正在刷新工单...");
+                Assert.True(panel.Visible);
+                Assert.Equal("正在刷新工单...", label.Text);
+                form.HideBatchLoading();
+                Assert.False(panel.Visible);
+
+                string added = CreateBatchPdf("进度 新文件.pdf", false);
+                form.AppendPendingFile(added);
+                await form.LoadBatchPageBoxChoicesAsync(form.BatchFileItems);
+                Assert.Equal("解析结束：完成 2，失败 1", label.Text);
+                Assert.Equal(1F, progress.Value);
+                Assert.Equal(26, header.Height);
+                Assert.False(panel.Visible);
+
+                // 原先失败的文件写入完成后，重试将失败数归零，仍只统计三个文件。
+                File.Copy(valid, missing);
+                await form.LoadBatchPageBoxChoicesAsync(form.BatchFileItems);
+                Assert.Equal("解析结束：完成 3，失败 0", label.Text);
+                Assert.Equal(1F, progress.Value);
+            }
+        }
+
+        [WinFormsFact]
+        public async Task InitialBatch_ShouldDeferPdfReadsUntilBackgroundLoadAndKeepGrid()
+        {
+            var paths = Enumerable.Range(0, 24).Select(index => CreateBatchPdf($"导入{index}_30x20.pdf", false)).ToArray();
+            using (var form = new MaterialSelectFormModern(new List<string> { "PET" },
+                paths[0], "导入", 1, "30", "20", null, -1, -1, -1, -1, "1"))
+            {
+                form.SetPendingFiles(paths);
+                Assert.Equal(24, form.BatchFileItems.Count);
+                Assert.All(form.BatchFileItems, item =>
+                {
+                    Assert.Null(item.PageCount);
+                    Assert.Null(item.PageBoxSource);
+                    Assert.Equal(30, item.RawPdfWidth);
+                });
+                var cache = (System.Collections.IDictionary)typeof(MaterialSelectFormModern)
+                    .GetField("_batchPageBoxInspections", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(form);
+                Assert.Empty(cache.Keys.Cast<object>());
+                var grid = GetGroupGrid(form);
+                await form.LoadBatchPageBoxChoicesAsync(form.BatchFileItems);
+                Assert.Same(grid, GetGroupGrid(form));
+                Assert.All(form.BatchFileItems, item =>
+                {
+                    Assert.Equal(1, item.PageCount);
+                    Assert.Equal(PdfPageBoxSource.Automatic, item.PageBoxSource);
+                    Assert.Equal(98.78, item.RawPdfWidth, 2);
+                });
+            }
+        }
+
+        [WinFormsFact]
+        public void MonitoredArrivals_ShouldMergeDeduplicateAndAppendWithoutReplacingGrid()
+        {
+            using (var form = new MaterialSelectFormModern(new List<string> { "PET" },
+                "", "导入", 1, "30", "20", null, -1, -1, -1, -1, "1"))
+            {
+                form.SetPendingFiles(new[] { @"C:\test\起始.pdf" });
+                var grid = GetGroupGrid(form);
+                for (int i = 0; i < 100; i++)
+                {
+                    form.QueuePendingBatchFile($@"C:\test\新增{i}.pdf");
+                    form.QueuePendingBatchFile($@"C:\test\新增{i}.pdf");
+                }
+                Assert.Single(form.BatchFileItems);
+                form.FlushPendingBatchFiles();
+                Assert.Equal(101, form.BatchFileItems.Count);
+                Assert.Same(grid, GetGroupGrid(form));
+                Assert.Equal(101, ((System.ComponentModel.BindingList<BatchFileItem>)grid.DataSource).Count);
+                Assert.Equal(@"C:\test\新增0.pdf", form.BatchFileItems[1].FilePath);
+                Assert.Equal(@"C:\test\新增99.pdf", form.BatchFileItems[100].FilePath);
+            }
+        }
+
+        [WinFormsFact]
+        public async Task MissingPageCounts_ShouldRetryThreeTimesAndShareReadsForDuplicatePaths()
+        {
+            string path = Path.Combine(_testRoot, "尚未就绪.pdf");
+            using (var form = new MaterialSelectFormModern())
+            {
+                var items = (System.ComponentModel.BindingList<BatchFileItem>)typeof(MaterialSelectFormModern)
+                    .GetField("_batchItems", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(form);
+                items.Add(new BatchFileItem { FilePath = path });
+                items.Add(new BatchFileItem { FilePath = path.ToUpperInvariant() });
+                items.Add(new BatchFileItem { FilePath = Path.Combine(_testRoot, "已加载.pdf"), PageCount = 5 });
+                items.Add(new BatchFileItem { FilePath = Path.Combine(_testRoot, "普通图片.png") });
+                int reads = 0;
+                int uiThread = Environment.CurrentManagedThreadId;
+                Func<string, int?> reader = filePath =>
+                {
+                    Assert.NotEqual(uiThread, Environment.CurrentManagedThreadId);
+                    Assert.Equal(path, filePath);
+                    reads++;
+                    return reads == 1 ? 0 : (int?)null;
+                };
+                for (int i = 0; i < 5; i++) await form.RetryMissingBatchPageCountsAsync(reader);
+                Assert.Equal(3, reads);
+                Assert.Null(items[0].PageCount);
+                Assert.Null(items[1].PageCount);
+                Assert.Equal(5, items[2].PageCount);
+            }
+        }
+
+        [WinFormsFact]
+        public async Task MissingPageCounts_ShouldRetryAutomaticallyAndKeepQuantityEditor()
+        {
+            Assert.True(SetDllDirectory(Path.Combine(AppContext.BaseDirectory, "x64")));
+            string path = CreateBatchPdf("后台补页数.pdf", true);
+            using (var form = new MaterialSelectFormModern(new List<string> { "PET" },
+                path, "补页数", 1, "98", "49", null, -1, -1, -1, -1, "1"))
+            {
+                form.SetPendingFiles(new[] { path });
+                form.Show();
+                var imposition = (AntdUI.Checkbox)typeof(MaterialSelectFormModern)
+                    .GetField("enableImpositionCheckbox", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(form);
+                imposition.Checked = false;
+                form.ToggleBatchFileListPanel(true);
+                await form.LoadBatchPageBoxChoicesAsync(form.BatchFileItems);
+                Application.DoEvents();
+                var item = form.BatchFileItems.Single();
+                var grid = GetGroupGrid(form);
+                int row = FindRow(grid, item);
+                int quantityColumn = grid.Columns.Cast<DataGridViewColumn>()
+                    .Single(column => column.DataPropertyName == nameof(BatchFileItem.Quantity)).Index;
+                int pageColumn = grid.Columns.Cast<DataGridViewColumn>()
+                    .Single(column => column.DataPropertyName == nameof(BatchFileItem.PageCount)).Index;
+                grid.Focus();
+                grid.CurrentCell = grid.Rows[row].Cells[quantityColumn];
+                grid.BeginEdit(true);
+                var editor = Assert.IsType<DataGridViewTextBoxEditingControl>(grid.EditingControl);
+                editor.Text = "1234";
+                editor.SelectionStart = 1;
+                editor.SelectionLength = 2;
+                item.PageCount = null;
+                item.PageBoxSource = null;
+                ((System.Collections.IDictionary)typeof(MaterialSelectFormModern)
+                    .GetField("_batchPageBoxInspections", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(form)).Clear();
+                typeof(MaterialSelectFormModern).GetMethod("ScheduleMissingBatchPageCounts", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Invoke(form, null);
+                for (int i = 0; i < 50 && (!item.PageCount.HasValue || !item.PageBoxSource.HasValue); i++) await Task.Delay(100);
+                // 加载进度立即收起时也不能抢走正在编辑的数量光标。
+                Application.DoEvents();
+
+                Assert.Equal(1, item.PageCount);
+                Assert.Equal(1, grid.Rows[row].Cells[pageColumn].Value);
+                Assert.Same(grid, GetGroupGrid(form));
+                Assert.True(grid.IsCurrentCellInEditMode);
+                Assert.Same(editor, grid.EditingControl);
+                Assert.True(editor.Focused);
+                Assert.Equal("1234", editor.Text);
+                Assert.Equal(1, editor.SelectionStart);
+                Assert.Equal(2, editor.SelectionLength);
+                grid.EndEdit();
+                Assert.Equal("1234", item.Quantity);
+            }
+        }
+
+        [WinFormsFact]
+        public async Task PreviewSuccess_ShouldCompleteOnlyMatchingMissingRowsAndStopRetryingThem()
+        {
+            Assert.True(SetDllDirectory(Path.Combine(AppContext.BaseDirectory, "x64")));
+            string path = CreateBatchPdf("预览补页数.pdf", false);
+            using (var form = new MaterialSelectFormModern(new List<string> { "PET" },
+                path, "补页数", 1, "98", "49", null, -1, -1, -1, -1, "1"))
+            {
+                var items = (System.ComponentModel.BindingList<BatchFileItem>)typeof(MaterialSelectFormModern)
+                    .GetField("_batchItems", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(form);
+                items.Clear();
+                var first = new BatchFileItem { FilePath = path };
+                var duplicate = new BatchFileItem { FilePath = path.ToUpperInvariant() };
+                var valid = new BatchFileItem { FilePath = path, PageCount = 7 };
+                var other = new BatchFileItem { FilePath = Path.Combine(_testRoot, "其他.pdf") };
+                items.Add(first);
+                items.Add(duplicate);
+                items.Add(valid);
+                items.Add(other);
+
+                // 即使自动补读已耗尽，之后预览成功仍应恢复对应行的页数。
+                for (int i = 0; i < 3; i++) await form.RetryMissingBatchPageCountsAsync(filePath => null);
+                await form.LoadPdfPreviewAsync(path);
+                Assert.Equal(1, first.PageCount);
+                Assert.Equal(1, duplicate.PageCount);
+                Assert.Equal(7, valid.PageCount);
+                Assert.Null(other.PageCount);
+                var added = new BatchFileItem { FilePath = Path.Combine(_testRoot, "新进入.pdf") };
+                items.Add(added);
+                int reads = 0;
+                await form.RetryMissingBatchPageCountsAsync(filePath =>
+                {
+                    Assert.Equal(added.FilePath, filePath);
+                    reads++;
+                    return null;
+                });
+                Assert.Equal(1, reads);
+            }
+        }
+
+        [WinFormsFact]
+        public async Task BatchQuantityClick_WithPageBoxChoices_ShouldKeepGridSelectionAndEditor()
+        {
+            string different = CreateBatchPdf("数量编辑 框不一致.pdf", true);
+            string normal = CreateBatchPdf("数量编辑 普通文件.pdf", false);
+            using (var form = new MaterialSelectFormModern(new List<string> { "PET" },
+                different, "数量编辑", 1, "98", "49", null, -1, -1, -1, -1, "1"))
+            {
+                form.SetPendingFiles(new[] { different, normal });
+                form.Show();
+                var imposition = (AntdUI.Checkbox)typeof(MaterialSelectFormModern)
+                    .GetField("enableImpositionCheckbox", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(form);
+                imposition.Checked = false;
+                form.ToggleBatchFileListPanel(true);
+                await form.LoadBatchPageBoxChoicesAsync(form.BatchFileItems);
+                Application.DoEvents();
+
+                // 同时检查普通行和带尺寸按钮的行，数量编辑不应重建表格。
+                foreach (string path in new[] { normal, different, normal, different })
+                {
+                    var item = form.BatchFileItems.Single(candidate => candidate.FilePath == path);
+                    var grid = GetGroupGrid(form);
+                    int rowIndex = FindRow(grid, item);
+                    int columnIndex = grid.Columns.Cast<DataGridViewColumn>()
+                        .Single(column => column.DataPropertyName == nameof(BatchFileItem.Quantity)).Index;
+                    var cell = grid.Rows[rowIndex].Cells[columnIndex];
+                    grid.Focus();
+                    grid.CurrentCell = cell;
+                    var click = new DataGridViewCellEventArgs(columnIndex, rowIndex);
+                    typeof(DataGridView).GetMethod("OnCellClick", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .Invoke(grid, new object[] { click });
+
+                    Assert.Same(grid, GetGroupGrid(form));
+                    Assert.Same(cell, grid.CurrentCell);
+                    Assert.True(cell.Selected);
+                    Assert.True(grid.ContainsFocus);
+
+                    typeof(DataGridView).GetMethod("OnCellDoubleClick", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .Invoke(grid, new object[] { click });
+                    var editor = Assert.IsType<DataGridViewTextBoxEditingControl>(grid.EditingControl);
+                    editor.Text = "1234";
+                    editor.SelectionStart = 2;
+                    editor.SelectionLength = 0;
+                    // 编辑时再次同步当前文件，检查插入光标和未提交文本仍在原处。
+                    typeof(MaterialSelectFormModern).GetMethod("ActivateBatchPageBoxItem", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .Invoke(form, new object[] { item });
+                    Application.DoEvents();
+
+                    Assert.Same(grid, GetGroupGrid(form));
+                    Assert.True(grid.IsCurrentCellInEditMode);
+                    Assert.Same(editor, grid.EditingControl);
+                    Assert.True(editor.Focused);
+                    Assert.Equal("1234", editor.Text);
+                    Assert.Equal(2, editor.SelectionStart);
+                    Assert.Equal(0, editor.SelectionLength);
+                    grid.EndEdit();
+                    Assert.Equal("1234", item.Quantity);
+                }
             }
         }
 

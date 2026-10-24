@@ -3949,7 +3949,7 @@ namespace WindowsFormsApp3.Forms.Panels
             var dialog = _activeMaterialDialog;
             if (dialog != null && !dialog.IsDisposed && dialog.Visible)
             {
-                dialog.AppendPendingFile(filePath);
+                dialog.QueuePendingBatchFile(filePath);
             }
         }
 

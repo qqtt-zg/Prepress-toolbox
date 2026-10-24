@@ -53,6 +53,51 @@ namespace WindowsFormsApp3.Tests.Forms
         });
 
         [WinFormsFact]
+        public async Task UnpinnedMaterialDialog_ShouldKeepTaskbarIdentityAfterDeactivation()
+        {
+            using (var main = new Form { Text = "主窗口" })
+            using (var material = MaterialOwner())
+            using (var other = new Form { Text = "切换目标" })
+            {
+                main.Show();
+                Exception failure = null;
+                material.Shown += (s, e) => material.BeginInvoke(new Action(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(400);
+                        material.ToggleTopMost();
+                        Assert.False(AppSettings.MaterialFormTopMost);
+                        other.Show();
+                        other.Activate();
+                        await Task.Delay(50);
+                        Assert.True(material.Visible);
+                        Assert.False(material.TopMost || NativeTopMost(material));
+                        Assert.True(material.ShowInTaskbar);
+                        int style = GetWindowLong(material.Handle, -20);
+                        Assert.True((style & 0x40000) != 0, $"任务栏窗口样式缺失: 0x{style:X}");
+                        Assert.Equal(0, style & 0x80);
+                        Assert.False(string.IsNullOrWhiteSpace(material.Text), "材料选择框缺少原生窗口标题，任务栏无法识别该窗口");
+                        material.UpdatePageHeaderSubText("测试工单.pdf");
+                        Assert.Equal("材料选择 - 测试工单", material.Text);
+
+                        typeof(Control).GetMethod("RecreateHandle", Private).Invoke(material, null);
+                        await Task.Delay(50);
+                        style = GetWindowLong(material.Handle, -20);
+                        Assert.True(material.ShowInTaskbar && (style & 0x40000) != 0 && (style & 0x80) == 0);
+                        Assert.Equal("材料选择 - 测试工单", material.Text);
+                        material.ResetPageHeaderSubText();
+                        Assert.Equal("材料选择", material.Text);
+                    }
+                    catch (Exception ex) { failure = ex; }
+                    finally { material.DialogResult = DialogResult.Cancel; }
+                }));
+                material.ShowDialog(main);
+                Assert.True(failure == null, failure?.ToString());
+            }
+        }
+
+        [WinFormsFact]
         public async Task ModalOrder_ShouldSurviveOwnerPromotionAndHandleRecreation()
         {
             using (var owner = MaterialOwner())

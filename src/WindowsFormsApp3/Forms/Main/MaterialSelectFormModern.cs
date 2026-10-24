@@ -296,7 +296,7 @@ namespace WindowsFormsApp3
         private AntdUI.Button btnRefreshBatch;
         private AntdUI.Label lblBatchTitle;
         private System.Windows.Forms.Label lblBatchHelp;
-        private AntdUI.Spin _spinBatchLoading;
+
         private BindingList<BatchFileItem> _batchItems = new BindingList<BatchFileItem>();
         private string _batchMonitorDirectory;
         private System.Windows.Forms.Panel pnlPreviewFooter;
@@ -2530,8 +2530,15 @@ namespace WindowsFormsApp3
             try
             {
                 if (confirmButton != null) confirmButton.Enabled = false;
+                FlushPendingBatchFiles();
                 await LoadBatchPageBoxChoicesAsync(_batchItems.ToList());
                 if (IsDisposed || Disposing) return;
+                if (_batchItems.Any(item => !item.PageBoxSource.HasValue &&
+                    string.Equals(Path.GetExtension(item.FilePath), ".pdf", StringComparison.OrdinalIgnoreCase)))
+                {
+                    AntdUI.Message.warn(this, "部分 PDF 尚未写入完成或无法读取，请等待文件就绪后再次确认", autoClose: 4);
+                    return;
+                }
                 if (ValidateForm())
                 {
                     if (enableImpositionCheckbox?.Checked == true &&
@@ -2802,6 +2809,8 @@ namespace WindowsFormsApp3
 
             try
             {
+                // 自绘标题之外同步原生窗口标题，供任务栏与 Alt+Tab 在窗口失焦后识别。
+                this.Text = string.IsNullOrEmpty(fileName) ? "材料选择" : $"材料选择 - {fileName}";
                 if (fileNameLabel == null)
                 {
                     return;
@@ -2834,6 +2843,7 @@ namespace WindowsFormsApp3
         // 重置窗口标题为默认状态
         public void ResetPageHeaderSubText()
         {
+            this.Text = "材料选择";
             if (fileNameLabel != null)
             {
                 fileNameLabel.Text = "材料选择";
@@ -3053,11 +3063,7 @@ namespace WindowsFormsApp3
             // 保留原有的 Ctrl+Enter 功能
             if (keyData == Keys.Enter && ModifierKeys == Keys.Control)
             {
-                if (ValidateForm())
-                {
-                    this.DialogResult = DialogResult.OK;
-                    this.Close();
-                }
+                if (confirmButton?.Enabled == true) ConfirmButton_Click(confirmButton, EventArgs.Empty);
                 return true;
             }
 
@@ -3824,6 +3830,7 @@ namespace WindowsFormsApp3
                 };
                 pnlTopBatchHeader.Controls.Add(lblBatchTitle);
 
+
                 // 2. 底部操作工具栏（实体白底按钮，高度34px与右侧操作栏水平对齐，纯白平滑过渡）
                 pnlBottomToolbar = new System.Windows.Forms.Panel
                 {
@@ -4098,18 +4105,8 @@ namespace WindowsFormsApp3
 
                 dgvBatchFiles.Visible = false;
 
-                _spinBatchLoading = new AntdUI.Spin
-                {
-                    Name = "_spinBatchLoading",
-                    Dock = DockStyle.Fill,
-                    BackColor = Color.FromArgb(245, 247, 250),
-                    ForeColor = Color.FromArgb(22, 119, 255),
-                    Text = "正在批量解析并排版工单文件...",
-                    Font = new Font("Microsoft YaHei UI", 9.5F, FontStyle.Bold),
-                    Visible = false
-                };
-
-                pnlFileList.Controls.Add(_spinBatchLoading);
+                InitializeBatchMetadataProgress();
+                pnlFileList.Controls.Add(_batchProgressPanel);
                 pnlFileList.Controls.Add(pnlCardsContainer);
                 pnlFileList.Controls.Add(pnlTopBatchHeader);
                 pnlFileList.Controls.Add(pnlBottomToolbar);
@@ -4138,7 +4135,7 @@ namespace WindowsFormsApp3
         }
 
         /// <summary>
-        /// 显示左侧列表加载动画，防止导入大量文件或动态排队时界面反复白屏刷新与闪烁
+        /// 在左侧内容区显示加载进度，统一替代原转圈提示。
         /// </summary>
         public void ShowBatchLoading(string text = null)
         {
@@ -4149,16 +4146,13 @@ namespace WindowsFormsApp3
                 return;
             }
 
-            if (_spinBatchLoading != null)
-            {
-                _spinBatchLoading.Text = string.IsNullOrWhiteSpace(text) ? "正在批量解析并排版工单文件..." : text;
-                _spinBatchLoading.Visible = true;
-                _spinBatchLoading.BringToFront();
-            }
+            _isBatchLoading = true;
+            _batchLoadingText = string.IsNullOrWhiteSpace(text) ? "正在加载工单文件..." : text;
+            UpdateBatchMetadataProgress();
         }
 
         /// <summary>
-        /// 隐藏左侧列表加载动画并恢复卡片视图呈现
+        /// 操作结束且无待解析文件时，立即隐藏进度并恢复卡片视图。
         /// </summary>
         public void HideBatchLoading()
         {
@@ -4169,14 +4163,8 @@ namespace WindowsFormsApp3
                 return;
             }
 
-            if (_spinBatchLoading != null)
-            {
-                _spinBatchLoading.Visible = false;
-            }
-            if (pnlCardsContainer != null && !pnlCardsContainer.IsDisposed)
-            {
-                pnlCardsContainer.BringToFront();
-            }
+            _isBatchLoading = false;
+            UpdateBatchMetadataProgress();
         }
 
         /// <summary>
@@ -4192,6 +4180,7 @@ namespace WindowsFormsApp3
                 {
                     lblBatchTitle.Text = $"待处理 ({totalFiles}款 · {groupsCount}组)";
                 }
+                UpdateBatchMetadataProgress();
             }
             catch { }
         }
@@ -4237,13 +4226,13 @@ namespace WindowsFormsApp3
                 if (_batchItems.Count == 0 && !string.IsNullOrEmpty(CurrentFileName))
                 {
                     ExcelMatchData excelMatch = MatchExcelDataForFile(Path.GetFileName(CurrentFileName));
-                    string itemDimensions = ResolveFileDimensions(CurrentFileName, Path.GetFileName(CurrentFileName), out double rw, out double rh);
+                    string itemDimensions = ResolveFileDimensions(CurrentFileName, Path.GetFileName(CurrentFileName), out double rw, out double rh, readPdf: false);
                     _batchItems.Add(new BatchFileItem
                     {
                         Index = 1,
                         FilePath = CurrentFileName,
                         FileName = Path.GetFileName(CurrentFileName),
-                        PageCount = ResolveActualPageCount(CurrentFileName),
+                        PageCount = null,
                         OrderNumber = orderNumberTextBox?.Text ?? "",
                         Quantity = !string.IsNullOrEmpty(quantityTextBox?.Text) ? quantityTextBox.Text : "1",
                         SerialNumber = SerialNumber ?? "1",
@@ -4254,6 +4243,7 @@ namespace WindowsFormsApp3
                         RawPdfHeight = rh,
                         Shape = SelectedShape.ToString()
                     });
+                    ScheduleMissingBatchPageCounts();
                 }
             }
             catch (Exception ex)
@@ -4297,6 +4287,7 @@ namespace WindowsFormsApp3
                 }
 
                 _batchItems.Clear();
+                _batchMetadataProgress.Clear();
                 CaptureBatchMonitorDirectory(list);
                 int startSerial = 1;
                 if (!int.TryParse(SerialNumber, out startSerial) || startSerial < 1)
@@ -4308,7 +4299,7 @@ namespace WindowsFormsApp3
                 {
                     string filePath = list[i];
                     string fileName = Path.GetFileName(filePath);
-                    string itemDimensions = ResolveFileDimensions(filePath, fileName, out double rw, out double rh);
+                    string itemDimensions = ResolveFileDimensions(filePath, fileName, out double rw, out double rh, readPdf: false);
                     var excelMatches = MatchAllExcelDataForFile(fileName);
                     if (excelMatches.Count == 0)
                     {
@@ -4322,7 +4313,7 @@ namespace WindowsFormsApp3
                             Index = _batchItems.Count + 1,
                             FilePath = filePath,
                             FileName = fileName,
-                            PageCount = ResolveActualPageCount(filePath),
+                            PageCount = null,
                             Quantity = string.IsNullOrEmpty(excelMatch.Quantity) ? "1" : excelMatch.Quantity,
                             SerialNumber = !string.IsNullOrWhiteSpace(excelMatch.SerialNumber)
                                 ? excelMatch.SerialNumber
@@ -4343,7 +4334,8 @@ namespace WindowsFormsApp3
                 RenderGroupCards();
                 dgvBatchFiles?.Refresh();
                 _activeBatchPageBoxItem = null;
-                _ = LoadBatchPageBoxChoicesAsync(_batchItems.ToList());
+                ScheduleMissingBatchPageCounts();
+                if (Visible) _ = LoadBatchPageBoxChoicesAsync(_batchItems.ToList());
             }
             catch (Exception ex)
             {
@@ -4420,7 +4412,7 @@ namespace WindowsFormsApp3
                         excelMatches.Add(new ExcelMatchData());
                     }
 
-                    string itemDimensions = ResolveFileDimensions(filePath, fileName, out double rw, out double rh);
+                    string itemDimensions = ResolveFileDimensions(filePath, fileName, out double rw, out double rh, readPdf: false);
                     string fallbackSerialNumber = (startSerial + currentFileCount + addedItems.Count).ToString();
                     foreach (var excelMatch in excelMatches)
                     {
@@ -4429,7 +4421,7 @@ namespace WindowsFormsApp3
                             Index = _batchItems.Count + 1,
                             FilePath = filePath,
                             FileName = fileName,
-                            PageCount = ResolveActualPageCount(filePath),
+                            PageCount = null,
                             Quantity = string.IsNullOrEmpty(excelMatch.Quantity) ? "1" : excelMatch.Quantity,
                             SerialNumber = !string.IsNullOrWhiteSpace(excelMatch.SerialNumber)
                                 ? excelMatch.SerialNumber
@@ -4455,6 +4447,7 @@ namespace WindowsFormsApp3
                     RefreshGroupSummaryHeader();
                     RenderGroupCards();
                     dgvBatchFiles?.Refresh();
+                    ScheduleMissingBatchPageCounts();
                     _ = LoadBatchPageBoxChoicesAsync(addedItems);
                 }
             }
@@ -4754,6 +4747,12 @@ namespace WindowsFormsApp3
                 {
                     AntdUI.Message.warn(this.FindForm(), $"已取消 {movedPaths.Count} 个文件，另有 {failedCount} 个移动失败并保留在列表中", autoClose: 5);
                 }
+                else if (_batchItems.Count == 0)
+                {
+                    // 全部取消后结束本次选择，避免宿主继续处理已移走的文件。
+                    this.DialogResult = DialogResult.Cancel;
+                    this.Close();
+                }
                 else if (_batchItems.Count > 0)
                 {
                     QueueBatchFilePreview(_batchItems[0].FilePath);
@@ -4767,8 +4766,8 @@ namespace WindowsFormsApp3
             finally
             {
                 _isCancellingBatchItems = false;
-                if (btnDeleteBatchRows != null) btnDeleteBatchRows.Enabled = true;
-                if (btnCancelAllBatchRows != null) btnCancelAllBatchRows.Enabled = true;
+                if (btnDeleteBatchRows != null && !btnDeleteBatchRows.IsDisposed) btnDeleteBatchRows.Enabled = true;
+                if (btnCancelAllBatchRows != null && !btnCancelAllBatchRows.IsDisposed) btnCancelAllBatchRows.Enabled = true;
             }
         }
 
@@ -6425,6 +6424,7 @@ namespace WindowsFormsApp3
         /// </summary>
         private void MaterialSelectFormModern_Shown(object sender, EventArgs e)
         {
+            ScheduleMissingBatchPageCounts();
             // 无论用户是否开启常驻置顶，打开时均先强制置顶弹出到最前台
             EnsureTopMostOnOpen();
 
@@ -6481,18 +6481,18 @@ namespace WindowsFormsApp3
 
         private async Task ShowPageBoxChoiceOnOpenAsync(string filePath)
         {
-            if (string.IsNullOrWhiteSpace(filePath) ||
-                !string.Equals(Path.GetExtension(filePath), ".pdf", StringComparison.OrdinalIgnoreCase) ||
-                !File.Exists(filePath))
-                return;
-
             try
             {
+                // 批量列表独立于当前预览文件；当前文件缺失也必须结束各项检查和加载状态。
                 if (_batchItems.Count > 0)
                 {
                     await LoadBatchPageBoxChoicesAsync(_batchItems.ToList());
                     return;
                 }
+                if (string.IsNullOrWhiteSpace(filePath) ||
+                    !string.Equals(Path.GetExtension(filePath), ".pdf", StringComparison.OrdinalIgnoreCase) ||
+                    !File.Exists(filePath))
+                    return;
                 var inspection = await Task.Run(() => new PdfInspectorService().InspectPdf(filePath));
                 if (IsDisposed || Disposing || !IsHandleCreated ||
                     !string.Equals(CurrentFileName, filePath, StringComparison.OrdinalIgnoreCase))
@@ -6511,8 +6511,23 @@ namespace WindowsFormsApp3
         /// </summary>
         private void MaterialSelectFormModern_FormClosing(object sender, FormClosingEventArgs e)
         {
+            if (!e.Cancel)
+            {
+                _batchPageCountRetriesStopped = true;
+                _batchArrivalTimer?.Stop();
+
+                _batchPageCountRetryTimer?.Stop();
+            }
             try
             {
+                // 批量确认后记住本次递增序列的最大编号，下次打开时从其下一号继续。
+                if (!e.Cancel && DialogResult == DialogResult.OK && IsApplyToAll &&
+                    _currentOrderNumberMode == OrderNumberMode.AutoIncrement && _batchItems.Count > 0)
+                {
+                    AppSettings.Set("LastOrderNumber1", _batchItems[_batchItems.Count - 1].OrderNumber);
+                    AppSettings.Save();
+                }
+
                 // ✅ 关闭PDF预览，释放文件句柄
                 _batchPreviewDebounceTimer?.Stop();
                 _batchPreviewDebounceTimer?.Dispose();
@@ -11348,6 +11363,12 @@ namespace WindowsFormsApp3
 
                 // 加载到预览控件
                 bool success = await PdfPreview.LoadPdfAsync(filePath);
+                if (success && !IsDisposed && !Disposing)
+                {
+                    CompleteMissingBatchPageCounts(filePath, PdfPreview.PageCount);
+                    await LoadBatchPageBoxChoicesAsync(_batchItems.Where(item =>
+                        string.Equals(item.FilePath, filePath, StringComparison.OrdinalIgnoreCase)).ToList());
+                }
                 if (success && !_isPreviewExpanded)
                 {
                     // 加载成功后，好为用户自动展开预览

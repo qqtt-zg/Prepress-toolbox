@@ -116,7 +116,7 @@ namespace WindowsFormsApp3
         /// <summary>
         /// 独立解析每个文件的真实成品尺寸（优先保留前缀 -> 真实PDF尺寸提取 -> 文件名规格正则 -> 弹窗尺寸兜底）
         /// </summary>
-        public string ResolveFileDimensions(string filePath, string fileName, out double rawW, out double rawH)
+        public string ResolveFileDimensions(string filePath, string fileName, out double rawW, out double rawH, bool readPdf = true)
         {
             rawW = 0;
             rawH = 0;
@@ -164,7 +164,7 @@ namespace WindowsFormsApp3
                 }
 
                 // 2. 真实物理 PDF 文件存在时，调用 IText7PdfTools 读取真实第一页尺寸
-                if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
+                if (readPdf && !string.IsNullOrEmpty(filePath) && File.Exists(filePath))
                 {
                     try
                     {
@@ -731,6 +731,7 @@ namespace WindowsFormsApp3
             {
                 if (item == null) return null;
                 if (enableImpositionCheckbox?.Checked != true) return null;
+                if (!Visible || !item.PageBoxSource.HasValue) return "-";
 
                 string materialType = !string.IsNullOrEmpty(item.MaterialType)
                     ? item.MaterialType
@@ -820,6 +821,8 @@ namespace WindowsFormsApp3
                 return;
             }
 
+            if (TryRefreshExistingBatchGroups()) return;
+
             bool redrawSuspended = false;
             try
             {
@@ -843,7 +846,7 @@ namespace WindowsFormsApp3
                 }
 
                 // 严格对齐右侧工位卡片顶部线（TITLE_BAR_HEIGHT 26px + 4px = 30px，与右侧首个卡片绝对齐平）
-                int currentTop = 4;
+                int currentTop = 4 + pnlCardsContainer.AutoScrollPosition.Y;
                 int leftMargin = 10;
                 int cardWidth = Math.Max(460, pnlCardsContainer.ClientSize.Width - (leftMargin * 2));
                 ThemeDefinition theme = _activeTheme;
@@ -926,7 +929,8 @@ namespace WindowsFormsApp3
         {
             if (pnlCardsContainer == null) return;
             pnlCardsContainer.SuspendLayout();
-            int currentTop = 4;
+            // Top 是滚动后的客户区坐标，必须叠加负向滚动偏移，避免刷新后累积顶部空白。
+            int currentTop = 4 + pnlCardsContainer.AutoScrollPosition.Y;
             foreach (Control c in pnlCardsContainer.Controls)
             {
                 if (c is System.Windows.Forms.Panel card)
@@ -1031,7 +1035,7 @@ namespace WindowsFormsApp3
             dgv.Columns.Add(colDim);
             dgv.Columns.Add(colLayout);
 
-            var bindingList = new BindingList<BatchFileItem>(grp.Items);
+            var bindingList = new BindingList<BatchFileItem>(grp.Items.ToList());
             dgv.DataSource = bindingList;
             ConfigureBatchPageBoxRows(dgv, grp.Items);
             dgv.DataBindingComplete += (s, e) => ConfigureBatchPageBoxRows(dgv, grp.Items);

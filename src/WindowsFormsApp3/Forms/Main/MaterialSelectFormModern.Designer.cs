@@ -1035,6 +1035,7 @@ namespace WindowsFormsApp3
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.KeyPreview = true;
             this.Name = "MaterialSelectFormModern";
+            this.Text = "材料选择";
             this.Padding = new System.Windows.Forms.Padding(2);
             this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
             this.titleBarPanel.ResumeLayout(false);

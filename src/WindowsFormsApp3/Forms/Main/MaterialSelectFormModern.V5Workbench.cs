@@ -272,7 +272,7 @@ namespace WindowsFormsApp3
             };
         }
 
-        internal void UpdatePageBoxChoiceFromInspection(PdfInspectorInfo inspection)
+        internal void UpdatePageBoxChoiceFromInspection(PdfInspectorInfo inspection, bool syncBatchItems = true)
         {
             if (pnlPageBoxChoiceCard == null || IsDisposed) return;
             _pageBoxDetailsDropDown?.Close();
@@ -318,7 +318,8 @@ namespace WindowsFormsApp3
                 var savedSource = _activeBatchPageBoxItem?.PageBoxSource;
                 SelectPageBoxSource(savedSource == PdfPageBoxSource.MediaBox || savedSource == PdfPageBoxSource.CropBox
                     ? savedSource.Value
-                    : issue.Type == IssueType.OutOfBounds ? PdfPageBoxSource.MediaBox : PdfPageBoxSource.CropBox);
+                    : issue.Type == IssueType.OutOfBounds ? PdfPageBoxSource.MediaBox : PdfPageBoxSource.CropBox,
+                    syncBatchItems);
             }
 
             pnlStationContent?.PerformLayout();
@@ -379,7 +380,7 @@ namespace WindowsFormsApp3
             });
         }
 
-        internal void SelectPageBoxSource(PdfPageBoxSource source)
+        internal void SelectPageBoxSource(PdfPageBoxSource source, bool syncBatchItems = true)
         {
             if (source != PdfPageBoxSource.MediaBox && source != PdfPageBoxSource.CropBox) return;
             SelectedPageBoxSource = source;
@@ -398,7 +399,7 @@ namespace WindowsFormsApp3
                     ? _activeBatchPageBoxItem.RawPdfHeight : selectedBox.Height * 25.4 / 72;
                 _originalWidth = _initialWidth.ToString();
                 _originalHeight = _initialHeight.ToString();
-                UpdateDimensionsWithBleed();
+                UpdateDimensionsWithBleed(syncBatchItems);
             }
             UpdatePageBoxChoiceStyle(btnMediaBoxChoice, source == PdfPageBoxSource.MediaBox);
             UpdatePageBoxChoiceStyle(btnCropBoxChoice, source == PdfPageBoxSource.CropBox);
@@ -1151,7 +1152,7 @@ namespace WindowsFormsApp3
             }
             pnlImpositionDashboardCard.Controls.Add(pnlImpoControlRow);
 
-            // 6 宫格看板容器：六列严格等宽，标题与数值使用统一基线和间距。
+            // 六项排版参数平均分配宽度，看板外框保持不变。
             tlpMetrics = new System.Windows.Forms.TableLayoutPanel
             {
                 Name = "tlpMetrics",
@@ -1175,19 +1176,30 @@ namespace WindowsFormsApp3
             tlpMetrics.RowStyles.Clear();
             tlpMetrics.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
-            for (int i = 0; i < 6; i++)
+            // 方案 A 弹性列宽分配：尺寸 24% (约 80px)、角度 18% (约 60px)，确保数值严格垂直对齐标题且右下角胶囊完整无溢出
+            tlpMetrics.ColumnStyles.Clear();
+            tlpMetrics.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 17F)); // 1. 网格 (约 56px)
+            tlpMetrics.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 13F)); // 2. 布局数 (约 43px)
+            tlpMetrics.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18F)); // 3. 角度 (约 60px，核心加宽容纳270与胶囊)
+            tlpMetrics.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 24F)); // 4. 尺寸 (约 80px，核心加宽容纳长尺寸与胶囊)
+            tlpMetrics.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 13F)); // 5. 出血 (约 43px)
+            tlpMetrics.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 15F)); // 6. 颜色 (约 50px)
+
+            // 排版参数文字统一颜色：彩色模式统一深邃经典蓝，黑白模式统一深灰墨色
+            Func<Color> unifiedMetricColorProvider = () =>
             {
-                tlpMetrics.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / 6F));
-            }
+                bool isBw = _v5ColorText != null && _v5ColorText.Contains("黑白");
+                return isBw ? Color.FromArgb(75, 82, 93) : Color.FromArgb(9, 88, 217);
+            };
 
             // 1. 网格：直达临时行列编辑。
-            pnlPillGrid = CreateMetricPill("网格", () => _v5GridText, () => Color.FromArgb(22, 119, 255),
+            pnlPillGrid = CreateMetricPill("网格", () => _v5GridText, unifiedMetricColorProvider,
                 (s, e) => OpenTemporaryImpositionParameters(focusLayoutGrid: true),
                 (s, e) => OpenTemporaryImpositionParameters(focusLayoutGrid: true));
             tlpMetrics.Controls.Add(pnlPillGrid, 0, 0);
 
             // 2. 布局数：直达每纸数量编辑。
-            pnlPillCount = CreateMetricPill("布局数", () => _v5CountText, () => Color.FromArgb(250, 140, 22),
+            pnlPillCount = CreateMetricPill("布局数", () => _v5CountText, unifiedMetricColorProvider,
                 (s, e) => OpenTemporaryImpositionParameters(focusLayoutQuantity: true),
                 (s, e) => OpenTemporaryImpositionParameters(focusLayoutQuantity: true));
             tlpMetrics.Controls.Add(pnlPillCount, 1, 0);
@@ -1197,23 +1209,23 @@ namespace WindowsFormsApp3
             folderTreeViewToolTip?.SetToolTip(pnlPillCount, "点击指定每纸布局数量并选择行列组合");
 
             // 3. 角度 (标题与数值均可点击切换)
-            pnlPillRotation = CreateMetricPill("角度", () => _v5RotationText, () => Color.FromArgb(114, 46, 209),
+            pnlPillRotation = CreateMetricPill("角度", () => _v5RotationText, unifiedMetricColorProvider,
                 (s, e) => RotationDisplayLabel_Click(s, e),
                 (s, e) => RotationDisplayLabel_Click(s, e));
             tlpMetrics.Controls.Add(pnlPillRotation, 2, 0);
 
             // 4. 尺寸 (纯白无框，PDF解析自动获得，只读不可修改，光标default)
-            pnlPillDimension = CreateMetricPill("尺寸", () => _v5DimensionText, () => Color.FromArgb(9, 88, 217), null, null);
+            pnlPillDimension = CreateMetricPill("尺寸", () => _v5DimensionText, unifiedMetricColorProvider, null, null);
             tlpMetrics.Controls.Add(pnlPillDimension, 3, 0);
 
             // 5. 出血：点击标题显示下拉选项，点击数值直接循环切换。
-            pnlPillBleed = CreateMetricPill("出血", () => _v5BleedText, () => Color.FromArgb(235, 47, 150),
+            pnlPillBleed = CreateMetricPill("出血", () => _v5BleedText, unifiedMetricColorProvider,
                 (s, e) => ShowBleedOptionsMenu(),
                 (s, e) => CycleBleedPreset());
             tlpMetrics.Controls.Add(pnlPillBleed, 4, 0);
 
             // 6. 颜色模式：标题与数值均可点击，并立即刷新 V5 显示状态。
-            pnlPillColor = CreateMetricPill("颜色", () => _v5ColorText, () => _v5ColorTextColor,
+            pnlPillColor = CreateMetricPill("颜色", () => _v5ColorText, unifiedMetricColorProvider,
                 (s, e) => ToggleV5ColorMode(),
                 (s, e) => ToggleV5ColorMode());
             tlpMetrics.Controls.Add(pnlPillColor, 5, 0);
@@ -1764,6 +1776,21 @@ namespace WindowsFormsApp3
                     TextRenderer.DrawText(g, label, fontTop,
                         new Rectangle(0, contentTop, pnl.Width, titleSize.Height),
                         Color.FromArgb(92, 99, 112), centeredTextFlags);
+                    if (label == "角度" || label == "出血" || label == "颜色")
+                    {
+                        // 标题仍按原位置居中，仅在文字右侧追加可切换提示。
+                        int triangleX = (pnl.Width + titleSize.Width) / 2 + 2;
+                        int triangleY = contentTop + (titleSize.Height - 4) / 2;
+                        using (var brush = new SolidBrush(Color.FromArgb(92, 99, 112)))
+                        {
+                            g.FillPolygon(brush, new[]
+                            {
+                                new Point(triangleX, triangleY),
+                                new Point(triangleX + 5, triangleY),
+                                new Point(triangleX + 2, triangleY + 4)
+                            });
+                        }
+                    }
 
                     var valueBounds = new RectangleF(
                         0,
@@ -1777,12 +1804,11 @@ namespace WindowsFormsApp3
                     }
                     else if (label == "尺寸")
                     {
-                        DrawDimensionPillValue(g, pnl, valueBounds, valueSize, contentTop, titleSize, val, valueFont, valueColor, centeredTextFlags);
+                        DrawDimensionPillValue(g, pnl.ClientSize, valueBounds, val, valueColor);
                     }
                     else if (label == "角度")
                     {
-                        TextRenderer.DrawText(g, val, fontVal, Rectangle.Round(valueBounds), valueColor, centeredTextFlags);
-                        DrawRotationPolicyBadge(g, pnl.Width, (int)valueBounds.Y);
+                        DrawRotationPolicyBadge(g, pnl.ClientSize, valueBounds, val, valueColor);
                     }
                     else
                     {
@@ -1834,28 +1860,68 @@ namespace WindowsFormsApp3
             TextRenderer.DrawText(graphics, value, font, Rectangle.Round(bounds), textColor, textFlags);
         }
 
-        private void DrawRotationPolicyBadge(Graphics graphics, int width, int valueTop)
+        private void DrawRotationPolicyBadge(Graphics graphics, Size size, RectangleF bounds, string value, Color valueColor)
         {
             var mode = GetCurrentRotationMode();
             string text = mode == RollRotationMode.Auto ? "自动" : mode == RollRotationMode.Force0Degree ? "禁转" : "固定";
+            bool locked = mode == RollRotationMode.Force0Degree;
             using (var font = new Font("Microsoft YaHei UI", 6F))
             {
-                int badgeWidth = TextRenderer.MeasureText(graphics, text, font, Size.Empty, TextFormatFlags.NoPadding).Width + 4;
-                var bounds = new Rectangle(width - badgeWidth - 1, valueTop - 12, badgeWidth, 10);
-                bool locked = mode == RollRotationMode.Force0Degree;
-                using (var path = CreateRoundedRectanglePath(bounds, 3))
-                using (var fill = new SolidBrush(locked ? Color.FromArgb(255, 247, 230) : Color.FromArgb(249, 240, 255)))
-                using (var border = new Pen(locked ? Color.FromArgb(255, 213, 145) : Color.FromArgb(211, 173, 247)))
-                {
-                    graphics.FillPath(fill, path);
-                    graphics.DrawPath(border, path);
-                    TextRenderer.DrawText(graphics, text, font, bounds,
-                        locked ? Color.FromArgb(173, 104, 0) : Color.FromArgb(114, 46, 209),
-                        TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.NoClipping);
-                }
+                DrawCornerMetricValue(graphics, size, bounds, value, valueColor,
+                    text, font,
+                    locked ? Color.FromArgb(255, 247, 230) : Color.FromArgb(249, 240, 255),
+                    locked ? Color.FromArgb(255, 213, 145) : Color.FromArgb(211, 173, 247),
+                    locked ? Color.FromArgb(173, 104, 0) : Color.FromArgb(114, 46, 209));
             }
         }
 
+        /// <summary>数值绝对水平居中以严格垂直对齐对应的标题，胶囊缩小贴于右下角。</summary>
+        private static void DrawCornerMetricValue(Graphics graphics, Size size, RectangleF bounds, string value,
+            Color valueColor, string badge, Font badgeFont,
+            Color badgeBack, Color badgeBorder, Color badgeColor)
+        {
+            var flags = TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
+            int availableWidth = Math.Max(1, (int)bounds.Width - 4);
+            bool hasBadge = !string.IsNullOrEmpty(badge);
+            int badgeWidth = hasBadge ? Math.Min(Math.Max(12,
+                TextRenderer.MeasureText(graphics, badge, badgeFont, Size.Empty, flags).Width + 4),
+                availableWidth) : 0;
+            const int badgeHeight = 9;
+            const int badgeGap = 2;
+            int badgeTop = Math.Min(size.Height - badgeHeight - 2, (int)bounds.Bottom - badgeHeight / 2);
+
+            // 保持数值中心与标题中心绝对垂直对齐：
+            // 数值以 HorizontalCenter 居中绘制，右侧预留单边胶囊宽度，避免文字和胶囊发生碰撞
+            int valueWidth = Math.Max(1, availableWidth - (hasBadge ? (badgeWidth + badgeGap) : 0));
+            float fontSize = GetDimensionFontSize(graphics, value, valueWidth);
+            using (var valueFont = new Font("Microsoft YaHei UI", fontSize, FontStyle.Bold))
+            {
+                string display = GetDimensionDisplayText(graphics, value, valueFont, valueWidth);
+                var textBounds = Rectangle.Round(bounds);
+                // 数值使用 HorizontalCenter 绘制，中心线与上方标题完全重合，实现严格垂直对齐
+                TextRenderer.DrawText(graphics, display, valueFont, textBounds, valueColor,
+                    flags | TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoClipping);
+                if (!hasBadge) return;
+
+                // 胶囊精准贴于居中数值右边缘的右下角
+                int displayWidth = TextRenderer.MeasureText(graphics, display, valueFont, Size.Empty, flags).Width;
+                int badgeLeft = (int)Math.Ceiling(bounds.Left + (bounds.Width + displayWidth) / 2F) + badgeGap;
+                if (badgeLeft + badgeWidth > bounds.Right - 1)
+                {
+                    badgeLeft = (int)bounds.Right - badgeWidth - 1;
+                }
+                var badgeBounds = new Rectangle(badgeLeft, badgeTop, badgeWidth, badgeHeight);
+                using (var path = CreateRoundedRectanglePath(badgeBounds, 3))
+                using (var brush = new SolidBrush(badgeBack))
+                using (var pen = new Pen(badgeBorder))
+                {
+                    graphics.FillPath(brush, path);
+                    graphics.DrawPath(pen, path);
+                }
+                TextRenderer.DrawText(graphics, badge, badgeFont, badgeBounds, badgeColor,
+                    flags | TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+            }
+        }
         /// <summary>
         /// 尺寸数字超过指标列宽时逐级缩小字体；极长数字在最小字号下由绘制阶段省略显示。
         /// </summary>
@@ -1906,78 +1972,19 @@ namespace WindowsFormsApp3
             return string.Empty;
         }
 
-        /// <summary>
-        /// 绘制尺寸指标项：主数值（如 80×45）严格按自身宽度绝对居中绘制；
-        /// 形状代号（如 R8/Z/C/Y）以微型胶囊形式精准附着在 80×45 右上肩，绝对不影响主数值的居中计算，
-        /// 且严格上浮于主数值顶边缘之上，绝不压迫或遮挡主数值任何笔画。
-        /// </summary>
-        private void DrawDimensionPillValue(
-            Graphics g,
-            Control pnl,
-            RectangleF valueBounds,
-            Size valueSize,
-            int contentTop,
-            Size titleSize,
-            string val,
-            Font fontVal,
-            Color valueColor,
-            TextFormatFlags centeredTextFlags)
+        /// <summary>尺寸数值居中，形状胶囊在独立的右下角区域内绘制。</summary>
+        private void DrawDimensionPillValue(Graphics graphics, Size size, RectangleF bounds, string value, Color valueColor)
         {
-            // 1. 主数值绝对严格居中绘制 (矩形为完整面板宽度，以纯净 80×45 自身计算绝对居中)
-            string displayValue = GetDimensionDisplayText(g, val, fontVal, pnl.ClientSize.Width - 4);
-            TextRenderer.DrawText(g, displayValue, fontVal, Rectangle.Round(valueBounds), valueColor, centeredTextFlags);
-
-            // 2. 检查是否有形状代号需要以胶囊形式呈现在 80×45 右上角
-            string shapeCode = GetCurrentShapeBadgeCode();
-            if (!string.IsNullOrEmpty(shapeCode))
+            bool special = SelectedShape == ShapeType.Special;
+            using (var badgeFont = new Font("Consolas", 6.5F, FontStyle.Bold))
             {
-                using (var fontBadge = new Font("Consolas", 6.5F, FontStyle.Bold))
-                {
-                    Size badgeTextSize = TextRenderer.MeasureText(g, shapeCode, fontBadge, Size.Empty, TextFormatFlags.NoPadding);
-                    int badgeW = Math.Max(12, badgeTextSize.Width + 4);
-                    int badgeH = 9;
-
-                    int valTop = (int)valueBounds.Y;
-
-                    // 右上角精准定位：
-                    // X: 靠右侧对齐 (pnl.Width - badgeW - 1)
-                    // Y: 严格浮在主数值顶边缘上方 (valTop - badgeH - 2)，完全在 7px 行间距的右上部空间，与 80×45 笔画零重叠
-                    int badgeX = pnl.Width - badgeW - 1;
-                    int badgeY = valTop - badgeH - 2;
-
-                    Rectangle badgeRect = new Rectangle(badgeX, badgeY, badgeW, badgeH);
-                    using (var badgePath = CreateRoundedRectanglePath(badgeRect, 3))
-                    {
-                        Color badgeBg;
-                        Color badgeBorder;
-                        Color badgeTextClr;
-
-                        if (SelectedShape == ShapeType.Special)
-                        {
-                            badgeBg = Color.FromArgb(249, 240, 255);
-                            badgeBorder = Color.FromArgb(211, 173, 247);
-                            badgeTextClr = Color.FromArgb(114, 46, 209);
-                        }
-                        else
-                        {
-                            badgeBg = Color.FromArgb(230, 244, 255);
-                            badgeBorder = Color.FromArgb(145, 202, 255);
-                            badgeTextClr = Color.FromArgb(9, 88, 217);
-                        }
-
-                        using (var brush = new SolidBrush(badgeBg))
-                        using (var pen = new Pen(badgeBorder, 1F))
-                        {
-                            g.FillPath(brush, badgePath);
-                            g.DrawPath(pen, badgePath);
-                        }
-
-                        TextRenderer.DrawText(g, shapeCode, fontBadge, badgeRect, badgeTextClr, centeredTextFlags);
-                    }
-                }
+                DrawCornerMetricValue(graphics, size, bounds, value, valueColor,
+                    GetCurrentShapeBadgeCode(), badgeFont,
+                    special ? Color.FromArgb(249, 240, 255) : Color.FromArgb(230, 244, 255),
+                    special ? Color.FromArgb(211, 173, 247) : Color.FromArgb(145, 202, 255),
+                    special ? Color.FromArgb(114, 46, 209) : Color.FromArgb(9, 88, 217));
             }
         }
-
         /// <summary>
         /// 获取当前形状的微型角标代号：
         /// 只要用户选择了形状按钮（含直角），就显示对应设置代号（圆角显示 R8/R5，直角显示 Z，圆形显示 C，异形显示 Y）；
@@ -2440,7 +2447,7 @@ namespace WindowsFormsApp3
 
                 if (!string.IsNullOrWhiteSpace(AdjustedDimensions))
                 {
-                    // 仅提取纯净长宽尺寸（如 "80x45R8" -> "80×45"），使尺寸主数值永远纯净居中，形状代号由右上角胶囊独立呈现
+                    // 仅提取纯净长宽尺寸（如 "80x45R8" -> "80×45"），形状代号由右下角胶囊独立呈现。
                     var match = System.Text.RegularExpressions.Regex.Match(AdjustedDimensions, @"^[\d\.]+[x×*][\d\.]+");
                     if (match.Success)
                     {

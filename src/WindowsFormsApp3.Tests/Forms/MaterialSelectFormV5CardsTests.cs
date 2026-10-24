@@ -1182,6 +1182,18 @@ namespace WindowsFormsApp3.Tests.Forms
                             card5.DrawToBitmap(bmpRoll, new Rectangle(0, 0, card5.Width, card5.Height));
                             bmpRoll.Save(Path.Combine(outDir, "actual-v5-card5-roll-capsule.png"), System.Drawing.Imaging.ImageFormat.Png);
                         }
+                        // 复现三位角度与圆角尺寸同时显示的拥挤场景，便于检查组合排布。
+                        var privateFields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                        typeof(MaterialSelectFormModern).GetField("_v5RotationText", privateFields).SetValue(form, "270");
+                        typeof(MaterialSelectFormModern).GetField("_v5DimensionText", privateFields).SetValue(form, "80×45");
+                        typeof(MaterialSelectFormModern).GetField("_isShapeExplicitlySelected", privateFields).SetValue(form, true);
+                        typeof(MaterialSelectFormModern).GetProperty("SelectedShape").SetValue(form, ShapeType.RoundRect);
+                        typeof(MaterialSelectFormModern).GetProperty("RoundRadius").SetValue(form, 3d);
+                        using (var compact = new Bitmap(card5.Width, card5.Height))
+                        {
+                            card5.DrawToBitmap(compact, new Rectangle(Point.Empty, compact.Size));
+                            compact.Save(Path.Combine(outDir, "actual-v5-card5-inline-badges.png"), System.Drawing.Imaging.ImageFormat.Png);
+                        }
                     }
                 }
             }

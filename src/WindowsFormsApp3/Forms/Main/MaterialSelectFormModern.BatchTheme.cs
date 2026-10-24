@@ -47,6 +47,8 @@ namespace WindowsFormsApp3
                 {
                     lblBatchTitle.ForeColor = theme.TextPrimary;
                 }
+                if (_batchProgressLabel != null) _batchProgressLabel.ForeColor = theme.TextPrimary;
+                if (_batchMetadataProgressBar != null) _batchMetadataProgressBar.Fill = theme.Primary;
 
                 if (lblBatchHelp != null)
                 {

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.IO;
 using System.Reflection;
@@ -22,6 +23,76 @@ namespace WindowsFormsApp3.Tests.Forms
                 AppSettings.Initialize(new FileLogger(Path.Combine(Path.GetTempPath(), "OrderNumberDropdownTests")));
             }
             catch { }
+        }
+
+        [StaTheory]
+        [InlineData(OrderNumberMode.AutoIncrement, DialogResult.OK, true, 3, "PO0102")]
+        [InlineData(OrderNumberMode.AutoIncrement, DialogResult.OK, true, 1, "PO0100")]
+        [InlineData(OrderNumberMode.AutoIncrement, DialogResult.OK, true, 0, "PO0100")]
+        [InlineData(OrderNumberMode.AutoIncrement, DialogResult.Cancel, true, 3, "PO0100")]
+        [InlineData(OrderNumberMode.AutoIncrement, DialogResult.OK, false, 3, "PO0100")]
+        [InlineData(OrderNumberMode.None, DialogResult.OK, true, 3, "PO0100")]
+        public void ClosingBatch_ShouldRememberLastUsedOrderNumber(
+            OrderNumberMode mode, DialogResult result, bool applyToAll, int count, string expected)
+        {
+            object originalOrder = AppSettings.Get("LastOrderNumber1");
+            object originalMode = AppSettings.Get("OrderNumberMode1");
+            object originalAutoIncrement = AppSettings.Get("AutoIncrementOrderNumber1");
+            try
+            {
+                AppSettings.Set("LastOrderNumber1", "PO0100");
+                using (var form = CreateSequenceForm())
+                {
+                    form.SelectOrderNumberMode(mode);
+                    var input = (AntdUI.Input)typeof(MaterialSelectFormModern)
+                        .GetField("orderNumberTextBox", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(form);
+                    input.Text = "PO0100";
+                    var items = (BindingList<BatchFileItem>)typeof(MaterialSelectFormModern)
+                        .GetField("_batchItems", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(form);
+                    items.Clear();
+                    for (int i = 0; i < count; i++)
+                    {
+                        items.Add(new BatchFileItem { FileName = $"file{i}.pdf" });
+                    }
+                    typeof(MaterialSelectFormModern).GetMethod("UpdateBatchOrderNumbers", BindingFlags.NonPublic | BindingFlags.Instance)
+                        .Invoke(form, null);
+                    typeof(MaterialSelectFormModern).GetProperty("IsApplyToAll").SetValue(form, applyToAll);
+                    form.DialogResult = result;
+                    typeof(MaterialSelectFormModern).GetMethod("MaterialSelectFormModern_FormClosing", BindingFlags.NonPublic | BindingFlags.Instance)
+                        .Invoke(form, new object[] { form, new FormClosingEventArgs(CloseReason.UserClosing, false) });
+                }
+
+                Assert.Equal(expected, AppSettings.Get("LastOrderNumber1")?.ToString());
+
+                if (mode == OrderNumberMode.AutoIncrement && result == DialogResult.OK && applyToAll && count > 0)
+                {
+                    using (var reopened = CreateSequenceForm())
+                    {
+                        // 重现下次打开时的设置恢复与自动递增，避免依赖真实窗口和 PDF 文件。
+                        typeof(MaterialSelectFormModern).GetMethod("LoadLastSettings", BindingFlags.NonPublic | BindingFlags.Instance)
+                            .Invoke(reopened, null);
+                        typeof(MaterialSelectFormModern).GetMethod("IncrementLastNumberInOrderText", BindingFlags.NonPublic | BindingFlags.Instance)
+                            .Invoke(reopened, null);
+                        Assert.Equal(MaterialSelectFormModern.CalculateIncrementalOrderNumber(expected, 1), reopened.OrderNumber);
+                    }
+                }
+            }
+            finally
+            {
+                AppSettings.Set("LastOrderNumber1", originalOrder);
+                AppSettings.Set("OrderNumberMode1", originalMode);
+                AppSettings.Set("AutoIncrementOrderNumber1", originalAutoIncrement);
+                AppSettings.Save();
+            }
+        }
+
+        private static MaterialSelectFormModern CreateSequenceForm()
+        {
+            return new MaterialSelectFormModern(
+                materials: new List<string> { "PET" }, fileName: @"C:\test\source.pdf",
+                regexResult: "source", opacity: 1.0, width: "54", height: "84",
+                excelData: null, searchColumnIndex: -1, returnColumnIndex: -1,
+                serialColumnIndex: -1, newColumnIndex: -1, serialNumber: "1");
         }
 
         [StaFact]

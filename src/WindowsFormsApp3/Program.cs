@@ -262,30 +262,28 @@ catch (Exception ex)
                 }
                 else if (isMaterialPreview)
                 {
-                    var mockItems = new[]
+                    using (var previewData = new MaterialSelectionPreviewData())
                     {
-                        @"C:\test\铭牌_A款_80×45mm.pdf",
-                        @"C:\test\铭牌_B款_80×45mm.pdf",
-                        @"C:\test\铭牌_C款_80×45mm.pdf",
-                        @"C:\test\徳佰仕75x15.pdf"
-                    };
-                    var form = new MaterialSelectFormModern(
-                        materials: new List<string> { "PET", "PP", "PVC", "PET环保", "PET透明", "PET哑光", "PET镭射", "PET磨砂", "PET金色", "PET银色", "PET白色", "PET红色", "PET蓝色", "PET绿色", "PP环保" },
-                        fileName: @"C:\test\铭牌_A款_80×45mm.pdf",
-                        regexResult: "DC260915-08",
-                        opacity: 1.0,
-                        width: "80",
-                        height: "45",
-                        excelData: null,
-                        searchColumnIndex: -1,
-                        returnColumnIndex: -1,
-                        serialColumnIndex: -1,
-                        newColumnIndex: -1,
-                        serialNumber: "A08"
-                    );
-                    form.SetPendingFiles(mockItems);
-                    form.ToggleBatchFileListPanel(true);
-                    Application.Run(form);
+                        using (var form = new MaterialSelectFormModern(
+                            materials: new List<string> { "PET", "PP", "PVC", "PET环保", "PET透明", "PET哑光", "PET镭射", "PET磨砂", "PET金色", "PET银色", "PET白色", "PET红色", "PET蓝色", "PET绿色", "PP环保" },
+                            fileName: previewData.FilePaths[0],
+                            regexResult: "DC260915-08",
+                            opacity: 1.0,
+                            width: "80",
+                            height: "45",
+                            excelData: null,
+                            searchColumnIndex: -1,
+                            returnColumnIndex: -1,
+                            serialColumnIndex: -1,
+                            newColumnIndex: -1,
+                            serialNumber: "A08"))
+                        {
+                            form.PreviewMetadataDelayMilliseconds = 650;
+                            form.SetPendingFiles(previewData.FilePaths);
+                            form.ToggleBatchFileListPanel(true);
+                            Application.Run(form);
+                        }
+                    }
                 }
                 else
                 {
