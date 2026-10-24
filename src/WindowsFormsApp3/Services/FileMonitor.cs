@@ -178,8 +178,7 @@ namespace WindowsFormsApp3.Services
         {
             try
             {
-                // 确保文件操作完成
-                System.Threading.Thread.Sleep(500);
+                // 回调只转发事件；文件写入完成由 Presenter 的异步就绪检查负责。
                 var args = new WindowsFormsApp3.Interfaces.FileChangedEventArgs
                 {
                     FilePath = e.FullPath,

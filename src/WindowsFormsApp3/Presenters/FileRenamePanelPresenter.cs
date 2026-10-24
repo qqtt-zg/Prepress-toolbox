@@ -584,6 +584,7 @@ namespace WindowsFormsApp3.Presenters
             {
                 _fileMonitor.FileCreated += OnFileCreated;
                 _fileMonitor.FileRenamed += OnFileRenamed;
+                _fileMonitor.FileChanged += OnMonitoredFileChanged;
                 _fileMonitor.MonitorError += OnMonitorError;
             }
         }
@@ -675,6 +676,15 @@ namespace WindowsFormsApp3.Presenters
         private void OnFileRenamed(object sender, RenamedEventArgs e)
         {
             EnqueueMonitoredFile(e.FullPath);
+        }
+
+        private void OnMonitoredFileChanged(object sender, Interfaces.FileChangedEventArgs e)
+        {
+            // 创建、重命名已有独立入口；这里只接收覆盖/续写，复用队列去重与就绪检查。
+            if (e.ChangeType == Interfaces.WatcherChangeTypes.Changed)
+            {
+                EnqueueMonitoredFile(e.FilePath);
+            }
         }
 
         private void EnqueueMonitoredFile(string filePath)

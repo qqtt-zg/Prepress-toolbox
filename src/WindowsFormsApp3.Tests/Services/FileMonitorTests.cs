@@ -79,6 +79,25 @@ namespace WindowsFormsApp3.Tests.Services
         }
 
         [Fact]
+        public async Task FileChangedEvent_ShouldReachMonitorContract_WhenPdfIsOverwritten()
+        {
+            string destination = Path.Combine(_testDirectory, "同名工单.pdf");
+            string source = Path.Combine(_testDirectory, "复制源.tmp");
+            File.WriteAllText(destination, "first version");
+            File.WriteAllText(source, "second version with different length");
+            var changed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            EventHandler<WindowsFormsApp3.Interfaces.FileChangedEventArgs> handler = (sender, args) =>
+            {
+                if (args.FilePath == destination && args.ChangeType == WindowsFormsApp3.Interfaces.WatcherChangeTypes.Changed)
+                    changed.TrySetResult(true);
+            };
+            _fileMonitor.FileChanged += handler;
+            _fileMonitor.StartMonitoring(_testDirectory);
+            File.Copy(source, destination, overwrite: true);
+            Assert.Same(changed.Task, await Task.WhenAny(changed.Task, Task.Delay(5000)));
+        }
+
+        [Fact]
         public async Task FileCreatedEvent_Should_Be_Raised_When_File_Is_Created()
         {
             // 先开始监控

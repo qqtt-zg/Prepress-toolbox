@@ -35,6 +35,9 @@ namespace WindowsFormsApp3.Services
         /// </summary>
         event EventHandler<RenamedEventArgs> FileRenamed;
 
+        /// <summary>文件内容更新；同名覆盖可能只触发此事件。</summary>
+        event EventHandler<WindowsFormsApp3.Interfaces.FileChangedEventArgs> FileChanged;
+
         /// <summary>
         /// 当监控发生错误时触发的事件
         /// </summary>
